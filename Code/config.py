@@ -3,7 +3,7 @@ from Code.utilities import ConfigHandler
 
 config_dict = {
     "Device": {
-        "processor": "M",  # Options: 'Other' or 'M' (M is for Mac M1/M2/M3 processors)
+        "processor": "Other",  # Options: 'Other' or 'M' (M is for Mac M1/M2/M3 processors)
     },
     "FileLocations": {
         "training_file": "fly_train.h5ad",       # Name of the training data file
@@ -24,7 +24,7 @@ config_dict = {
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
+            "num_samples": 200000,       # Number of samples (cells) for training (total = 289981)
             "num_variables": 15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
@@ -34,7 +34,7 @@ config_dict = {
             "enabled": False,          # Options: True, False
         },
         "TrainTestSplit": {             # NEED TO CREATE NEW DIRECTORIES FOR THIS
-            "method": "sex",        # Options: 'encoding_variable', 'sex', tissue'.
+            "method": "encoding_variable",        # Options: 'encoding_variable', 'sex', tissue'.
             "train": {
                 "sex": "male",           # Options: 'Male', 'Female', 'All'
                 "tissue": "head",        # Options: 'Head', 'Body', 'All'
