@@ -61,7 +61,7 @@ class DataPreprocessor:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Filter based on 'cell_type' if specified
-        cell_type = config.DataParameters.GeneralSettings.cell_type.lower()
+        cell_type = config.DataParameters.GeneralSettings.cell_type
         if cell_type != "all":
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
