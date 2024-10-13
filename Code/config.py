@@ -24,7 +24,7 @@ config_dict = {
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
+            "num_samples": 268000,       # Number of samples (cells) for training (total = 289981)
             "num_variables": 15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
@@ -90,8 +90,8 @@ config_dict = {
     },
     "DataSplit": {
         "validation_split": 0.2,          # Fraction of data for validation
-        "test_split": 0.2,                # Fraction of data for testing
-        "random_state": 42,               # Random state for reproducibility
+        "test_split": 0.1611,                # Fraction of data for testing
+        "random_state": 999,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
