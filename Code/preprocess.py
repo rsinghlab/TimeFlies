@@ -468,6 +468,7 @@ class DataPreprocessor:
         config = self.config
 
         adata = self.process_adata(self.adata)
+        print(f"adata data size: {adata.shape}")
         adata_corrected = self.process_adata(self.adata_corrected)
 
         # Decide which dataset to use
