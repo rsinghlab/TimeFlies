@@ -21,10 +21,10 @@ config_dict = {
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
             "cell_type": "all",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
-            "sex_type": "all",         # Options: 'all', 'male', 'female'
+            "sex_type": "female",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples": 268000,       # Number of samples (cells) for training (total = 289981)
+            "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
             "num_variables": 15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
@@ -36,11 +36,11 @@ config_dict = {
         "TrainTestSplit": {             # NEED TO CREATE NEW DIRECTORIES FOR THIS
             "method": "encoding_variable",        # Options: 'encoding_variable', 'sex', tissue'.
             "train": {
-                "sex": "male",           # Options: 'Male', 'Female', 'All'
+                "sex": "female",           # Options: 'Male', 'Female', 'All'
                 "tissue": "head",        # Options: 'Head', 'Body', 'All'
             },
             "test": {
-                "sex": "female",           # Options: 'Male', 'Female', 'All'
+                "sex": "male",           # Options: 'Male', 'Female', 'All'
                 "tissue": "body",        # Options: 'Head', 'Body', 'All'
                 "size": 0.4,             # Fraction of data for testing (if crashing due to computation, reduce this value)
             },
