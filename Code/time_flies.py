@@ -388,6 +388,57 @@ class TimeFlies:
             raise
 
 
+        
+    def run(self):
+        """
+        Main pipeline to orchestrate the entire workflow.
+        """
+        pipeline_start_time = time.time()  # Track entire pipeline start time
+
+        try:
+            # Step 1: Configure GPU
+            self.setup_gpu()
+
+            # Step 2: Data loading
+            data_load_start_time = time.time()  # Track data loading time
+            self.load_data()
+            data_load_end_time = time.time()
+            print(f"Data loading time: {data_load_end_time - data_load_start_time:.2f} seconds")
+
+            # Step 3: Run EDA if configured
+            self.run_eda()
+
+            # Step 4: Model handling and preprocessing
+            if self.config_instance.DataProcessing.ModelManagement.load_model:
+                # If loading a model, load it before preprocessing
+                self.load_or_train_model()
+            else:
+                # Track preprocessing and training time separately
+                preprocessing_start_time = time.time()
+                self.run_preprocessing()
+                preprocessing_end_time = time.time()
+                print(f"Preprocessing time: {preprocessing_end_time - preprocessing_start_time:.2f} seconds")
+
+                # If not loading a model, build and train after preprocessing
+                training_start_time = time.time()  # Track model training time
+                self.load_or_train_model()  # Assuming this handles training
+                training_end_time = time.time()
+                print(f"Model training time: {training_end_time - training_start_time:.2f} seconds")
+
+            # Step 6: Perform interpretation and visualization
+            self.run_interpretation()
+            self.run_visualizations()
+
+            # Step 7: Display pipeline duration
+            end_time = time.time()
+            display_duration(pipeline_start_time, end_time)
+
+        except Exception as e:
+            logging.error(f"Error during pipeline execution: {e}")
+            raise
+
+
+
 if __name__ == "__main__":
     pipeline = TimeFlies()
     pipeline.run()
