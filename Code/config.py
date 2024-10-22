@@ -20,8 +20,8 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
-            "sex_type": "female",         # Options: 'all', 'male', 'female'
+            "cell_type": "fat cell",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
+            "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
             "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
@@ -36,11 +36,11 @@ config_dict = {
         "TrainTestSplit": {             # NEED TO CREATE NEW DIRECTORIES FOR THIS
             "method": "encoding_variable",        # Options: 'encoding_variable', 'sex', tissue'.
             "train": {
-                "sex": "female",           # Options: 'Male', 'Female', 'All'
+                "sex": "male",           # Options: 'Male', 'Female', 'All'
                 "tissue": "head",        # Options: 'Head', 'Body', 'All'
             },
             "test": {
-                "sex": "male",           # Options: 'Male', 'Female', 'All'
+                "sex": "female",           # Options: 'Male', 'Female', 'All'
                 "tissue": "body",        # Options: 'Head', 'Body', 'All'
                 "size": 0.4,             # Fraction of data for testing (if crashing due to computation, reduce this value)
             },
@@ -69,7 +69,7 @@ config_dict = {
             "remove_lnc_genes": False,          # Options: True, False
             "remove_unaccounted_genes": False,  # Options: True, False
             "select_batch_genes": False,        # Options: True, False #need to create direcotries for this
-            "highly_variable_genes": False,     # Options: True, False #need to create direcotries for this
+            "highly_variable_genes": True,     # Options: True, False #need to create direcotries for this
         },
         "GeneBalancing": {
             "balance_genes": False,             # Options: True, False
@@ -89,14 +89,14 @@ config_dict = {
         "save_predictions": False,        # Options: True, False
     },
     "DataSplit": {
-        "validation_split": 0.2,          # Fraction of data for validation
-        "test_split": 0.1611,                # Fraction of data for testing
-        "random_state": 999,               # Random state for reproducibility
+        "validation_split": 0.1,           # Fraction of data for validation
+        "test_split": 0.1,                 # Fraction of data for testing
+        "random_state": 1,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
         "batch_size": 250,                 # Batch size for training
-        "early_stopping_patience": 5,      # Patience for early stopping
+        "early_stopping_patience": 3,      # Patience for early stopping
         "custom_loss": "categorical_crossentropy",  # Custom loss function
         "metrics": ["accuracy", "AUC"],    # Metrics to evaluate
     },
