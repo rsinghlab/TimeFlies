@@ -216,28 +216,29 @@ class TimeFlies:
             logging.error(f"Error during model loading: {e}")
             raise
 
-    def load_model_for_shap(self):
-        """
-        Load pre-trained model and preprocess evaluation data to prevent data leakage.
-        """
-        try:
-            # Load the pre-trained model
-            self.model_loader = ModelLoader(self.config_instance)
-            (
-                self.best_model,
-                self.best_label_encoder,
-                self.best_reference_data,
-                self.best_scaler,
-                self.best_is_scaler_fit,
-                self.best_mix_included,
-                self.best_test_data,
-                self.best_test_labels,
-                self.best_history,
-            ) = self.model_loader.load_model()
+    # def load_model_for_shap(self):
+    #     """
+    #     Load pre-trained model and preprocess evaluation data to prevent data leakage.
+    #     """
+    #     try:
+    #         # Load the pre-trained model
+    #         self.model_loader = ModelLoader(self.config_instance)
+    #         (
+    #             self.best_model,
+    #             self.best_label_encoder,
+    #             self.best_reference_data,
+    #             self.best_scaler,
+    #             self.best_is_scaler_fit,
+    #             self.best_mix_included,
+    #             self.best_highly_variable_genes,
+    #             self.best_test_data,
+    #             self.best_test_labels,
+    #             self.best_history,
+    #         ) = self.model_loader.load_model()
 
-        except Exception as e:
-            logging.error(f"Error during model loading: {e}")
-            raise
+    #     except Exception as e:
+    #         logging.error(f"Error during model loading: {e}")
+    #         raise
 
     def build_and_train_model(self):
         """
@@ -282,6 +283,49 @@ class TimeFlies:
             logging.error(f"Error in model handling: {e}")
             raise
 
+    # def run_interpretation(self):
+    #     """
+    #     Perform SHAP interpretation for model predictions.
+    #     """
+    #     if self.config_instance.FeatureImportanceAndVisualizations.run_interpreter:
+    #         try:
+    #             logging.info("Starting SHAP interpretation...")
+
+    #             # Load the best model and data without overwriting current data
+    #             self.load_model_for_shap()
+
+    #             # Initialize the Interpreter with the best model and data
+    #             self.interpreter = Interpreter(
+    #                 self.config_instance,
+    #                 self.best_model,
+    #                 self.best_test_data,
+    #                 self.best_test_labels,
+    #                 self.best_label_encoder,
+    #                 self.best_reference_data,
+    #                 self.path_manager,
+    #             )
+
+    #             # Compute or load SHAP values
+    #             shap_values, squeezed_test_data = (
+    #                 self.interpreter.compute_or_load_shap_values()
+    #             )
+
+    #             # Update SHAP-related attributes for visualization
+    #             self.squeezed_shap_values = shap_values
+    #             self.squeezed_test_data = squeezed_test_data
+
+    #             logging.info("SHAP interpretation complete.")
+
+    #         except Exception as e:
+    #             logging.error(f"Error during SHAP interpretation: {e}")
+    #             raise
+    #     else:
+    #         self.squeezed_shap_values, self.squeezed_test_data = None, None
+    #         logging.info(
+    #             "Skipping SHAP interpretation as it is disabled in the configuration."
+    #         )
+
+    
     def run_interpretation(self):
         """
         Perform SHAP interpretation for model predictions.
@@ -290,27 +334,24 @@ class TimeFlies:
             try:
                 logging.info("Starting SHAP interpretation...")
 
-                # Load the best model and data without overwriting current data
-                self.load_model_for_shap()
-
                 # Initialize the Interpreter with the best model and data
                 self.interpreter = Interpreter(
                     self.config_instance,
-                    self.best_model,
-                    self.best_test_data,
-                    self.best_test_labels,
-                    self.best_label_encoder,
-                    self.best_reference_data,
+                    self.model,
+                    self.test_data,
+                    self.test_labels,
+                    self.label_encoder,
+                    self.reference_data,
                     self.path_manager,
                 )
 
                 # Compute or load SHAP values
-                shap_values, squeezed_test_data = (
+                squeezed_shap_values, squeezed_test_data = (
                     self.interpreter.compute_or_load_shap_values()
                 )
 
                 # Update SHAP-related attributes for visualization
-                self.squeezed_shap_values = shap_values
+                self.squeezed_shap_values = squeezed_shap_values
                 self.squeezed_test_data = squeezed_test_data
 
                 logging.info("SHAP interpretation complete.")
@@ -347,47 +388,6 @@ class TimeFlies:
             logging.info("Visualizations completed.")
         else:
             logging.info("Visualization is disabled in the configuration.")
-
-    def run(self):
-        """
-        Main pipeline to orchestrate the entire workflow.
-        """
-        start_time = time.time()
-
-        try:
-            # Step 1: Configure GPU
-            self.setup_gpu()
-
-            # Step 2: Data loading
-            self.load_data()
-
-            # Step 3: Run EDA if configured
-            self.run_eda()
-
-            # Step 4: Model handling and preprocessing
-            if self.config_instance.DataProcessing.ModelManagement.load_model:
-                # If loading a model, load it before preprocessing
-                self.load_or_train_model()
-            # Preprocess data based on whether a model is loaded or not
-            self.run_preprocessing()
-
-            if not self.config_instance.DataProcessing.ModelManagement.load_model:
-                # If not loading a model, build and train after preprocessing
-                self.load_or_train_model()
-
-            # Step 6: Perform interpretation and visualization
-            self.run_interpretation()
-            self.run_visualizations()
-
-            # Step 7: Display duration
-            end_time = time.time()
-            display_duration(start_time, end_time)
-
-        except Exception as e:
-            logging.error(f"Error during pipeline execution: {e}")
-            raise
-
-
         
     def run(self):
         """
