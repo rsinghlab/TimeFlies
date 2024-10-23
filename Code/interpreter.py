@@ -130,7 +130,6 @@ class Interpreter:
         self.path_manager = path_manager
 
         self.shap_dir = self.path_manager.get_visualization_directory(
-            analysis_type="Analysis",
             subfolder="SHAP",
         )
 
@@ -186,7 +185,7 @@ class Interpreter:
         # Determine the explainer to use based on the model type
         if model_type in ["mlp", "cnn"]:
             # For neural network models, use GradientExplainer
-            explainer = shap.GradientExplainer(self.model, shap_reference_data)
+            explainer = shap.GradientExplainer(self.model, self.reference_data)
         elif model_type in ["xgboost", "randomforest"]:
             # For tree-based models, use TreeExplainer
             explainer = shap.TreeExplainer(self.model)
@@ -195,25 +194,61 @@ class Interpreter:
             explainer = shap.LinearExplainer(self.model, shap_reference_data)
 
         # Compute SHAP values
-        shap_values = explainer.shap_values(shap_test_data)
+        shap_values = explainer.shap_values(self.test_data)
 
-        # Adjust SHAP values and test data shapes if necessary
+        # # Adjust SHAP values and test data shapes if necessary
+        # if isinstance(shap_values, list):
+        #     squeezed_shap_values = [
+        #         np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
+        #     ]
+        # else:
+        #     squeezed_shap_values = (
+        #         np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
+        #     )
+
+        # squeezed_test_data = (
+        #     shap_test_data
+        #     if shap_test_data.ndim <= 2
+        #     else np.squeeze(shap_test_data, axis=1)
+        # )
+
+        # return squeezed_shap_values, squeezed_test_data
+    
+        # Print the shape of SHAP values before squeezing
+        print(f"SHAP values shape before squeezing: {np.array(shap_values).shape}")
+        print(f"Test data shape before squeezing: {shap_test_data.shape}")
+
+        # # Adjust SHAP values and test data shapes if necessary
+        # if isinstance(shap_values, list):
+        #     squeezed_shap_values = [
+        #         np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
+        #     ]
+        # else:
+        #     squeezed_shap_values = (
+        #         np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
+        #     )
+
+        # squeezed_test_data = (
+        #     shap_test_data
+        #     if shap_test_data.ndim <= 2
+        #     else np.squeeze(shap_test_data, axis=1)
+        # )
+
+        # If shap_values is a list (multi-class classification), squeeze the values for each class
         if isinstance(shap_values, list):
-            squeezed_shap_values = [
-                np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-            ]
+            squeezed_shap_values = [np.squeeze(val, axis=1) for val in shap_values]
         else:
-            squeezed_shap_values = (
-                np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
-            )
+            squeezed_shap_values = np.squeeze(shap_values, axis=1)
 
-        squeezed_test_data = (
-            shap_test_data
-            if shap_test_data.ndim <= 2
-            else np.squeeze(shap_test_data, axis=1)
-        )
+        # Squeeze the test data
+        squeezed_test_data = np.squeeze(self.test_data, axis=1)
+
+        # Print the shape of SHAP values after squeezing
+        print(f"SHAP values shape after squeezing: {np.array(squeezed_shap_values).shape}")
+        print(f"Test data shape after squeezing: {squeezed_test_data.shape}")
 
         return squeezed_shap_values, squeezed_test_data
+
 
     def save_shap_values(self, shap_values):
         """

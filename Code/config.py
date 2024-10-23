@@ -20,11 +20,11 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "fat cell",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
+            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
+            "num_samples":6000,       # Number of samples (cells) for training (total = 289981)
             "num_variables": 15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
@@ -82,7 +82,7 @@ config_dict = {
     },
     "FeatureImportanceAndVisualizations": {
         "run_visualization": True,       # Options: True, False
-        "run_interpreter": False,        # Options: True, False (e.g., SHAP)
+        "run_interpreter": True,        # Options: True, False (e.g., SHAP)
         "load_SHAP": False,              # New flag: True to load SHAP values, False to compute them
         "reference_size": 5000,          # Reference data size for SHAP
         "SHAP_test_size": 5000,          # Test data size for SHAP
