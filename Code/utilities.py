@@ -1,65 +1,7 @@
 import tensorflow as tf
-from tensorflow.keras import mixed_precision
 import os
 import scanpy as sc
 import pandas as pd
-
-
-class ConfigHandler:
-    def __init__(self, config_dict):
-        self._config_dict = {}
-        for key, value in config_dict.items():
-            if isinstance(value, dict):
-                value = ConfigHandler(value)
-            self._config_dict[key] = value
-
-    def __getattr__(self, name):
-        try:
-            return self._config_dict[name]
-        except KeyError:
-            raise AttributeError(f"No such attribute: {name}")
-
-    def __setattr__(self, name, value):
-        if name == "_config_dict":
-            super().__setattr__(name, value)
-        else:
-            if isinstance(value, dict):
-                value = ConfigHandler(value)
-            self._config_dict[name] = value
-
-    def __getitem__(self, key):
-        return self._config_dict[key]
-
-    def __setitem__(self, key, value):
-        if isinstance(value, dict):
-            value = ConfigHandler(value)
-        self._config_dict[key] = value
-
-    def __iter__(self):
-        return iter(self._config_dict)
-
-    def items(self):
-        return self._config_dict.items()
-
-    def keys(self):
-        return self._config_dict.keys()
-
-    def values(self):
-        return self._config_dict.values()
-
-    def get(self, key, default=None):
-        return self._config_dict.get(key, default)
-
-    def as_dict(self):
-        result = {}
-        for key, value in self._config_dict.items():
-            if isinstance(value, ConfigHandler):
-                value = value.as_dict()
-            result[key] = value
-        return result
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self._config_dict})"
 
 
 class GPUHandler:
@@ -420,20 +362,3 @@ class PathManager:
         )
 
         return processed_data_dir
-
-
-def display_duration(start_time, end_time):
-    """
-    Displays the duration of a task in a human-readable format.
-
-    Parameters:
-    - start_time (float): The start time of the task.
-    - end_time (float): The end time of the task.
-    """
-    duration_seconds = end_time - start_time
-    if duration_seconds < 60:
-        print(f"The task took {round(duration_seconds)} seconds.")
-    else:
-        minutes = duration_seconds // 60
-        seconds = round(duration_seconds % 60)
-        print(f"The task took {int(minutes)} minutes and {seconds} seconds.")

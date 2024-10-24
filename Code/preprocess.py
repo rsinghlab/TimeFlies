@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
 import dill as pickle
 import logging
-from Code.utilities import (
+from utilities import (
     PathManager,
 )
 
