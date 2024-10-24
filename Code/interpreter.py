@@ -7,6 +7,7 @@ from sklearn.dummy import DummyClassifier
 import shap
 import pickle
 import logging
+import hashlib
 
 
 class Prediction:
@@ -175,9 +176,6 @@ class Interpreter:
         Returns:
         - tuple: A tuple containing the SHAP values and the corresponding SHAP test data.
         """
-        # Use the entire test data and reference data for SHAP computation
-        shap_test_data = self.test_data
-        shap_reference_data = self.reference_data
 
         # Access the model type from the configuration
         model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
@@ -191,64 +189,33 @@ class Interpreter:
             explainer = shap.TreeExplainer(self.model)
         else:
             # For linear models, use LinearExplainer
-            explainer = shap.LinearExplainer(self.model, shap_reference_data)
+            explainer = shap.LinearExplainer(self.model, self.reference_data)
 
         # Compute SHAP values
         shap_values = explainer.shap_values(self.test_data)
 
-        # # Adjust SHAP values and test data shapes if necessary
-        # if isinstance(shap_values, list):
-        #     squeezed_shap_values = [
-        #         np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-        #     ]
-        # else:
-        #     squeezed_shap_values = (
-        #         np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
-        #     )
-
-        # squeezed_test_data = (
-        #     shap_test_data
-        #     if shap_test_data.ndim <= 2
-        #     else np.squeeze(shap_test_data, axis=1)
-        # )
-
-        # return squeezed_shap_values, squeezed_test_data
-    
-        # Print the shape of SHAP values before squeezing
-        print(f"SHAP values shape before squeezing: {np.array(shap_values).shape}")
-        print(f"Test data shape before squeezing: {shap_test_data.shape}")
-
-        # # Adjust SHAP values and test data shapes if necessary
-        # if isinstance(shap_values, list):
-        #     squeezed_shap_values = [
-        #         np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-        #     ]
-        # else:
-        #     squeezed_shap_values = (
-        #         np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
-        #     )
-
-        # squeezed_test_data = (
-        #     shap_test_data
-        #     if shap_test_data.ndim <= 2
-        #     else np.squeeze(shap_test_data, axis=1)
-        # )
-
-        # If shap_values is a list (multi-class classification), squeeze the values for each class
+        # Adjust SHAP values and test data shapes if necessary
         if isinstance(shap_values, list):
-            squeezed_shap_values = [np.squeeze(val, axis=1) for val in shap_values]
+            squeezed_shap_values = [
+                np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
+            ]
         else:
-            squeezed_shap_values = np.squeeze(shap_values, axis=1)
+            squeezed_shap_values = (
+                np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
+            )
 
-        # Squeeze the test data
-        squeezed_test_data = np.squeeze(self.test_data, axis=1)
+        # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
+        squeezed_shap_values = [
+            squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+        ]
 
-        # Print the shape of SHAP values after squeezing
-        print(f"SHAP values shape after squeezing: {np.array(squeezed_shap_values).shape}")
-        print(f"Test data shape after squeezing: {squeezed_test_data.shape}")
+        squeezed_test_data = (
+            self.test_data
+            if self.test_data.ndim <= 2
+            else np.squeeze(self.test_data, axis=1)
+        )
 
         return squeezed_shap_values, squeezed_test_data
-
 
     def save_shap_values(self, shap_values):
         """
@@ -265,8 +232,8 @@ class Interpreter:
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
             "model_weights_hash": model_weights_hash,
-            "test_data_hash": hash(self.test_data.tobytes()),
-            "reference_data_hash": hash(self.reference_data.tobytes()),
+            "test_data_hash": compute_sha256_hash(self.test_data.tobytes()),
+            "reference_data_hash": compute_sha256_hash(self.reference_data.tobytes()),
         }
 
         # Save SHAP values, metadata, and the data
@@ -308,10 +275,12 @@ class Interpreter:
             ),
             "model_weights_hash": model_weights_hash,
             "test_data_hash": (
-                hash(self.test_data.tobytes()) if self.test_data is not None else None
+                compute_sha256_hash(self.test_data.tobytes())
+                if self.test_data is not None
+                else None
             ),
             "reference_data_hash": (
-                hash(self.reference_data.tobytes())
+                compute_sha256_hash(self.reference_data.tobytes())
                 if self.reference_data is not None
                 else None
             ),
@@ -335,7 +304,7 @@ class Interpreter:
         # Perform consistency checks
         if not model_match:
             logging.warning(
-                "The model used for SHAP computation does not match the current best model."
+                "The model used for SHAP computation does not match the current model."
             )
         if not test_data_match:
             logging.warning(
@@ -362,19 +331,30 @@ class Interpreter:
 
     def _get_model_weights_hash(self):
         """
-        Get a hash of the model's weights for consistency checks.
+        Get a SHA-256 hash of the model's weights for consistency checks.
 
         Returns:
-            int: The hash of the model's weights.
+            str: The hexadecimal SHA-256 hash of the model's weights.
         """
         if hasattr(self.model, "get_weights"):
             # For Keras models
             weights = self.model.get_weights()
             weights_bytes = b"".join([w.tobytes() for w in weights])
-            return hash(weights_bytes)
+            return compute_sha256_hash(weights_bytes)
         else:
             # For other models like scikit-learn models
-            import pickle
-
             model_bytes = pickle.dumps(self.model)
-            return hash(model_bytes)
+            return compute_sha256_hash(model_bytes)
+
+
+def compute_sha256_hash(data_bytes):
+    """
+    Compute the SHA-256 hash of the given bytes.
+
+    Args:
+        data_bytes (bytes): The data to hash.
+
+    Returns:
+        str: The hexadecimal SHA-256 hash of the data.
+    """
+    return hashlib.sha256(data_bytes).hexdigest()

@@ -4,7 +4,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import json
 import dill as pickle
-from Code.utilities import PathManager
+from utilities import PathManager
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 import xgboost as xgb

@@ -14,7 +14,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 import seaborn as sns
-from Code.interpreter import Prediction
+from interpreter import Prediction
 from sklearn.preprocessing import label_binarize
 from sklearn.exceptions import UndefinedMetricWarning
 import warnings
@@ -476,70 +476,68 @@ class VisualizationTools:
         plt.savefig(output_file_path)
         plt.close()
 
-    # def plot_shap_summary(
-    #     self,
-    #     shap_values,
-    #     test_data,
-    #     feature_names,
-    #     class_names,
-    #     file_name_prefix,
-    # ):
-    #     """
-    #     Plots SHAP summary plots for the given SHAP values and test data.
+    def plot_shap_summary(
+        self,
+        shap_values,
+        test_data,
+        feature_names,
+        class_names,
+        file_name_prefix,
+    ):
+        """
+        Plots SHAP summary plots for the given SHAP values and test data.
 
-    #     Args:
-    #         shap_values (array-like): SHAP values computed for the test data.
-    #         test_data (array-like): Test data for which SHAP values were computed.
-    #         feature_names (array-like): Names of the features corresponding to the columns of test_data.
-    #         class_names (array-like): Names of the classes.
-    #         file_name_prefix (str): Prefix for the saved files. Individual class plots will append the class name.
+        Args:
+            shap_values (array-like): SHAP values computed for the test data.
+            test_data (array-like): Test data for which SHAP values were computed.
+            feature_names (array-like): Names of the features corresponding to the columns of test_data.
+            class_names (array-like): Names of the classes.
+            file_name_prefix (str): Prefix for the saved files. Individual class plots will append the class name.
 
-    #     Returns:
-    #         None
-    #     """
-    #     # Path for saving plots
-    #     output_subfolder = self.path_manager.get_visualization_directory(
-    #         subfolder="SHAP"
-    #     )
-    #     os.makedirs(output_subfolder, exist_ok=True)
+        Returns:
+            None
+        """
+        # Path for saving plots
+        output_subfolder = self.path_manager.get_visualization_directory(
+            subfolder="SHAP"
+        )
+        os.makedirs(output_subfolder, exist_ok=True)
 
-    #     # Select the relevant feature names
-    #     relevant_feature_names = feature_names[: test_data.shape[1]]
+        # Select the relevant feature names
+        relevant_feature_names = feature_names[: test_data.shape[1]]
 
-    #     # If multi-class, save individual class SHAP plots
-    #     if isinstance(shap_values, list):
-    #         for index, class_name in enumerate(class_names):
-    #             shap.summary_plot(
-    #                 shap_values[index],
-    #                 test_data,
-    #                 feature_names=feature_names,
-    #                 show=False,
-    #             )
-    #             plt.title(f"SHAP Summary Plot - Class: {class_name}", fontsize=16)
-    #             plt.ylabel("Genes", fontsize=12)
-    #             plt.tight_layout()
-    #             plt.savefig(
-    #                 os.path.join(
-    #                     output_subfolder, f"{file_name_prefix}_{class_name}.png"
-    #                 )
-    #             )
-    #             plt.close()
+        # If multi-class, save individual class SHAP plots
+        if isinstance(shap_values, list):
+            for index, class_name in enumerate(class_names):
+                shap.summary_plot(
+                    shap_values[index],
+                    test_data,
+                    feature_names=feature_names,
+                    show=False,
+                )
+                plt.title(f"SHAP Summary Plot - Class: {class_name}", fontsize=16)
+                plt.ylabel("Genes", fontsize=12)
+                plt.tight_layout()
+                plt.savefig(
+                    os.path.join(
+                        output_subfolder, f"{file_name_prefix}_{class_name}.png"
+                    )
+                )
+                plt.close()
 
-    #     # Generate and save the overall SHAP summary plot (multi-class or binary)
-    #     shap.summary_plot(
-    #         shap_values,
-    #         test_data,
-    #         feature_names=relevant_feature_names,
-    #         class_names=class_names,
-    #         show=False,
-    #     )
-    #     plt.title("SHAP Summary Plot", fontsize=16)
-    #     plt.ylabel("Genes", fontsize=12)
-    #     plt.tight_layout()
-    #     plt.savefig(
-    #         os.path.join(output_subfolder, f"{file_name_prefix}_Overall.png")
-    #     )
-    #     plt.close()
+        # Generate and save the overall SHAP summary plot (multi-class or binary)
+        shap.summary_plot(
+            shap_values,
+            test_data,
+            feature_names=relevant_feature_names,
+            class_names=class_names,
+            show=False,
+        )
+        plt.title("SHAP Summary Plot", fontsize=16)
+        plt.ylabel("Genes", fontsize=12)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_subfolder, f"{file_name_prefix}_Overall.png"))
+        plt.close()
 
     def save_metrics_as_json(
         self,
@@ -831,8 +829,8 @@ class Visualizer:
                 self.y_pred_class = np.argmax(self.y_pred, axis=1)
                 self.y_true_class = np.argmax(self.test_labels, axis=1)
 
-            class_names = self.label_encoder.classes_ 
-            
+            class_names = self.label_encoder.classes_
+
             # Map the predicted and actual class indices back to the class names
             y_pred_names = [class_names[i] for i in self.y_pred_class]
             y_true_names = [class_names[i] for i in self.y_true_class]
@@ -843,16 +841,24 @@ class Visualizer:
             )
 
             # Determine the relevant train and test attributes based on the method
-            method = self.config.DataParameters.TrainTestSplit.method  # This could be 'sex', 'tissue', etc.
-            train_attribute = self.config.DataParameters.TrainTestSplit.train.get(method, "unknown")
-            test_attribute = self.config.DataParameters.TrainTestSplit.test.get(method, "unknown")
+            method = (
+                self.config.DataParameters.TrainTestSplit.method
+            )  # This could be 'sex', 'tissue', etc.
+            train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
+                method, "unknown"
+            )
+            test_attribute = self.config.DataParameters.TrainTestSplit.test.get(
+                method, "unknown"
+            )
 
             # Capitalize the first letter of train and test attributes
             train_attribute = train_attribute.capitalize()
             test_attribute = test_attribute.capitalize()
 
             # Format the file name based on the template using the method-specific attributes
-            file_name = file_name_template.format(f"train{train_attribute}", f"test{test_attribute}")
+            file_name = file_name_template.format(
+                f"train{train_attribute}", f"test{test_attribute}"
+            )
 
             # Define the output file path
             output_file_path = os.path.join(
@@ -864,30 +870,9 @@ class Visualizer:
 
             print(f"Predictions saved to {output_file_path}")
 
-    # def _plot_shap_summary(self):
-    #     """
-    #     Generate SHAP summary plot if SHAP values are available.
-    #     """
-    #     if self.squeezed_shap_values is not None:
-    #         var_names = (
-    #             self.adata_corrected.var_names
-    #             if self.config.DataParameters.BatchCorrection.enabled
-    #             else self.adata.var_names
-    #         )
-    #         self.visual_tools.plot_shap_summary(
-    #             shap_values=self.squeezed_shap_values,
-    #             test_data=self.squeezed_test_data,
-    #             feature_names=var_names,
-    #             class_names=self.label_encoder.classes_,
-    #             file_name_prefix="SHAP_Summary",
-            # )
-
     def _plot_shap_summary(self):
         """
-        Plots SHAP summary plots for the given SHAP values and test data.
-
-        Returns:
-            None
+        Generate SHAP summary plot if SHAP values are available.
         """
         if self.squeezed_shap_values is not None:
             var_names = (
@@ -895,51 +880,71 @@ class Visualizer:
                 if self.config.DataParameters.BatchCorrection.enabled
                 else self.adata.var_names
             )
+            self.visual_tools.plot_shap_summary(
+                shap_values=self.squeezed_shap_values,
+                test_data=self.squeezed_test_data,
+                feature_names=var_names,
+                class_names=self.label_encoder.classes_,
+                file_name_prefix="SHAP_Summary",
+            )
 
-        # Path for saving plots
-        output_subfolder = self.path_manager.get_visualization_directory(
-            subfolder="SHAP"
-        )
-        os.makedirs(output_subfolder, exist_ok=True)
+    # def _plot_shap_summary(self):
+    #     """
+    #     Plots SHAP summary plots for the given SHAP values and test data.
 
-        # Select the relevant feature names
-        relevant_feature_names = var_names[: self.squeezed_test_data.shape[1]]
+    #     Returns:
+    #         None
+    #     """
+    #     if self.squeezed_shap_values is not None:
+    #         var_names = (
+    #             self.adata_corrected.var_names
+    #             if self.config.DataParameters.BatchCorrection.enabled
+    #             else self.adata.var_names
+    #         )
 
-        # If multi-class, save individual class SHAP plots
-        if isinstance(self.squeezed_shap_values, list):
-            for index, class_name in enumerate(self.label_encoder.classes_):
-                shap.summary_plot(
-                    self.squeezed_shap_values[index],
-                    self.squeezed_test_data,
-                    var_names,
-                    show=False,
-                )
-                plt.title(f"SHAP Summary Plot - Class: {class_name}", fontsize=16)
-                plt.ylabel("Genes", fontsize=12)
-                plt.tight_layout()
-                plt.savefig(
-                    os.path.join(
-                        output_subfolder, f"SHAP_Summary_{class_name}.png"
-                    )
-                )
-                plt.close()
+    #     # Path for saving plots
+    #     output_subfolder = self.path_manager.get_visualization_directory(
+    #         subfolder="SHAP"
+    #     )
+    #     os.makedirs(output_subfolder, exist_ok=True)
 
-        # Generate and save the overall SHAP summary plot (multi-class or binary)
-        shap.summary_plot(
-            self.squeezed_shap_values,
-            self.squeezed_test_data,
-            feature_names=relevant_feature_names,
-            class_names=self.label_encoder.classes_,
-            show=False,
-        )
-        plt.title("SHAP Summary Plot", fontsize=16)
-        plt.ylabel("Genes", fontsize=12)
-        plt.tight_layout()
-        plt.savefig(
-            os.path.join(output_subfolder, f"SHAP_Summary_Overall.png")
-        )
-        plt.close()
+    #     # Select the relevant feature names
+    #     relevant_feature_names = var_names[: self.squeezed_test_data.shape[1]]
 
+    #     # If multi-class, save individual class SHAP plots
+    #     if isinstance(self.squeezed_shap_values, list):
+    #         for index, class_name in enumerate(self.label_encoder.classes_):
+    #             shap.summary_plot(
+    #                 self.squeezed_shap_values[index],
+    #                 self.squeezed_test_data,
+    #                 relevant_feature_names,
+    #                 show=False,
+    #             )
+    #             plt.title(f"SHAP Summary Plot - Class: {class_name}", fontsize=16)
+    #             plt.ylabel("Genes", fontsize=12)
+    #             plt.tight_layout()
+    #             plt.savefig(
+    #                 os.path.join(
+    #                     output_subfolder, f"SHAP_Summary_{class_name}.png"
+    #                 )
+    #             )
+    #             plt.close()
+
+    #     # Generate and save the overall SHAP summary plot (multi-class or binary)
+    #     shap.summary_plot(
+    #         self.squeezed_shap_values,
+    #         self.squeezed_test_data,
+    #         feature_names=relevant_feature_names,
+    #         class_names=self.label_encoder.classes_,
+    #         show=False,
+    #     )
+    #     plt.title("SHAP Summary Plot", fontsize=16)
+    #     plt.ylabel("Genes", fontsize=12)
+    #     plt.tight_layout()
+    #     plt.savefig(
+    #         os.path.join(output_subfolder, f"SHAP_Summary_Overall.png")
+    #     )
+    #     plt.close()
 
     def run(self):
         """
@@ -955,6 +960,3 @@ class Visualizer:
         self._calculate_and_save_metrics()
         self._plot_shap_summary()
         self.save_predictions_to_csv()
-
-
-
