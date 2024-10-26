@@ -22,8 +22,8 @@ config_dict = {
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples":2899,       # Number of samples (cells) for training (total = 289981)
-            "num_variables":1590,    # Number of variables (genes) for training (total = 15992)
+            "num_samples":3000,       # Number of samples (cells) for training (total = 289981)
+            "num_variables":15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
             "include_mixed_sex": False,  # Options: True, False
@@ -83,13 +83,13 @@ config_dict = {
         "run_visualization": True,       # Options: True, False
         "run_interpreter": True,        # Options: True, False (SHAP)
         "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
-        "reference_size": 100,          # Reference data size for SHAP
+        "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
     "DataSplit": {
         "validation_split": 0.1,           # Fraction of data for validation
         "test_split": 0.1,                 # Fraction of data for testing
-        "random_state": 1,               # Random state for reproducibility
+        "random_state": 42,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training

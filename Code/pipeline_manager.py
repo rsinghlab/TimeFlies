@@ -239,8 +239,6 @@ class PipelineManager:
                 self.config_instance,
                 self.train_data,
                 self.train_labels,
-                # self.test_data,
-                # self.test_labels,
                 self.label_encoder,
                 self.reference_data,
                 self.scaler,
