@@ -123,11 +123,11 @@ class Interpreter:
         - reference_data (numpy.ndarray): The reference data used during model training.
         """
         self.config = config
-        self.model = model  # Best model for SHAP analysis
-        self.test_data = test_data  # Best model's test data
-        self.test_labels = test_labels  # Best model's test labels
+        self.model = model
+        self.test_data = test_data  
+        self.test_labels = test_labels  
         self.label_encoder = label_encoder
-        self.reference_data = reference_data  # Best model's reference data
+        self.reference_data = reference_data 
         self.path_manager = path_manager
 
         self.shap_dir = self.path_manager.get_visualization_directory(
@@ -169,54 +169,6 @@ class Interpreter:
 
         return shap_values, squeezed_test_data
 
-    # def compute_shap_values(self):
-    #     """
-    #     Compute SHAP values for model interpretation.
-
-    #     Returns:
-    #     - tuple: A tuple containing the SHAP values and the corresponding SHAP test data.
-    #     """
-
-    #     # Access the model type from the configuration
-    #     model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-
-    #     # Determine the explainer to use based on the model type
-    #     if model_type in ["mlp", "cnn"]:
-    #         # For neural network models, use GradientExplainer
-    #         explainer = shap.GradientExplainer(self.model, self.reference_data)
-    #     elif model_type in ["xgboost", "randomforest"]:
-    #         # For tree-based models, use TreeExplainer
-    #         explainer = shap.TreeExplainer(self.model)
-    #     else:
-    #         # For linear models, use LinearExplainer
-    #         explainer = shap.LinearExplainer(self.model, self.reference_data)
-
-    #     # Compute SHAP values
-    #     shap_values = explainer.shap_values(self.test_data)
-
-    #     # Adjust SHAP values and test data shapes if necessary
-    #     if isinstance(shap_values, list):
-    #         squeezed_shap_values = [
-    #             np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-    #         ]
-    #     else:
-    #         squeezed_shap_values = (
-    #             np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
-    #         )
-
-    #     # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
-    #     squeezed_shap_values = [
-    #         squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
-    #     ]
-
-    #     squeezed_test_data = (
-    #         self.test_data
-    #         if self.test_data.ndim <= 2
-    #         else np.squeeze(self.test_data, axis=1)
-    #     )
-
-    #     return squeezed_shap_values, squeezed_test_data
-
     def compute_shap_values(self):
         """
         Compute SHAP values for model interpretation.
@@ -225,81 +177,47 @@ class Interpreter:
         - tuple: A tuple containing the SHAP values and the corresponding SHAP test data.
         """
 
-        print("=== Starting compute_shap_values ===")
+        # Squeeze the test data if necessary
+        squeezed_test_data = (
+            self.test_data
+            if self.test_data.ndim <= 2
+            else np.squeeze(self.test_data, axis=1)
+        )
 
         # Access the model type from the configuration
         model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-        print(f"[DEBUG] Model type: {model_type} (type: {type(model_type)})")
 
         # Determine the explainer to use based on the model type
         if model_type in ["mlp", "cnn"]:
-            print("[DEBUG] Using GradientExplainer for neural network models (MLP/CNN).")
+            # For neural network models, use GradientExplainer
             explainer = shap.GradientExplainer(self.model, self.reference_data)
-            print(f"[DEBUG] GradientExplainer created: {explainer} (type: {type(explainer)})")
         elif model_type in ["xgboost", "randomforest"]:
-            print("[DEBUG] Using TreeExplainer for tree-based models (XGBoost/RandomForest).")
+            # For tree-based models, use TreeExplainer
             explainer = shap.TreeExplainer(self.model)
-            print(f"[DEBUG] TreeExplainer created: {explainer} (type: {type(explainer)})")
         else:
-            print("[DEBUG] Using LinearExplainer for linear models.")
+            # For linear models, use LinearExplainer
             explainer = shap.LinearExplainer(self.model, self.reference_data)
-            print(f"[DEBUG] LinearExplainer created: {explainer} (type: {type(explainer)})")
 
         # Compute SHAP values
-        print("[DEBUG] Computing SHAP values...")
         shap_values = explainer.shap_values(self.test_data)
-        print(f"[DEBUG] SHAP values computed: {type(shap_values)}")
 
-        # Inspect SHAP values
+        # Adjust SHAP values and test data shapes if necessary - works on mac
         if isinstance(shap_values, list):
-            print(f"[DEBUG] SHAP values is a list with {len(shap_values)} elements.")
-            for idx, val in enumerate(shap_values):
-                print(f"  [DEBUG] shap_values[{idx}] shape: {val.shape}, type: {type(val)}")
+            squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
         else:
-            print(f"[DEBUG] SHAP values shape: {shap_values.shape}, type: {type(shap_values)}")
+            squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
 
-        # Adjust SHAP values and test data shapes if necessary
-        print("[DEBUG] Adjusting SHAP values shapes if necessary...")
-        if isinstance(shap_values, list):
-            squeezed_shap_values = [
-                np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-            ]
-            for idx, val in enumerate(squeezed_shap_values):
-                print(f"  [DEBUG] Squeezed shap_values[{idx}] shape: {val.shape}")
-        else:
-            if shap_values.ndim > 3:
-                squeezed_shap_values = np.squeeze(shap_values, axis=1)
-                print(f"[DEBUG] Squeezed shap_values shape: {squeezed_shap_values.shape}")
-            else:
-                squeezed_shap_values = shap_values
-                print("[DEBUG] No squeezing applied to shap_values.")
+        # # Adjust SHAP values and test data shapes if necessary
+        # if isinstance(shap_values, list):
+        #     squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
+        # else:
+        #     squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
 
-        # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
-        print("[DEBUG] Converting squeezed SHAP values to a list of arrays...")
-        if isinstance(squeezed_shap_values, list):
-            squeezed_shap_values = [
-                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
-            ]
-            print(f"[DEBUG] Converted SHAP values to list with {len(squeezed_shap_values)} elements.")
-        else:
-            squeezed_shap_values = [
-                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
-            ]
-            print(f"[DEBUG] Converted SHAP values to list with {len(squeezed_shap_values)} elements.")
-
-        # Adjust test data shape if necessary
-        print("[DEBUG] Adjusting test data shape if necessary...")
-        if self.test_data.ndim <= 2:
-            squeezed_test_data = self.test_data
-            print(f"[DEBUG] Test data has {self.test_data.ndim} dimensions. No squeezing applied.")
-        else:
-            squeezed_test_data = np.squeeze(self.test_data, axis=1)
-            print(f"[DEBUG] Squeezed test data shape: {squeezed_test_data.shape}")
-
-        print("=== Finished compute_shap_values ===")
-        print(f"[DEBUG] Returning SHAP values: List of {len(squeezed_shap_values)} arrays.")
-        print(f"[DEBUG] Returning test data: shape {squeezed_test_data.shape}, type {type(squeezed_test_data)}")
-
+        # # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
+        # squeezed_shap_values = [
+        #     squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+        # ]
+        
         return squeezed_shap_values, squeezed_test_data
 
     def save_shap_values(self, shap_values):
@@ -317,8 +235,8 @@ class Interpreter:
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
             "model_weights_hash": model_weights_hash,
-            "test_data_hash": compute_sha256_hash(self.test_data.tobytes()),
-            "reference_data_hash": compute_sha256_hash(self.reference_data.tobytes()),
+            "test_data_hash": self.compute_sha256_hash(self.test_data.tobytes()),
+            "reference_data_hash": self.compute_sha256_hash(self.reference_data.tobytes()),
         }
 
         # Save SHAP values, metadata, and the data
@@ -360,12 +278,12 @@ class Interpreter:
             ),
             "model_weights_hash": model_weights_hash,
             "test_data_hash": (
-                compute_sha256_hash(self.test_data.tobytes())
+                self.compute_sha256_hash(self.test_data.tobytes())
                 if self.test_data is not None
                 else None
             ),
             "reference_data_hash": (
-                compute_sha256_hash(self.reference_data.tobytes())
+                self.compute_sha256_hash(self.reference_data.tobytes())
                 if self.reference_data is not None
                 else None
             ),
@@ -425,21 +343,20 @@ class Interpreter:
             # For Keras models
             weights = self.model.get_weights()
             weights_bytes = b"".join([w.tobytes() for w in weights])
-            return compute_sha256_hash(weights_bytes)
+            return self.compute_sha256_hash(weights_bytes)
         else:
             # For other models like scikit-learn models
             model_bytes = pickle.dumps(self.model)
-            return compute_sha256_hash(model_bytes)
+            return self.compute_sha256_hash(model_bytes)
 
+    def compute_sha256_hash(self, data_bytes):
+        """
+        Compute the SHA-256 hash of the given bytes.
 
-def compute_sha256_hash(data_bytes):
-    """
-    Compute the SHA-256 hash of the given bytes.
+        Args:
+            data_bytes (bytes): The data to hash.
 
-    Args:
-        data_bytes (bytes): The data to hash.
-
-    Returns:
-        str: The hexadecimal SHA-256 hash of the data.
-    """
-    return hashlib.sha256(data_bytes).hexdigest()
+        Returns:
+            str: The hexadecimal SHA-256 hash of the data.
+        """
+        return hashlib.sha256(data_bytes).hexdigest()
