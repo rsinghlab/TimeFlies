@@ -164,10 +164,11 @@ class PipelineManager:
             ) = self.data_preprocessor.prepare_final_eval_data(
                 adata_eval,
                 self.label_encoder,
-                self.model,
+                self.num_features,
                 self.scaler,
                 self.is_scaler_fit,
                 self.highly_variable_genes,
+                self.mix_included,
             )
             logger.info("Final evaluation data preprocessed successfully.")
         except Exception as e:
@@ -182,6 +183,7 @@ class PipelineManager:
         try:
             self.setup_gene_filtering()
             if self.config_instance.DataProcessing.ModelManagement.load_model:
+                self.load_model_components()
                 self.preprocess_final_eval_data()  # Call the final evaluation preprocessing
             else:
                 self.preprocess_data()  # Call the general data preprocessing
@@ -198,19 +200,30 @@ class PipelineManager:
         """
         try:
             # Load the pre-trained model
+            self.model = self.model_loader.load_model()
+
+        except Exception as e:
+            logger.error(f"Error during model loading: {e}")
+            raise
+
+    def load_model_components(self):
+        """
+        Load pre-trained model and preprocess evaluation data to prevent data leakage.
+        """
+        try:
             self.model_loader = ModelLoader(self.config_instance)
+
             (
-                self.model,
-                self.label_encoder,
-                self.reference_data,
-                self.scaler,
-                self.is_scaler_fit,
-                self.mix_included,
-                self.highly_variable_genes,
-                self.test_data,
-                self.test_labels,
-                self.history,
-            ) = self.model_loader.load_model()
+            self.label_encoder,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.num_features,
+            self.history,
+            self.mix_included,
+            self.reference_data,
+
+            ) = self.model_loader.load_model_components()
 
         except Exception as e:
             logger.error(f"Error during model loading: {e}")
@@ -226,8 +239,8 @@ class PipelineManager:
                 self.config_instance,
                 self.train_data,
                 self.train_labels,
-                self.test_data,
-                self.test_labels,
+                # self.test_data,
+                # self.test_labels,
                 self.label_encoder,
                 self.reference_data,
                 self.scaler,
