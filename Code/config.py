@@ -22,7 +22,7 @@ config_dict = {
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples":3000,       # Number of samples (cells) for training (total = 289981)
+            "num_samples":12000,       # Number of samples (cells) for training (total = 289981)
             "num_variables":15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
@@ -81,7 +81,7 @@ config_dict = {
     },
     "FeatureImportanceAndVisualizations": {
         "run_visualization": True,       # Options: True, False
-        "run_interpreter": True,        # Options: True, False (SHAP)
+        "run_interpreter": False,        # Options: True, False (SHAP)
         "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)

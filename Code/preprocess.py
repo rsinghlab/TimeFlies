@@ -631,25 +631,15 @@ class DataPreprocessor:
         """
         config = self.config
 
+        # Load or preprocess data based on configuration
         preprocess_required = config.DataProcessing.Preprocessing.required
         if not preprocess_required:
             data = self.load_processed_data()
         else:
             data = self.preprocess_and_prepare_data()
 
-        # Unpack the processed data into respective variables
-        (
-            train_data,
-            test_data,
-            train_labels,
-            test_labels,
-            label_encoder,
-            reference_data,
-            scaler,
-            is_scaler_fit,
-            highly_variable_genes,
-            mix_included,
-        ) = data
+        # Unpack train data
+        train_data = data[0]
 
         # Determine the number of input variables based on model type
         model_type = config.DataParameters.GeneralSettings.model_type.lower()

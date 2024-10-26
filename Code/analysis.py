@@ -888,71 +888,10 @@ class Visualizer:
                 file_name_prefix="SHAP_Summary",
             )
 
-    # def _plot_shap_summary(self):
-    #     """
-    #     Plots SHAP summary plots for the given SHAP values and test data.
-
-    #     Returns:
-    #         None
-    #     """
-    #     if self.squeezed_shap_values is not None:
-    #         var_names = (
-    #             self.adata_corrected.var_names
-    #             if self.config.DataParameters.BatchCorrection.enabled
-    #             else self.adata.var_names
-    #         )
-
-    #     # Path for saving plots
-    #     output_subfolder = self.path_manager.get_visualization_directory(
-    #         subfolder="SHAP"
-    #     )
-    #     os.makedirs(output_subfolder, exist_ok=True)
-
-    #     # Select the relevant feature names
-    #     relevant_feature_names = var_names[: self.squeezed_test_data.shape[1]]
-
-    #     # If multi-class, save individual class SHAP plots
-    #     if isinstance(self.squeezed_shap_values, list):
-    #         for index, class_name in enumerate(self.label_encoder.classes_):
-    #             shap.summary_plot(
-    #                 self.squeezed_shap_values[index],
-    #                 self.squeezed_test_data,
-    #                 relevant_feature_names,
-    #                 show=False,
-    #             )
-    #             plt.title(f"SHAP Summary Plot - Class: {class_name}", fontsize=16)
-    #             plt.ylabel("Genes", fontsize=12)
-    #             plt.tight_layout()
-    #             plt.savefig(
-    #                 os.path.join(
-    #                     output_subfolder, f"SHAP_Summary_{class_name}.png"
-    #                 )
-    #             )
-    #             plt.close()
-
-    #     # Generate and save the overall SHAP summary plot (multi-class or binary)
-    #     shap.summary_plot(
-    #         self.squeezed_shap_values,
-    #         self.squeezed_test_data,
-    #         feature_names=relevant_feature_names,
-    #         class_names=self.label_encoder.classes_,
-    #         show=False,
-    #     )
-    #     plt.title("SHAP Summary Plot", fontsize=16)
-    #     plt.ylabel("Genes", fontsize=12)
-    #     plt.tight_layout()
-    #     plt.savefig(
-    #         os.path.join(output_subfolder, f"SHAP_Summary_Overall.png")
-    #     )
-    #     plt.close()
-
     def run(self):
         """
         Run the visualization pipeline.
         """
-        if self.config.GenePreprocessing.GeneBalancing.balance_genes:
-            self.adata = self.adata[:, self.adata_corrected.var_names]
-
         self._visualize_training_history()
         self._evaluate_model_performance()
         self._visualize_confusion_matrix()

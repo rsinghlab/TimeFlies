@@ -4,7 +4,7 @@ from config import config
 from preprocess import DataPreprocessor, GeneFilter
 from interpreter import Interpreter
 from model import ModelBuilder, ModelLoader
-from visuals import Visualizer
+from Code.analysis import Visualizer
 from eda import EDAHandler
 from utilities import GPUHandler, PathManager, DataLoader
 

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import scipy
-from visuals import VisualizationTools
+from Code.analysis import VisualizationTools
 
 
 class EDAHandler:
