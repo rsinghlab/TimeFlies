@@ -554,10 +554,11 @@ class DataPreprocessor:
         self,
         adata,
         label_encoder,
-        model,
+        num_features,
         scaler,
         is_scaler_fit,
         highly_variable_genes,
+        mix_included,
     ):
         """
         Preprocess the final evaluation data based on the provided configuration parameters.
@@ -565,10 +566,11 @@ class DataPreprocessor:
         Args:
             adata (AnnData): The input data.
             label_encoder (LabelEncoder): The label encoder used to transform the labels.
-            model (tensorflow.keras.Model): The trained model.
+            num_features (int): The number of features to use.
             scaler (StandardScaler or None): The scaler used for data normalization.
             is_scaler_fit (bool): Flag indicating if the scaler was fit.
             highly_variable_genes (list): List of highly variable genes.
+            mix_included (bool): Flag indicating if 'mix'
 
         Returns:
             test_data (ndarray): Testing data.
@@ -578,8 +580,7 @@ class DataPreprocessor:
         config = self.config
 
         # Remove 'mix' if specified
-        no_mix = not config.DataParameters.Filtering.include_mixed_sex
-        if no_mix:
+        if mix_included is False:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Check if the specified cell type is 'all'
@@ -587,52 +588,18 @@ class DataPreprocessor:
         if cell_type != "all":
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
-        # Direct mapping of config['sex_type'] to the action
+        # Sex Mapping
         sex_type = config.DataParameters.GeneralSettings.sex_type.lower()
-        if sex_type == "male_female":
-            # If the configuration specifies 'male/female', filter for 'female'
-            sex_to_filter = "female"
-        elif sex_type == "female_male":
-            # If the configuration specifies 'female/male', filter for 'male'
-            sex_to_filter = "male"
-        elif sex_type != "all":
-            # For any other specific sex_type that is not 'all', use it directly
-            sex_to_filter = sex_type
-        else:
-            sex_to_filter = None  # Represents the 'all' case or no filtering
+        if sex_type != "all":
+              adata = adata[adata.obs["sex"] == sex_type].copy()
 
-        # Apply filtering based on sex_to_filter if it's not None (or 'all')
-        if sex_to_filter:
-            adata = adata[adata.obs["sex"] == sex_to_filter].copy()
-
+        # Highly variable genes and feature selection      
         if highly_variable_genes is not None:
             adata = adata[:, highly_variable_genes]
         else:
-            # Determine input shape or skip for models without a defined input shape like logistic regression
-            if hasattr(model, "layers"):  # For Keras models
-                if config.DataParameters.GeneralSettings.model_type.lower() == "cnn":
-                    input_shape = model.layers[0].input_shape[
-                        2
-                    ]  # CNN specific handling
-                else:
-                    input_shape = model.layers[0].input_shape[
-                        1
-                    ]  # MLP or other Keras models
-                # Restrict features to model's input shape
-                adata = adata[:, adata.var_names[:input_shape]]
-            else:
-                # For non-Keras models (e.g., logistic regression), use the data as is or apply custom preprocessing
-                # Assuming 'model_dir' is managed by PathManager, you might need to retrieve it
-                model_dir = self.path_manager.construct_model_directory()
-                num_features_path = os.path.join(model_dir, "num_features.pkl")
-                if os.path.isfile(num_features_path):
-                    with open(num_features_path, "rb") as f:
-                        num_features = pickle.load(f)
-                    adata = adata[:, :num_features]
-                else:
-                    raise FileNotFoundError(
-                        f"num_features.pkl not found in {model_dir}"
-                    )
+            # Use num_features to select the top genes
+            adata = adata[:, adata.var_names[:num_features]]
+            adata = adata[:, :num_features]
 
         # Prepare the testing labels
         encoding_var = config.DataParameters.GeneralSettings.encoding_variable

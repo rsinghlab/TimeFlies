@@ -27,7 +27,6 @@ class TimeFlies:
         """
         logging.info("Initializing TimeFlies pipeline...")
         self.pipeline_manager = PipelineManager()
-
     def run(self):
         """
         Main pipeline to orchestrate the entire workflow.
@@ -44,15 +43,11 @@ class TimeFlies:
             # Step 3: Run EDA if configured
             self.pipeline_manager.run_eda()
 
-            # Step 4: Model handling and preprocessing
-            if (
-                self.pipeline_manager.config_instance.DataProcessing.ModelManagement.load_model
-            ):
-                self.pipeline_manager.load_or_train_model()
-                self.pipeline_manager.run_preprocessing()
-            else:
-                self.pipeline_manager.run_preprocessing()
-                self.pipeline_manager.load_or_train_model()
+            # Step 4: Preprocessing
+            self.pipeline_manager.run_preprocessing()
+
+            # Step 5: Model handling
+            self.pipeline_manager.load_or_train_model()
 
             # Step 6: Perform interpretation and visualization
             self.pipeline_manager.run_interpretation()
@@ -65,7 +60,6 @@ class TimeFlies:
         except Exception as e:
             logging.error(f"Error during pipeline execution: {e}")
             raise
-
 
 if __name__ == "__main__":
     pipeline = TimeFlies()
