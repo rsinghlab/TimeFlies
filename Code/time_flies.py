@@ -49,9 +49,10 @@ class TimeFlies:
             # Step 5: Model handling
             self.pipeline_manager.load_or_train_model()
 
-            # Step 6: Perform interpretation and visualization
+            # Step 6: Perform interpretation, visualization, and metric calculations
             self.pipeline_manager.run_interpretation()
             self.pipeline_manager.run_visualizations()
+            self.pipeline_manager.run_metrics()
 
             # Step 7: Display pipeline duration
             end_time = time.time()

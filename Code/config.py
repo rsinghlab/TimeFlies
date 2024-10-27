@@ -22,7 +22,7 @@ config_dict = {
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples":12000,       # Number of samples (cells) for training (total = 289981)
+            "num_samples":1200,       # Number of samples (cells) for training (total = 289981)
             "num_variables":15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {

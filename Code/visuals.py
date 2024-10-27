@@ -6,28 +6,14 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
     roc_curve,
     auc,
-    classification_report,
-    accuracy_score,
-    f1_score,
-    precision_score,
-    recall_score,
-    roc_auc_score,
 )
 import seaborn as sns
-from interpreter import Prediction
 from sklearn.preprocessing import label_binarize
-from sklearn.exceptions import UndefinedMetricWarning
-import warnings
 import shap
 import sys
 import pandas as pd
-import json
 from scipy.sparse import issparse
 import matplotlib.pyplot as plt
-
-# Ignore UndefinedMetricWarning
-warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
 
 class VisualizationTools:
     """
@@ -61,20 +47,6 @@ class VisualizationTools:
 
         plot_shap_summary(shap_values, test_data, feature_names, class_names, file_name_prefix):
             Plots the SHAP summary plot for the given SHAP values and test data.
-
-        save_metrics_as_json(
-            test_accuracy,
-            test_precision,
-            test_recall,
-            test_f1,
-            test_auc,
-            baseline_accuracy,
-            baseline_precision,
-            baseline_recall,
-            baseline_f1,
-            file_name,
-        ):
-            Saves the provided metrics to a JSON file within a specified subfolder.
     """
 
     def __init__(self, config, path_manager):
@@ -539,68 +511,6 @@ class VisualizationTools:
         plt.savefig(os.path.join(output_subfolder, f"{file_name_prefix}_Overall.png"))
         plt.close()
 
-    def save_metrics_as_json(
-        self,
-        test_accuracy,
-        test_precision,
-        test_recall,
-        test_f1,
-        test_auc,
-        baseline_accuracy,
-        baseline_precision,
-        baseline_recall,
-        baseline_f1,
-        file_name,
-    ):
-        """
-        Saves the provided metrics to a JSON file within a specified subfolder.
-
-        Parameters:
-            test_accuracy (float): Test accuracy.
-            test_precision (float): Test precision.
-            test_recall (float): Test recall.
-            test_f1 (float): Test F1 score.
-            test_auc (float): Test AUC.
-            baseline_accuracy (float): Baseline accuracy.
-            baseline_precision (float): Baseline precision.
-            baseline_recall (float): Baseline recall.
-            baseline_f1 (float): Baseline F1 score.
-            file_name (str): The name of the file to save the metrics in.
-        """
-        # Function to format the metrics as percentages
-        format_percent = lambda x: f"{x * 100:.2f}%"
-
-        # Construct the metrics dictionary with formatted values
-        metrics = {
-            "Test": {
-                "Accuracy": format_percent(test_accuracy),
-                "Precision": format_percent(test_precision),
-                "Recall": format_percent(test_recall),
-                "F1": format_percent(test_f1),
-                "AUC": format_percent(test_auc),
-            },
-            "Baseline": {
-                "Accuracy": format_percent(baseline_accuracy),
-                "Precision": format_percent(baseline_precision),
-                "Recall": format_percent(baseline_recall),
-                "F1": format_percent(baseline_f1),
-            },
-        }
-
-        # Save metrics to SHAP folder if enabled
-        if self.config.FeatureImportanceAndVisualizations.run_interpreter:
-            shap_folder_dir = os.path.join(self.output_dir, "SHAP")
-            os.makedirs(shap_folder_dir, exist_ok=True)
-            shap_output_file_path = os.path.join(shap_folder_dir, file_name)
-            with open(shap_output_file_path, "w") as file:
-                json.dump(metrics, file, indent=4)
-
-        # Save metrics to main analysis folder
-        subfolder_dir = self.output_dir
-        os.makedirs(subfolder_dir, exist_ok=True)
-        output_file_path = os.path.join(subfolder_dir, file_name)
-        with open(output_file_path, "w") as file:
-            json.dump(metrics, file, indent=4)
 
 
 class Visualizer:
@@ -657,6 +567,20 @@ class Visualizer:
         # Initialize VisualizationTools with PathManager
         self.visual_tools = VisualizationTools(self.config, self.path_manager)
 
+    def import_metrics(self):
+        """
+        Sets y_true, y_pred, y_pred_class
+        """
+        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        if model_type in ["mlp", "cnn"]:
+           self.y_pred = self.model.predict(self.test_inputs)
+        else:
+            self.y_pred = self.model.predict_proba(self.test_inputs)
+
+        # Convert predictions and true labels to class indices
+        self.y_pred_class = np.argmax(self.y_pred, axis=1)
+        self.y_true_class = np.argmax(self.test_labels, axis=1)
+
     def _visualize_training_history(self):
         """
         Visualize the training history for the model based on the configuration.
@@ -666,28 +590,6 @@ class Visualizer:
             self.visual_tools.plot_history(self.history, "training_metrics.png")
         elif model_type == "xgboost":
             self.visual_tools.plot_xgboost_history(self.history, "training_metrics.png")
-
-    def _evaluate_model_performance(self):
-        """
-        Evaluate the model on the test data and store performance metrics.
-        """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-        if model_type in ["mlp", "cnn"]:
-            test_loss, test_acc, test_auc = Prediction.evaluate_model(
-                self.model, self.test_inputs, self.test_labels
-            )
-            print(f"Eval accuracy: {test_acc}")
-            print(f"Eval loss: {test_loss}")
-            print(f"Eval AUC: {test_auc}")
-
-        if model_type in ["mlp", "cnn"]:
-            self.y_pred = self.model.predict(self.test_inputs)
-        else:
-            self.y_pred = self.model.predict_proba(self.test_inputs)
-
-        # Convert predictions and true labels to class indices
-        self.y_pred_class = np.argmax(self.y_pred, axis=1)
-        self.y_true_class = np.argmax(self.test_labels, axis=1)
 
     def _visualize_confusion_matrix(self):
         """
@@ -700,6 +602,7 @@ class Visualizer:
         if "age" in self.config.DataParameters.GeneralSettings.encoding_variable:
             class_labels = self._sort_labels_by_age(class_labels)
 
+        # Create confusion matrix
         self.visual_tools.create_confusion_matrix(
             self.y_true_class,
             self.y_pred_class,
@@ -743,133 +646,6 @@ class Visualizer:
             "roc_curve.png",
         )
 
-    def _calculate_and_save_metrics(self):
-        """
-        Calculate, print, and save various performance metrics.
-        """
-        # Calculate metrics
-        accuracy = accuracy_score(self.y_true_class, self.y_pred_class)
-        precision = precision_score(
-            self.y_true_class, self.y_pred_class, average="macro"
-        )
-        recall = recall_score(self.y_true_class, self.y_pred_class, average="macro")
-        f1 = f1_score(self.y_true_class, self.y_pred_class, average="macro")
-
-        # Compute ROC-AUC score
-        y_true_binary = label_binarize(
-            self.y_true_class, classes=np.unique(self.y_true_class)
-        )
-        y_pred_prob = self.y_pred
-
-        n_classes = len(np.unique(self.y_true_class))
-        if n_classes == 2:  # Binary classification
-            y_pred_prob_positive = y_pred_prob[:, 1]
-            auc_score = roc_auc_score(
-                y_true_binary, y_pred_prob_positive, average="macro", multi_class="ovo"
-            )
-        else:  # Multi-class classification
-            auc_score = roc_auc_score(
-                y_true_binary, y_pred_prob, average="macro", multi_class="ovo"
-            )
-
-        # Print the classification report
-        class_labels = self.label_encoder.classes_
-        print("Classification Report:")
-        print(
-            classification_report(
-                self.y_true_class, self.y_pred_class, target_names=class_labels
-            )
-        )
-
-        # Print performance metrics
-        print(
-            f"Test Accuracy: {accuracy:.4%}, Test Precision: {precision:.4%}, Test Recall: {recall:.4%}, Test F1: {f1:.4%}, Test AUC: {auc_score:.4%}"
-        )
-
-        # Calculate baseline metrics
-        baseline_accuracy, baseline_precision, baseline_recall, baseline_f1 = (
-            Prediction.calculate_baseline_scores(self.y_true_class)
-        )
-
-        # Print baseline metrics
-        print(
-            f"Baseline Accuracy: {baseline_accuracy:.4%}, Baseline Precision: {baseline_precision:.4%}, "
-            f"Baseline Recall: {baseline_recall:.4%}, Baseline F1: {baseline_f1:.4%}"
-        )
-
-        # Save metrics as JSON
-        self.visual_tools.save_metrics_as_json(
-            test_accuracy=accuracy,
-            test_precision=precision,
-            test_recall=recall,
-            test_f1=f1,
-            test_auc=auc_score,
-            baseline_accuracy=baseline_accuracy,
-            baseline_precision=baseline_precision,
-            baseline_recall=baseline_recall,
-            baseline_f1=baseline_f1,
-            file_name="Stats.JSON",
-        )
-
-    def save_predictions_to_csv(self, file_name_template="{}_{}_predictions.csv"):
-        """
-        Save the predicted and actual labels to a CSV file, naming it based on the training and test data configuration.
-        Only the method specified in the config (e.g., 'sex' or 'tissue') will be used to name the file.
-
-        Args:
-            file_name_template (str): A template for naming the file with placeholders for train/test attributes.
-
-        Returns:
-            None
-        """
-        # Convert predictions and true labels to class indices if not already done
-        if self.config.FeatureImportanceAndVisualizations.save_predictions:
-
-            if not hasattr(self, "y_pred_class"):
-                self.y_pred_class = np.argmax(self.y_pred, axis=1)
-                self.y_true_class = np.argmax(self.test_labels, axis=1)
-
-            class_names = self.label_encoder.classes_
-
-            # Map the predicted and actual class indices back to the class names
-            y_pred_names = [class_names[i] for i in self.y_pred_class]
-            y_true_names = [class_names[i] for i in self.y_true_class]
-
-            # Create a DataFrame with predicted and actual labels (class names)
-            df_predictions = pd.DataFrame(
-                {"Predicted": y_pred_names, "Actual": y_true_names}
-            )
-
-            # Determine the relevant train and test attributes based on the method
-            method = (
-                self.config.DataParameters.TrainTestSplit.method
-            )  # This could be 'sex', 'tissue', etc.
-            train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
-                method, "unknown"
-            )
-            test_attribute = self.config.DataParameters.TrainTestSplit.test.get(
-                method, "unknown"
-            )
-
-            # Capitalize the first letter of train and test attributes
-            train_attribute = train_attribute.capitalize()
-            test_attribute = test_attribute.capitalize()
-
-            # Format the file name based on the template using the method-specific attributes
-            file_name = file_name_template.format(
-                f"train{train_attribute}", f"test{test_attribute}"
-            )
-
-            # Define the output file path
-            output_file_path = os.path.join(
-                self.path_manager.get_visualization_directory(), file_name
-            )
-
-            # Save DataFrame to CSV
-            df_predictions.to_csv(output_file_path, index=False)
-
-            print(f"Predictions saved to {output_file_path}")
-
     def _plot_shap_summary(self):
         """
         Generate SHAP summary plot if SHAP values are available.
@@ -893,9 +669,8 @@ class Visualizer:
         Run the visualization pipeline.
         """
         self._visualize_training_history()
-        self._evaluate_model_performance()
+        self.import_metrics()  
         self._visualize_confusion_matrix()
         self._plot_roc_curve()
-        self._calculate_and_save_metrics()
         self._plot_shap_summary()
-        self.save_predictions_to_csv()
+
