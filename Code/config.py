@@ -1,6 +1,4 @@
 # config.py
-from Code.utilities import ConfigHandler
-
 config_dict = {
     "Device": {
         "processor": "Other",  # Options: 'Other' or 'M' (M is for Mac M1/M2/M3 processors)
@@ -20,12 +18,12 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell', 'sensory neuron'
-            "sex_type": "female",         # Options: 'all', 'male', 'female'
+            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell'
+            "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
-            "num_samples": 289981,       # Number of samples (cells) for training (total = 289981)
-            "num_variables": 15992,    # Number of variables (genes) for training (total = 15992)
+            "num_samples":289981,       # Number of samples (cells) for training (total = 289981)
+            "num_variables":15992,    # Number of variables (genes) for training (total = 15992)
         },
         "Filtering": {
             "include_mixed_sex": False,  # Options: True, False
@@ -33,14 +31,15 @@ config_dict = {
         "BatchCorrection": {
             "enabled": False,          # Options: True, False
         },
-        "TrainTestSplit": {             # NEED TO CREATE NEW DIRECTORIES FOR THIS
-            "method": "encoding_variable",        # Options: 'encoding_variable', 'sex', tissue'.
+        "TrainTestSplit": {             # Cross training and testing (ex. male train/female test)
+            #NEED TO CREATE NEW DIRECTORIES FOR THIS
+            "method": "encoding_variable",        # Options: 'encoding_variable' (no cross testing), 'sex', tissue'.
             "train": {
-                "sex": "female",           # Options: 'Male', 'Female', 'All'
+                "sex": "male",           # Options: 'Male', 'Female', 'All'
                 "tissue": "head",        # Options: 'Head', 'Body', 'All'
             },
             "test": {
-                "sex": "male",           # Options: 'Male', 'Female', 'All'
+                "sex": "female",           # Options: 'Male', 'Female', 'All'
                 "tissue": "body",        # Options: 'Head', 'Body', 'All'
                 "size": 0.4,             # Fraction of data for testing (if crashing due to computation, reduce this value)
             },
@@ -51,7 +50,7 @@ config_dict = {
             "enabled": False,         # Options: True, False
         },
         "ModelManagement": {
-            "load_model": False,      # Options: True, False #nEED TO UPDATE PREPROCESS FINAL EVAL DATA
+            "load_model": False,      # Options: True, False
         },
         "Preprocessing": {
             "required": True,         # Options: True, False
@@ -82,21 +81,20 @@ config_dict = {
     },
     "FeatureImportanceAndVisualizations": {
         "run_visualization": True,       # Options: True, False
-        "run_interpreter": False,        # Options: True, False (e.g., SHAP)
-        "load_SHAP": False,              # New flag: True to load SHAP values, False to compute them
+        "run_interpreter": True,        # Options: True, False (SHAP)
+        "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
-        "SHAP_test_size": 5000,          # Test data size for SHAP
-        "save_predictions": False,        # Options: True, False
+        "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
     "DataSplit": {
-        "validation_split": 0.2,          # Fraction of data for validation
-        "test_split": 0.1611,                # Fraction of data for testing
-        "random_state": 999,               # Random state for reproducibility
+        "validation_split": 0.1,           # Fraction of data for validation
+        "test_split": 0.1,                 # Fraction of data for testing
+        "random_state": 42,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
         "batch_size": 250,                 # Batch size for training
-        "early_stopping_patience": 5,      # Patience for early stopping
+        "early_stopping_patience": 3,      # Patience for early stopping
         "custom_loss": "categorical_crossentropy",  # Custom loss function
         "metrics": ["accuracy", "AUC"],    # Metrics to evaluate
     },
@@ -197,5 +195,61 @@ config_dict = {
         },
     },
 }
+
+class ConfigHandler:
+    def __init__(self, config_dict):
+        self._config_dict = {}
+        for key, value in config_dict.items():
+            if isinstance(value, dict):
+                value = ConfigHandler(value)
+            self._config_dict[key] = value
+
+    def __getattr__(self, name):
+        try:
+            return self._config_dict[name]
+        except KeyError:
+            raise AttributeError(f"No such attribute: {name}")
+
+    def __setattr__(self, name, value):
+        if name == "_config_dict":
+            super().__setattr__(name, value)
+        else:
+            if isinstance(value, dict):
+                value = ConfigHandler(value)
+            self._config_dict[name] = value
+
+    def __getitem__(self, key):
+        return self._config_dict[key]
+
+    def __setitem__(self, key, value):
+        if isinstance(value, dict):
+            value = ConfigHandler(value)
+        self._config_dict[key] = value
+
+    def __iter__(self):
+        return iter(self._config_dict)
+
+    def items(self):
+        return self._config_dict.items()
+
+    def keys(self):
+        return self._config_dict.keys()
+
+    def values(self):
+        return self._config_dict.values()
+
+    def get(self, key, default=None):
+        return self._config_dict.get(key, default)
+
+    def as_dict(self):
+        result = {}
+        for key, value in self._config_dict.items():
+            if isinstance(value, ConfigHandler):
+                value = value.as_dict()
+            result[key] = value
+        return result
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._config_dict})"
 
 config = ConfigHandler(config_dict)

@@ -2,11 +2,22 @@
 
 import os
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.dummy import DummyClassifier
 import shap
 import pickle
 import logging
+import hashlib
+from sklearn.preprocessing import label_binarize
+import pandas as pd
+import json
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 
 class Prediction:
@@ -122,15 +133,14 @@ class Interpreter:
         - reference_data (numpy.ndarray): The reference data used during model training.
         """
         self.config = config
-        self.model = model  # Best model for SHAP analysis
-        self.test_data = test_data  # Best model's test data
-        self.test_labels = test_labels  # Best model's test labels
+        self.model = model
+        self.test_data = test_data  
+        self.test_labels = test_labels  
         self.label_encoder = label_encoder
-        self.reference_data = reference_data  # Best model's reference data
+        self.reference_data = reference_data 
         self.path_manager = path_manager
 
         self.shap_dir = self.path_manager.get_visualization_directory(
-            analysis_type="Analysis",
             subfolder="SHAP",
         )
 
@@ -176,9 +186,13 @@ class Interpreter:
         Returns:
         - tuple: A tuple containing the SHAP values and the corresponding SHAP test data.
         """
-        # Use the entire test data and reference data for SHAP computation
-        shap_test_data = self.test_data
-        shap_reference_data = self.reference_data
+
+        # Squeeze the test data if necessary
+        squeezed_test_data = (
+            self.test_data
+            if self.test_data.ndim <= 2
+            else np.squeeze(self.test_data, axis=1)
+        )
 
         # Access the model type from the configuration
         model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
@@ -186,33 +200,38 @@ class Interpreter:
         # Determine the explainer to use based on the model type
         if model_type in ["mlp", "cnn"]:
             # For neural network models, use GradientExplainer
-            explainer = shap.GradientExplainer(self.model, shap_reference_data)
+            explainer = shap.GradientExplainer(self.model, self.reference_data)
         elif model_type in ["xgboost", "randomforest"]:
             # For tree-based models, use TreeExplainer
             explainer = shap.TreeExplainer(self.model)
         else:
             # For linear models, use LinearExplainer
-            explainer = shap.LinearExplainer(self.model, shap_reference_data)
+            explainer = shap.LinearExplainer(self.model, self.reference_data)
 
         # Compute SHAP values
-        shap_values = explainer.shap_values(shap_test_data)
+        shap_values = explainer.shap_values(self.test_data)
 
-        # Adjust SHAP values and test data shapes if necessary
-        if isinstance(shap_values, list):
-            squeezed_shap_values = [
-                np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values
-            ]
+        # Adjust SHAP values and test data shapes based on the system type
+        device = self.config.DataParameters.GeneralSettings.model_type.lower()
+        if device == 'M':
+            # Adjust SHAP values for macOS
+            if isinstance(shap_values, list):
+                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
+            else:
+                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
+
         else:
-            squeezed_shap_values = (
-                np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values
-            )
+            # Adjust SHAP values for Windows
+            if isinstance(shap_values, list):
+                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
+            else:
+                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
 
-        squeezed_test_data = (
-            shap_test_data
-            if shap_test_data.ndim <= 2
-            else np.squeeze(shap_test_data, axis=1)
-        )
-
+            # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
+            squeezed_shap_values = [
+                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+            ]
+            
         return squeezed_shap_values, squeezed_test_data
 
     def save_shap_values(self, shap_values):
@@ -230,8 +249,8 @@ class Interpreter:
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
             "model_weights_hash": model_weights_hash,
-            "test_data_hash": hash(self.test_data.tobytes()),
-            "reference_data_hash": hash(self.reference_data.tobytes()),
+            "test_data_hash": self.compute_sha256_hash(self.test_data.tobytes()),
+            "reference_data_hash": self.compute_sha256_hash(self.reference_data.tobytes()),
         }
 
         # Save SHAP values, metadata, and the data
@@ -273,10 +292,12 @@ class Interpreter:
             ),
             "model_weights_hash": model_weights_hash,
             "test_data_hash": (
-                hash(self.test_data.tobytes()) if self.test_data is not None else None
+                self.compute_sha256_hash(self.test_data.tobytes())
+                if self.test_data is not None
+                else None
             ),
             "reference_data_hash": (
-                hash(self.reference_data.tobytes())
+                self.compute_sha256_hash(self.reference_data.tobytes())
                 if self.reference_data is not None
                 else None
             ),
@@ -300,7 +321,7 @@ class Interpreter:
         # Perform consistency checks
         if not model_match:
             logging.warning(
-                "The model used for SHAP computation does not match the current best model."
+                "The model used for SHAP computation does not match the current model."
             )
         if not test_data_match:
             logging.warning(
@@ -327,19 +348,277 @@ class Interpreter:
 
     def _get_model_weights_hash(self):
         """
-        Get a hash of the model's weights for consistency checks.
+        Get a SHA-256 hash of the model's weights for consistency checks.
 
         Returns:
-            int: The hash of the model's weights.
+            str: The hexadecimal SHA-256 hash of the model's weights.
         """
         if hasattr(self.model, "get_weights"):
             # For Keras models
             weights = self.model.get_weights()
             weights_bytes = b"".join([w.tobytes() for w in weights])
-            return hash(weights_bytes)
+            return self.compute_sha256_hash(weights_bytes)
         else:
             # For other models like scikit-learn models
-            import pickle
-
             model_bytes = pickle.dumps(self.model)
-            return hash(model_bytes)
+            return self.compute_sha256_hash(model_bytes)
+
+    def compute_sha256_hash(self, data_bytes):
+        """
+        Compute the SHA-256 hash of the given bytes.
+
+        Args:
+            data_bytes (bytes): The data to hash.
+
+        Returns:
+            str: The hexadecimal SHA-256 hash of the data.
+        """
+        return hashlib.sha256(data_bytes).hexdigest()
+
+
+class Metrics:
+    """
+    A class to handle evaluation and saving of model performance metrics.
+
+    This class evaluates the model's performance, calculates metrics, and saves the results.
+    """
+
+    def __init__(
+        self,
+        config,
+        model,
+        test_inputs,
+        test_labels,
+        label_encoder,
+        path_manager,
+    ):
+        """
+        Initializes the Metrics class with the given configuration and results.
+
+        Parameters:
+        - config (ConfigHandler): A configuration handler object with nested configuration attributes.
+        - model (object): The trained model.
+        - test_inputs (numpy.ndarray): The test data.
+        - test_labels (numpy.ndarray): The labels for the test data.
+        - label_encoder (LabelEncoder): The label encoder used during training.
+        - path_manager (PathManager): The path manager object for directory paths.
+        """
+        self.config = config
+        self.model = model
+        self.test_inputs = test_inputs
+        self.test_labels = test_labels
+        self.label_encoder = label_encoder
+        self.path_manager = path_manager
+
+        # Determine the main output directory using PathManager
+        self.output_dir = self.path_manager.get_visualization_directory()
+
+    def _evaluate_model_performance(self):
+        """
+        Evaluate the model on the test data and store performance metrics.
+        """
+        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        if model_type in ["mlp", "cnn"]:
+            test_loss, test_acc, test_auc = Prediction.evaluate_model(
+                self.model, self.test_inputs, self.test_labels
+            )
+            print(f"Eval accuracy: {test_acc}")
+            print(f"Eval loss: {test_loss}")
+            print(f"Eval AUC: {test_auc}")
+
+        if model_type in ["mlp", "cnn"]:
+            self.y_pred = self.model.predict(self.test_inputs)
+        else:
+            self.y_pred = self.model.predict_proba(self.test_inputs)
+
+        # Convert predictions and true labels to class indices
+        self.y_pred_class = np.argmax(self.y_pred, axis=1)
+        self.y_true_class = np.argmax(self.test_labels, axis=1)
+
+    def _calculate_and_save_metrics(self):
+        """
+        Calculate, print, and save various performance metrics.
+        """
+        # Calculate metrics
+        accuracy = accuracy_score(self.y_true_class, self.y_pred_class)
+        precision = precision_score(
+            self.y_true_class, self.y_pred_class, average="macro"
+        )
+        recall = recall_score(self.y_true_class, self.y_pred_class, average="macro")
+        f1 = f1_score(self.y_true_class, self.y_pred_class, average="macro")
+
+        # Compute ROC-AUC score
+        y_true_binary = label_binarize(
+            self.y_true_class, classes=np.unique(self.y_true_class)
+        )
+        y_pred_prob = self.y_pred
+
+        n_classes = len(np.unique(self.y_true_class))
+        if n_classes == 2:  # Binary classification
+            y_pred_prob_positive = y_pred_prob[:, 1]
+            auc_score = roc_auc_score(
+                y_true_binary, y_pred_prob_positive, average="macro", multi_class="ovo"
+            )
+        else:  # Multi-class classification
+            auc_score = roc_auc_score(
+                y_true_binary, y_pred_prob, average="macro", multi_class="ovo"
+            )
+
+        # Print the classification report
+        class_labels = self.label_encoder.classes_
+        print("Classification Report:")
+        print(
+            classification_report(
+                self.y_true_class, self.y_pred_class, target_names=class_labels
+            )
+        )
+
+        # Print performance metrics
+        print(
+            f"Test Accuracy: {accuracy:.4%}, Test Precision: {precision:.4%}, Test Recall: {recall:.4%}, Test F1: {f1:.4%}, Test AUC: {auc_score:.4%}"
+        )
+
+        # Calculate baseline metrics
+        (
+            baseline_accuracy,
+            baseline_precision,
+            baseline_recall,
+            baseline_f1,
+        ) = Prediction.calculate_baseline_scores(self.y_true_class)
+
+        # Print baseline metrics
+        print(
+            f"Baseline Accuracy: {baseline_accuracy:.4%}, Baseline Precision: {baseline_precision:.4%}, "
+            f"Baseline Recall: {baseline_recall:.4%}, Baseline F1: {baseline_f1:.4%}"
+        )
+
+        # Save metrics as JSON
+        self.save_metrics_as_json(
+            test_accuracy=accuracy,
+            test_precision=precision,
+            test_recall=recall,
+            test_f1=f1,
+            test_auc=auc_score,
+            baseline_accuracy=baseline_accuracy,
+            baseline_precision=baseline_precision,
+            baseline_recall=baseline_recall,
+            baseline_f1=baseline_f1,
+            file_name="Stats.JSON",
+        )
+
+    def save_metrics_as_json(
+        self,
+        test_accuracy,
+        test_precision,
+        test_recall,
+        test_f1,
+        test_auc,
+        baseline_accuracy,
+        baseline_precision,
+        baseline_recall,
+        baseline_f1,
+        file_name,
+    ):
+        """
+        Saves the provided metrics to a JSON file.
+
+        Parameters:
+            test_accuracy (float): Test accuracy.
+            test_precision (float): Test precision.
+            test_recall (float): Test recall.
+            test_f1 (float): Test F1 score.
+            test_auc (float): Test AUC.
+            baseline_accuracy (float): Baseline accuracy.
+            baseline_precision (float): Baseline precision.
+            baseline_recall (float): Baseline recall.
+            baseline_f1 (float): Baseline F1 score.
+            file_name (str): The name of the file to save the metrics in.
+        """
+        # Function to format the metrics as percentages
+        format_percent = lambda x: f"{x * 100:.2f}%"
+
+        # Construct the metrics dictionary with formatted values
+        metrics = {
+            "Test": {
+                "Accuracy": format_percent(test_accuracy),
+                "Precision": format_percent(test_precision),
+                "Recall": format_percent(test_recall),
+                "F1": format_percent(test_f1),
+                "AUC": format_percent(test_auc),
+            },
+            "Baseline": {
+                "Accuracy": format_percent(baseline_accuracy),
+                "Precision": format_percent(baseline_precision),
+                "Recall": format_percent(baseline_recall),
+                "F1": format_percent(baseline_f1),
+            },
+        }
+
+        # Save metrics to main analysis folder
+        os.makedirs(self.output_dir, exist_ok=True)
+        output_file_path = os.path.join(self.output_dir, file_name)
+        with open(output_file_path, "w") as file:
+            json.dump(metrics, file, indent=4)
+
+    def save_predictions_to_csv(self, file_name_template="{}_{}_predictions.csv"):
+        """
+        Save the predicted and actual labels to a CSV file, naming it based on the training and test data configuration.
+        Only the method specified in the config (e.g., 'sex' or 'tissue') will be used to name the file.
+
+        Args:
+            file_name_template (str): A template for naming the file with placeholders for train/test attributes.
+
+        Returns:
+            None
+        """
+        # Convert predictions and true labels to class indices if not already done
+        if self.config.FeatureImportanceAndVisualizations.save_predictions:
+
+            if not hasattr(self, "y_pred_class"):
+                self.y_pred_class = np.argmax(self.y_pred, axis=1)
+                self.y_true_class = np.argmax(self.test_labels, axis=1)
+
+            class_names = self.label_encoder.classes_
+
+            # Map the predicted and actual class indices back to the class names
+            y_pred_names = [class_names[i] for i in self.y_pred_class]
+            y_true_names = [class_names[i] for i in self.y_true_class]
+
+            # Create a DataFrame with predicted and actual labels (class names)
+            df_predictions = pd.DataFrame(
+                {"Predicted": y_pred_names, "Actual": y_true_names}
+            )
+
+            # Determine the relevant train and test attributes based on the method
+            method = self.config.DataParameters.TrainTestSplit.method  # This could be 'sex', 'tissue', etc.
+            train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
+                method, "unknown"
+            )
+            test_attribute = self.config.DataParameters.TrainTestSplit.test.get(
+                method, "unknown"
+            )
+
+            # Capitalize the first letter of train and test attributes
+            train_attribute = train_attribute.capitalize()
+            test_attribute = test_attribute.capitalize()
+
+            # Format the file name based on the template using the method-specific attributes
+            file_name = file_name_template.format(
+                f"train{train_attribute}", f"test{test_attribute}"
+            )
+
+            # Define the output file path
+            output_file_path = os.path.join(self.output_dir, file_name)
+
+            # Save DataFrame to CSV
+            df_predictions.to_csv(output_file_path, index=False)
+
+            print(f"Predictions saved to {output_file_path}")
+
+    def compute_metrics(self):
+        """
+        Run the metrics evaluation pipeline.
+        """
+        self._evaluate_model_performance()
+        self._calculate_and_save_metrics()
+        self.save_predictions_to_csv()

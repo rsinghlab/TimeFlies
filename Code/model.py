@@ -4,13 +4,12 @@ from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import json
 import dill as pickle
-from Code.utilities import PathManager
+from utilities import PathManager
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-
 
 class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
     """
@@ -38,10 +37,8 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         highly_variable_genes_path,
         mix_included,
         mix_included_path,
-        test_data,
-        test_labels,
-        test_data_path,
-        test_labels_path,
+        num_features,
+        num_features_path,
         *args,
         **kwargs,
     ):
@@ -59,10 +56,12 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             scaler_path (str): Path for saving the scaler.
             is_scaler_fit (bool): Whether the scaler has been fit or not.
             is_scaler_fit_path (str): Path for saving the is_scaler_fit variable.
-            test_data (numpy.ndarray): Test data to save.
-            test_labels (numpy.ndarray): Test labels to save.
-            test_data_path (str): Path to save test data.
-            test_labels_path (str): Path to save test labels.
+            highly_variable_genes (list): List of highly variable genes.
+            highly_variable_genes_path (str): Path for saving the highly variable genes.
+            mix_included (bool): Whether mix is included.
+            mix_included_path (str): Path for saving the mix_included variable.
+            num_features (int): Number of features in the training data.
+            num_features_path (str): Path to save the num_features variable.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
@@ -92,10 +91,8 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         self.highly_variable_genes = highly_variable_genes
         self.highly_variable_genes_path = highly_variable_genes_path
 
-        self.test_data = test_data
-        self.test_labels = test_labels
-        self.test_data_path = test_data_path
-        self.test_labels_path = test_labels_path
+        self.num_features = num_features
+        self.num_features_path = num_features_path
 
         # Initialize a flag to indicate if the model improved during training
         self.model_improved = False
@@ -162,23 +159,26 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             with open(self.mix_included_path, "wb") as mix_included_file:
                 pickle.dump(self.mix_included, mix_included_file)
 
-            # Save test data and labels
-            with open(self.test_data_path, "wb") as test_data_file:
-                np.save(test_data_file, self.test_data)
-
-            with open(self.test_labels_path, "wb") as test_labels_file:
-                np.save(test_labels_file, self.test_labels)
+            # Save num_features
+            with open(self.num_features_path, "wb") as f:
+                pickle.dump(self.num_features, f)
 
             # Call the parent class's on_epoch_end method to save the model weights
             super().on_epoch_end(epoch, logs)
 
-
 class ModelLoader:
     """
-    A class to handle model loading operations.
+    A class to manage the loading of machine learning or deep learning models.
 
-    This class constructs the path to the saved model based on the configuration
-    and loads the model along with related components like label encoder and other preprocessing objects.
+    This class constructs the full path to the saved model based on the configuration settings
+    and loads the model along with associated components, such as label encoders and other
+    necessary preprocessing objects, to ensure the model is ready for inference.
+
+    Attributes:
+    - config (ConfigHandler): Holds configuration settings for loading the model and related components.
+    - model_dir (str): Directory path where the model files are stored, constructed from configuration settings.
+    - model_path (str): Full path to the specific model file to be loaded.
+    - model_type (str): The type of model to be loaded (e.g., "cnn", "rnn"), specified in the configuration.
     """
 
     def __init__(
@@ -186,16 +186,22 @@ class ModelLoader:
         config,
     ):
         """
-        Initializes the ModelLoader with the given configuration and directory structure.
+        Initializes the ModelLoader with configuration and directory structure to locate the model files.
 
         Parameters:
-        - config (ConfigHandler): A ConfigHandler object containing configuration settings.
-        - code_dir (str): The directory where the code is located.
+        - config (ConfigHandler): A ConfigHandler instance containing settings for model loading, paths, 
+          and preprocessing components.
+        
+        Sets up:
+        - `model_dir` by constructing the directory path from config details.
+        - `model_path` as the specific file path for the saved model.
+        - `model_type` to specify the type of model (e.g., CNN, RNN) as per config.
         """
         self.config = config
         self.path_manager = PathManager(self.config)
 
-        # Use the shared method
+        # Construct the directory and specific paths for model loading
+        self.model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
         self.model_dir = self.path_manager.construct_model_directory()
         self.model_path = self._get_model_path()
 
@@ -206,8 +212,7 @@ class ModelLoader:
         Returns:
         - str: The path to the model file.
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-        if model_type in ["cnn", "mlp"]:
+        if self.model_type in ["cnn", "mlp"]:
             model_filename = "best_model.h5"
         else:
             model_filename = "best_model.pkl"
@@ -227,42 +232,52 @@ class ModelLoader:
         """
         # Load the model
         if os.path.exists(self.model_path):
-            model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-            if model_type in ["cnn", "mlp"]:
+            if self.model_type in ["cnn", "mlp"]:
                 model = tf.keras.models.load_model(self.model_path)
             else:
                 model = self._load_pickle(self.model_path)
         else:
             exit()
 
+        # Return all loaded components
+        return model
+    
+    def load_model_components(self):    
+        """
+        Loads the saved model's related components.
+
+        This method constructs the file paths for the model and other related files
+        (like label encoder, scaler, etc.) based on the configuration settings.
+        It then loads these components and returns them for use.
+
+        Returns:
+        - tuple: A tuple containing the loaded model and related components like label encoder, reference data, scaler, test data, test labels, and training history.
+        """
+
         # Load other related components from the model directory
         label_encoder = self._load_file("label_encoder.pkl")
-        reference_data = self._load_file("reference_data.npy", file_type="numpy")
         scaler = self._load_file("scaler.pkl")
         is_scaler_fit = self._load_file("is_scaler_fit.pkl")
-        mix_included = self._load_file("mix_included.pkl")
         highly_variable_genes = self._load_file("highly_variable_genes.pkl")
-        test_data = self._load_file("test_data.npy", file_type="numpy")
-        test_labels = self._load_file("test_labels.npy", file_type="numpy")
-        history = (
-            self._load_file("history.pkl")
-            if model_type in ["cnn", "mlp", "xgboost"]
-            else None
-        )
+        num_features = self._load_file("num_features.pkl")
+        history = self._load_file("history.pkl")
 
+        reference_data = self._load_file("reference_data.npy", file_type="numpy")
+        mix_included = self._load_file("mix_included.pkl")
+        
         # Return all loaded components
         return (
-            model,
             label_encoder,
-            reference_data,
             scaler,
             is_scaler_fit,
-            mix_included,
             highly_variable_genes,
-            test_data,
-            test_labels,
+            num_features,
             history,
+            mix_included,
+            reference_data
+
         )
+
 
     def _load_pickle(self, file_path):
         """
@@ -314,8 +329,6 @@ class ModelBuilder:
         config,
         train_data,
         train_labels,
-        test_data,
-        test_labels,
         label_encoder,
         reference_data,
         scaler,
@@ -330,8 +343,6 @@ class ModelBuilder:
         - config (ConfigHandler): A ConfigHandler object containing configuration settings.
         - train_data (numpy.ndarray): The training data.
         - train_labels (numpy.ndarray): The labels for the training data.
-        - test_data (numpy.ndarray): The test data.
-        - test_labels (numpy.ndarray): The labels for the test data.
         - label_encoder (LabelEncoder): The label encoder for encoding labels.
         - reference_data (numpy.ndarray): Reference data used in model training.
         - scaler (object): Scaler object used for feature scaling.
@@ -342,14 +353,13 @@ class ModelBuilder:
         self.config = config
         self.train_data = train_data
         self.train_labels = train_labels
-        self.test_data = test_data
-        self.test_labels = test_labels
         self.label_encoder = label_encoder
         self.reference_data = reference_data
         self.scaler = scaler
         self.is_scaler_fit = is_scaler_fit
         self.highly_variable_genes = highly_variable_genes
         self.mix_included = mix_included
+        self.model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
 
     def create_cnn_model(self, num_output_units):
         """
@@ -361,7 +371,6 @@ class ModelBuilder:
         Returns:
             model (tensorflow.python.keras.Model): The created and compiled CNN model.
         """
-
         cnn_config = self.config.ModelParameters.CNN_Model
 
         # Create model
@@ -564,22 +573,21 @@ class ModelBuilder:
         Returns:
             model: The created model, which could be CNN, MLP, or logistic regression.
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
         num_output_units = (
-            self.train_labels.shape[1] if model_type in ["cnn", "mlp"] else None
+            self.train_labels.shape[1] if self.model_type in ["cnn", "mlp"] else None
         )
 
-        if model_type == "cnn":
+        if self.model_type == "cnn":
             model = self.create_cnn_model(num_output_units)
             print(model.summary())
-        elif model_type == "mlp":
+        elif self.model_type == "mlp":
             model = self.create_mlp_model(num_output_units)
             print(model.summary())
-        elif model_type == "logisticregression":
+        elif self.model_type == "logisticregression":
             model = self.create_logistic_regression()
-        elif model_type == "randomforest":
+        elif self.model_type == "randomforest":
             model = self.create_random_forest()
-        elif model_type == "xgboost":
+        elif self.model_type == "xgboost":
             model = self.create_xgboost_model()
         else:
             raise ValueError("Unsupported model type provided.")
@@ -593,9 +601,7 @@ class ModelBuilder:
         model_dir = self._prepare_directories()
         paths = self._define_paths(model_dir)
 
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
-
-        if model_type in ["cnn", "mlp"]:
+        if self.model_type in ["cnn", "mlp"]:
             history = self._train_neural_network(model, paths)
         else:
             history = self._train_sklearn_model(model, paths)
@@ -635,8 +641,6 @@ class ModelBuilder:
                 model_dir, "highly_variable_genes.pkl"
             ),
             "mix_included_path": os.path.join(model_dir, "mix_included.pkl"),
-            "test_data_path": os.path.join(model_dir, "test_data.npy"),
-            "test_labels_path": os.path.join(model_dir, "test_labels.npy"),
             "history_path": os.path.join(model_dir, "history.pkl"),
             "model_dir": model_dir,
         }
@@ -655,6 +659,7 @@ class ModelBuilder:
         """
         custom_model_path = os.path.join(paths["model_dir"], "best_model.h5")
         best_val_loss_path = os.path.join(paths["model_dir"], "best_val_loss.json")
+        self.num_features = self.train_data.shape[2] if self.model_type == 'cnn' else self.train_data.shape[1]
 
         # Load the best validation loss from file
         try:
@@ -697,10 +702,8 @@ class ModelBuilder:
             paths["highly_variable_genes_path"],
             self.mix_included,
             paths["mix_included_path"],
-            self.test_data,
-            self.test_labels,
-            paths["test_data_path"],
-            paths["test_labels_path"],
+            self.num_features,
+            paths["num_features_path"],
             monitor="val_loss",
             save_best_only=True,
             verbose=1,
@@ -736,7 +739,6 @@ class ModelBuilder:
         Returns:
             history: The training history (if applicable).
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
         train_labels = np.argmax(self.train_labels, axis=1)
         # Calculate the validation split index
         (
@@ -752,10 +754,10 @@ class ModelBuilder:
             stratify=train_labels,
         )
 
-        if model_type in ["logisticregression", "randomforest"]:
+        if self.model_type in ["logisticregression", "randomforest"]:
             model.fit(train_inputs_split, train_labels_split)
             history = None
-        elif model_type == "xgboost":
+        elif self.model_type == "xgboost":
             # Training with evaluation set
             eval_set = [
                 (train_inputs_split, train_labels_split),
@@ -807,7 +809,7 @@ class ModelBuilder:
                 pickle.dump(model, f)
 
             # Save the history object
-            if model_type == "xgboost" and history is not None:
+            if self.model_type == "xgboost" and history is not None:
                 with open(paths["history_path"], "wb") as f:
                     pickle.dump(history, f)
 
@@ -836,10 +838,6 @@ class ModelBuilder:
                 paths["highly_variable_genes_path"], "wb"
             ) as highly_variable_genes_file:
                 pickle.dump(self.highly_variable_genes, highly_variable_genes_file)
-
-            # Save test data and labels
-            np.save(paths["test_data_path"], self.test_data)
-            np.save(paths["test_labels_path"], self.test_labels)
 
             print("New best model saved with validation accuracy:", val_accuracy)
 
