@@ -2,9 +2,9 @@ import logging
 
 from config import config
 from preprocess import DataPreprocessor, GeneFilter
-from interpreter import Interpreter
+from interpreter import Interpreter, Metrics
 from model import ModelBuilder, ModelLoader
-from Code.analysis import Visualizer
+from visuals import Visualizer
 from eda import EDAHandler
 from utilities import GPUHandler, PathManager, DataLoader
 
@@ -332,6 +332,26 @@ class PipelineManager:
             logger.info("Visualizations completed.")
         else:
             logger.info("Visualization is disabled in the configuration.")
+
+    def run_metrics(self):
+        """
+        Compute and display evaluation metrics for the model.
+        """
+        try:
+            logger.info("Computing evaluation metrics...")
+            metrics = Metrics(
+                self.config_instance,
+                self.model,
+                self.test_data,
+                self.test_labels,
+                self.label_encoder,
+                self.path_manager,)
+            metrics.compute_metrics()
+            logger.info("Evaluation metrics computed successfully.")
+        except Exception as e:
+            logger.error(f"Error computing evaluation metrics: {e}")
+            raise
+
 
     def display_duration(self, start_time, end_time):
         """
