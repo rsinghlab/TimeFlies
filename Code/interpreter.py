@@ -213,7 +213,7 @@ class Interpreter:
 
         # Adjust SHAP values and test data shapes based on the system type
         device = self.config.Device.processor.lower()
-        if device == 'M':
+        if device == 'm':
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
                 squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
