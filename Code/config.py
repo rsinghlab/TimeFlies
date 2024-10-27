@@ -1,7 +1,7 @@
 # config.py
 config_dict = {
     "Device": {
-        "processor": "M",  # Options: 'Other' or 'M' (M is for Mac M1/M2/M3 processors)
+        "processor": "Other",  # Options: 'Other' or 'M' (M is for Mac M1/M2/M3 processors)
     },
     "FileLocations": {
         "training_file": "fly_train.h5ad",       # Name of the training data file
@@ -81,9 +81,9 @@ config_dict = {
     },
     "FeatureImportanceAndVisualizations": {
         "run_visualization": True,       # Options: True, False
-        "run_interpreter": False,        # Options: True, False (SHAP)
+        "run_interpreter": True,        # Options: True, False (SHAP)
         "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
-        "reference_size": 5000,          # Reference data size for SHAP
+        "reference_size": 50,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
     "DataSplit": {

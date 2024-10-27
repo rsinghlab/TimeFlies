@@ -211,23 +211,27 @@ class Interpreter:
         # Compute SHAP values
         shap_values = explainer.shap_values(self.test_data)
 
-        # Adjust SHAP values and test data shapes if necessary - works on mac
-        if isinstance(shap_values, list):
-            squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
+        # Adjust SHAP values and test data shapes based on the system type
+        device = self.config.DataParameters.GeneralSettings.model_type.lower()
+        if device == 'M':
+            # Adjust SHAP values for macOS
+            if isinstance(shap_values, list):
+                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
+            else:
+                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
+
         else:
-            squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
+            # Adjust SHAP values for Windows
+            if isinstance(shap_values, list):
+                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
+            else:
+                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
 
-        # # Adjust SHAP values and test data shapes if necessary
-        # if isinstance(shap_values, list):
-        #     squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
-        # else:
-        #     squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
-
-        # # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
-        # squeezed_shap_values = [
-        #     squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
-        # ]
-        
+            # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
+            squeezed_shap_values = [
+                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+            ]
+            
         return squeezed_shap_values, squeezed_test_data
 
     def save_shap_values(self, shap_values):
