@@ -14,6 +14,11 @@ import sys
 import pandas as pd
 from scipy.sparse import issparse
 import matplotlib.pyplot as plt
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
 
 class VisualizationTools:
     """
@@ -512,7 +517,6 @@ class VisualizationTools:
         plt.close()
 
 
-
 class Visualizer:
     """
     A class to handle visualization of model results and explanations.
@@ -573,7 +577,7 @@ class Visualizer:
         """
         model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
         if model_type in ["mlp", "cnn"]:
-           self.y_pred = self.model.predict(self.test_inputs)
+            self.y_pred = self.model.predict(self.test_inputs)
         else:
             self.y_pred = self.model.predict_proba(self.test_inputs)
 
@@ -669,8 +673,7 @@ class Visualizer:
         Run the visualization pipeline.
         """
         self._visualize_training_history()
-        self.import_metrics()  
+        self.import_metrics()
         self._visualize_confusion_matrix()
         self._plot_roc_curve()
         self._plot_shap_summary()
-

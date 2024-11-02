@@ -134,10 +134,10 @@ class Interpreter:
         """
         self.config = config
         self.model = model
-        self.test_data = test_data  
-        self.test_labels = test_labels  
+        self.test_data = test_data
+        self.test_labels = test_labels
         self.label_encoder = label_encoder
-        self.reference_data = reference_data 
+        self.reference_data = reference_data
         self.path_manager = path_manager
 
         self.shap_dir = self.path_manager.get_visualization_directory(
@@ -213,25 +213,40 @@ class Interpreter:
 
         # Adjust SHAP values and test data shapes based on the system type
         device = self.config.Device.processor.lower()
-        if device == 'm':
+        if device == "m":
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
-                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
+                squeezed_shap_values = [
+                    np.squeeze(val, axis=1) if val.ndim >= 3 else val
+                    for val in shap_values
+                ]
             else:
-                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
+                squeezed_shap_values = (
+                    np.squeeze(shap_values, axis=1)
+                    if shap_values.ndim >= 3
+                    else shap_values
+                )
 
         else:
             # Adjust SHAP values for Windows
             if isinstance(shap_values, list):
-                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
+                squeezed_shap_values = [
+                    np.squeeze(val, axis=1) if val.ndim > 3 else val
+                    for val in shap_values
+                ]
             else:
-                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
+                squeezed_shap_values = (
+                    np.squeeze(shap_values, axis=1)
+                    if shap_values.ndim > 3
+                    else shap_values
+                )
 
             # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
             squeezed_shap_values = [
-                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+                squeezed_shap_values[:, :, i]
+                for i in range(squeezed_shap_values.shape[2])
             ]
-            
+
         return squeezed_shap_values, squeezed_test_data
 
     def save_shap_values(self, shap_values):
@@ -250,7 +265,9 @@ class Interpreter:
             ),
             "model_weights_hash": model_weights_hash,
             "test_data_hash": self.compute_sha256_hash(self.test_data.tobytes()),
-            "reference_data_hash": self.compute_sha256_hash(self.reference_data.tobytes()),
+            "reference_data_hash": self.compute_sha256_hash(
+                self.reference_data.tobytes()
+            ),
         }
 
         # Save SHAP values, metadata, and the data
@@ -590,7 +607,9 @@ class Metrics:
             )
 
             # Determine the relevant train and test attributes based on the method
-            method = self.config.DataParameters.TrainTestSplit.method  # This could be 'sex', 'tissue', etc.
+            method = (
+                self.config.DataParameters.TrainTestSplit.method
+            )  # This could be 'sex', 'tissue', etc.
             train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
                 method, "unknown"
             )

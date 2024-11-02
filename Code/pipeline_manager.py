@@ -31,6 +31,7 @@ class PipelineManager:
         self.config_instance = config
         self.data_loader = DataLoader(self.config_instance)
         self.path_manager = PathManager(self.config_instance)
+        logger.info("Initializing TimeFlies pipeline...")
 
     def setup_gpu(self):
         """
@@ -214,15 +215,14 @@ class PipelineManager:
             self.model_loader = ModelLoader(self.config_instance)
 
             (
-            self.label_encoder,
-            self.scaler,
-            self.is_scaler_fit,
-            self.highly_variable_genes,
-            self.num_features,
-            self.history,
-            self.mix_included,
-            self.reference_data,
-
+                self.label_encoder,
+                self.scaler,
+                self.is_scaler_fit,
+                self.highly_variable_genes,
+                self.num_features,
+                self.history,
+                self.mix_included,
+                self.reference_data,
             ) = self.model_loader.load_model_components()
 
         except Exception as e:
@@ -345,13 +345,13 @@ class PipelineManager:
                 self.test_data,
                 self.test_labels,
                 self.label_encoder,
-                self.path_manager,)
+                self.path_manager,
+            )
             metrics.compute_metrics()
             logger.info("Evaluation metrics computed successfully.")
         except Exception as e:
             logger.error(f"Error computing evaluation metrics: {e}")
             raise
-
 
     def display_duration(self, start_time, end_time):
         """
@@ -363,8 +363,8 @@ class PipelineManager:
         """
         duration_seconds = end_time - start_time
         if duration_seconds < 60:
-            print(f"The task took {round(duration_seconds)} seconds.")
+            logger.info(f"The task took {round(duration_seconds)} seconds.")
         else:
             minutes = duration_seconds // 60
             seconds = round(duration_seconds % 60)
-            print(f"The task took {int(minutes)} minutes and {seconds} seconds.")
+            logger.info(f"The task took {int(minutes)} minutes and {seconds} seconds.")

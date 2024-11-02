@@ -1,15 +1,15 @@
 {
     "Test": {
-        "Accuracy": "68.33%",
-        "Precision": "70.42%",
-        "Recall": "64.02%",
-        "F1": "64.33%",
-        "AUC": "87.49%"
+        "Accuracy": "94.37%",
+        "Precision": "93.74%",
+        "Recall": "93.94%",
+        "F1": "93.81%",
+        "AUC": "99.45%"
     },
     "Baseline": {
-        "Accuracy": "33.33%",
-        "Precision": "8.33%",
+        "Accuracy": "33.67%",
+        "Precision": "8.42%",
         "Recall": "25.00%",
-        "F1": "12.50%"
+        "F1": "12.60%"
     }
 }

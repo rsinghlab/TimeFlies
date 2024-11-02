@@ -591,9 +591,9 @@ class DataPreprocessor:
         # Sex Mapping
         sex_type = config.DataParameters.GeneralSettings.sex_type.lower()
         if sex_type != "all":
-              adata = adata[adata.obs["sex"] == sex_type].copy()
+            adata = adata[adata.obs["sex"] == sex_type].copy()
 
-        # Highly variable genes and feature selection      
+        # Highly variable genes and feature selection
         if highly_variable_genes is not None:
             adata = adata[:, highly_variable_genes]
         else:
