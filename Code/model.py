@@ -372,7 +372,7 @@ class ModelBuilder:
             model (tensorflow.python.keras.Model): The created and compiled CNN model.
         """
         cnn_config = self.config.ModelParameters.CNN_Model
-
+       
         # Create model
         model = tf.keras.Sequential()
 

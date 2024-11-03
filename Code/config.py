@@ -18,7 +18,7 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "sensory neuron",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell'
+            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell'
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
@@ -62,16 +62,16 @@ config_dict = {
     },
     "GenePreprocessing": {
         "GeneFiltering": {
-            "remove_sex_genes": True,          # Options: True, False
+            "remove_sex_genes": False,          # Options: True, False
             "remove_autosomal_genes": False,    # Options: True, False
             "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
-            "remove_unaccounted_genes": True,  # Options: True, False
+            "remove_unaccounted_genes": False,  # Options: True, False
             "select_batch_genes": False,        # Options: True, False #need to create direcotries for this
             "highly_variable_genes": False,     # Options: True, False #need to create direcotries for this
         },
         "GeneBalancing": {
-            "balance_genes": True,             # Options: True, False
+            "balance_genes": False,             # Options: True, False
             "balance_lnc_genes": False,         # Options: True, False
         },
         "GeneShuffle": {
@@ -89,7 +89,7 @@ config_dict = {
     "DataSplit": {
         "validation_split": 0.1,           # Fraction of data for validation
         "test_split": 0.1,                 # Fraction of data for testing
-        "random_state": 11,               # Random state for reproducibility
+        "random_state": 42,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
