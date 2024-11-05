@@ -512,6 +512,7 @@ class VisualizationTools:
         )
         plt.title("SHAP Summary Plot", fontsize=16)
         plt.ylabel("Genes", fontsize=12)
+        plt.xlabel("mean(|SHAP Value|)", fontsize=12)
         plt.tight_layout()
         plt.savefig(os.path.join(output_subfolder, f"{file_name_prefix}_Overall.png"))
         plt.close()
@@ -657,7 +658,7 @@ class Visualizer:
         if self.squeezed_shap_values is not None:
             var_names = (
                 self.adata_corrected.var_names
-                if self.config.DataParameters.BatchCorrection.enabled
+                if self.config.DataParameters.BatchCorrection.enabled or self.config.GenePreprocessing.GeneFiltering.select_batch_genes
                 else self.adata.var_names
             )
             self.visual_tools.plot_shap_summary(

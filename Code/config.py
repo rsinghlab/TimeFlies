@@ -32,7 +32,6 @@ config_dict = {
             "enabled": False,          # Options: True, False
         },
         "TrainTestSplit": {             # Cross training and testing (ex. male train/female test)
-            #NEED TO CREATE NEW DIRECTORIES FOR THIS
             "method": "encoding_variable",        # Options: 'encoding_variable' (no cross testing), 'sex', tissue'.
             "train": {
                 "sex": "male",           # Options: 'Male', 'Female', 'All'
@@ -67,8 +66,8 @@ config_dict = {
             "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
             "remove_unaccounted_genes": False,  # Options: True, False
-            "select_batch_genes": False,        # Options: True, False #need to create direcotries for this
-            "highly_variable_genes": False,     # Options: True, False #need to create direcotries for this
+            "select_batch_genes": False,        # Options: True, False
+            "highly_variable_genes": False,     # Options: True, False
         },
         "GeneBalancing": {
             "balance_genes": False,             # Options: True, False

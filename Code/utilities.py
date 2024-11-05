@@ -210,7 +210,6 @@ class DataLoader:
 
         return autosomal_genes, sex_genes
 
-
 class PathManager:
     """
     A utility class to construct model and visualization directory paths based on the configuration.
@@ -237,6 +236,7 @@ class PathManager:
         )
 
         self.tissue = self.config.DataParameters.GeneralSettings.tissue.lower()
+        
         self.model_type = self.config.DataParameters.GeneralSettings.model_type.upper()
         self.encoding_variable = (
             self.config.DataParameters.GeneralSettings.encoding_variable.lower()
@@ -252,28 +252,57 @@ class PathManager:
         # Gene preprocessing settings
         gene_filtering = self.config.GenePreprocessing.GeneFiltering
         config_flags = []
+
+        # Check for gene options
+        if gene_filtering.only_keep_lnc_genes:
+            config_flags.append("only_lnc")
         if gene_filtering.remove_lnc_genes:
             config_flags.append("no_lnc")
         if gene_filtering.remove_autosomal_genes:
             config_flags.append("no_autosomal")
         if gene_filtering.remove_sex_genes:
             config_flags.append("no_sex")
-        if gene_filtering.only_keep_lnc_genes:
-            self.config_subfolder = "only_lnc"
-        elif config_flags:
+
+        if config_flags:
+            # Gene options are active and connected
             self.config_subfolder = "_".join(config_flags)
         else:
-            self.config_subfolder = "full_data"
+            # Check for hvg or batch_genes options, which are fully separate
+            if gene_filtering.highly_variable_genes:
+                self.config_subfolder = "hvg"
+            elif gene_filtering.select_batch_genes:
+                self.config_subfolder = "batch_genes"
+            else:
+                # Default to full_data if no options are active
+                self.config_subfolder = "full_data"
 
         # Cell type subfolder
-        self.subfolder_name = (
-            "celltype_all" if self.cell_type == "all" else f"celltype_{self.cell_type}"
+        self.cell_type_folder_name = (
+            "all_cells" if self.cell_type == "all" else f"{self.cell_type}"
         )
 
-        # Sex type subfolder
-        self.subfolder_sex_name = (
-            "sextype_all" if self.sex_type == "all" else f"sextype_{self.sex_type}"
-        )
+        # Sex type subfolder with TrainTestSplit handling
+        train_test_split = self.config.DataParameters.TrainTestSplit
+        self.train_test_split_method = train_test_split.method.lower()
+
+        if self.train_test_split_method == 'sex':
+            train_sex = train_test_split.train.sex.lower()
+            test_sex = train_test_split.test.sex.lower()
+            self.subfolder_sex_name = f"train_{train_sex}_test_{test_sex}"
+        else:
+            self.subfolder_sex_name = (
+                "all_sexes" if self.sex_type == "all" else self.sex_type
+            )
+
+        # Tissue type subfolder with TrainTestSplit handling
+        if self.train_test_split_method == 'tissue':
+            train_tissue = train_test_split.train.tissue.lower()
+            test_tissue = train_test_split.test.tissue.lower()
+            self.tissue = f"train_{train_tissue}_test_{test_tissue}"
+        else:
+            self.tissue = (
+                "all_tissues" if self.tissue == "all" else self.tissue
+            )
 
     def construct_model_directory(self):
         """
@@ -295,7 +324,7 @@ class PathManager:
             self.model_type,
             self.encoding_variable,
             self.config_subfolder,
-            self.subfolder_name,
+            self.cell_type_folder_name,
             self.subfolder_sex_name,
         )
         return model_dir
@@ -324,7 +353,7 @@ class PathManager:
             self.model_type,
             self.encoding_variable,
             self.config_subfolder,
-            self.subfolder_name,
+            self.cell_type_folder_name,
             self.subfolder_sex_name,
             "Results",
         )
@@ -342,7 +371,7 @@ class PathManager:
         Constructs the directory path for saving or loading preprocessed data based on the configuration.
 
         Returns:
-        - str: The path to the model directory.
+        - str: The path to the processed data directory.
         """
         # Get the code directory
         code_dir = os.path.dirname(os.path.abspath(__file__))
@@ -357,7 +386,7 @@ class PathManager:
             self.model_type,
             self.encoding_variable,
             self.config_subfolder,
-            self.subfolder_name,
+            self.cell_type_folder_name,
             self.subfolder_sex_name,
         )
 

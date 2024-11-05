@@ -121,7 +121,7 @@ class PipelineManager:
         try:
             logger.info("Preprocessing data for training and testing...")
             self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_eval
+                self.config_instance, self.adata, self.adata_corrected
             )
             (
                 self.train_data,
@@ -147,7 +147,7 @@ class PipelineManager:
         try:
             logger.info("Preprocessing final evaluation data...")
             self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_eval
+                self.config_instance, self.adata, self.adata_corrected
             )
 
             batch_correction_enabled = (
@@ -326,8 +326,8 @@ class PipelineManager:
                 self.squeezed_test_data,
                 self.adata,
                 self.adata_corrected,
-                self.path_manager,
-            )
+                self.path_manager,            
+                )
             visualizer.run()
             logger.info("Visualizations completed.")
         else:
