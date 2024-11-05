@@ -600,9 +600,11 @@ class DataPreprocessor:
         batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
 
         if select_batch_genes and not batch_correction_enabled:
-            common_genes = self.adata.var_names.intersection(self.adata_corrected.var_names)
+            common_genes = self.adata.var_names.intersection(
+                self.adata_corrected.var_names
+            )
             adata = adata[:, common_genes]
-        
+
         # Highly variable genes selection
         if highly_variable_genes is not None:
             adata = adata[:, highly_variable_genes]
@@ -722,7 +724,7 @@ class GeneFilter:
         sex_genes,
         autosomal_genes,
         original_autosomal_genes,
-        lnc_genes=None,
+        balanced_non_lnc_genes=None,
     ):
         """
         Create and apply masks to filter genes in the dataset based on configuration.
@@ -732,7 +734,7 @@ class GeneFilter:
         sex_genes (list): List of sex-linked genes.
         autosomal_genes (list): List of autosomal genes after balancing (if applicable).
         original_autosomal_genes (list): Original list of autosomal genes before any balancing.
-        lnc_genes (list, optional): List of long non-coding RNA genes, if applicable.
+        balanced_non_lnc_genes (list, optional): List of non-lncRNA genes used in balancing. Defaults to None.
 
         Returns:
         data (AnnData): Filtered data matrix based on the applied masks.
@@ -745,14 +747,12 @@ class GeneFilter:
         original_autosomal_mask = data.var.index.isin(original_autosomal_genes)
 
         # Create lncRNA mask
-        if lnc_genes is not None:
-            lnc_mask = data.var.index.isin(lnc_genes)
-        else:
-            lnc_mask = data.var_names.str.startswith("lnc")
+        lnc_mask = data.var_names.str.startswith("lnc")
         no_lnc_mask = ~lnc_mask
 
-        # Initialize final_mask as all True
-        final_mask = np.ones(data.shape[1], dtype=bool)
+        # Create non-lncRNA mask (if balanced_non_lnc_genes is provided)
+        if balanced_non_lnc_genes is not None:
+            balanced_non_lnc_mask = data.var.index.isin(balanced_non_lnc_genes)
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
         if config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes:
@@ -762,34 +762,50 @@ class GeneFilter:
             sex_mask = data.var.index.isin(sex_genes)
             autosomal_mask = data.var.index.isin(autosomal_genes)
             original_autosomal_mask = data.var.index.isin(original_autosomal_genes)
-            if lnc_genes is not None:
-                lnc_mask = data.var.index.isin(lnc_genes)
-            else:
-                lnc_mask = data.var_names.str.startswith("lnc")
+            lnc_mask = data.var_names.str.startswith("lnc")
             no_lnc_mask = ~lnc_mask
+            if balanced_non_lnc_genes is not None:
+                balanced_non_lnc_mask = data.var.index.isin(balanced_non_lnc_genes)
         else:
             # Include genes not found in the provided gene lists
             unaccounted_mask = ~(original_autosomal_mask | sex_mask)
 
+        # Initialize final_mask as all True
+        final_mask = np.ones(data.shape[1], dtype=bool)
+
         # Apply various filters based on configuration settings
-        only_keep_lnc = config.GenePreprocessing.GeneFiltering.only_keep_lnc_genes
-        if only_keep_lnc:
-            final_mask &= lnc_mask
-
-        remove_autosomal = config.GenePreprocessing.GeneFiltering.remove_autosomal_genes
-        if remove_autosomal:
-            final_mask &= ~autosomal_mask
-
         remove_sex = config.GenePreprocessing.GeneFiltering.remove_sex_genes
-        if remove_sex:
-            final_mask &= ~sex_mask
-
+        balance_genes = config.GenePreprocessing.GeneBalancing.balance_genes
+        balance_lnc_genes = config.GenePreprocessing.GeneBalancing.balance_lnc_genes
+        only_keep_lnc = config.GenePreprocessing.GeneFiltering.only_keep_lnc_genes
+        remove_autosomal = config.GenePreprocessing.GeneFiltering.remove_autosomal_genes
         remove_lnc = config.GenePreprocessing.GeneFiltering.remove_lnc_genes
-        if remove_lnc:
-            final_mask &= no_lnc_mask
+        remove_unaccounted = (
+            config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes
+        )
+        balance_autosomal = remove_sex and balance_genes
+
+        if balance_autosomal:
+            final_mask &= autosomal_mask
+
+        elif balance_lnc_genes:
+            final_mask &= balanced_non_lnc_mask
+
+        else:
+            if only_keep_lnc:
+                final_mask &= lnc_mask
+
+            if remove_autosomal:
+                final_mask &= ~autosomal_mask
+
+            if remove_sex:
+                final_mask &= ~sex_mask
+
+            if remove_lnc:
+                final_mask &= no_lnc_mask
 
         # If not removing unaccounted genes, ensure they are included in the final mask
-        if not config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes:
+        if not remove_unaccounted:
             final_mask |= unaccounted_mask
 
         # Apply the final combined mask
@@ -830,7 +846,7 @@ class GeneFilter:
         # Balance the number of non-lnc genes with the number of lnc genes if required
         balance_lnc_genes = config.GenePreprocessing.GeneBalancing.balance_lnc_genes
         if balance_lnc_genes:
-            lnc_genes = self.balance_genes(non_lnc_genes, lnc_genes)
+            balanced_non_lnc_genes = self.balance_genes(non_lnc_genes, lnc_genes)
 
         # Apply the balanced genes masks to the datasets
         adata = self.create_and_apply_mask(
@@ -838,21 +854,21 @@ class GeneFilter:
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            lnc_genes=lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
         )
         adata_eval = self.create_and_apply_mask(
             data=adata_eval,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            lnc_genes=lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
         )
         adata_original = self.create_and_apply_mask(
             data=adata_original,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            lnc_genes=lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
         )
 
         return adata, adata_eval, adata_original
