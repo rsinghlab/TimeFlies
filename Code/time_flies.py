@@ -187,6 +187,7 @@ class TimeFlies:
                 self.preprocess_data()  # Call the general data preprocessing
 
             logging.info("Preprocessing completed.")
+            print(self.config_instance.DataParameters.GeneralSettings)
 
         except Exception as e:
             logging.error(f"Error during data preprocessing: {e}")

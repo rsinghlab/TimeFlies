@@ -60,6 +60,11 @@ class DataPreprocessor:
         if sex_type in ["male", "female"]:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
+        # Filter based on 'genotype' if specified
+        genotype = config.DataParameters.GeneralSettings.genotype
+        if genotype in ["AB42", "hTau", "control"]:
+            adata = adata[adata.obs["genotype"] == genotype].copy()
+
         # Filter based on 'cell_type' if specified
         cell_type = config.DataParameters.GeneralSettings.cell_type
         if cell_type != "all":
@@ -292,6 +297,7 @@ class DataPreprocessor:
             np.random.choice(train_data.shape[0], reference_size, replace=False)
         ]
         return reference_data
+    
 
     def save_processed_data(
         self,
