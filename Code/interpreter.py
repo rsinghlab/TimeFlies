@@ -19,6 +19,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Prediction:
     """
@@ -131,13 +133,14 @@ class Interpreter:
         - test_labels (numpy.ndarray): The labels for the test data.
         - label_encoder (LabelEncoder): The label encoder used during training.
         - reference_data (numpy.ndarray): The reference data used during model training.
+        - path_manager (PathManager): The path manager object for directory paths.
         """
         self.config = config
         self.model = model
-        self.test_data = test_data  
-        self.test_labels = test_labels  
+        self.test_data = test_data
+        self.test_labels = test_labels
         self.label_encoder = label_encoder
-        self.reference_data = reference_data 
+        self.reference_data = reference_data
         self.path_manager = path_manager
 
         self.shap_dir = self.path_manager.get_visualization_directory(
@@ -213,25 +216,40 @@ class Interpreter:
 
         # Adjust SHAP values and test data shapes based on the system type
         device = self.config.Device.processor.lower()
-        if device == 'm':
+        if device == "m":
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
-                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim >= 3 else val for val in shap_values]
+                squeezed_shap_values = [
+                    np.squeeze(val, axis=1) if val.ndim >= 3 else val
+                    for val in shap_values
+                ]
             else:
-                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim >= 3 else shap_values)
+                squeezed_shap_values = (
+                    np.squeeze(shap_values, axis=1)
+                    if shap_values.ndim >= 3
+                    else shap_values
+                )
 
         else:
             # Adjust SHAP values for Windows
             if isinstance(shap_values, list):
-                squeezed_shap_values = [np.squeeze(val, axis=1) if val.ndim > 3 else val for val in shap_values]
+                squeezed_shap_values = [
+                    np.squeeze(val, axis=1) if val.ndim > 3 else val
+                    for val in shap_values
+                ]
             else:
-                squeezed_shap_values = (np.squeeze(shap_values, axis=1) if shap_values.ndim > 3 else shap_values)
+                squeezed_shap_values = (
+                    np.squeeze(shap_values, axis=1)
+                    if shap_values.ndim > 3
+                    else shap_values
+                )
 
             # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
             squeezed_shap_values = [
-                squeezed_shap_values[:, :, i] for i in range(squeezed_shap_values.shape[2])
+                squeezed_shap_values[:, :, i]
+                for i in range(squeezed_shap_values.shape[2])
             ]
-            
+
         return squeezed_shap_values, squeezed_test_data
 
     def save_shap_values(self, shap_values):
@@ -250,7 +268,9 @@ class Interpreter:
             ),
             "model_weights_hash": model_weights_hash,
             "test_data_hash": self.compute_sha256_hash(self.test_data.tobytes()),
-            "reference_data_hash": self.compute_sha256_hash(self.reference_data.tobytes()),
+            "reference_data_hash": self.compute_sha256_hash(
+                self.reference_data.tobytes()
+            ),
         }
 
         # Save SHAP values, metadata, and the data
@@ -422,9 +442,9 @@ class Metrics:
             test_loss, test_acc, test_auc = Prediction.evaluate_model(
                 self.model, self.test_inputs, self.test_labels
             )
-            print(f"Eval accuracy: {test_acc}")
-            print(f"Eval loss: {test_loss}")
-            print(f"Eval AUC: {test_auc}")
+            logger.info(f"Eval accuracy: {test_acc}")
+            logger.info(f"Eval loss: {test_loss}")
+            logger.info(f"Eval AUC: {test_auc}")
 
         if model_type in ["mlp", "cnn"]:
             self.y_pred = self.model.predict(self.test_inputs)
@@ -437,7 +457,7 @@ class Metrics:
 
     def _calculate_and_save_metrics(self):
         """
-        Calculate, print, and save various performance metrics.
+        Calculate, log, and save various performance metrics.
         """
         # Calculate metrics
         accuracy = accuracy_score(self.y_true_class, self.y_pred_class)
@@ -464,17 +484,17 @@ class Metrics:
                 y_true_binary, y_pred_prob, average="macro", multi_class="ovo"
             )
 
-        # Print the classification report
+        # Log the classification report
         class_labels = self.label_encoder.classes_
-        print("Classification Report:")
-        print(
+        logger.info("Classification Report:")
+        logger.info(
             classification_report(
                 self.y_true_class, self.y_pred_class, target_names=class_labels
             )
         )
 
-        # Print performance metrics
-        print(
+        # Log performance metrics
+        logger.info(
             f"Test Accuracy: {accuracy:.4%}, Test Precision: {precision:.4%}, Test Recall: {recall:.4%}, Test F1: {f1:.4%}, Test AUC: {auc_score:.4%}"
         )
 
@@ -486,8 +506,8 @@ class Metrics:
             baseline_f1,
         ) = Prediction.calculate_baseline_scores(self.y_true_class)
 
-        # Print baseline metrics
-        print(
+        # Log baseline metrics
+        logger.info(
             f"Baseline Accuracy: {baseline_accuracy:.4%}, Baseline Precision: {baseline_precision:.4%}, "
             f"Baseline Recall: {baseline_recall:.4%}, Baseline F1: {baseline_f1:.4%}"
         )
@@ -560,6 +580,14 @@ class Metrics:
         with open(output_file_path, "w") as file:
             json.dump(metrics, file, indent=4)
 
+        # If interpretable is True, save an additional copy to the SHAP directory
+        if self.config.FeatureImportanceAndVisualizations.run_interpreter:
+            shap_dir = self.path_manager.get_visualization_directory(subfolder="SHAP")
+            os.makedirs(shap_dir, exist_ok=True)
+            shap_output_file_path = os.path.join(shap_dir, "Stats.JSON")
+            with open(shap_output_file_path, "w") as file:
+                json.dump(metrics, file, indent=4)
+
     def save_predictions_to_csv(self, file_name_template="{}_{}_predictions.csv"):
         """
         Save the predicted and actual labels to a CSV file, naming it based on the training and test data configuration.
@@ -590,7 +618,9 @@ class Metrics:
             )
 
             # Determine the relevant train and test attributes based on the method
-            method = self.config.DataParameters.TrainTestSplit.method  # This could be 'sex', 'tissue', etc.
+            method = (
+                self.config.DataParameters.TrainTestSplit.method
+            )  # This could be 'sex', 'tissue', etc.
             train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
                 method, "unknown"
             )
@@ -613,7 +643,7 @@ class Metrics:
             # Save DataFrame to CSV
             df_predictions.to_csv(output_file_path, index=False)
 
-            print(f"Predictions saved to {output_file_path}")
+            logger.info(f"Predictions saved to {output_file_path}")
 
     def compute_metrics(self):
         """

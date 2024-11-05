@@ -13,6 +13,8 @@ from utilities import (
     PathManager,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class DataPreprocessor:
     """
@@ -375,7 +377,7 @@ class DataPreprocessor:
             mix_included (bool): Flag indicating if 'mix' sex is included.
         """
         processed_data_dir = self.path_manager.get_processed_data_dir()
-        print(f"Loading data from {processed_data_dir}")
+        logger.info(f"Loading data from {processed_data_dir}")
 
         required_files = [
             "processed_train_data.npy",
@@ -591,9 +593,17 @@ class DataPreprocessor:
         # Sex Mapping
         sex_type = config.DataParameters.GeneralSettings.sex_type.lower()
         if sex_type != "all":
-              adata = adata[adata.obs["sex"] == sex_type].copy()
+            adata = adata[adata.obs["sex"] == sex_type].copy()
 
-        # Highly variable genes and feature selection      
+        # Apply gene selection from corrected data if specified and not already using corrected data
+        select_batch_genes = config.GenePreprocessing.GeneFiltering.select_batch_genes
+        batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
+
+        if select_batch_genes and not batch_correction_enabled:
+            common_genes = self.adata.var_names.intersection(self.adata_corrected.var_names)
+            adata = adata[:, common_genes]
+        
+        # Highly variable genes selection
         if highly_variable_genes is not None:
             adata = adata[:, highly_variable_genes]
         else:
@@ -606,7 +616,6 @@ class DataPreprocessor:
         test_labels = label_encoder.transform(adata.obs[encoding_var])
         test_labels = to_categorical(test_labels)
 
-        # Prepare the testing data
         test_data = adata.X
         if issparse(test_data):  # Convert sparse matrices to dense
             test_data = test_data.toarray()
@@ -619,6 +628,9 @@ class DataPreprocessor:
         model_type = config.DataParameters.GeneralSettings.model_type.lower()
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
+
+        # # **Extract the feature names here**
+        # relevant_feature_names = adata.var_names.tolist()
 
         return test_data, test_labels, label_encoder
 
@@ -731,44 +743,57 @@ class GeneFilter:
         sex_mask = data.var.index.isin(sex_genes)
         autosomal_mask = data.var.index.isin(autosomal_genes)
         original_autosomal_mask = data.var.index.isin(original_autosomal_genes)
-        lnc_mask = data.var_names.str.startswith("lnc")
-        no_lnc_mask = ~lnc_mask
 
-        # If specific lncRNA genes are provided, update the lnc_mask
+        # Create lncRNA mask
         if lnc_genes is not None:
             lnc_mask = data.var.index.isin(lnc_genes)
+        else:
+            lnc_mask = data.var_names.str.startswith("lnc")
+        no_lnc_mask = ~lnc_mask
+
+        # Initialize final_mask as all True
+        final_mask = np.ones(data.shape[1], dtype=bool)
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
         if config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes:
-            combined_mask = original_autosomal_mask | sex_mask
-            data = data[:, combined_mask]
+            accounted_mask = original_autosomal_mask | sex_mask
+            data = data[:, accounted_mask]
+            # Recompute the masks since data has changed
             sex_mask = data.var.index.isin(sex_genes)
             autosomal_mask = data.var.index.isin(autosomal_genes)
             original_autosomal_mask = data.var.index.isin(original_autosomal_genes)
-            lnc_mask = data.var_names.str.startswith("lnc")
+            if lnc_genes is not None:
+                lnc_mask = data.var.index.isin(lnc_genes)
+            else:
+                lnc_mask = data.var_names.str.startswith("lnc")
             no_lnc_mask = ~lnc_mask
         else:
-            # Handle cases where we retain genes not found in the provided gene lists
-            not_in_csv_mask = ~(original_autosomal_mask | sex_mask)
-            sex_mask = sex_mask | not_in_csv_mask
-            autosomal_mask = autosomal_mask | not_in_csv_mask
+            # Include genes not found in the provided gene lists
+            unaccounted_mask = ~(original_autosomal_mask | sex_mask)
 
         # Apply various filters based on configuration settings
         only_keep_lnc = config.GenePreprocessing.GeneFiltering.only_keep_lnc_genes
         if only_keep_lnc:
-            data = data[:, lnc_mask]
-        else:
-            remove_autosomal = (
-                config.GenePreprocessing.GeneFiltering.remove_autosomal_genes
-            )
-            if remove_autosomal:
-                data = data[:, sex_mask]
-            remove_sex = config.GenePreprocessing.GeneFiltering.remove_sex_genes
-            if remove_sex:
-                data = data[:, autosomal_mask]
-            remove_lnc = config.GenePreprocessing.GeneFiltering.remove_lnc_genes
-            if remove_lnc:
-                data = data[:, no_lnc_mask]
+            final_mask &= lnc_mask
+
+        remove_autosomal = config.GenePreprocessing.GeneFiltering.remove_autosomal_genes
+        if remove_autosomal:
+            final_mask &= ~autosomal_mask
+
+        remove_sex = config.GenePreprocessing.GeneFiltering.remove_sex_genes
+        if remove_sex:
+            final_mask &= ~sex_mask
+
+        remove_lnc = config.GenePreprocessing.GeneFiltering.remove_lnc_genes
+        if remove_lnc:
+            final_mask &= no_lnc_mask
+
+        # If not removing unaccounted genes, ensure they are included in the final mask
+        if not config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes:
+            final_mask |= unaccounted_mask
+
+        # Apply the final combined mask
+        data = data[:, final_mask]
 
         return data
 
