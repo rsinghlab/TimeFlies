@@ -631,9 +631,6 @@ class DataPreprocessor:
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
 
-        # # **Extract the feature names here**
-        # relevant_feature_names = adata.var_names.tolist()
-
         return test_data, test_labels, label_encoder
 
     def prepare_data(self):
