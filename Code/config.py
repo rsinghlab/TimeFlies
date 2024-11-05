@@ -32,7 +32,6 @@ config_dict = {
             "enabled": False,          # Options: True, False
         },
         "TrainTestSplit": {             # Cross training and testing (ex. male train/female test)
-            #NEED TO CREATE NEW DIRECTORIES FOR THIS
             "method": "encoding_variable",        # Options: 'encoding_variable' (no cross testing), 'sex', tissue'.
             "train": {
                 "sex": "male",           # Options: 'Male', 'Female', 'All'
@@ -67,8 +66,8 @@ config_dict = {
             "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
             "remove_unaccounted_genes": False,  # Options: True, False
-            "select_batch_genes": False,        # Options: True, False #need to create direcotries for this
-            "highly_variable_genes": False,     # Options: True, False #need to create direcotries for this
+            "select_batch_genes": False,        # Options: True, False
+            "highly_variable_genes": False,     # Options: True, False
         },
         "GeneBalancing": {
             "balance_genes": False,             # Options: True, False
@@ -80,8 +79,8 @@ config_dict = {
         },
     },
     "FeatureImportanceAndVisualizations": {
-        "run_visualization": True,       # Options: True, False
-        "run_interpreter": True,        # Options: True, False (SHAP)
+        "run_visualization": False,       # Options: True, False
+        "run_interpreter": False,        # Options: True, False (SHAP)
         "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
@@ -104,7 +103,7 @@ config_dict = {
             "dropout_rate": 0.3,               # Dropout rate
             "learning_rate": 0.0006,           # Learning rate
             "activation_function": "relu",     # Activation function
-            "reference_size": 1000,            # Reference data size for SHAP
+         
         },
         "CNN_Model": {
             "filters": [32, 64, 128],          # Number of filters in each convolutional layer

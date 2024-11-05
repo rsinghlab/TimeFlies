@@ -14,6 +14,11 @@ import sys
 import pandas as pd
 from scipy.sparse import issparse
 import matplotlib.pyplot as plt
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
 
 class VisualizationTools:
     """
@@ -507,10 +512,10 @@ class VisualizationTools:
         )
         plt.title("SHAP Summary Plot", fontsize=16)
         plt.ylabel("Genes", fontsize=12)
+        plt.xlabel("mean(|SHAP Value|)", fontsize=12)
         plt.tight_layout()
         plt.savefig(os.path.join(output_subfolder, f"{file_name_prefix}_Overall.png"))
         plt.close()
-
 
 
 class Visualizer:
@@ -573,7 +578,7 @@ class Visualizer:
         """
         model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
         if model_type in ["mlp", "cnn"]:
-           self.y_pred = self.model.predict(self.test_inputs)
+            self.y_pred = self.model.predict(self.test_inputs)
         else:
             self.y_pred = self.model.predict_proba(self.test_inputs)
 
@@ -653,7 +658,7 @@ class Visualizer:
         if self.squeezed_shap_values is not None:
             var_names = (
                 self.adata_corrected.var_names
-                if self.config.DataParameters.BatchCorrection.enabled
+                if self.config.DataParameters.BatchCorrection.enabled or self.config.GenePreprocessing.GeneFiltering.select_batch_genes
                 else self.adata.var_names
             )
             self.visual_tools.plot_shap_summary(
@@ -669,8 +674,7 @@ class Visualizer:
         Run the visualization pipeline.
         """
         self._visualize_training_history()
-        self.import_metrics()  
+        self.import_metrics()
         self._visualize_confusion_matrix()
         self._plot_roc_curve()
         self._plot_shap_summary()
-

@@ -11,6 +11,7 @@ import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
+
 class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
     """
     CustomModelCheckpoint is a custom callback for saving model checkpoints.
@@ -166,6 +167,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             # Call the parent class's on_epoch_end method to save the model weights
             super().on_epoch_end(epoch, logs)
 
+
 class ModelLoader:
     """
     A class to manage the loading of machine learning or deep learning models.
@@ -189,9 +191,9 @@ class ModelLoader:
         Initializes the ModelLoader with configuration and directory structure to locate the model files.
 
         Parameters:
-        - config (ConfigHandler): A ConfigHandler instance containing settings for model loading, paths, 
+        - config (ConfigHandler): A ConfigHandler instance containing settings for model loading, paths,
           and preprocessing components.
-        
+
         Sets up:
         - `model_dir` by constructing the directory path from config details.
         - `model_path` as the specific file path for the saved model.
@@ -241,8 +243,8 @@ class ModelLoader:
 
         # Return all loaded components
         return model
-    
-    def load_model_components(self):    
+
+    def load_model_components(self):
         """
         Loads the saved model's related components.
 
@@ -264,7 +266,7 @@ class ModelLoader:
 
         reference_data = self._load_file("reference_data.npy", file_type="numpy")
         mix_included = self._load_file("mix_included.pkl")
-        
+
         # Return all loaded components
         return (
             label_encoder,
@@ -274,10 +276,8 @@ class ModelLoader:
             num_features,
             history,
             mix_included,
-            reference_data
-
+            reference_data,
         )
-
 
     def _load_pickle(self, file_path):
         """
@@ -659,7 +659,11 @@ class ModelBuilder:
         """
         custom_model_path = os.path.join(paths["model_dir"], "best_model.h5")
         best_val_loss_path = os.path.join(paths["model_dir"], "best_val_loss.json")
-        self.num_features = self.train_data.shape[2] if self.model_type == 'cnn' else self.train_data.shape[1]
+        self.num_features = (
+            self.train_data.shape[2]
+            if self.model_type == "cnn"
+            else self.train_data.shape[1]
+        )
 
         # Load the best validation loss from file
         try:

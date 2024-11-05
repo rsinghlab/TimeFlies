@@ -31,6 +31,7 @@ class PipelineManager:
         self.config_instance = config
         self.data_loader = DataLoader(self.config_instance)
         self.path_manager = PathManager(self.config_instance)
+        logger.info("Initializing TimeFlies pipeline...")
 
     def setup_gpu(self):
         """
@@ -120,7 +121,7 @@ class PipelineManager:
         try:
             logger.info("Preprocessing data for training and testing...")
             self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_eval
+                self.config_instance, self.adata, self.adata_corrected
             )
             (
                 self.train_data,
@@ -146,7 +147,7 @@ class PipelineManager:
         try:
             logger.info("Preprocessing final evaluation data...")
             self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_eval
+                self.config_instance, self.adata, self.adata_corrected
             )
 
             batch_correction_enabled = (
@@ -214,15 +215,14 @@ class PipelineManager:
             self.model_loader = ModelLoader(self.config_instance)
 
             (
-            self.label_encoder,
-            self.scaler,
-            self.is_scaler_fit,
-            self.highly_variable_genes,
-            self.num_features,
-            self.history,
-            self.mix_included,
-            self.reference_data,
-
+                self.label_encoder,
+                self.scaler,
+                self.is_scaler_fit,
+                self.highly_variable_genes,
+                self.num_features,
+                self.history,
+                self.mix_included,
+                self.reference_data,
             ) = self.model_loader.load_model_components()
 
         except Exception as e:
@@ -326,8 +326,8 @@ class PipelineManager:
                 self.squeezed_test_data,
                 self.adata,
                 self.adata_corrected,
-                self.path_manager,
-            )
+                self.path_manager,            
+                )
             visualizer.run()
             logger.info("Visualizations completed.")
         else:
@@ -345,13 +345,13 @@ class PipelineManager:
                 self.test_data,
                 self.test_labels,
                 self.label_encoder,
-                self.path_manager,)
+                self.path_manager,
+            )
             metrics.compute_metrics()
             logger.info("Evaluation metrics computed successfully.")
         except Exception as e:
             logger.error(f"Error computing evaluation metrics: {e}")
             raise
-
 
     def display_duration(self, start_time, end_time):
         """
@@ -363,8 +363,8 @@ class PipelineManager:
         """
         duration_seconds = end_time - start_time
         if duration_seconds < 60:
-            print(f"The task took {round(duration_seconds)} seconds.")
+            logger.info(f"The task took {round(duration_seconds)} seconds.")
         else:
             minutes = duration_seconds // 60
             seconds = round(duration_seconds % 60)
-            print(f"The task took {int(minutes)} minutes and {seconds} seconds.")
+            logger.info(f"The task took {int(minutes)} minutes and {seconds} seconds.")

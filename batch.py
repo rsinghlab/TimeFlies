@@ -702,7 +702,6 @@ class BatchProcessor:
 
 
 if __name__ == "__main__":
-    # Instantiate the BatchProcessor with the configuration
     processor = BatchProcessor(config)
 
     # Use config settings to control batch correction, UMAP generation, and optimization
