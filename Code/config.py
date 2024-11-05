@@ -65,13 +65,13 @@ config_dict = {
             "remove_autosomal_genes": False,    # Options: True, False
             "only_keep_lnc_genes": True,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
-            "remove_unaccounted_genes": True,   # Options: True, False
+            "remove_unaccounted_genes": False,   # Options: True, False
             "select_batch_genes": False,        # Options: True, False
             "highly_variable_genes": False,     # Options: True, False
         },
         "GeneBalancing": {
             "balance_genes": False,             # Options: True, False (Must set remove_sex_genes to True)
-            "balance_lnc_genes": False,         # Options: True, False
+            "balance_lnc_genes": True,         # Options: True, False
         },
         "GeneShuffle": {
             "shuffle_genes": False,             # Options: True, False
