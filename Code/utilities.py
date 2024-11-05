@@ -210,6 +210,7 @@ class DataLoader:
 
         return autosomal_genes, sex_genes
 
+
 class PathManager:
     """
     A utility class to construct model and visualization directory paths based on the configuration.
@@ -236,7 +237,7 @@ class PathManager:
         )
 
         self.tissue = self.config.DataParameters.GeneralSettings.tissue.lower()
-        
+
         self.model_type = self.config.DataParameters.GeneralSettings.model_type.upper()
         self.encoding_variable = (
             self.config.DataParameters.GeneralSettings.encoding_variable.lower()
@@ -251,6 +252,7 @@ class PathManager:
 
         # Gene preprocessing settings
         gene_filtering = self.config.GenePreprocessing.GeneFiltering
+        gene_balancing = self.config.GenePreprocessing.GeneBalancing
         config_flags = []
 
         # Check for gene options
@@ -270,6 +272,10 @@ class PathManager:
             # Check for hvg or batch_genes options, which are fully separate
             if gene_filtering.highly_variable_genes:
                 self.config_subfolder = "hvg"
+            if gene_balancing.balance_genes:
+                self.config_subfolder = "balanced_autosomal"
+            if gene_balancing.balance_lnc_genes:
+                self.config_subfolder = "balanced_non_lnc"
             elif gene_filtering.select_batch_genes:
                 self.config_subfolder = "batch_genes"
             else:
@@ -285,7 +291,7 @@ class PathManager:
         train_test_split = self.config.DataParameters.TrainTestSplit
         self.train_test_split_method = train_test_split.method.lower()
 
-        if self.train_test_split_method == 'sex':
+        if self.train_test_split_method == "sex":
             train_sex = train_test_split.train.sex.lower()
             test_sex = train_test_split.test.sex.lower()
             self.subfolder_sex_name = f"train_{train_sex}_test_{test_sex}"
@@ -295,14 +301,12 @@ class PathManager:
             )
 
         # Tissue type subfolder with TrainTestSplit handling
-        if self.train_test_split_method == 'tissue':
+        if self.train_test_split_method == "tissue":
             train_tissue = train_test_split.train.tissue.lower()
             test_tissue = train_test_split.test.tissue.lower()
             self.tissue = f"train_{train_tissue}_test_{test_tissue}"
         else:
-            self.tissue = (
-                "all_tissues" if self.tissue == "all" else self.tissue
-            )
+            self.tissue = "all_tissues" if self.tissue == "all" else self.tissue
 
     def construct_model_directory(self):
         """

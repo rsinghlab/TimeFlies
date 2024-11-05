@@ -326,8 +326,8 @@ class PipelineManager:
                 self.squeezed_test_data,
                 self.adata,
                 self.adata_corrected,
-                self.path_manager,            
-                )
+                self.path_manager,
+            )
             visualizer.run()
             logger.info("Visualizations completed.")
         else:
