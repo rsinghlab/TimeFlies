@@ -63,7 +63,7 @@ config_dict = {
         "GeneFiltering": {
             "remove_sex_genes": False,          # Options: True, False
             "remove_autosomal_genes": False,    # Options: True, False
-            "only_keep_lnc_genes": True,       # Options: True, False
+            "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
             "remove_unaccounted_genes": False,   # Options: True, False
             "select_batch_genes": False,        # Options: True, False
@@ -81,7 +81,7 @@ config_dict = {
     "FeatureImportanceAndVisualizations": {
         "run_visualization": False,       # Options: True, False
         "run_interpreter": False,        # Options: True, False (SHAP)
-        "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
+        "load_SHAP": True,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
