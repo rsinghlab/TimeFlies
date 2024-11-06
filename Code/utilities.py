@@ -255,32 +255,32 @@ class PathManager:
         gene_balancing = self.config.GenePreprocessing.GeneBalancing
         config_flags = []
 
-        # Check for gene options
-        if gene_filtering.only_keep_lnc_genes:
-            config_flags.append("only_lnc")
-        if gene_filtering.remove_lnc_genes:
-            config_flags.append("no_lnc")
-        if gene_filtering.remove_autosomal_genes:
-            config_flags.append("no_autosomal")
-        if gene_filtering.remove_sex_genes:
-            config_flags.append("no_sex")
-
-        if config_flags:
-            # Gene options are active and connected
-            self.config_subfolder = "_".join(config_flags)
+        # Check for hvg or batch_genes options, which are fully separate
+        if gene_filtering.highly_variable_genes:
+            self.config_subfolder = "hvg"
+        elif gene_balancing.balance_genes:
+            self.config_subfolder = "balanced_autosomal"
+        elif gene_balancing.balance_lnc_genes:
+            self.config_subfolder = "balanced_non_lnc"
+        elif gene_filtering.select_batch_genes:
+            self.config_subfolder = "batch_genes"
         else:
-            # Check for hvg or batch_genes options, which are fully separate
-            if gene_filtering.highly_variable_genes:
-                self.config_subfolder = "hvg"
-            if gene_balancing.balance_genes:
-                self.config_subfolder = "balanced_autosomal"
-            if gene_balancing.balance_lnc_genes:
-                self.config_subfolder = "balanced_non_lnc"
-            elif gene_filtering.select_batch_genes:
-                self.config_subfolder = "batch_genes"
+            # Check for gene options
+            if gene_filtering.only_keep_lnc_genes:
+                config_flags.append("only_lnc")
+            if gene_filtering.remove_lnc_genes:
+                config_flags.append("no_lnc")
+            if gene_filtering.remove_autosomal_genes:
+                config_flags.append("no_autosomal")
+            if gene_filtering.remove_sex_genes:
+                config_flags.append("no_sex")
+            if config_flags:
+                # Gene options are active and connected
+                self.config_subfolder = "_".join(config_flags)
             else:
                 # Default to full_data if no options are active
                 self.config_subfolder = "full_data"
+
 
         # Cell type subfolder
         self.cell_type_folder_name = (
