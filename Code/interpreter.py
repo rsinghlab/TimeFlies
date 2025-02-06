@@ -212,8 +212,6 @@ class Interpreter:
             explainer = shap.LinearExplainer(self.model, self.reference_data)
 
         # Compute SHAP values
-        print(self.test_data.shape)
-        print(self.reference_data.shape)
         shap_values = explainer.shap_values(self.test_data)
 
 

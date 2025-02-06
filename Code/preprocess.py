@@ -802,11 +802,11 @@ class GeneFilter:
                 final_mask &= no_lnc_mask
 
         # If not removing unaccounted genes, ensure they are included in the final mask
-        if not remove_unaccounted and balanced_non_lnc_genes is None:
+        if not remove_unaccounted and balanced_non_lnc_genes is None and not only_keep_lnc and not balance_autosomal:
             final_mask |= unaccounted_mask
 
         # Apply the final combined mask
-        data = data[:, final_mask]#
+        data = data[:, final_mask]
 
         return data
 
