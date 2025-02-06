@@ -18,7 +18,7 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell'
+            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'muscle cell', 'glial cell'
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
@@ -66,12 +66,12 @@ config_dict = {
             "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
             "remove_unaccounted_genes": False,   # Options: True, False
-            "select_batch_genes": False,        # Options: True, False
-            "highly_variable_genes": False,     # Options: True, False
+            "select_batch_genes": False,        # Options: True, False, all other gene preprocessing options are ignored if this is True
+            "highly_variable_genes": False,     # Options: True, False, all other gene preprocessing options are ignored if this is True
         },
         "GeneBalancing": {
             "balance_genes": False,             # Options: True, False (Must set remove_sex_genes to True)
-            "balance_lnc_genes": True,         # Options: True, False
+            "balance_lnc_genes": False,         # Options: True, False
         },
         "GeneShuffle": {
             "shuffle_genes": False,             # Options: True, False
@@ -81,14 +81,14 @@ config_dict = {
     "FeatureImportanceAndVisualizations": {
         "run_visualization": False,       # Options: True, False
         "run_interpreter": False,        # Options: True, False (SHAP)
-        "load_SHAP": True,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
+        "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
     "DataSplit": {
         "validation_split": 0.1,           # Fraction of data for validation
         "test_split": 0.1,                 # Fraction of data for testing
-        "random_state": 42,               # Random state for reproducibility
+        "random_state": 100,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
@@ -105,6 +105,37 @@ config_dict = {
             "activation_function": "relu",     # Activation function
          
         },
+        # CNN model 1conv1fc
+        # "CNN_Model": {
+        #     "filters": [32],               # Only one convolutional layer
+        #     "kernel_sizes": [3],           # Corresponding kernel size
+        #     "strides": [1],
+        #     "paddings": ["same"],
+        #     "pool_sizes": [2],
+        #     "pool_strides": [2],
+            
+        #     "dense_units": [128],          # Only one fully connected layer before output
+        #     "dropout_rate": 0.5,
+        #     "learning_rate": 0.001,
+        #     "activation_function": "relu"
+        # },
+
+        # CNN model 2conv2fc
+        # "CNN_Model": {
+        #     "filters": [32, 64],           # Two convolutional layers
+        #     "kernel_sizes": [3, 3],
+        #     "strides": [1, 1],
+        #     "paddings": ["same", "same"],
+        #     "pool_sizes": [2, 2],
+        #     "pool_strides": [2, 2],
+            
+        #     "dense_units": [128, 64],      # Two fully connected layers
+        #     "dropout_rate": 0.5,
+        #     "learning_rate": 0.001,
+        #     "activation_function": "relu"
+        # },
+
+        # CNN model 3conv3fc
         "CNN_Model": {
             "filters": [32, 64, 128],          # Number of filters in each convolutional layer
             "kernel_sizes": [3, 3, 3],         # Kernel sizes for each convolutional layer
@@ -117,6 +148,7 @@ config_dict = {
             "learning_rate": 0.001,            # Learning rate
             "activation_function": "relu",     # Activation function
         },
+
         "XGBoost_Model": {
             "learning_rate": 0.1,               # Learning rate
             "max_depth": 6,                     # Maximum depth of trees
