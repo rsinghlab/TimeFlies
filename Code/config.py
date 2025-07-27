@@ -29,7 +29,7 @@ config_dict = {
             "include_mixed_sex": False,  # Options: True, False
         },
         "BatchCorrection": {
-            "enabled": False,          # Options: True, False
+            "enabled": True,          # Options: True, False
         },
         "TrainTestSplit": {             # Cross training and testing (ex. male train/female test)
             "method": "encoding_variable",        # Options: 'encoding_variable' (no cross testing), 'sex', tissue'.
@@ -79,7 +79,7 @@ config_dict = {
         },
     },
     "FeatureImportanceAndVisualizations": {
-        "run_visualization": False,       # Options: True, False
+        "run_visualization": True,       # Options: True, False
         "run_interpreter": False,        # Options: True, False (SHAP)
         "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
@@ -184,25 +184,14 @@ config_dict = {
     },
     "Setup": {
         "strata": "age",                        # Column used for stratification
-        "tissue": "body",                       # Tissue type (e.g., 'head', 'body')
+        "tissue": "head",                       # Tissue type (e.g., 'head', 'body')
         "seed": 42,                             # Random seed for reproducibility
-        "use_batch_corrected_data": False,      # Whether to use batch-corrected data
+        "use_batch_corrected_data": True,      # Whether to use batch-corrected data
         "split_size": 5000,                     # Number of samples to split for evaluation
         "batch": {                              # Batch-related configurations
-            "enabled": False,                   # Options: True, False
-            "columns_to_drop": [                # Columns to drop during optimization
-                "n_genes_by_counts",
-                "total_counts",
-                "log1p_total_counts_mt",
-                "dataset",
-                "fca_annotation",
-                "afca_annotation",
-                "total_counts_mt",
-                "pct_counts_mt",
-                "log1p_n_genes_by_counts",
-                "log1p_total_counts",
-            ],
-            "umap": {                            # UMAP-specific configurations
+            "enabled": True,                   # Options: True, False
+              "corrected_suffix": "_batch",   # Suffix for batch-corrected files
+              "umap": {                            # UMAP-specific configurations
                 "batch_corrected": {             # Configuration for batch-corrected data UMAP
                     "enabled": True,             # Enable or disable UMAP generation
                     "color": "age",                               # Observation key to color the UMAP plot
@@ -217,12 +206,6 @@ config_dict = {
                 },
             },
             "optimize": False,                    # Enable or disable data optimization
-            "n_top_genes": 5000,                 # Number of top highly variable genes to select
-            "separator": "-",                     # Separator used in observation names
-            "perform_eda": {  # EDA configuration
-                    "batch_corrected": False,  # Whether to perform EDA on batch-corrected files
-                    "original": False,          # Whether to perform EDA on the original file
-                },
         },
     },
 }

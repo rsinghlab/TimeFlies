@@ -50,6 +50,7 @@ class TimeFlies:
 
         # Step 6: Perform interpretation, visualization, and metric calculations
         self.pipeline_manager.run_interpretation()
+
         self.pipeline_manager.run_visualizations()
         self.pipeline_manager.run_metrics()
 

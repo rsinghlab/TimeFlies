@@ -248,6 +248,7 @@ class PipelineManager:
             )
 
             self.model, self.history = self.model_builder.run()
+            print("History keys:", self.history.history.keys())
 
         except Exception as e:
             logger.error(f"Error building or training model: {e}")
