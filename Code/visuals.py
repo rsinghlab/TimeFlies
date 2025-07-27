@@ -303,7 +303,7 @@ class VisualizationTools:
         metrics = [
             ("loss", "Model Loss", "Loss"),
             ("accuracy", "Model Accuracy", "Accuracy"),
-            ("auc", "Model AUC", "AUC"),
+            ("AUC", "Model AUC", "AUC"),
         ]
 
         # Determine the number of rows and columns for the subplot grid

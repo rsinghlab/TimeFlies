@@ -2,3 +2,8 @@
 *.npy
 best_model.pkl
 shap_values.pkl
+.venv
+__pycache__ # recursive
+*.pyc
+.vscode
+*.ipynb_checkpoints

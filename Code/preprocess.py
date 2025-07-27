@@ -241,23 +241,26 @@ class DataPreprocessor:
         - is_scaler_fit (bool): Flag indicating whether the scaler was fit (i.e., normalization was applied).
         """
         config = self.config
-        normalization_enabled = config.DataProcessing.Normalization.enabled
+        norm_on = config.DataProcessing.Normalization.enabled
+        bc_on   = config.DataParameters.BatchCorrection.enabled
 
-        if normalization_enabled:
+        if norm_on:
             logging.info("Normalizing data...")
-            train_data = np.log1p(train_data)
-            test_data = np.log1p(test_data)
+            # scVI data is *already* log1p – so skip that part
+            if not bc_on:
+                train_data = np.log1p(train_data)
+                test_data  = np.log1p(test_data)
 
             scaler = StandardScaler()
             train_data = scaler.fit_transform(train_data)
-            test_data = scaler.transform(test_data)
+            test_data  = scaler.transform(test_data)
             is_scaler_fit = True
             logging.info("Data normalized.")
         else:
-            scaler = None  # No scaling applied
-            is_scaler_fit = False
+            scaler, is_scaler_fit = None, False
 
         return train_data, test_data, scaler, is_scaler_fit
+
 
     def reshape_for_cnn(self, train_data, test_data):
         """
@@ -470,7 +473,14 @@ class DataPreprocessor:
         config = self.config
 
         adata = self.process_adata(self.adata)
-        adata_corrected = self.process_adata(self.adata_corrected)
+
+        adata_corrected = self.adata_corrected.copy()
+
+        # Replace .X with scVI‑normalised expression (already log1p & library‑size normalised)
+        adata_corrected.X = adata_corrected.layers["scvi_normalized"]
+
+        # Now run the usual filters (sex, tissue, sampling …)
+        adata_corrected = self.process_adata(adata_corrected)
 
         # Decide which dataset to use
         batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
@@ -623,7 +633,8 @@ class DataPreprocessor:
             test_data = test_data.toarray()
 
         if is_scaler_fit and scaler is not None:
-            test_data = np.log1p(test_data)
+            if not config.DataParameters.BatchCorrection.enabled:
+                test_data = np.log1p(test_data)
             test_data = scaler.transform(test_data)
 
         # Reshape the testing data for CNN
