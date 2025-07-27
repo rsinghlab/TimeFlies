@@ -20,6 +20,7 @@ if torch.cuda.is_available():
     print("Current device index:   ", torch.cuda.current_device())
     print("Device name:            ", torch.cuda.get_device_name(0))
 
+
 class BatchCorrector:
     """
     Class to handle batch correction using scVI.
@@ -34,10 +35,7 @@ class BatchCorrector:
         Initialize with the path to the AnnData object.
         """   
         self.adata_train = sc.read_h5ad(train_path)
-        # self.adata_train = self.adata_train[:100].copy()
-        
         self.adata_eval  = sc.read_h5ad(eval_path)
-        # self.adata_eval = self.adata_eval[:100].copy()
         
         self.batch_column = "dataset"
         self.SCVI_LATENT_KEY = "X_scVI"
@@ -82,21 +80,32 @@ class BatchCorrector:
     
     def add_scvi_outputs(self, model):
         """Add scVI latent & normalised output to train and eval AnnData."""
-        # ----- TRAIN (already registered) -----
-        self.adata_train.obsm[self.SCVI_LATENT_KEY] = model.get_latent_representation(self.adata_train)
-        self.adata_train.layers[self.SCVI_NORMALIZED_KEY] = model.get_normalized_expression(
-            self.adata_train, library_size=1e4
+        # Train data
+        self.adata_train.obsm[self.SCVI_LATENT_KEY] = (
+            model.get_latent_representation(self.adata_train)
+        )
+        self.adata_train.layers[self.SCVI_NORMALIZED_KEY] = (
+            model.get_normalized_expression(self.adata_train, library_size=1e4)
         )
 
-        # ----- EVAL (register as query, *no* parameter updates) -----
-        qadata = scvi.model.SCVI.prepare_query_anndata(
-        self.adata_eval,         # ← your unseen cells
-        reference_model=model    # ← the model you just trained
-       )
-    
-        self.adata_eval.obsm[self.SCVI_LATENT_KEY] = model.get_latent_representation(qadata)
-        self.adata_eval.layers[self.SCVI_NORMALIZED_KEY] = model.get_normalized_expression(
-            qadata, library_size=1e4
+        # Evaluation data
+        scvi.model.SCVI.prepare_query_anndata(
+            self.adata_eval,        # unseen cells
+            reference_model=model
+        )
+
+        # Debug statements to verify shapes 
+        print("\n=== DEBUG SHAPES ===")
+        print("self.adata_eval n_obs :", self.adata_eval.n_obs)
+        latent = model.get_latent_representation(self.adata_eval)
+        print("latent shape          :", latent.shape)
+        print("======================\n")
+
+        # Directly use the modified self.adata_eval
+        self.adata_eval.obsm[self.SCVI_LATENT_KEY] = latent
+
+        self.adata_eval.layers[self.SCVI_NORMALIZED_KEY] = (
+            model.get_normalized_expression(self.adata_eval, library_size=1e4)
         )
 
     def save_results(self, out_dir="."):
@@ -119,8 +128,6 @@ class BatchCorrector:
         self.save_results(out_dir)
 
         print(f"batch_correct_scvi completed in {time.time() - start_time:.2f} s.")
-
-
 
     def umap_visualization(
             self,
@@ -152,17 +159,16 @@ class BatchCorrector:
         adata_batch = sc.read_h5ad(batch_path)
 
         # 2 ─ Build UMAP on raw log‑CP10K
-        adata_raw.layers["log1p_cp10k"] = adata_raw.X.copy()
-        sc.pp.normalize_total(adata_raw, target_sum=1e4, layer="log1p_cp10k")
-        sc.pp.log1p(adata_raw, layer="log1p_cp10k")
-        adata_raw.X = adata_raw.layers["log1p_cp10k"].copy()
-        sc.pp.pca(adata_raw)
+        adata_raw.layers["counts"] = adata_raw.X.copy()
+        sc.pp.normalize_total(adata_raw, target_sum=1e4)   # ← normalize directly in .X
+        sc.pp.log1p(adata_raw)                             # ← log-transform directly in .X
+        adata_raw.layers["log1p_cp10k"] = adata_raw.X.copy()  # ← preserve explicitly
+        sc.pp.pca(adata_raw, n_comps=30)
         sc.pp.neighbors(adata_raw, n_pcs=30)
         sc.tl.umap(adata_raw, min_dist=0.3)
 
         # 3 ─ Build UMAP on scVI latent
-        adata_batch.obsm["X_int"] = adata_batch.obsm[self.SCVI_LATENT_KEY]
-        sc.pp.neighbors(adata_batch, use_rep="X_int", n_neighbors=20)
+        sc.pp.neighbors(adata_batch, use_rep=self.SCVI_LATENT_KEY, n_neighbors=20)  
         sc.tl.umap(adata_batch, min_dist=0.3)
 
         # 4 ─ Columns to plot
