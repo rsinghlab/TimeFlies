@@ -243,39 +243,48 @@ class BatchCorrector:
 
         # neighbours on the integrated embedding
         sc.pp.neighbors(adata_int, use_rep="X_int", n_neighbors=15)
-
         # --- compute scores -------------------------------------------------
         scores_wide = sm.metrics_fast(
             adata_raw,
             adata_int,
-            batch_key=self.batch_column,      # e.g. "dataset"
-            label_key=self.label_col,    # e.g. "afca_annotation_broad"
+            batch_key=self.batch_column,
+            label_key=self.label_col,
             embed="X_int",
             type_="embed",
             n_cores=os.cpu_count() - 1
         )
-        
-        # ---- biology‑conservation metrics you care about ----
-        adata_int.obs["age_str"] = adata_int.obs["age"].astype(str)   # silhouette wants categorical
-        sil_sex = sm.silhouette(adata_int, label_key="sex",     embed="X_int")
+
+        # --- silhouette scores ----------------------------------------------
+        adata_int.obs["age_str"] = adata_int.obs["age"].astype(str)
+        sil_sex = sm.silhouette(adata_int, label_key="sex", embed="X_int")
         sil_age = sm.silhouette(adata_int, label_key="age_str", embed="X_int")
 
-        # ---- tidy and save ---------------------------------
-        scores_long = (
-            scores_wide.melt(var_name="metric", value_name="score")
-            .sort_values("metric")
-            .reset_index(drop=True)
-        )
-        extra = pd.DataFrame({
-            "metric": ["silhouette_sex", "silhouette_age"],
-            "score" : [sil_sex, sil_age]
-        })
-        all_scores = pd.concat([scores_long, extra], ignore_index=True)
+        # --- explicitly create new dataframe --------------------------------
+        metrics = list(scores_wide.columns)
+        scores = [scores_wide.iloc[0, i] for i in range(scores_wide.shape[1])]
+
+        # Add silhouette scores explicitly
+        metrics += ["silhouette_sex", "silhouette_age"]
+        scores += [sil_sex, sil_age]
+
+        # Create simple new dataframe explicitly
+        all_scores = pd.DataFrame({"metric": metrics, "score": scores})
+        print(scores_wide.head(10))
+        # Sort alphabetically by metric
+        #all_scores = all_scores.sort_values("metric").reset_index(drop=True)
+
+        # Save clearly to CSV
         all_scores.to_csv(out_csv, index=False)
 
-        print(all_scores.head())           # sanity‑check
+        print(all_scores.head(10))
         print(f"Scores saved to {out_csv} (elapsed {time.time()-t0:.1f}s)")
 
+        
+
+
+
+
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run scVI batch correction on fly dataset.")
     parser.add_argument("--train", action="store_true", help="Train the scVI model (otherwise just evaluate).")

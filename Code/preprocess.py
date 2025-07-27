@@ -590,6 +590,13 @@ class DataPreprocessor:
             label_encoder (LabelEncoder): The label encoder used to transform the labels.
         """
         config = self.config
+       
+        batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
+
+        if batch_correction_enabled:
+            adata = adata.copy()
+            adata.X = adata.layers["scvi_normalized"]
+            
 
         # Remove 'mix' if specified
         if mix_included is False:
@@ -607,8 +614,7 @@ class DataPreprocessor:
 
         # Apply gene selection from corrected data if specified and not already using corrected data
         select_batch_genes = config.GenePreprocessing.GeneFiltering.select_batch_genes
-        batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
-
+        
         if select_batch_genes and not batch_correction_enabled:
             common_genes = self.adata.var_names.intersection(
                 self.adata_corrected.var_names

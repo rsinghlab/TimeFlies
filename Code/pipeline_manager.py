@@ -158,6 +158,7 @@ class PipelineManager:
                 if batch_correction_enabled
                 else self.adata_eval
             )
+
             (
                 self.test_data,
                 self.test_labels,
