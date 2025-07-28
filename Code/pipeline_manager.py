@@ -158,6 +158,7 @@ class PipelineManager:
                 if batch_correction_enabled
                 else self.adata_eval
             )
+
             (
                 self.test_data,
                 self.test_labels,
@@ -248,6 +249,7 @@ class PipelineManager:
             )
 
             self.model, self.history = self.model_builder.run()
+            print("History keys:", self.history.history.keys())
 
         except Exception as e:
             logger.error(f"Error building or training model: {e}")
@@ -326,8 +328,8 @@ class PipelineManager:
                 self.squeezed_test_data,
                 self.adata,
                 self.adata_corrected,
-                self.path_manager,            
-                )
+                self.path_manager,
+            )
             visualizer.run()
             logger.info("Visualizations completed.")
         else:

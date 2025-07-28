@@ -303,7 +303,7 @@ class VisualizationTools:
         metrics = [
             ("loss", "Model Loss", "Loss"),
             ("accuracy", "Model Accuracy", "Accuracy"),
-            ("auc", "Model AUC", "AUC"),
+            ("AUC", "Model AUC", "AUC"),
         ]
 
         # Determine the number of rows and columns for the subplot grid
@@ -658,7 +658,8 @@ class Visualizer:
         if self.squeezed_shap_values is not None:
             var_names = (
                 self.adata_corrected.var_names
-                if self.config.DataParameters.BatchCorrection.enabled or self.config.GenePreprocessing.GeneFiltering.select_batch_genes
+                if self.config.DataParameters.BatchCorrection.enabled
+                or self.config.GenePreprocessing.GeneFiltering.select_batch_genes
                 else self.adata.var_names
             )
             self.visual_tools.plot_shap_summary(

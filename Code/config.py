@@ -18,7 +18,7 @@ config_dict = {
             "tissue": "head",  # Options: 'head', 'body', 'all'
             "model_type": "CNN",  # Options: 'CNN', 'MLP', 'XGBoost', 'RandomForest', 'LogisticRegression'
             "encoding_variable": "age",  # Options: 'sex_age', 'sex', 'age'
-            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'fat cell', 'glial cell', 'muscle cell'
+            "cell_type": "all",  # Options: 'all', 'CNS neuron', 'sensory neuron', 'epithelial cell', 'muscle cell', 'glial cell'
             "sex_type": "all",         # Options: 'all', 'male', 'female'
         },
         "Sampling": {
@@ -29,7 +29,7 @@ config_dict = {
             "include_mixed_sex": False,  # Options: True, False
         },
         "BatchCorrection": {
-            "enabled": False,          # Options: True, False
+            "enabled": True,          # Options: True, False
         },
         "TrainTestSplit": {             # Cross training and testing (ex. male train/female test)
             "method": "encoding_variable",        # Options: 'encoding_variable' (no cross testing), 'sex', tissue'.
@@ -49,7 +49,7 @@ config_dict = {
             "enabled": False,         # Options: True, False
         },
         "ModelManagement": {
-            "load_model": False,      # Options: True, False
+            "load_model": True,      # Options: True, False
         },
         "Preprocessing": {
             "required": True,         # Options: True, False
@@ -65,12 +65,12 @@ config_dict = {
             "remove_autosomal_genes": False,    # Options: True, False
             "only_keep_lnc_genes": False,       # Options: True, False
             "remove_lnc_genes": False,          # Options: True, False
-            "remove_unaccounted_genes": False,  # Options: True, False
-            "select_batch_genes": False,        # Options: True, False
-            "highly_variable_genes": False,     # Options: True, False
+            "remove_unaccounted_genes": False,   # Options: True, False
+            "select_batch_genes": False,        # Options: True, False, all other gene preprocessing options are ignored if this is True
+            "highly_variable_genes": False,     # Options: True, False, all other gene preprocessing options are ignored if this is True
         },
         "GeneBalancing": {
-            "balance_genes": False,             # Options: True, False
+            "balance_genes": False,             # Options: True, False (Must set remove_sex_genes to True)
             "balance_lnc_genes": False,         # Options: True, False
         },
         "GeneShuffle": {
@@ -79,16 +79,16 @@ config_dict = {
         },
     },
     "FeatureImportanceAndVisualizations": {
-        "run_visualization": False,       # Options: True, False
-        "run_interpreter": False,        # Options: True, False (SHAP)
-        "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
+        "run_visualization": True,       # Options: True, False
+        "run_interpreter": True,        # Options: True, False (SHAP)
+        "load_SHAP": True,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },
     "DataSplit": {
         "validation_split": 0.1,           # Fraction of data for validation
         "test_split": 0.1,                 # Fraction of data for testing
-        "random_state": 42,               # Random state for reproducibility
+        "random_state": 100,               # Random state for reproducibility
     },
     "Training": {
         "epochs": 15,                      # Number of epochs for training
@@ -105,18 +105,21 @@ config_dict = {
             "activation_function": "relu",     # Activation function
          
         },
-        "CNN_Model": {
-            "filters": [32, 64, 128],          # Number of filters in each convolutional layer
-            "kernel_sizes": [3, 3, 3],         # Kernel sizes for each convolutional layer
-            "strides": [1, 1, 1],              # Strides for each convolutional layer
-            "paddings": ["same", "same", "same"],  # Padding for each convolutional layer
-            "pool_sizes": [2, 2, 2],           # Pool sizes for each pooling layer
-            "pool_strides": [2, 2, 2],         # Pool strides for each pooling layer
-            "dense_units": [128, 64],          # Number of units in dense layers
-            "dropout_rate": 0.5,               # Dropout rate
-            "learning_rate": 0.001,            # Learning rate
-            "activation_function": "relu",     # Activation function
+
+        "CNN_Model": { # Only one convolutional layer
+            "filters": [32],               # Only one convolutional layer
+            "kernel_sizes": [3],           # Corresponding kernel size
+            "strides": [1],
+            "paddings": ["same"],
+            "pool_sizes": [2],
+            "pool_strides": [2],
+            
+            "dense_units": [128],          # Only one fully connected layer before output
+            "dropout_rate": 0.5,
+            "learning_rate": 0.001,
+            "activation_function": "relu"
         },
+
         "XGBoost_Model": {
             "learning_rate": 0.1,               # Learning rate
             "max_depth": 6,                     # Maximum depth of trees
@@ -152,46 +155,10 @@ config_dict = {
     },
     "Setup": {
         "strata": "age",                        # Column used for stratification
-        "tissue": "body",                       # Tissue type (e.g., 'head', 'body')
+        "tissue": "head",                       # Tissue type (e.g., 'head', 'body')
         "seed": 42,                             # Random seed for reproducibility
-        "use_batch_corrected_data": False,      # Whether to use batch-corrected data
+        "use_batch_corrected_data": True,      # Whether to use batch-corrected data
         "split_size": 5000,                     # Number of samples to split for evaluation
-        "batch": {                              # Batch-related configurations
-            "enabled": False,                   # Options: True, False
-            "columns_to_drop": [                # Columns to drop during optimization
-                "n_genes_by_counts",
-                "total_counts",
-                "log1p_total_counts_mt",
-                "dataset",
-                "fca_annotation",
-                "afca_annotation",
-                "total_counts_mt",
-                "pct_counts_mt",
-                "log1p_n_genes_by_counts",
-                "log1p_total_counts",
-            ],
-            "umap": {                            # UMAP-specific configurations
-                "batch_corrected": {             # Configuration for batch-corrected data UMAP
-                    "enabled": True,             # Enable or disable UMAP generation
-                    "color": "age",                               # Observation key to color the UMAP plot
-                    "n_comps": 200,                                # Number of principal components for PCA
-                    "n_pcs": 200,                                  # Number of principal components for neighborhood graph
-                },
-                "original": {                     # Configuration for original data UMAP
-                    "enabled": True,             # Enable or disable UMAP generation
-                    "color": "age",                           # Observation key to color the UMAP plot
-                    "n_comps": 200,                            # Number of principal components for PCA
-                    "n_pcs": 200,                              # Number of principal components for neighborhood graph
-                },
-            },
-            "optimize": False,                    # Enable or disable data optimization
-            "n_top_genes": 5000,                 # Number of top highly variable genes to select
-            "separator": "-",                     # Separator used in observation names
-            "perform_eda": {  # EDA configuration
-                    "batch_corrected": False,  # Whether to perform EDA on batch-corrected files
-                    "original": False,          # Whether to perform EDA on the original file
-                },
-        },
     },
 }
 
