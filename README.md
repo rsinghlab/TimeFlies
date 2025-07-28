@@ -85,6 +85,7 @@ TimeFlies/
 │   └── uncorrected/              # Uncorrected results
 ├── Requirements/                  # Environment specifications
 │   ├── linux/requirements.txt    # Linux dependencies
+|   ├── linux/batch_environment.yml # Linux Batch environment
 │   ├── macOS/mac_gpu.yml         # macOS environment
 │   └── windows/Windows_GPU.yml   # Windows environment
 └── README.md                      # This file
