@@ -66,6 +66,7 @@ TimeFlies/
 │   ├── preprocess.py             # Data preprocessing
 │   ├── model.py                  # ML model implementations
 │   ├── scvi_batch.py             # scVI batch correction
+│   ├── setup.py                  # setup file
 │   ├── visuals.py                # Visualization tools
 │   ├── interpreter.py            # Model interpretation (SHAP)
 │   ├── eda.py                    # Exploratory data analysis
@@ -94,62 +95,82 @@ TimeFlies/
 ## Installation
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.12+
 - CUDA-compatible GPU (recommended)
 - Git
+- Conda (Anaconda or Miniconda)
 
-### Environment Setup
+### Step-by-Step Installation
 
-#### Linux
+#### 1. Clone Repository
 ```bash
-# Clone the repository
 git clone https://github.com/rsinghlab/TimeFlies.git
 cd TimeFlies
+```
 
+#### 2. Set Up Environments
+
+**Linux:**
+```bash
 # Main pipeline environment
 conda create -n timeflies python=3.12.1
 conda activate timeflies
 pip install -r Requirements/linux/requirements.txt
 
-# Batch correction environment (required for scVI)
+# Batch correction environment (separate due to dependency conflicts)
 conda env create -f Requirements/linux/batch_environment.yml
 ```
 
-#### macOS (with GPU support)
+**macOS:**
 ```bash
-# Clone the repository
-git clone https://github.com/rsinghlab/TimeFlies.git
-cd TimeFlies
-
-# Create conda environment from YAML
 conda env create -f Requirements/macOS/mac_gpu.yml
 conda activate timeflies
 ```
 
-#### Windows (with GPU support)
+**Windows:**
 ```bash
-# Clone the repository
-git clone https://github.com/rsinghlab/TimeFlies.git
-cd TimeFlies
-
-# Create conda environment from YAML
 conda env create -f Requirements/windows/Windows_GPU.yml
 conda activate timeflies
 ```
 
-### Environment Notes
-- **Main pipeline**: Use `timeflies` environment for most operations
-- **Batch correction**: Use `batch_environment` environment for scVI batch correction
-- Switch environments as needed: `conda activate timeflies` or `conda activate batch_environment`
+#### 3. Verify Installation
+```bash
+# Test main environment
+conda activate timeflies
+python -c "import tensorflow, pandas, numpy, scanpy; print('Main environment ready!')"
 
-### Key Dependencies
-- `scanpy`: Single-cell analysis
-- `scvi-tools`: Batch correction
-- `tensorflow`: Neural network models
-- `scikit-learn`: Traditional ML models
+# Test batch correction environment
+conda activate batch_environment
+python -c "import scvi, scanpy; print('Batch correction environment ready!')"
+```
+
+### Environment Management
+
+**Two separate environments are required:**
+- **`timeflies`**: Main pipeline (CNN, MLP, data processing, visualization)
+- **`batch_environment`**: scVI batch correction (has conflicting dependencies)
+
+**Switch between environments:**
+```bash
+conda activate timeflies      # For main pipeline
+conda activate batch_environment  # For batch correction only
+```
+
+### Key Dependencies Installed
+
+**Main Environment (`timeflies`):**
+- `tensorflow`: Neural network models (CNN, MLP)
+- `scikit-learn`: Traditional ML models (XGBoost, Random Forest)
 - `pandas`, `numpy`: Data manipulation
 - `matplotlib`, `seaborn`: Visualization
 - `shap`: Model interpretation
+- `scanpy`: Single-cell analysis (shared with batch env)
+
+**Batch Correction Environment (`batch_environment`):**
+- `scvi-tools`: Batch correction using variational inference
+- `scanpy`: Single-cell analysis
+- `pytorch`: Backend for scVI models
+- Compatible versions that work with scVI requirements
 
 ## Configuration
 
@@ -195,45 +216,67 @@ The main configuration is in `Code/config.py`. Key settings include:
 
 ## Usage
 
-### Basic Usage
+### Initial Setup (Required)
 
-1. **Configure the pipeline** by editing `Code/config.py`
-2. **Run the complete pipeline**:
+**Before running any analysis, you must first run the setup script:**
+
 ```bash
 cd Code
+conda activate timeflies
+python setup.py
+```
+
+**What setup.py does:**
+- **Stratified Splitting**: Creates balanced train/evaluation splits from original h5ad files
+- **Data Integrity**: Ensures proper representation across age groups, sex, and other factors
+- **File Organization**: Saves split datasets to `Data/hda5/uncorrected/` directory
+- **Reproducibility**: Uses configured random seed for consistent splits across runs
+- **Validation**: Verifies the integrity and balance of created splits
+
+**Configuration for setup.py:**
+The setup process uses settings from `Code/config.py`:
+```python
+"Setup": {
+    "strata": "age",                        # Column used for stratification
+    "tissue": "head",                       # Tissue type (e.g., 'head', 'body')
+    "seed": 42,                             # Random seed for reproducibility
+    "split_size": 5000,                     # Number of samples to split for evaluation
+},
+```
+
+**Output files created:**
+- `Data/hda5/uncorrected/{tissue}/fly_train.h5ad`
+- `Data/hda5/uncorrected/{tissue}/fly_eval.h5ad`
+
+### Basic Usage
+
+**Complete Workflow:**
+
+1. **Configure the pipeline** by editing `Code/config.py`
+2. **Run initial data setup** (Required first step):
+```bash
+cd Code
+conda activate timeflies
+python setup.py
+```
+3. **Optional: Run batch correction**:
+```bash
+conda activate batch_environment
+python scvi_batch.py --train --tissue head
+```
+4. **Enable batch correction in config.py** (if used):
+```python
+"BatchCorrection": {"enabled": True}
+```
+5. **Run the main pipeline**:
+```bash
+conda activate timeflies
 python time_flies.py
 ```
 
 ### Advanced Usage
 
-#### Run specific components:
-
-**Data preprocessing only:**
-```python
-from pipeline_manager import PipelineManager
-pipeline = PipelineManager()
-pipeline.setup_gpu()
-pipeline.load_data()
-pipeline.run_preprocessing()
-```
-
-**Batch correction:**
-```bash
-cd Code
-# Switch to batch correction environment
-conda activate batch_environment
-
-# See "Batch Correction" section below for detailed usage
-python scvi_batch.py --train  # uses default tissue: head
-```
-
-**Custom analysis:**
-```python
-# Use the Analysis.ipynb notebook for interactive analysis
-jupyter notebook Analysis/Analysis.ipynb
-```
-
-#### Cross-sex analysis:
+**Cross-sex analysis:**
 ```python
 # In config.py, set up cross-training
 "TrainTestSplit": {
@@ -243,22 +286,24 @@ jupyter notebook Analysis/Analysis.ipynb
 }
 ```
 
+**Custom analysis:**
+```python
+# Use the Analysis.ipynb notebook for interactive exploration
+jupyter notebook Analysis/Analysis.ipynb
+```
+
 ## Data Pipeline
 
 The pipeline consists of several stages:
 
-1. **Data Loading**: Load h5ad files containing single-cell data
-2. **Filtering**: Apply cell and gene filters based on configuration
-3. **Preprocessing**: Normalization, scaling, highly variable gene selection
-4. **Batch Correction** (optional): Remove batch effects using scVI
-5. **Model Training**: Train selected ML model
-6. **Evaluation**: Generate predictions and metrics
-7. **Visualization**: Create plots and interpretability analysis
-
-### Data Flow
-```
-Raw h5ad files → Filtering → Preprocessing → Batch Correction → Model Training → Evaluation → Visualization
-```
+1. **Initial Setup** (Required): Run `setup.py` to create stratified train/eval splits
+2. **Data Loading**: Load h5ad files containing single-cell data
+3. **Batch Correction** (optional): Remove batch effects using scVI - done after setup
+4. **Filtering**: Apply cell and gene filters based on configuration
+5. **Preprocessing**: Normalization, scaling, highly variable gene selection
+6. **Model Training**: Train selected ML model
+7. **Evaluation**: Generate predictions and metrics
+8. **Visualization**: Create plots and interpretability analysis
 
 ## Supported Models
 
@@ -289,7 +334,25 @@ Models are automatically configured based on the `model_type` setting in config.
 
 ### Usage
 
-The batch correction script now has three distinct modes:
+**Important**: Batch correction is performed during the setup phase, before running the main pipeline.
+
+The batch correction script has three distinct modes:
+
+1. **Train**: Performs batch correction on raw data and saves corrected files
+2. **Evaluate**: Computes integration quality metrics on corrected data
+3. **Visualize**: Creates UMAP plots comparing before/after correction
+
+**File Selection & Evaluation Strategy**:
+
+- **Default (Recommended)**: Uses train/eval split files created by `setup.py`
+
+- **With `--original`**: Uses full original `{tissue}_data.h5ad` files directly
+  - **Complete Data**: Uses all available cells for batch correction
+  - **Manuscript/Final Analysis**: Useful for final results using complete datasets
+  - **No Holdout**: Cannot evaluate correction quality on unseen data
+  - **Higher Resource Usage**: Requires more memory and computational time
+  - **Bypasses Setup**: Skips the stratified splitting step entirely
+
 
 **Important**: Make sure to activate the batch correction environment first:
 ```bash
@@ -309,20 +372,12 @@ python scvi_batch.py --visualize --tissue head
 # Or use other tissues
 python scvi_batch.py --train --tissue body
 python scvi_batch.py --train --tissue all
+
+# Use full original file instead of train/eval splits
+python scvi_batch.py --train --original --tissue head
+python scvi_batch.py --evaluate --original --tissue head
+python scvi_batch.py --visualize --original --tissue head
 ```
-
-**To use batch-corrected data in the main pipeline:**
-```python
-# In config.py - tells pipeline to load batch-corrected files instead of raw data
-"BatchCorrection": {"enabled": True}
-```
-
-**Note**: You must first run `python scvi_batch.py --train --tissue head` to create the batch-corrected files before enabling this option.
-
-**Workflow:**
-1. **Train**: Performs batch correction on raw data and saves corrected files
-2. **Evaluate**: Computes integration quality metrics on corrected data
-3. **Visualize**: Creates UMAP plots comparing before/after correction
 
 ### Quality Assessment
 - UMAP visualizations before/after correction

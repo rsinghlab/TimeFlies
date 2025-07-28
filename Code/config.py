@@ -49,7 +49,7 @@ config_dict = {
             "enabled": False,         # Options: True, False
         },
         "ModelManagement": {
-            "load_model": True,      # Options: True, False
+            "load_model": False,      # Options: True, False
         },
         "Preprocessing": {
             "required": True,         # Options: True, False
@@ -157,7 +157,6 @@ config_dict = {
         "strata": "age",                        # Column used for stratification
         "tissue": "head",                       # Tissue type (e.g., 'head', 'body')
         "seed": 42,                             # Random seed for reproducibility
-        "use_batch_corrected_data": True,      # Whether to use batch-corrected data
         "split_size": 5000,                     # Number of samples to split for evaluation
     },
 }
