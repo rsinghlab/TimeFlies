@@ -158,11 +158,12 @@ class BatchCorrector:
         • One PNG per obs column (`dataset`, `sex`, `age`) for *raw* counts
         • One PNG per obs column for *scVI latent*
         • One extra PNG with all three columns side‑by‑side on the scVI latent
-
+        • One extra PNG with all three columns side‑by‑side on the raw counts
         Files created (example):
             fly_eval_uncorrected_dataset.png
             fly_eval_uncorrected_sex.png
             fly_eval_uncorrected_age.png
+            fly_eval_uncorrected_all.png
             fly_eval_scvi_dataset.png
             fly_eval_scvi_sex.png
             fly_eval_scvi_age.png
@@ -341,25 +342,36 @@ class BatchCorrector:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run scVI batch correction on fly dataset.")
-    parser.add_argument("--train", action="store_true", help="Train the scVI model (otherwise just evaluate).")
-    parser.add_argument("--umap", action="store_true", help="Run UMAP after training.")
-    parser.add_argument("--data_type", default="uncorrected", choices=["uncorrected", "batch_corrected"], 
-                        help="Type of data to load: 'uncorrected' or 'batch_corrected'")
+    
+    # Create mutually exclusive group for the three main operations
+    operation_group = parser.add_mutually_exclusive_group(required=True)
+    operation_group.add_argument("--train", action="store_true", 
+                                help="Train the scVI model on uncorrected data")
+    operation_group.add_argument("--evaluate", action="store_true", 
+                                help="Evaluate batch correction metrics on batch-corrected data")
+    operation_group.add_argument("--visualize", action="store_true", 
+                                help="Generate UMAP visualizations comparing uncorrected vs batch-corrected data")
+    
     parser.add_argument("--tissue", default="head", choices=["head", "body", "all"], 
                         help="Tissue type: 'head', 'body', or 'all'")
     args = parser.parse_args()
     
-    batch_corrector = BatchCorrector(
-        data_type=args.data_type,
-        tissue=args.tissue
-    )
-    
+    # Determine data_type based on operation
     if args.train:
+        data_type = "uncorrected"  # Always use uncorrected data for training
+        batch_corrector = BatchCorrector(data_type=data_type, tissue=args.tissue)
         batch_corrector.run()
-        print("Batch correction completed.")
-    elif args.umap:
-        batch_corrector.umap_visualization()
-        print("Visualisation completed.")
-    else:
+        print("Batch correction training completed.")
+        
+    elif args.evaluate:
+        data_type = "batch_corrected"  # Use batch-corrected data for evaluation
+        batch_corrector = BatchCorrector(data_type=data_type, tissue=args.tissue)
         batch_corrector.evaluate_metrics()
         print("Metrics evaluation completed.")
+        
+    elif args.visualize:
+        # For visualization, we need both uncorrected and batch-corrected data
+        # The umap_visualization method handles loading both internally
+        batch_corrector = BatchCorrector(data_type="uncorrected", tissue=args.tissue)
+        batch_corrector.umap_visualization()
+        print("Visualization completed.")
