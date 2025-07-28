@@ -261,7 +261,6 @@ class DataPreprocessor:
 
         return train_data, test_data, scaler, is_scaler_fit
 
-
     def reshape_for_cnn(self, train_data, test_data):
         """
         Reshape data for CNN models.
@@ -597,7 +596,6 @@ class DataPreprocessor:
             adata = adata.copy()
             adata.X = adata.layers["scvi_normalized"]
             
-
         # Remove 'mix' if specified
         if mix_included is False:
             adata = adata[adata.obs["sex"] != "mix"].copy()

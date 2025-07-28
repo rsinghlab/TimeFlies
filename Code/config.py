@@ -105,48 +105,19 @@ config_dict = {
             "activation_function": "relu",     # Activation function
          
         },
-        # CNN model 1conv1fc
-        # "CNN_Model": {
-        #     "filters": [32],               # Only one convolutional layer
-        #     "kernel_sizes": [3],           # Corresponding kernel size
-        #     "strides": [1],
-        #     "paddings": ["same"],
-        #     "pool_sizes": [2],
-        #     "pool_strides": [2],
-            
-        #     "dense_units": [128],          # Only one fully connected layer before output
-        #     "dropout_rate": 0.5,
-        #     "learning_rate": 0.001,
-        #     "activation_function": "relu"
-        # },
 
-        # CNN model 2conv2fc
-        # "CNN_Model": {
-        #     "filters": [32, 64],           # Two convolutional layers
-        #     "kernel_sizes": [3, 3],
-        #     "strides": [1, 1],
-        #     "paddings": ["same", "same"],
-        #     "pool_sizes": [2, 2],
-        #     "pool_strides": [2, 2],
+        "CNN_Model": { # Only one convolutional layer
+            "filters": [32],               # Only one convolutional layer
+            "kernel_sizes": [3],           # Corresponding kernel size
+            "strides": [1],
+            "paddings": ["same"],
+            "pool_sizes": [2],
+            "pool_strides": [2],
             
-        #     "dense_units": [128, 64],      # Two fully connected layers
-        #     "dropout_rate": 0.5,
-        #     "learning_rate": 0.001,
-        #     "activation_function": "relu"
-        # },
-
-        # CNN model 3conv3fc
-        "CNN_Model": {
-            "filters": [32, 64, 128],          # Number of filters in each convolutional layer
-            "kernel_sizes": [3, 3, 3],         # Kernel sizes for each convolutional layer
-            "strides": [1, 1, 1],              # Strides for each convolutional layer
-            "paddings": ["same", "same", "same"],  # Padding for each convolutional layer
-            "pool_sizes": [2, 2, 2],           # Pool sizes for each pooling layer
-            "pool_strides": [2, 2, 2],         # Pool strides for each pooling layer
-            "dense_units": [128, 64],          # Number of units in dense layers
-            "dropout_rate": 0.5,               # Dropout rate
-            "learning_rate": 0.001,            # Learning rate
-            "activation_function": "relu",     # Activation function
+            "dense_units": [128],          # Only one fully connected layer before output
+            "dropout_rate": 0.5,
+            "learning_rate": 0.001,
+            "activation_function": "relu"
         },
 
         "XGBoost_Model": {
@@ -188,25 +159,6 @@ config_dict = {
         "seed": 42,                             # Random seed for reproducibility
         "use_batch_corrected_data": True,      # Whether to use batch-corrected data
         "split_size": 5000,                     # Number of samples to split for evaluation
-        "batch": {                              # Batch-related configurations
-            "enabled": True,                   # Options: True, False
-              "corrected_suffix": "_batch",   # Suffix for batch-corrected files
-              "umap": {                            # UMAP-specific configurations
-                "batch_corrected": {             # Configuration for batch-corrected data UMAP
-                    "enabled": True,             # Enable or disable UMAP generation
-                    "color": "age",                               # Observation key to color the UMAP plot
-                    "n_comps": 200,                                # Number of principal components for PCA
-                    "n_pcs": 200,                                  # Number of principal components for neighborhood graph
-                },
-                "original": {                     # Configuration for original data UMAP
-                    "enabled": True,             # Enable or disable UMAP generation
-                    "color": "age",                           # Observation key to color the UMAP plot
-                    "n_comps": 200,                            # Number of principal components for PCA
-                    "n_pcs": 200,                              # Number of principal components for neighborhood graph
-                },
-            },
-            "optimize": False,                    # Enable or disable data optimization
-        },
     },
 }
 

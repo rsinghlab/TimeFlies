@@ -193,7 +193,7 @@ class DataLoader:
         # Load autosomal gene list from a CSV file
         autosomal_genes = (
             pd.read_csv(
-                os.path.join(self.Data_dir, "..", "autosomal.csv"),
+                os.path.join(self.Data_dir, "..", "gene_lists", "autosomal.csv"),
                 header=None,
                 dtype=str,
             )
@@ -203,7 +203,7 @@ class DataLoader:
 
         # Load sex-linked gene list from a CSV file
         sex_genes = (
-            pd.read_csv(os.path.join(self.Data_dir, "..", "sex.csv"), header=None)
+            pd.read_csv(os.path.join(self.Data_dir, "..", "gene_lists", "sex.csv"), header=None)
             .iloc[:, 0]
             .tolist()
         )
@@ -385,6 +385,7 @@ class PathManager:
             code_dir,
             "..",
             "Data",
+            "preprocessed",
             self.correction_dir,
             self.tissue,
             self.model_type,
