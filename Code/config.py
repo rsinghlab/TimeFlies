@@ -49,7 +49,7 @@ config_dict = {
             "enabled": False,         # Options: True, False
         },
         "ModelManagement": {
-            "load_model": True,      # Options: True, False
+            "load_model": False,      # Options: True, False
         },
         "Preprocessing": {
             "required": True,         # Options: True, False
