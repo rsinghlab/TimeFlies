@@ -81,7 +81,7 @@ config_dict = {
     "FeatureImportanceAndVisualizations": {
         "run_visualization": True,       # Options: True, False
         "run_interpreter": True,        # Options: True, False (SHAP)
-        "load_SHAP": False,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
+        "load_SHAP": True,              # Options: True to load SHAP values, False to compute them, only works if run_interpreter is True
         "reference_size": 5000,          # Reference data size for SHAP
         "save_predictions": False,        # Options: True, False; (Model predictions csv file)
     },

@@ -1,8 +1,8 @@
 import os
 import argparse
 import scanpy as sc
-import scvi
-import torch
+import scvi # type: ignore
+import torch # type: ignore
 import time
 import scib.metrics as sm
 import pandas as pd
@@ -176,33 +176,33 @@ class BatchCorrector:
         if batch_path is None:
             batch_path = os.path.join(self.base_dir, self.tissue, "batch_corrected", "fly_eval_batch.h5ad")
 
-        # 1 ─ Load data
+        # Load data
         adata_raw   = sc.read_h5ad(raw_path)
         adata_batch = sc.read_h5ad(batch_path)
 
-        # 2 ─ Build UMAP on raw log‑CP10K
+        # Build UMAP on raw log‑CP10K
         adata_raw.layers["counts"] = adata_raw.X.copy()
-        sc.pp.normalize_total(adata_raw, target_sum=1e4)   # ← normalize directly in .X
-        sc.pp.log1p(adata_raw)                             # ← log-transform directly in .X
-        adata_raw.layers["log1p_cp10k"] = adata_raw.X.copy()  # ← preserve explicitly
+        sc.pp.normalize_total(adata_raw, target_sum=1e4)   
+        sc.pp.log1p(adata_raw)                            
+        adata_raw.layers["log1p_cp10k"] = adata_raw.X.copy()  
         sc.pp.pca(adata_raw, n_comps=30)
         sc.pp.neighbors(adata_raw, n_pcs=30)
         sc.tl.umap(adata_raw, min_dist=0.3)
 
-        # 3 ─ Build UMAP on scVI latent
+        # Build UMAP on scVI latent
         sc.pp.neighbors(adata_batch, use_rep=self.SCVI_LATENT_KEY, n_neighbors=20)  
         sc.tl.umap(adata_batch, min_dist=0.3)
 
-        # 4 ─ Columns to plot
-        batch_col = self.batch_column          # "dataset"
+        # Columns to plot
+        batch_col = self.batch_column          
         bio_cols  = ["sex", "age"]
         all_cols  = [batch_col] + bio_cols
 
-        # Set Scanpy's figure output directory (relative to script location)
+        # Set Scanpy's figure output directory
         sc.settings.figdir = os.path.join("..", "Analysis", "UMAP")
         os.makedirs(sc.settings.figdir, exist_ok=True)
 
-        # 5 ─ Helper for per‑column PNGs
+        # Helper for per‑column PNGs
         def plot_umap(adata, cols, label, prefix):
             for c in cols:
                 if adata.obs[c].dtype.kind in "ifc":
@@ -218,7 +218,7 @@ class BatchCorrector:
                 )
                 plt.close()
 
-        # 6 ─ Raw per‑column plots
+        # Raw per‑column plots
         plot_umap(
             adata_raw,
             all_cols,
@@ -226,7 +226,7 @@ class BatchCorrector:
             prefix=f"{out_prefix}_uncorrected"
         )
 
-        # 7 ─ scVI per‑column plots
+        # scVI per‑column plots
         plot_umap(
             adata_batch,
             all_cols,
@@ -234,7 +234,7 @@ class BatchCorrector:
             prefix=f"{out_prefix}_scvi"
         )
 
-        # 8 one figure with dataset / sex / age side‑by‑side (scVI)
+        # figure with dataset / sex / age side‑by‑side (scVI)
         sc.pl.umap(
             adata_batch,
             color=all_cols,
@@ -244,6 +244,17 @@ class BatchCorrector:
             save=f"_{out_prefix}_scvi_all.png",
             show=False
         )
+
+        # figure with dataset / sex / age side‑by‑side (uncorrected)
+        sc.pl.umap(
+            adata_raw,
+            color=all_cols,
+            frameon=False,
+            ncols=3,
+            title=[f"scVI: {c}" for c in all_cols],
+            save=f"_{out_prefix}_uncorrected_all.png",
+            show=False
+        )
         plt.close()
 
         print(f"UMAPs saved (elapsed {time.time() - t0:.1f} s).")
@@ -251,8 +262,8 @@ class BatchCorrector:
 
     def evaluate_metrics(
         self,
-        raw_path=None,          # raw hold‑out
-        batch_path=None,  # same cells + scVI outputs
+        raw_path=None,         
+        batch_path=None,  
         out_csv=None,
     ):
         """
@@ -276,7 +287,7 @@ class BatchCorrector:
         adata_raw = sc.read_h5ad(raw_path)     # counts in .X
 
         # scIB expects raw counts in X for the "batch" view
-        adata_raw.layers["counts"] = adata_raw.X.copy()  # just in case
+        adata_raw.layers["counts"] = adata_raw.X.copy() 
         adata_int.obsm["X_int"] = adata_int.obsm["X_scVI"]
 
         # neighbours on the integrated embedding
