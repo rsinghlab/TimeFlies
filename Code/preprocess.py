@@ -6,7 +6,7 @@ import numpy as np
 import scanpy as sc
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical # type: ignore
+from tensorflow.keras.utils import to_categorical  # type: ignore
 import dill as pickle
 import logging
 from utilities import (
@@ -242,18 +242,18 @@ class DataPreprocessor:
         """
         config = self.config
         norm_on = config.DataProcessing.Normalization.enabled
-        bc_on   = config.DataParameters.BatchCorrection.enabled
+        bc_on = config.DataParameters.BatchCorrection.enabled
 
         if norm_on:
             logging.info("Normalizing data...")
             # scVI data is *already* log1p – so skip that part
             if not bc_on:
                 train_data = np.log1p(train_data)
-                test_data  = np.log1p(test_data)
+                test_data = np.log1p(test_data)
 
             scaler = StandardScaler()
             train_data = scaler.fit_transform(train_data)
-            test_data  = scaler.transform(test_data)
+            test_data = scaler.transform(test_data)
             is_scaler_fit = True
             logging.info("Data normalized.")
         else:
@@ -489,9 +489,11 @@ class DataPreprocessor:
         train_subset, test_subset = self.split_data(dataset_to_use)
 
         # Select highly variable genes if required
-        train_subset, test_subset, highly_variable_genes = (
-            self.select_highly_variable_genes(train_subset, test_subset)
-        )
+        (
+            train_subset,
+            test_subset,
+            highly_variable_genes,
+        ) = self.select_highly_variable_genes(train_subset, test_subset)
 
         # Print data sizes and class counts
         print(f"Training data size: {train_subset.shape}")
@@ -589,13 +591,13 @@ class DataPreprocessor:
             label_encoder (LabelEncoder): The label encoder used to transform the labels.
         """
         config = self.config
-       
+
         batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
 
         if batch_correction_enabled:
             adata = adata.copy()
             adata.X = adata.layers["scvi_normalized"]
-            
+
         # Remove 'mix' if specified
         if mix_included is False:
             adata = adata[adata.obs["sex"] != "mix"].copy()
@@ -612,7 +614,7 @@ class DataPreprocessor:
 
         # Apply gene selection from corrected data if specified and not already using corrected data
         select_batch_genes = config.GenePreprocessing.GeneFiltering.select_batch_genes
-        
+
         if select_batch_genes and not batch_correction_enabled:
             common_genes = self.adata.var_names.intersection(
                 self.adata_corrected.var_names
@@ -802,7 +804,7 @@ class GeneFilter:
 
         elif balance_lnc_genes:
             final_mask &= balanced_non_lnc_mask
-        
+
         else:
             if only_keep_lnc:
                 final_mask &= lnc_mask
@@ -817,7 +819,12 @@ class GeneFilter:
                 final_mask &= no_lnc_mask
 
         # If not removing unaccounted genes, ensure they are included in the final mask
-        if not remove_unaccounted and balanced_non_lnc_genes is None and not only_keep_lnc and not balance_autosomal:
+        if (
+            not remove_unaccounted
+            and balanced_non_lnc_genes is None
+            and not only_keep_lnc
+            and not balance_autosomal
+        ):
             final_mask |= unaccounted_mask
 
         # Apply the final combined mask
@@ -866,21 +873,27 @@ class GeneFilter:
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
         adata_eval = self.create_and_apply_mask(
             data=adata_eval,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
         adata_original = self.create_and_apply_mask(
             data=adata_original,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
 
         return adata, adata_eval, adata_original
@@ -898,13 +911,15 @@ class GeneFilter:
                  and original datasets.
         """
         # Apply the gene filtering based on the config
-        self.adata, self.adata_eval, self.adata_original = (
-            self.filter_genes_based_on_config(
-                self.adata,
-                self.adata_eval,
-                self.adata_original,
-                self.sex_genes,
-                self.autosomal_genes,
-            )
+        (
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+        ) = self.filter_genes_based_on_config(
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.sex_genes,
+            self.autosomal_genes,
         )
         return self.adata, self.adata_eval, self.adata_original

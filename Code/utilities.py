@@ -203,7 +203,9 @@ class DataLoader:
 
         # Load sex-linked gene list from a CSV file
         sex_genes = (
-            pd.read_csv(os.path.join(self.Data_dir, "..", "gene_lists", "sex.csv"), header=None)
+            pd.read_csv(
+                os.path.join(self.Data_dir, "..", "gene_lists", "sex.csv"), header=None
+            )
             .iloc[:, 0]
             .tolist()
         )
@@ -280,7 +282,6 @@ class PathManager:
             else:
                 # Default to full_data if no options are active
                 self.config_subfolder = "full_data"
-
 
         # Cell type subfolder
         self.cell_type_folder_name = (

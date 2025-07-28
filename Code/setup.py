@@ -149,7 +149,7 @@ class InitialSetup:
         data_dir = self._resolve_data_path(tissue, batch)
 
         # Define the path to the original .h5ad file
-        h5ad_filename  = "fly_original_batch.h5ad" if batch else "fly_original.h5ad"
+        h5ad_filename = "fly_original_batch.h5ad" if batch else "fly_original.h5ad"
         h5ad_file_path = data_dir / h5ad_filename
 
         # Load the AnnData object
@@ -172,7 +172,7 @@ class InitialSetup:
         logger.info(f"Created training dataset with {adata_train.n_obs} samples.")
 
         # Define paths for the split datasets
-        eval_filename  = "fly_eval_batch.h5ad"  if batch else "fly_eval.h5ad"
+        eval_filename = "fly_eval_batch.h5ad" if batch else "fly_eval.h5ad"
         train_filename = "fly_train_batch.h5ad" if batch else "fly_train.h5ad"
         fly_train_path = data_dir / train_filename
         fly_eval_path = data_dir / eval_filename
@@ -207,7 +207,7 @@ class InitialSetup:
         data_dir = self._resolve_data_path(tissue, batch)
 
         # Define paths to the split datasets and original dataset
-        eval_filename  = "fly_eval_batch.h5ad"  if batch else "fly_eval.h5ad"
+        eval_filename = "fly_eval_batch.h5ad" if batch else "fly_eval.h5ad"
         train_filename = "fly_train_batch.h5ad" if batch else "fly_train.h5ad"
         orig_filename = "fly_original_batch.h5ad" if batch else "fly_original.h5ad"
         fly_eval_path = data_dir / eval_filename

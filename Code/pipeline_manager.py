@@ -292,9 +292,10 @@ class PipelineManager:
                 )
 
                 # Compute or load SHAP values
-                squeezed_shap_values, squeezed_test_data = (
-                    self.interpreter.compute_or_load_shap_values()
-                )
+                (
+                    squeezed_shap_values,
+                    squeezed_test_data,
+                ) = self.interpreter.compute_or_load_shap_values()
 
                 # Update SHAP-related attributes for visualization
                 self.squeezed_shap_values = squeezed_shap_values
