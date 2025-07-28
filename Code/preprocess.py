@@ -6,7 +6,7 @@ import numpy as np
 import scanpy as sc
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical # type: ignore
 import dill as pickle
 import logging
 from utilities import (
