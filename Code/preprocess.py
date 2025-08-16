@@ -192,7 +192,20 @@ class DataPreprocessor:
             if not batch_correction_enabled:
                 sc.pp.normalize_total(normal, target_sum=1e4)
                 sc.pp.log1p(normal)
-            sc.pp.highly_variable_genes(normal, n_top_genes=5000)
+                sc.pp.highly_variable_genes(normal, n_top_genes=5000)
+            else:
+                # For batch corrected data, use raw counts if available
+                if normal.raw is not None:
+                    temp_adata = normal.raw.to_adata()
+                    sc.pp.normalize_total(temp_adata, target_sum=1e4)
+                    sc.pp.log1p(temp_adata)
+                    sc.pp.highly_variable_genes(temp_adata, n_top_genes=5000)
+                    normal.var['highly_variable'] = temp_adata.var['highly_variable']
+                else:
+                    print("Warning: No raw data available for HVG selection with batch corrected data")
+                    # Skip HVG selection and use all genes
+                    highly_variable_genes = normal.var_names.tolist()
+                    return train_subset, test_subset, highly_variable_genes
             highly_variable_genes = normal.var_names[
                 normal.var.highly_variable
             ].tolist()
