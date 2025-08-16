@@ -24,7 +24,7 @@ TimeFlies is designed to analyze single-cell RNA sequencing data from Drosophila
 
 - **Multiple tissue types**: Head, body, or combined analysis
 - **Cross-sex analysis**: Train on one sex, test on another
-- **Batch correction**: Using scVI
+- **Batch correction**: Using scVI for technical variation removal
 - **Multiple ML models**: CNN, MLP, XGBoost, Random Forest, Logistic Regression
 - **Comprehensive visualization**: UMAP, PCA, feature importance, and statistical analysis
 
@@ -59,38 +59,152 @@ TimeFlies is designed to analyze single-cell RNA sequencing data from Drosophila
 
 ```
 TimeFlies/
-├── Code/                          # Main source code
-│   ├── time_flies.py             # Main entry point
-│   ├── pipeline_manager.py       # Pipeline orchestration
-│   ├── config.py                 # Configuration settings
-│   ├── preprocess.py             # Data preprocessing
-│   ├── model.py                  # ML model implementations
-│   ├── scvi_batch.py             # scVI batch correction
-│   ├── setup.py                  # setup file
-│   ├── visuals.py                # Visualization tools
-│   ├── interpreter.py            # Model interpretation (SHAP)
-│   ├── eda.py                    # Exploratory data analysis
-│   └── utilities.py              # Helper functions
-├── Data/                          # Data storage
-│   ├── h5ad/                     # Single-cell data files
-│   │   ├── head/                 # Head tissue data
-│   │   ├── body/                 # Body tissue data
-│   │   └── all/                  # Combined tissue data
-│   ├── gene_lists/               # Gene annotation files
-│   └── preprocessed/             # Processed data outputs
-├── Models/                        # Trained model storage
-├── Analysis/                      # Analysis notebooks and results
-│   ├── Analysis.ipynb            # Main analysis notebook
-│   ├── UMAP/                     # UMAP visualizations
-│   ├── batch_corrected/          # Batch-corrected results
-│   └── uncorrected/              # Uncorrected results
-├── Requirements/                  # Environment specifications
-│   ├── linux/requirements.txt    # Linux dependencies
-|   ├── linux/batch_environment.yml # Linux Batch environment
-│   ├── macOS/mac_gpu.yml         # macOS environment
-│   └── windows/Windows_GPU.yml   # Windows environment
-└── README.md                      # This file
+├── data/                           # All input and processed data
+│   ├── raw/                        # Raw input data
+│   │   ├── h5ad/                   # Original h5ad files
+│   │   │   ├── head/
+│   │   │   │   ├── fly_eval.h5ad           (uncorrected)
+│   │   │   │   └── fly_eval_batch.h5ad     (batch corrected)
+│   │   │   ├── body/
+│   │   │   │   ├── fly_eval.h5ad           (uncorrected)
+│   │   │   │   └── fly_eval_batch.h5ad     (batch corrected)
+│   │   │   └── all/
+│   │   │       ├── fly_eval.h5ad           (uncorrected)
+│   │   │       └── fly_eval_batch.h5ad     (batch corrected)
+│   │   └── gene_lists/
+│   │       ├── autosomal.csv
+│   │       └── sex.csv
+│   └── processed/                  # Preprocessed data with organized structure
+│       ├── batch_corrected/
+│       │   ├── head_cnn_age/
+│       │   │   └── all-genes_all-cells_all-sexes/
+│       │   └── body_cnn_age/
+│       │       └── all-genes_all-cells_all-sexes/
+│       └── uncorrected/
+│           ├── head_cnn_age/
+│           │   ├── all-genes_all-cells_all-sexes/
+│           │   ├── no-sex_all-cells_all-sexes/
+│           │   ├── only-lnc_epithelial-cell_all-sexes/
+│           │   └── all-genes_muscle-cell_all-sexes/
+│           ├── body_cnn_age/
+│           │   ├── all-genes_all-cells_all-sexes/
+│           │   └── only-lnc_all-cells_all-sexes/
+│           └── head_logistic_regression_age/
+│               ├── all-genes_all-cells_all-sexes/
+│               └── only-lnc_all-cells_all-sexes/
+├── outputs/                        # All analysis outputs
+│   ├── models/                     # Trained models
+│   │   ├── batch_corrected/
+│   │   │   └── head_cnn_age/
+│   │   │       └── all-genes_all-cells_all-sexes/
+│   │   │           ├── model.h5
+│   │   │           ├── config.yaml
+│   │   │           ├── metrics.json
+│   │   │           └── history.pkl
+│   │   └── uncorrected/
+│   ├── results/                    # Analysis results and plots
+│   │   ├── batch_corrected/
+│   │   │   └── head_cnn_age/
+│   │   │       └── all-genes_all-cells_all-sexes/
+│   │   │           ├── plots/
+│   │   │           │   ├── confusion_matrix.png
+│   │   │           │   ├── roc_curve.png
+│   │   │           │   └── training_metrics.png
+│   │   │           └── Stats.JSON
+│   │   └── uncorrected/
+│   └── logs/                       # Log files
+│       ├── training_2024_08_16.log
+│       └── pipeline_debug.log
+├── src/timeflies/                  # Modular source code
+│   ├── __init__.py
+│   ├── core/                       # Core pipeline components
+│   │   ├── config_manager.py       # Configuration management
+│   │   ├── pipeline_manager.py     # Pipeline orchestration
+│   │   └── config.py               # Configuration schemas
+│   ├── data/                       # Data handling
+│   │   ├── loaders.py              # Data loading utilities
+│   │   └── preprocessing/
+│   │       ├── data_processor.py   # Main preprocessing
+│   │       ├── gene_filter.py      # Gene filtering logic
+│   │       └── batch_correction.py # Batch correction
+│   ├── models/                     # ML models
+│   │   ├── model_factory.py        # Model creation
+│   │   └── model.py                # Base model classes
+│   ├── analysis/                   # Analysis tools
+│   │   ├── eda.py                  # Exploratory data analysis
+│   │   └── visuals.py              # Visualization functions
+│   ├── evaluation/
+│   │   └── interpreter.py          # Model interpretation (SHAP)
+│   └── utils/                      # Utilities
+│       ├── path_manager.py         # Path management
+│       ├── cli_parser.py           # Command line interface
+│       ├── logging_config.py       # Logging setup
+│       ├── gpu_handler.py          # GPU configuration
+│       ├── constants.py            # Constants
+│       └── exceptions.py           # Custom exceptions
+├── configs/                        # Configuration files
+│   └── default.yaml                # Default pipeline configuration
+├── scripts/                        # Utility scripts
+├── tests/                          # Test suite
+├── notebooks/                      # Analysis notebooks
+│   └── analysis.ipynb              # Interactive analysis
+├── Requirements/                   # Environment specifications
+│   ├── linux/
+│   │   ├── requirements.txt        # Linux dependencies
+│   │   └── batch_environment.yml   # Linux batch environment
+│   ├── macOS/
+│   │   └── mac_gpu.yml             # macOS environment
+│   └── windows/
+│       └── Windows_GPU.yml         # Windows environment
+├── run_timeflies.py                # Main entry point
+├── requirements_dev.txt            # Development dependencies
+├── pyproject.toml                  # Python project configuration
+└── README.md                       # This file
 ```
+
+## Folder Naming Convention
+
+TimeFlies uses a consistent, hierarchical naming convention for organized data management:
+
+### Two-Level Organization
+- **Level 1**: Experiment Type (`tissue_model_encoding`)
+- **Level 2**: Configuration Details (`method_cells_sexes`)
+
+### Naming Rules
+- **Between main parts**: `_` (underscores)
+- **Within compound terms**: `-` (hyphens)
+
+### Examples
+```
+# Level 1: Experiment Type
+head_cnn_age/           # Head tissue, CNN model, age prediction
+body_mlp_tissue/        # Body tissue, MLP model, tissue classification
+head_logistic_regression_age/  # Head tissue, logistic regression, age prediction
+
+# Level 2: Configuration Details  
+all-genes_all-cells_all-sexes/     # All genes, all cell types, all sexes
+no-sex_muscle-cell_male/           # No sex genes, muscle cells only, males only
+only-lnc_epithelial-cell_female/   # Only lncRNA genes, epithelial cells, females
+```
+
+### Gene Methods
+- `all-genes`: Complete gene set
+- `no-sex`: Remove sex-linked genes
+- `no-autosomal`: Remove autosomal genes  
+- `only-lnc`: Only lncRNA genes
+- `hvg`: Highly variable genes
+- `balanced`: Balanced gene selection
+
+### Cell Types
+- `all-cells`: All cell types
+- `muscle-cell`: Muscle cells only
+- `epithelial-cell`: Epithelial cells only
+- `cns-neuron`: CNS neurons only
+
+### Sex Types
+- `all-sexes`: Both male and female
+- `male`: Male samples only
+- `female`: Female samples only
 
 ## Installation
 
@@ -108,207 +222,142 @@ git clone https://github.com/rsinghlab/TimeFlies.git
 cd TimeFlies
 ```
 
-#### 2. Set Up Environments
-
-**Linux:**
+#### 2. Set Up Environment
 ```bash
-# Main pipeline environment
-conda create -n timeflies python=3.12.1
+# Create and activate environment
+conda create -n timeflies python=3.12
 conda activate timeflies
-pip install -r Requirements/linux/requirements.txt
 
-# Batch correction environment (separate due to dependency conflicts)
-conda env create -f Requirements/linux/batch_environment.yml
-```
-
-**macOS:**
-```bash
-conda env create -f Requirements/macOS/mac_gpu.yml
-conda activate timeflies
-```
-
-**Windows:**
-```bash
-conda env create -f Requirements/windows/Windows_GPU.yml
-conda activate timeflies
+# Install dependencies
+pip install -r requirements_dev.txt
 ```
 
 #### 3. Verify Installation
 ```bash
-# Test main environment
-conda activate timeflies
-python -c "import tensorflow, pandas, numpy, scanpy; print('Main environment ready!')"
-
-# Test batch correction environment
-conda activate batch_environment
-python -c "import scvi, scanpy; print('Batch correction environment ready!')"
+python run_timeflies.py test
 ```
-
-### Environment Management
-
-**Two separate environments are required:**
-- **`timeflies`**: Main pipeline (CNN, MLP, data processing, visualization)
-- **`batch_environment`**: scVI batch correction (has conflicting dependencies)
-
-**Switch between environments:**
-```bash
-conda activate timeflies      # For main pipeline
-conda activate batch_environment  # For batch correction only
-```
-
-### Key Dependencies Installed
-
-**Main Environment (`timeflies`):**
-- `tensorflow`: Neural network models (CNN, MLP)
-- `scikit-learn`: Traditional ML models (XGBoost, Random Forest)
-- `pandas`, `numpy`: Data manipulation
-- `matplotlib`, `seaborn`: Visualization
-- `shap`: Model interpretation
-- `scanpy`: Single-cell analysis (shared with batch env)
-
-**Batch Correction Environment (`batch_environment`):**
-- `scvi-tools`: Batch correction using variational inference
-- `scanpy`: Single-cell analysis
-- `pytorch`: Backend for scVI models
-- Compatible versions that work with scVI requirements
 
 ## Configuration
 
-The main configuration is in `Code/config.py`. Key settings include:
+TimeFlies uses YAML configuration files for flexible pipeline setup. The main configuration is in `configs/default.yaml`.
 
 ### Basic Settings
-```python
-"DataParameters": {
-    "GeneralSettings": {
-        "tissue": "head",                    # 'head', 'body', 'all'
-        "model_type": "CNN",                 # 'CNN', 'MLP', 'XGBoost', etc.
-        "encoding_variable": "age",          # 'age', 'sex', 'sex_age'
-        "cell_type": "all",                  # Cell type filter
-        "sex_type": "all",                   # 'all', 'male', 'female'
-    },
-    "BatchCorrection": {
-        "enabled": True,                     # Use batch corrected data
-    },
-}
+```yaml
+# General settings
+general:
+  project_name: "TimeFlies"
+  random_state: 42
+
+# Data parameters
+data:
+  tissue: "head"                    # 'head', 'body', 'all'
+  model_type: "CNN"                 # 'CNN', 'MLP', 'logistic', etc.
+  encoding_variable: "age"          # 'age', 'sex', 'tissue'
+  cell_type: "all"                  # Cell type filter
+  sex_type: "all"                   # 'all', 'male', 'female'
+  
+  # Batch correction
+  batch_correction:
+    enabled: true                   # Use batch corrected data
+```
+
+### Train-Test Split Configuration
+```yaml
+data:
+  train_test_split:
+    # Split method - IMPORTANT:
+    # - "random": Standard random split (ignores train/test settings below)
+    # - "sex": Train on one sex, test on another
+    # - "tissue": Train on one tissue, test on another
+    method: "random"                # Default: mixed random split
+    test_split: 0.2                 # Used only when method="random"
+    random_state: 42
+    
+    # Settings below ONLY used when method="sex" or "tissue"
+    train:
+      sex: "male"                   # Used only when method="sex"
+      tissue: "head"                # Used only when method="tissue"
+    test:
+      sex: "female"                 # Used only when method="sex"  
+      tissue: "body"                # Used only when method="tissue"
 ```
 
 ### Gene Filtering Options
-```python
-"GenePreprocessing": {
-    "GeneFiltering": {
-        "remove_sex_genes": False,           # Remove sex-linked genes
-        "remove_autosomal_genes": False,     # Remove autosomal genes
-        "highly_variable_genes": False,      # Select highly variable genes
-        "remove_lnc_genes": False,          # Remove lncRNA genes
-    }
-}
-```
-
-### Model Training
-```python
-"Training": {
-    "epochs": 100,
-    "batch_size": 512,
-    "learning_rate": 0.001,
-    "early_stopping_patience": 10,
-}
+```yaml
+gene_preprocessing:
+  gene_filtering:
+    remove_sex_genes: false         # Remove sex-linked genes
+    remove_autosomal_genes: false   # Remove autosomal genes
+    highly_variable_genes: false    # Select highly variable genes
+    only_keep_lnc_genes: false      # Keep only lncRNA genes
+    remove_lnc_genes: false         # Remove lncRNA genes
 ```
 
 ## Usage
 
-### Initial Setup (Required)
-
-**Before running any analysis, you must first run the setup script:**
-
+### Quick Start
 ```bash
-cd Code
-conda activate timeflies
-python setup.py
+# Run with default configuration
+python run_timeflies.py new
+
+# View available options
+python run_timeflies.py new --help
+
+# Run with specific configuration
+python run_timeflies.py new --config configs/custom.yaml
 ```
 
-**What setup.py does:**
-- **Stratified Splitting**: Creates balanced train/evaluation splits from original h5ad files
-- **Data Integrity**: Ensures proper representation across age groups, sex, and other factors
-- **File Organization**: Saves split datasets to `Data/hda5/uncorrected/` directory
-- **Reproducibility**: Uses configured random seed for consistent splits across runs
-- **Validation**: Verifies the integrity and balance of created splits
-
-**Configuration for setup.py:**
-The setup process uses settings from `Code/config.py`:
-```python
-"Setup": {
-    "strata": "age",                        # Column used for stratification
-    "tissue": "head",                       # Tissue type (e.g., 'head', 'body')
-    "seed": 42,                             # Random seed for reproducibility
-    "split_size": 5000,                     # Number of samples to split for evaluation
-},
-```
-
-**Output files created:**
-- `Data/hda5/uncorrected/{tissue}/fly_train.h5ad`
-- `Data/hda5/uncorrected/{tissue}/fly_eval.h5ad`
-
-### Basic Usage
-
-**Complete Workflow:**
-
-1. **Configure the pipeline** by editing `Code/config.py`
-2. **Run initial data setup** (Required first step):
+### Command Line Interface
 ```bash
-cd Code
-conda activate timeflies
-python setup.py
+# Train a CNN model on head tissue for age prediction
+python run_timeflies.py new --tissue head --model cnn --encoding age
+
+# Train with specific gene filtering
+python run_timeflies.py new --tissue head --model cnn --encoding age --gene-method hvg
+
+# Cross-sex analysis: train on males, test on females
+python run_timeflies.py new --tissue head --model cnn --encoding age --split-method sex
+
+# Use batch corrected data
+python run_timeflies.py new --tissue head --model cnn --encoding age --batch-correction
 ```
-3. **Optional: Run batch correction**:
+
+### Advanced Configuration
 ```bash
-conda activate batch_environment
-python scvi_batch.py --train --tissue head
-```
-4. **Enable batch correction in config.py** (if used):
-```python
-"BatchCorrection": {"enabled": True}
-```
-5. **Run the main pipeline**:
-```bash
-conda activate timeflies
-python time_flies.py
-```
+# Custom cell type and sex filtering
+python run_timeflies.py new --tissue head --model cnn --encoding age \
+    --cell-type "muscle cell" --sex-type male
 
-### Advanced Usage
-
-**Cross-sex analysis:**
-```python
-# In config.py, set up cross-training
-"TrainTestSplit": {
-    "method": "sex",
-    "train": {"sex": "male"},
-    "test": {"sex": "female"},
-}
-```
-
-**Custom analysis:**
-```python
-# Use the Analysis.ipynb notebook for interactive exploration
-jupyter notebook Analysis/Analysis.ipynb
+# Multiple model comparison
+python run_timeflies.py new --tissue head --encoding age --model cnn
+python run_timeflies.py new --tissue head --encoding age --model mlp
+python run_timeflies.py new --tissue head --encoding age --model logistic
 ```
 
 ## Data Pipeline
 
-The pipeline consists of several stages:
+The TimeFlies pipeline consists of several automated stages:
 
-1. **Initial Setup** (Required): Run `setup.py` to create stratified train/eval splits
-2. **Data Loading**: Load h5ad files containing single-cell data
-3. **Batch Correction** (optional): Remove batch effects using scVI - done after setup
-4. **Filtering**: Apply cell and gene filters based on configuration
-5. **Preprocessing**: Normalization, scaling, highly variable gene selection
-6. **Model Training**: Train selected ML model
-7. **Evaluation**: Generate predictions and metrics
-8. **Visualization**: Create plots and interpretability analysis
+1. **Data Loading**: Load h5ad files from `data/raw/h5ad/`
+2. **Preprocessing**: Apply filters, normalization, and scaling
+3. **Gene Selection**: Filter genes based on configuration
+4. **Train-Test Split**: Create training and evaluation sets
+5. **Model Training**: Train selected ML model
+6. **Evaluation**: Generate predictions and metrics
+7. **Visualization**: Create plots and interpretability analysis
+8. **Output**: Save results to organized directory structure
+
+### Automatic Path Management
+The pipeline automatically:
+- Creates organized output directories based on experiment configuration
+- Saves processed data to `data/processed/` with consistent naming
+- Stores models in `outputs/models/` with metadata
+- Generates analysis results in `outputs/results/`
 
 ## Supported Models
 
 ### Neural Networks
-- **CNN (Convolutional Neural Network)**: For capturing local gene expression patterns
+- **CNN (Convolutional Neural Network)**: Captures local gene expression patterns
 - **MLP (Multi-Layer Perceptron)**: Standard feedforward neural network
 
 ### Traditional ML
@@ -316,116 +365,79 @@ The pipeline consists of several stages:
 - **Random Forest**: Ensemble method
 - **Logistic Regression**: Linear classification
 
-### Model Selection
-Models are automatically configured based on the `model_type` setting in config.py. Each model includes:
+### Model Features
+Each model includes:
 - Hyperparameter optimization
 - Early stopping
 - Model checkpointing
 - Performance evaluation
+- Feature importance analysis
 
 ## Batch Correction
 
-### Methods Available
-
-#### scVI (Single-cell Variational Inference)
-- Deep generative model for batch correction
-- Preserves biological variation while removing technical effects
-- Configurable latent dimensions and training parameters
+### scVI Integration
+TimeFlies integrates scVI (Single-cell Variational Inference) for batch correction:
+- Removes technical variation while preserving biological signals
+- Supports multiple tissues and experimental conditions
+- Generates quality metrics and visualizations
 
 ### Usage
-
-**Important**: Batch correction is performed during the setup phase, before running the main pipeline.
-
-The batch correction script has three distinct modes:
-
-1. **Train**: Performs batch correction on raw data and saves corrected files
-2. **Evaluate**: Computes integration quality metrics on corrected data
-3. **Visualize**: Creates UMAP plots comparing before/after correction
-
-**File Selection & Evaluation Strategy**:
-
-- **Default (Recommended)**: Uses train/eval split files created by `setup.py`
-
-- **With `--original`**: Uses full original `{tissue}_data.h5ad` files directly
-  - **Complete Data**: Uses all available cells for batch correction
-  - **Manuscript/Final Analysis**: Useful for final results using complete datasets
-  - **No Holdout**: Cannot evaluate correction quality on unseen data
-  - **Higher Resource Usage**: Requires more memory and computational time
-  - **Bypasses Setup**: Skips the stratified splitting step entirely
-
-
-**Important**: Make sure to activate the batch correction environment first:
 ```bash
-conda activate batch_environment
-```
-
-```bash
-# 1. Train scVI model (uses uncorrected data automatically)
-python scvi_batch.py --train --tissue head  # head is default tissue
-
-# 2. Evaluate correction quality (uses batch-corrected data automatically)  
-python scvi_batch.py --evaluate --tissue head
-
-# 3. Generate comparison visualizations (loads both data types)
-python scvi_batch.py --visualize --tissue head
-
-# Or use other tissues
-python scvi_batch.py --train --tissue body
-python scvi_batch.py --train --tissue all
-
-# Use full original file instead of train/eval splits
-python scvi_batch.py --train --original --tissue head
-python scvi_batch.py --evaluate --original --tissue head
-python scvi_batch.py --visualize --original --tissue head
+# Enable batch correction in configuration
+python run_timeflies.py new --batch-correction --tissue head
 ```
 
 ### Quality Assessment
 - UMAP visualizations before/after correction
 - Batch mixing metrics
-- Biological signal preservation
+- Biological signal preservation analysis
 
 ## Analysis and Visualization
 
-### Exploratory Data Analysis (EDA)
-- Cell count distributions
-- Gene expression statistics
-- Quality control metrics
-- Outlier detection
-
-### Dimensionality Reduction
-- **PCA**: Principal component analysis
-- **UMAP**: Uniform Manifold Approximation and Projection
-- Interactive plots colored by age, sex, or cell type
-
-### Model Interpretation
-- **SHAP values**: Feature importance for individual predictions
-- **Confusion matrices**: Classification performance
-- **ROC curves**: Model evaluation metrics
-
-### Generated Outputs
-All visualizations are saved to the `Analysis/` directory:
-- `UMAP/`: Dimensionality reduction plots
-- `batch_corrected/`: Results after batch correction
-- `uncorrected/`: Results from original data
-
-## Results
-
-The pipeline generates comprehensive results including:
+### Automated Outputs
+The pipeline generates comprehensive analysis including:
 
 ### Model Performance
-- Classification accuracy across age groups
-- Cross-sex generalization performance
-- Feature importance rankings
+- Classification accuracy and metrics
+- Confusion matrices
+- ROC curves
+- Feature importance rankings (SHAP)
 
 ### Biological Insights
 - Age-related gene expression changes
 - Sex-specific expression patterns
 - Cell type-specific aging signatures
 
-### Quality Metrics
-- Batch correction effectiveness
-- Model interpretability scores
-- Statistical significance tests
+### Visualizations
+- UMAP and PCA plots
+- Training metrics and loss curves
+- Gene expression heatmaps
+- Statistical summaries
+
+### Interactive Analysis
+Use the Jupyter notebook for custom analysis:
+```bash
+jupyter notebook notebooks/analysis.ipynb
+```
+
+## Results
+
+All results are automatically organized in the `outputs/` directory:
+
+```
+outputs/
+├── models/                         # Trained models and metadata
+├── results/                        # Analysis results and plots
+└── logs/                          # Execution logs
+```
+
+### Result Structure
+Each experiment creates organized outputs:
+- Model files and training history
+- Performance metrics and statistics
+- Visualization plots (PNG/PDF)
+- SHAP interpretation results
+- Detailed logs and metadata
 
 ## Contributing
 
@@ -464,8 +476,8 @@ If you use TimeFlies in your research, please cite:
 
 For questions, issues, or feature requests:
 - Open an issue on GitHub
-- Check the documentation in the `Analysis/` directory
-- Review configuration options in `Code/config.py`
+- Review configuration options in `configs/default.yaml`
+- Check the interactive notebook in `notebooks/analysis.ipynb`
 
 ## Acknowledgments
 

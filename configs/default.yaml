@@ -35,16 +35,23 @@ data:
     
   # Train-test split
   train_test_split:
+    # Split method - IMPORTANT:
+    # - "random": Standard random split using test_split ratio (ignores train/test settings below)
+    # - "sex": Train on one sex, test on another (uses train.sex and test.sex)
+    # - "tissue": Train on one tissue, test on another (uses train.tissue and test.tissue)
     method: "random"  # Options: "random", "sex", "tissue"
-    test_split: 0.2
+    test_split: 0.2   # Used only when method="random"
     random_state: 42
+    
+    # Settings below are ONLY used when method="sex" or method="tissue"
+    # They are IGNORED when method="random"
     train:
-      sex: "male"
-      tissue: "head"
+      sex: "male"      # Used only when method="sex"
+      tissue: "head"   # Used only when method="tissue"
     test:
-      sex: "female" 
-      tissue: "body"
-      size: 0.3
+      sex: "female"    # Used only when method="sex"
+      tissue: "body"   # Used only when method="tissue"
+      size: 0.3        # Optional: limit test set size for sex/tissue splits
 
 # Gene preprocessing
 gene_preprocessing:
