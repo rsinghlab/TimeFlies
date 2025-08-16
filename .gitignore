@@ -7,3 +7,11 @@ __pycache__ # recursive
 *.pyc
 .vscode
 *.ipynb_checkpoints
+
+# TimeFlies specific ignores
+outputs/logs/*.log
+data/processed/*/
+*.pkl
+__pycache__/
+.pytest_cache/
+temp_*/

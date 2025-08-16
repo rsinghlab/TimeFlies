@@ -1,0 +1,123 @@
+# Default configuration for TimeFlies project
+
+# General settings
+general:
+  project_name: "TimeFlies"
+  version: "0.2.0"
+  random_state: 42
+
+# Device configuration
+device:
+  processor: "GPU"  # Options: "GPU", "CPU", "M" (Apple Silicon)
+  gpu_memory_growth: true
+
+# Data parameters
+data:
+  # General settings
+  tissue: "head"  # Options: "head", "body", "all"
+  model_type: "CNN"  # Options: "CNN", "MLP", "logistic", "xgboost", "random_forest"
+  encoding_variable: "age"  # Options: "age", "sex", "tissue", "dataset"
+  cell_type: "all"  # Options: "all", specific cell types
+  sex_type: "all"  # Options: "all", "male", "female"
+  
+  # Batch correction
+  batch_correction:
+    enabled: true
+    
+  # Filtering
+  filtering:
+    include_mixed_sex: false
+    
+  # Sampling
+  sampling:
+    num_samples: null  # null for all samples
+    num_variables: null  # null for all variables
+    
+  # Train-test split
+  train_test_split:
+    method: "random"  # Options: "random", "sex", "tissue"
+    test_split: 0.2
+    random_state: 42
+    train:
+      sex: "male"
+      tissue: "head"
+    test:
+      sex: "female" 
+      tissue: "body"
+      size: 0.3
+
+# Gene preprocessing
+gene_preprocessing:
+  # Gene filtering
+  gene_filtering:
+    remove_sex_genes: false
+    remove_autosomal_genes: false
+    only_keep_lnc_genes: false
+    remove_lnc_genes: false
+    remove_unaccounted_genes: false
+    select_batch_genes: false
+    highly_variable_genes: false
+    
+  # Gene balancing
+  gene_balancing:
+    balance_genes: false
+    balance_lnc_genes: false
+    
+  # Gene shuffling
+  gene_shuffle:
+    shuffle_genes: false
+    shuffle_random_state: 42
+
+# Data processing
+data_processing:
+  # Preprocessing
+  preprocessing:
+    required: true
+    save_data: true
+    
+  # Normalization
+  normalization:
+    enabled: false
+
+# Model parameters
+model:
+  # Training parameters
+  training:
+    epochs: 100
+    batch_size: 32
+    validation_split: 0.2
+    early_stopping_patience: 10
+    
+  # Model architecture (CNN specific)
+  cnn:
+    filters: [64, 128, 256]
+    kernel_sizes: [3, 3, 3]
+    activation: "relu"
+    dropout_rate: 0.2
+    
+  # Model architecture (MLP specific)
+  mlp:
+    hidden_layers: [512, 256, 128]
+    activation: "relu"
+    dropout_rate: 0.2
+
+# Feature importance and visualizations
+feature_importance:
+  reference_size: 100
+  
+# File locations
+file_locations:
+  training_file: "fly_train.h5ad"
+  evaluation_file: "fly_eval.h5ad"
+  original_file: "fly_original.h5ad"
+  batch_corrected_files:
+    train: "fly_train_batch.h5ad"
+    eval: "fly_eval_batch.h5ad"
+
+# Logging
+logging:
+  level: "INFO"  # Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+  format: "detailed"  # Options: "simple", "detailed", "json"
+  log_to_file: false
+  log_directory: "logs"
+  log_filename: "timeflies.log"
