@@ -78,7 +78,7 @@ TimeFlies is a comprehensive machine learning pipeline designed to analyze aging
 # Clone and set up TimeFlies
 git clone https://github.com/rsinghlab/TimeFlies.git
 cd TimeFlies
-make setup  # Automatic environment setup and testing
+python run_setup.py  # Initial data setup (run first)
 ```
 
 ### Instant Analysis
@@ -92,7 +92,7 @@ python run_timeflies.py train \
   --model cnn \
   --target age \
   --batch-correction \
-  --gene-method hvg
+  --cell-type all
 
 # Load and analyze existing model
 python run_timeflies.py evaluate --model-path outputs/models/head_cnn_age/
@@ -117,10 +117,13 @@ git clone https://github.com/rsinghlab/TimeFlies.git
 cd TimeFlies
 
 # Create environment and install dependencies
-make setup
+pip install -e .
+
+# Run initial data setup
+python run_setup.py
 
 # Verify installation
-make test
+python run_timeflies.py test
 ```
 </details>
 
@@ -201,8 +204,8 @@ data:
 
 model:
   cnn:
-    filters: [64, 128, 256]
-    kernel_sizes: [3, 3, 3] 
+    filters: [32]
+    kernel_sizes: [3] 
     dropout_rate: 0.3
     learning_rate: 0.001
     
@@ -285,22 +288,12 @@ The TimeFlies CLI provides intuitive commands for all analysis tasks:
 ```bash
 # Training Commands
 python run_timeflies.py train [OPTIONS]    # Train new model
-python run_timeflies.py retrain [OPTIONS]  # Continue training existing model
 
 # Evaluation Commands  
 python run_timeflies.py evaluate [OPTIONS] # Evaluate model performance
-python run_timeflies.py predict [OPTIONS]  # Generate predictions
-python run_timeflies.py interpret [OPTIONS] # Run SHAP interpretation
-
-# Analysis Commands
-python run_timeflies.py analyze [OPTIONS]  # Comprehensive analysis
-python run_timeflies.py compare [OPTIONS]  # Compare multiple models
-python run_timeflies.py visualize [OPTIONS] # Generate visualizations
 
 # Utility Commands
-python run_timeflies.py validate [OPTIONS] # Validate configuration
-python run_timeflies.py export [OPTIONS]   # Export results
-python run_timeflies.py clean [OPTIONS]    # Clean up outputs
+python run_timeflies.py test               # Test installation
 ```
 
 ### Common Usage Patterns
@@ -617,26 +610,23 @@ python -m pytest tests/ --html=test_report.html
 
 ### Available Documentation
 
-- **Configuration Guide**: Complete YAML configuration reference
-- **API Reference**: Detailed module and function documentation  
-- **Tutorials**: Step-by-step analysis walkthroughs
-- **Future Plans**: Multi-project structure for Alzheimer's research
-- **Troubleshooting**: Common issues and solutions
+- **Quick Start**: [`docs/quickstart.md`](docs/quickstart.md) - Get started quickly
+- **Configuration Examples**: [`configs/`](configs/) - YAML configuration templates  
+- **API Reference**: Code docstrings in [`src/timeflies/`](src/timeflies/) modules
+- **Future Plans**: [`docs/multi_project_structure.md`](docs/multi_project_structure.md) - Multi-organism research framework
 
 ### Learning Resources
 
 ```bash
-# Interactive tutorials
-jupyter notebook notebooks/comprehensive_analysis.ipynb
-
-# API documentation
-python -c "from timeflies import help; help()"
-
-# Configuration examples
+# View configuration examples
 ls configs/*.yaml
 
-# Test examples
+# Test examples and usage
 ls tests/unit/test_*.py
+
+# CLI help
+python run_timeflies.py --help
+python run_timeflies.py train --help
 ```
 
 ## Contributing

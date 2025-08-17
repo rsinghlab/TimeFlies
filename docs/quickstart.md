@@ -47,10 +47,10 @@ python run_setup.py
 ### Step 2: Train a Model
 ```bash
 # Basic training with default settings
-python run_timeflies.py --tissue head --model-type cnn --encoding-variable age
+python run_timeflies.py train --tissue head --model cnn --target age
 
 # With custom configuration
-python run_timeflies.py --config configs/my_config.yaml
+python run_timeflies.py train --config configs/my_config.yaml
 ```
 
 ### Step 3: Evaluate Results
@@ -64,24 +64,24 @@ Check the outputs in:
 ### Age Prediction (Default)
 ```bash
 python run_setup.py
-python run_timeflies.py --tissue head --model-type cnn --encoding-variable age
+python run_timeflies.py train --tissue head --model cnn --target age
 ```
 
 ### Sex Classification
 ```bash
 python run_setup.py --config configs/sex_config.yaml
-python run_timeflies.py --tissue head --model-type mlp --encoding-variable sex
+python run_timeflies.py train --tissue head --model mlp --target sex
 ```
 
 ### With Batch Correction
 ```bash
 python run_setup.py --config configs/batch_config.yaml
-python run_timeflies.py --batch-correction --tissue head --model-type cnn
+python run_timeflies.py train --batch-correction --tissue head --model cnn
 ```
 
 ### Skip Visualization (Faster)
 ```bash
-python run_timeflies.py --tissue head --model-type cnn --encoding-variable age
+python run_timeflies.py train --tissue head --model cnn --target age
 # Edit configs/default.yaml and set run_visualization: false
 ```
 
@@ -100,7 +100,6 @@ feature_importance:
 data_processing:
   model_management:
     load_model: false       # Load existing model
-    model_path: null        # Path to model
 
 # CNN architecture  
 model:

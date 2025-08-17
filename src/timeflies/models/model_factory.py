@@ -250,8 +250,13 @@ class LogisticRegressionModel(BaseModel):
         """Build logistic regression model."""
         try:
             random_state = getattr(self.config.general, 'random_state', 42)
+            logistic_config = getattr(self.config.model, 'logistic', {})
+            
             self.model = LogisticRegression(
-                max_iter=1000,
+                max_iter=getattr(logistic_config, 'max_iter', 1000),
+                C=getattr(logistic_config, 'C', 1.0),
+                penalty=getattr(logistic_config, 'penalty', 'l2'),
+                solver=getattr(logistic_config, 'solver', 'lbfgs'),
                 random_state=random_state
             )
             logger.info("Logistic Regression model initialized")
@@ -309,12 +314,21 @@ class XGBoostModel(BaseModel):
         """Build XGBoost model."""
         try:
             random_state = getattr(self.config.general, 'random_state', 42)
+            xgb_config = getattr(self.config.model, 'xgboost', {})
+            
+            # Determine eval metric based on problem type
+            eval_metric = getattr(xgb_config, 'eval_metric', 'mlogloss')
+            if eval_metric == 'mlogloss' and num_classes == 2:
+                eval_metric = 'logloss'
+            
             self.model = xgb.XGBClassifier(
-                n_estimators=100,
-                max_depth=6,
-                learning_rate=0.1,
+                n_estimators=getattr(xgb_config, 'n_estimators', 100),
+                max_depth=getattr(xgb_config, 'max_depth', 6),
+                learning_rate=getattr(xgb_config, 'learning_rate', 0.1),
+                subsample=getattr(xgb_config, 'subsample', 0.8),
+                colsample_bytree=getattr(xgb_config, 'colsample_bytree', 0.8),
                 random_state=random_state,
-                eval_metric='mlogloss' if num_classes > 2 else 'logloss'
+                eval_metric=eval_metric
             )
             logger.info("XGBoost model initialized")
         except Exception as e:
@@ -371,8 +385,14 @@ class RandomForestModel(BaseModel):
         """Build Random Forest model."""
         try:
             random_state = getattr(self.config.general, 'random_state', 42)
+            rf_config = getattr(self.config.model, 'random_forest', {})
+            
             self.model = RandomForestClassifier(
-                n_estimators=100,
+                n_estimators=getattr(rf_config, 'n_estimators', 100),
+                max_depth=getattr(rf_config, 'max_depth', None),
+                min_samples_split=getattr(rf_config, 'min_samples_split', 2),
+                min_samples_leaf=getattr(rf_config, 'min_samples_leaf', 1),
+                max_features=getattr(rf_config, 'max_features', 'sqrt'),
                 random_state=random_state,
                 n_jobs=-1
             )

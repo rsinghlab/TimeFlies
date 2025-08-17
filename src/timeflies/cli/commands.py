@@ -6,17 +6,11 @@ Each command is implemented as a separate function with proper error handling.
 """
 
 import sys
-import os
-import yaml
 from pathlib import Path
-from typing import Optional, Dict, Any
 
 from ..core.config_manager import ConfigManager
 from ..core.pipeline_manager import PipelineManager
 from ..data.preprocessing.batch_correction import BatchCorrector
-from ..data.preprocessing.setup import DataSetupManager
-from ..utils.logging_config import setup_logging
-from ..utils.path_manager import PathManager
 
 
 def validate_environment() -> bool:

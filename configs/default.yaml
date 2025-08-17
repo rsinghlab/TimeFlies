@@ -119,6 +119,30 @@ model:
     hidden_layers: [512, 256, 128]
     activation: "relu"
     dropout_rate: 0.2
+    
+  # Model architecture (XGBoost specific)
+  xgboost:
+    n_estimators: 100
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    eval_metric: "mlogloss"  # Will auto-adjust based on problem type
+    
+  # Model architecture (Random Forest specific)
+  random_forest:
+    n_estimators: 100
+    max_depth: null  # No limit
+    min_samples_split: 2
+    min_samples_leaf: 1
+    max_features: "sqrt"
+    
+  # Model architecture (Logistic Regression specific)
+  logistic:
+    max_iter: 1000
+    C: 1.0  # Regularization strength
+    penalty: "l2"  # Regularization type
+    solver: "lbfgs"
 
 # Feature importance and visualizations
 feature_importance:

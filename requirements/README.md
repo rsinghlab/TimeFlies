@@ -7,13 +7,11 @@ This directory contains environment configurations for the TimeFlies project. Th
 
 ## Environment Files
 
-### Linux (Current Setup)
-- `linux/requirements.txt` - **TensorFlow-based** main pipeline environment
-- `linux/batch_environment.yml` - **PyTorch-based** scVI batch correction environment
-
-### Platform Structure (Future)
-- `macOS/` - Apple Silicon optimized environments
-- `windows/` - Windows-compatible environments
+### All Platforms
+- `linux/requirements.txt` - Linux dependencies
+- `macOS/requirements.txt` - macOS dependencies  
+- `windows/requirements.txt` - Windows dependencies
+- `linux/batch_environment.yml` - PyTorch-based scVI batch correction environment
 
 ## Quick Start
 
@@ -22,7 +20,14 @@ This directory contains environment configurations for the TimeFlies project. Th
 # Create main environment
 conda create -n timeflies python=3.12
 conda activate timeflies
-pip install -r Requirements/linux/requirements.txt
+
+# Install dependencies (choose your platform)
+pip install -r Requirements/linux/requirements.txt     # Linux
+pip install -r Requirements/macOS/requirements.txt     # macOS
+pip install -r Requirements/windows/requirements.txt   # Windows
+
+# Install TimeFlies
+pip install -e .
 
 # Test installation
 python run_timeflies.py test
@@ -44,36 +49,37 @@ python run_timeflies.py batch --train --tissue head
 ```bash
 conda activate timeflies
 
-# Setup data
-python run_timeflies.py setup --tissue head
+# Setup data (required first)
+python run_setup.py
 
 # Train models
-python run_timeflies.py train --tissue head --model cnn --encoding age
-python run_timeflies.py train --tissue head --model mlp --encoding age
-python run_timeflies.py train --tissue head --model xgboost --encoding age
+python run_timeflies.py train --tissue head --model cnn --target age
+python run_timeflies.py train --tissue head --model mlp --target age
+python run_timeflies.py train --tissue head --model xgboost --target age
 ```
 
 ### Batch Correction (PyTorch Environment)  
 ```bash
 conda activate scvi-env
 
-# Train scVI model for batch correction
-python run_timeflies.py batch --train --tissue head
-
-# Evaluate batch correction quality
-python run_timeflies.py batch --evaluate --tissue head
-
-# Generate UMAP visualizations
-python run_timeflies.py batch --visualize --tissue head
+# Note: Batch correction is integrated into main pipeline
+# Use batch correction config files or --batch-correction flag
+python run_timeflies.py train --tissue head --model cnn --target age --batch-correction
 ```
 
-### Using Batch-Corrected Data in Main Pipeline
+### Complete Workflow
 ```bash
-# Switch back to main environment
+# Main environment handles everything now
 conda activate timeflies
 
-# Train on batch-corrected data
-python run_timeflies.py train --tissue head --model cnn --encoding age --batch-correction
+# Setup data splits
+python run_setup.py
+
+# Train with batch correction
+python run_timeflies.py train --tissue head --model cnn --target age --batch-correction
+
+# Evaluate trained model
+python run_timeflies.py evaluate --model-path outputs/models/head_cnn_age/
 ```
 
 ## System Requirements
