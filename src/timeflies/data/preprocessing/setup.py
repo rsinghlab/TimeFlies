@@ -6,33 +6,31 @@ import anndata
 import logging
 from typing import List
 import pandas as pd
-from Code.config import config
+from ...core.config_manager import ConfigManager
 
 # Configure logging for better control over output
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class InitialSetup:
+class DataSetupManager:
     """
     A class to perform initial setup tasks such as stratified splitting of AnnData objects
     and verifying the integrity of the splits.
     """
 
-    def __init__(self):
+    def __init__(self, config=None):
         """
-        Initialize the InitialSetup class with the external configuration.
+        Initialize the DataSetupManager class with configuration.
 
-        The configuration is expected to contain the following keys:
-            - strata: str, the column to use for stratification.
-            - tissue: str, the tissue type (e.g., 'head', 'body').
-            - seed: int, random seed for reproducibility.
-            - batch: bool, whether to use batch-corrected data.
-            - split_size: int, number of samples to split for evaluation.
+        Args:
+            config: Configuration instance from ConfigManager. If None, creates default config.
         """
-        # Use external configuration
-        self.config_instance = config
-        logger.info("InitialSetup initialized with external configuration.")
+        if config is None:
+            self.config = ConfigManager.create_default()
+        else:
+            self.config = config
+        logger.info("DataSetupManager initialized with configuration.")
 
     def _resolve_data_path(self, tissue: str, batch: bool) -> Path:
         """
@@ -307,11 +305,11 @@ class InitialSetup:
         logger.info("Starting main execution of InitialSetup.")
 
         # Extract split parameters from the configuration
-        strata_column = self.config_instance.Setup.strata
-        tissue = self.config_instance.Setup.tissue
-        seed = self.config_instance.Setup.seed
-        batch = self.config_instance.Setup.use_batch_corrected_data
-        split_size = self.config_instance.Setup.split_size
+        strata_column = getattr(self.config.data, 'strata_column', 'age')
+        tissue = getattr(self.config.data, 'tissue', 'head') 
+        seed = getattr(self.config.general, 'random_state', 42)
+        batch = getattr(self.config.data.batch_correction, 'enabled', False)
+        split_size = getattr(self.config.data.train_test_split, 'split_size', 1000)
 
         logger.info(
             f"Configuration - Strata: {strata_column}, Tissue: {tissue}, Seed: {seed}, Batch: {batch}, Split Size: {split_size}"
@@ -343,9 +341,13 @@ class InitialSetup:
         except Exception as e:
             logger.exception(f"Error during verification: {e}")
 
-        logger.info("Main execution of InitialSetup completed.")
+        logger.info("Main execution of DataSetupManager completed.")
+    
+    def run(self):
+        """Simple wrapper around main for CLI integration.""" 
+        self.main()
 
 
 if __name__ == "__main__":
-    setup = InitialSetup()
+    setup = DataSetupManager()
     setup.main()

@@ -1,37 +1,51 @@
-"""Enhanced configuration management with YAML support."""
+"""Modern configuration management with YAML support."""
 
 import os
 import yaml
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
-from dataclasses import dataclass, field
 from ..utils.exceptions import ConfigurationError
-from ..utils.constants import REQUIRED_CONFIG_SECTIONS
 from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
-@dataclass
 class Config:
-    """Configuration data class with nested attribute access."""
+    """Modern configuration class with nested attribute access."""
     
     def __init__(self, config_dict: Dict[str, Any]):
         """Initialize config from dictionary."""
+        self._data = {}
         for key, value in config_dict.items():
             if isinstance(value, dict):
-                setattr(self, key, Config(value))
+                self._data[key] = Config(value)
             else:
-                setattr(self, key, value)
+                self._data[key] = value
     
     def __getattr__(self, name: str) -> Any:
         """Allow attribute access to nested configurations."""
+        if name.startswith('_'):
+            raise AttributeError(f"'{name}' not found")
+        if name in self._data:
+            return self._data[name]
         raise AttributeError(f"Configuration '{name}' not found")
+    
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Allow setting configuration values."""
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            if not hasattr(self, '_data'):
+                super().__setattr__(name, value)
+            else:
+                if isinstance(value, dict):
+                    value = Config(value)
+                self._data[name] = value
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert config back to dictionary."""
         result = {}
-        for key, value in self.__dict__.items():
+        for key, value in self._data.items():
             if isinstance(value, Config):
                 result[key] = value.to_dict()
             else:
@@ -40,14 +54,24 @@ class Config:
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value with default."""
-        try:
-            return getattr(self, key)
-        except AttributeError:
-            return default
+        return self._data.get(key, default)
+    
+    def update(self, other: Dict[str, Any]) -> None:
+        """Update configuration with new values."""
+        for key, value in other.items():
+            if isinstance(value, dict) and key in self._data and isinstance(self._data[key], Config):
+                self._data[key].update(value)
+            else:
+                if isinstance(value, dict):
+                    value = Config(value)
+                self._data[key] = value
+    
+    def __repr__(self) -> str:
+        return f"Config({self._data})"
 
 
 class ConfigManager:
-    """Enhanced configuration manager with YAML support and validation."""
+    """Modern configuration manager with YAML support and validation."""
     
     def __init__(self, config_path: Optional[str] = None):
         """
@@ -56,123 +80,63 @@ class ConfigManager:
         Args:
             config_path: Path to YAML configuration file
         """
-        self.config_path = config_path
+        self.config_path = self._find_config_path(config_path)
         self._config = None
         self._load_config()
     
-    def _load_config(self) -> None:
-        """Load configuration from YAML file or fallback to Python config."""
-        if self.config_path and os.path.exists(self.config_path):
-            self._load_yaml_config()
-        else:
-            # Fallback to original Python config
-            self._load_python_config()
+    def _find_config_path(self, config_path: Optional[str]) -> str:
+        """Find configuration file path."""
+        if config_path and os.path.exists(config_path):
+            return config_path
+            
+        # Try to find default config file
+        default_paths = [
+            "configs/default.yaml",
+            "../configs/default.yaml", 
+            "../../configs/default.yaml",
+            os.path.join(os.path.dirname(__file__), "../../configs/default.yaml")
+        ]
+        
+        for path in default_paths:
+            if os.path.exists(path):
+                return path
+                
+        raise ConfigurationError("No configuration file found. Please provide a valid config path.")
     
-    def _load_yaml_config(self) -> None:
+    def _load_config(self) -> None:
         """Load configuration from YAML file."""
         try:
             with open(self.config_path, 'r') as f:
                 config_dict = yaml.safe_load(f)
             
-            # Convert to nested Config object
-            self._config = self._convert_to_legacy_format(config_dict)
-            logger.info(f"Loaded YAML configuration from {self.config_path}")
+            # Create Config object directly from YAML structure
+            self._config = Config(config_dict)
+            logger.info(f"Loaded configuration from {self.config_path}")
             
         except Exception as e:
-            raise ConfigurationError(f"Failed to load YAML config: {e}")
-    
-    def _load_python_config(self) -> None:
-        """Load original Python configuration as fallback."""
-        try:
-            from .config import config as python_config
-            self._config = python_config
-            logger.info("Loaded Python configuration (fallback)")
-        except ImportError as e:
-            raise ConfigurationError(f"Failed to load configuration: {e}")
-    
-    def _convert_to_legacy_format(self, yaml_config: Dict[str, Any]) -> Config:
-        """
-        Convert YAML config to legacy format for backward compatibility.
-        
-        Args:
-            yaml_config: Configuration dictionary from YAML
-            
-        Returns:
-            Config object in legacy format
-        """
-        # Map YAML structure to legacy structure
-        legacy_config = {
-            "Device": {
-                "processor": yaml_config.get("device", {}).get("processor", "GPU")
-            },
-            "DataParameters": {
-                "GeneralSettings": {
-                    "tissue": yaml_config.get("data", {}).get("tissue", "head"),
-                    "model_type": yaml_config.get("data", {}).get("model_type", "CNN"),
-                    "encoding_variable": yaml_config.get("data", {}).get("encoding_variable", "age"),
-                    "cell_type": yaml_config.get("data", {}).get("cell_type", "all"),
-                    "sex_type": yaml_config.get("data", {}).get("sex_type", "all")
-                },
-                "BatchCorrection": {
-                    "enabled": yaml_config.get("data", {}).get("batch_correction", {}).get("enabled", True)
-                },
-                "Filtering": {
-                    "include_mixed_sex": yaml_config.get("data", {}).get("filtering", {}).get("include_mixed_sex", False)
-                },
-                "Sampling": {
-                    "num_samples": yaml_config.get("data", {}).get("sampling", {}).get("num_samples"),
-                    "num_variables": yaml_config.get("data", {}).get("sampling", {}).get("num_variables")
-                },
-                "TrainTestSplit": {
-                    "method": yaml_config.get("data", {}).get("train_test_split", {}).get("method", "random"),
-                    "train": yaml_config.get("data", {}).get("train_test_split", {}).get("train", {}),
-                    "test": yaml_config.get("data", {}).get("train_test_split", {}).get("test", {})
-                }
-            },
-            "GenePreprocessing": {
-                "GeneFiltering": yaml_config.get("gene_preprocessing", {}).get("gene_filtering", {}),
-                "GeneBalancing": yaml_config.get("gene_preprocessing", {}).get("gene_balancing", {}),
-                "GeneShuffle": yaml_config.get("gene_preprocessing", {}).get("gene_shuffle", {})
-            },
-            "DataProcessing": {
-                "Preprocessing": yaml_config.get("data_processing", {}).get("preprocessing", {}),
-                "Normalization": yaml_config.get("data_processing", {}).get("normalization", {})
-            },
-            "DataSplit": {
-                "random_state": yaml_config.get("general", {}).get("random_state", 42),
-                "test_split": yaml_config.get("data", {}).get("train_test_split", {}).get("test_split", 0.2)
-            },
-            "ModelParameters": yaml_config.get("model", {}),
-            "FeatureImportanceAndVisualizations": yaml_config.get("feature_importance", {}),
-            "FileLocations": yaml_config.get("file_locations", {})
-        }
-        
-        return Config(legacy_config)
+            raise ConfigurationError(f"Failed to load config from {self.config_path}: {e}")
     
     def validate_config(self) -> None:
-        """Validate configuration for required sections and parameters."""
-        for section in REQUIRED_CONFIG_SECTIONS:
+        """Validate configuration for required sections and parameters.""" 
+        required_sections = ["data", "model", "general"]
+        
+        for section in required_sections:
             if not hasattr(self._config, section):
                 raise ConfigurationError(f"Missing required configuration section: {section}")
         
-        # Additional validation
-        self._validate_model_type()
-        self._validate_encoding_variable()
-        logger.info("Configuration validation passed")
-    
-    def _validate_model_type(self) -> None:
-        """Validate model type."""
+        # Validate model type
         from ..utils.constants import SUPPORTED_MODEL_TYPES
-        model_type = self._config.DataParameters.GeneralSettings.model_type.lower()
+        model_type = self._config.data.model_type.lower()
         if model_type not in SUPPORTED_MODEL_TYPES:
             raise ConfigurationError(f"Invalid model type: {model_type}")
-    
-    def _validate_encoding_variable(self) -> None:
-        """Validate encoding variable."""
+        
+        # Validate encoding variable
         from ..utils.constants import SUPPORTED_ENCODING_VARS
-        encoding_var = self._config.DataParameters.GeneralSettings.encoding_variable.lower()
+        encoding_var = self._config.data.encoding_variable.lower()
         if encoding_var not in SUPPORTED_ENCODING_VARS:
             raise ConfigurationError(f"Invalid encoding variable: {encoding_var}")
+            
+        logger.info("Configuration validation passed")
     
     def save_config(self, output_path: str) -> None:
         """Save current configuration to YAML file."""
@@ -183,17 +147,15 @@ class ConfigManager:
     
     def update_config(self, updates: Dict[str, Any]) -> None:
         """Update configuration with new values."""
-        # This would recursively update nested dictionaries
-        # Implementation depends on specific needs
-        pass
+        self._config.update(updates)
+        logger.info("Configuration updated")
     
-    @property
-    def config(self) -> Config:
+    def get_config(self) -> Config:
         """Get the configuration object."""
         return self._config
 
 
-# Global configuration instance
+# Global configuration instance  
 _config_manager = None
 
 
@@ -210,22 +172,29 @@ def get_config(config_path: Optional[str] = None) -> Config:
     global _config_manager
     
     if _config_manager is None:
-        # Try to find default config file
-        if config_path is None:
-            default_paths = [
-                "configs/default.yaml",
-                "../configs/default.yaml",
-                "../../configs/default.yaml"
-            ]
-            for path in default_paths:
-                if os.path.exists(path):
-                    config_path = path
-                    break
-        
         _config_manager = ConfigManager(config_path)
         _config_manager.validate_config()
     
-    return _config_manager.config
+    return _config_manager.get_config()
+
+
+def get_config_manager(config_path: Optional[str] = None) -> ConfigManager:
+    """
+    Get global configuration manager instance.
+    
+    Args:
+        config_path: Optional path to YAML configuration file
+        
+    Returns:
+        ConfigManager instance
+    """
+    global _config_manager
+    
+    if _config_manager is None:
+        _config_manager = ConfigManager(config_path)
+        _config_manager.validate_config()
+    
+    return _config_manager
 
 
 def reset_config() -> None:

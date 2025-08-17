@@ -576,7 +576,7 @@ class Visualizer:
         """
         Sets y_true, y_pred, y_pred_class
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
         if model_type in ["mlp", "cnn"]:
             self.y_pred = self.model.predict(self.test_inputs)
         else:
@@ -590,7 +590,7 @@ class Visualizer:
         """
         Visualize the training history for the model based on the configuration.
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
         if model_type in ["mlp", "cnn"]:
             self.visual_tools.plot_history(self.history, "training_metrics.png")
         elif model_type == "xgboost":
@@ -604,7 +604,7 @@ class Visualizer:
         class_labels = self.label_encoder.classes_
 
         # Sort the class labels based on age if specified in the config
-        if "age" in self.config.DataParameters.GeneralSettings.encoding_variable:
+        if "age" in getattr(self.config.data, 'encoding_variable', 'age'):
             class_labels = self._sort_labels_by_age(class_labels)
 
         # Create confusion matrix
@@ -658,8 +658,8 @@ class Visualizer:
         if self.squeezed_shap_values is not None:
             var_names = (
                 self.adata_corrected.var_names
-                if self.config.DataParameters.BatchCorrection.enabled
-                or self.config.GenePreprocessing.GeneFiltering.select_batch_genes
+                if getattr(self.config.data.batch_correction, 'enabled', False)
+                or getattr(self.config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)
                 else self.adata.var_names
             )
             self.visual_tools.plot_shap_summary(

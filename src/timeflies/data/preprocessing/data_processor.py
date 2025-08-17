@@ -54,23 +54,23 @@ class DataPreprocessor:
         config = self.config
 
         # Include or exclude 'mix' sex
-        include_mix = config.DataParameters.Filtering.include_mixed_sex
+        include_mix = getattr(config.data.filtering, 'include_mixed_sex', False)
         if not include_mix:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Filter based on 'sex_type' if specified
-        sex_type = config.DataParameters.GeneralSettings.sex_type.lower()
+        sex_type = getattr(config.data, 'sex_type', 'all').lower()
         if sex_type in ["male", "female"]:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Filter based on 'cell_type' if specified
-        cell_type = config.DataParameters.GeneralSettings.cell_type
+        cell_type = getattr(config.data, 'cell_type', 'all')
         if cell_type != "all":
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
         # Shuffle genes if required
-        shuffle_genes = config.GenePreprocessing.GeneShuffle.shuffle_genes
-        shuffle_random_state = config.GenePreprocessing.GeneShuffle.shuffle_random_state
+        shuffle_genes = getattr(config.gene_preprocessing.gene_shuffle, 'shuffle_genes', False)
+        shuffle_random_state = getattr(config.gene_preprocessing.gene_shuffle, 'shuffle_random_state', 42)
         if shuffle_genes:
             # Create a Generator with a fixed seed
             rng = np.random.default_rng(shuffle_random_state)
@@ -78,15 +78,16 @@ class DataPreprocessor:
             adata = adata[:, gene_order]
 
         # Sample data if required
-        num_samples = config.DataParameters.Sampling.num_samples
+        num_samples = getattr(config.data.sampling, 'num_samples', None)
         if num_samples and num_samples < adata.n_obs:
+            random_state = getattr(config.data.train_test_split, 'random_state', 42)
             sample_indices = adata.obs.sample(
-                n=num_samples, random_state=config.DataSplit.random_state
+                n=num_samples, random_state=random_state
             ).index
             adata = adata[sample_indices, :]
 
         # Select variables (genes) if required
-        num_variables = config.DataParameters.Sampling.num_variables
+        num_variables = getattr(config.data.sampling, 'num_variables', None)
         if num_variables and num_variables < adata.n_vars:
             adata = adata[:, adata.var_names[:num_variables]]
 
@@ -104,24 +105,27 @@ class DataPreprocessor:
         - test_subset: The testing subset.
         """
         config = self.config
-        split_method = config.DataParameters.TrainTestSplit.method.lower()
+        split_method = getattr(config.data.train_test_split, 'method', 'random').lower()
 
         if split_method == "sex":
-            train_sex = config.DataParameters.TrainTestSplit.train.sex.lower()
-            test_sex = config.DataParameters.TrainTestSplit.test.sex.lower()
+            train_sex = getattr(config.data.train_test_split.train, 'sex', 'male').lower()
+            test_sex = getattr(config.data.train_test_split.test, 'sex', 'female').lower()
 
             train_subset = dataset[dataset.obs["sex"].str.lower() == train_sex].copy()
             test_subset = dataset[dataset.obs["sex"].str.lower() == test_sex].copy()
 
+            test_size = getattr(config.data.train_test_split.test, 'size', 0.3)
+            random_state = getattr(config.data.train_test_split, 'random_state', 42)
+            
             _, test_subset = train_test_split(
                 test_subset,
-                test_size=config.DataParameters.TrainTestSplit.test.size,
-                random_state=config.DataSplit.random_state,
+                test_size=test_size,
+                random_state=random_state,
             )
 
         elif split_method == "tissue":
-            train_tissue = config.DataParameters.TrainTestSplit.train.tissue.lower()
-            test_tissue = config.DataParameters.TrainTestSplit.test.tissue.lower()
+            train_tissue = getattr(config.data.train_test_split.train, 'tissue', 'head').lower()
+            test_tissue = getattr(config.data.train_test_split.test, 'tissue', 'body').lower()
 
             train_subset = dataset[
                 dataset.obs["tissue"].str.lower() == train_tissue
@@ -135,17 +139,20 @@ class DataPreprocessor:
             train_subset = train_subset[:, common_genes]
             test_subset = test_subset[:, common_genes]
 
+            test_size = getattr(config.data.train_test_split.test, 'size', 0.3)
+            random_state = getattr(config.data.train_test_split, 'random_state', 42)
+            
             _, test_subset = train_test_split(
                 test_subset,
-                test_size=config.DataParameters.TrainTestSplit.test.size,
-                random_state=config.DataSplit.random_state,
+                test_size=test_size,
+                random_state=random_state,
             )
 
         else:
             # Perform a stratified train-test split based on encoding variable
-            encoding_var = config.DataParameters.GeneralSettings.encoding_variable
-            test_size = config.DataSplit.test_split
-            random_state = config.DataSplit.random_state
+            encoding_var = getattr(config.data, 'encoding_variable', 'age')
+            test_size = getattr(config.data.train_test_split, 'test_split', 0.2)
+            random_state = getattr(config.data.train_test_split, 'random_state', 42)
 
             train_subset, test_subset = train_test_split(
                 dataset,
@@ -155,10 +162,10 @@ class DataPreprocessor:
             )
 
             # Apply gene selection from corrected data if specified and not already using corrected data
-            select_batch_genes = (
-                config.GenePreprocessing.GeneFiltering.select_batch_genes
+            select_batch_genes = getattr(
+                config.gene_preprocessing.gene_filtering, 'select_batch_genes', False
             )
-            batch_correction_enabled = config.DataParameters.BatchCorrection.enabled
+            batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
             if select_batch_genes and not batch_correction_enabled:
                 adata_corrected_processed = self.process_adata(self.adata_corrected)
                 common_genes = train_subset.var_names.intersection(
@@ -188,7 +195,7 @@ class DataPreprocessor:
         config = self.config
         highly_variable_genes = None
 
-        if config.GenePreprocessing.GeneFiltering.highly_variable_genes:
+        if getattr(config.gene_preprocessing.gene_filtering, 'highly_variable_genes', False):
             normal = train_subset.copy()
             sc.pp.normalize_total(normal, target_sum=1e4)
             sc.pp.log1p(normal)
@@ -218,7 +225,7 @@ class DataPreprocessor:
         - label_encoder: The label encoder used to transform the labels.
         """
         config = self.config
-        encoding_var = config.DataParameters.GeneralSettings.encoding_variable
+        encoding_var = getattr(config.data, 'encoding_variable', 'age')
         label_encoder = LabelEncoder()
 
         train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
@@ -246,8 +253,8 @@ class DataPreprocessor:
         - is_scaler_fit: Flag indicating whether the scaler was fit (i.e., normalization was applied).
         """
         config = self.config
-        norm_on = config.DataProcessing.Normalization.enabled
-        bc_on = config.DataParameters.BatchCorrection.enabled
+        norm_on = getattr(config.data_processing.normalization, 'enabled', False)
+        bc_on = getattr(config.data.batch_correction, 'enabled', False)
 
         if norm_on:
             logging.info("Normalizing data...")
@@ -295,7 +302,7 @@ class DataPreprocessor:
         - reference_data: Reference data.
         """
         config = self.config
-        reference_size = config.FeatureImportanceAndVisualizations.reference_size
+        reference_size = getattr(config.feature_importance, 'reference_size', 100)
         if reference_size > train_data.shape[0]:
             reference_size = train_data.shape[0]
 

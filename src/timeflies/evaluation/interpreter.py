@@ -159,7 +159,7 @@ class Interpreter:
         """
         shap_values = None
 
-        if self.config.FeatureImportanceAndVisualizations.load_SHAP:
+        if getattr(self.config.feature_importance, 'load_SHAP', False):
             # Attempt to load SHAP values from disk
             try:
                 shap_values = self.load_shap_values()
@@ -198,7 +198,7 @@ class Interpreter:
         )
 
         # Access the model type from the configuration
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
 
         # Determine the explainer to use based on the model type
         if model_type in ["mlp", "cnn"]:
@@ -216,7 +216,7 @@ class Interpreter:
 
 
         # Adjust SHAP values and test data shapes based on the system type
-        device = self.config.Device.processor.lower()
+        device = getattr(self.config.device, 'processor', 'GPU').lower()
         if device == "m":
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
@@ -263,7 +263,7 @@ class Interpreter:
         # Collect model and data metadata
         model_weights_hash = self._get_model_weights_hash()
         metadata = {
-            "model_type": self.config.DataParameters.GeneralSettings.model_type,
+            "model_type": getattr(self.config.data, 'model_type', 'CNN'),
             "model_config": (
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
@@ -307,7 +307,7 @@ class Interpreter:
         # Collect current model metadata and data hashes before updating data
         model_weights_hash = self._get_model_weights_hash()
         current_metadata = {
-            "model_type": self.config.DataParameters.GeneralSettings.model_type,
+            "model_type": getattr(self.config.data, 'model_type', 'CNN'),
             "model_config": (
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
@@ -438,7 +438,7 @@ class Metrics:
         """
         Evaluate the model on the test data and store performance metrics.
         """
-        model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
         if model_type in ["mlp", "cnn"]:
             test_loss, test_acc, test_auc = Prediction.evaluate_model(
                 self.model, self.test_inputs, self.test_labels
@@ -582,7 +582,7 @@ class Metrics:
             json.dump(metrics, file, indent=4)
 
         # If interpretable is True, save an additional copy to the SHAP directory
-        if self.config.FeatureImportanceAndVisualizations.run_interpreter:
+        if getattr(self.config.feature_importance, 'run_interpreter', True):
             shap_dir = self.path_manager.get_visualization_directory(subfolder="SHAP")
             os.makedirs(shap_dir, exist_ok=True)
             shap_output_file_path = os.path.join(shap_dir, "Stats.JSON")
@@ -601,7 +601,7 @@ class Metrics:
             None
         """
         # Convert predictions and true labels to class indices if not already done
-        if self.config.FeatureImportanceAndVisualizations.save_predictions:
+        if getattr(self.config.feature_importance, 'save_predictions', False):
 
             if not hasattr(self, "y_pred_class"):
                 self.y_pred_class = np.argmax(self.y_pred, axis=1)
@@ -619,15 +619,9 @@ class Metrics:
             )
 
             # Determine the relevant train and test attributes based on the method
-            method = (
-                self.config.DataParameters.TrainTestSplit.method
-            )  # This could be 'sex', 'tissue', etc.
-            train_attribute = self.config.DataParameters.TrainTestSplit.train.get(
-                method, "unknown"
-            )
-            test_attribute = self.config.DataParameters.TrainTestSplit.test.get(
-                method, "unknown"
-            )
+            method = getattr(self.config.data.train_test_split, 'method', 'random')  # This could be 'sex', 'tissue', etc.
+            train_attribute = getattr(self.config.data.train_test_split.train, method, "unknown")
+            test_attribute = getattr(self.config.data.train_test_split.test, method, "unknown")
 
             # Capitalize the first letter of train and test attributes
             train_attribute = train_attribute.capitalize()

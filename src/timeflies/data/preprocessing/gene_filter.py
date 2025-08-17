@@ -52,7 +52,8 @@ class GeneFilter:
         balanced_genes: Subset of gene_type_1 with the same size as the number of genes in gene_type_2.
         """
         config = self.config
-        np.random.seed(config.DataSplit.random_state)
+        random_state = getattr(config.data.train_test_split, 'random_state', 42)
+        np.random.seed(random_state)
         num_genes_type_2 = len(gene_type_2)
         if num_genes_type_2 > len(gene_type_1):
             raise ValueError(
@@ -102,7 +103,7 @@ class GeneFilter:
             balanced_non_lnc_mask = data.var.index.isin(balanced_non_lnc_genes)
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
-        if config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes:
+        if getattr(config.gene_preprocessing.gene_filtering, 'remove_unaccounted_genes', False):
             accounted_mask = original_autosomal_mask | sex_mask
             data = data[:, accounted_mask]
             # Recompute the masks since data has changed
@@ -121,14 +122,14 @@ class GeneFilter:
         final_mask = np.ones(data.shape[1], dtype=bool)
 
         # Apply various filters based on configuration settings
-        remove_sex = config.GenePreprocessing.GeneFiltering.remove_sex_genes
-        balance_genes = config.GenePreprocessing.GeneBalancing.balance_genes
-        balance_lnc_genes = config.GenePreprocessing.GeneBalancing.balance_lnc_genes
-        only_keep_lnc = config.GenePreprocessing.GeneFiltering.only_keep_lnc_genes
-        remove_autosomal = config.GenePreprocessing.GeneFiltering.remove_autosomal_genes
-        remove_lnc = config.GenePreprocessing.GeneFiltering.remove_lnc_genes
+        remove_sex = getattr(config.gene_preprocessing.gene_filtering, 'remove_sex_genes', False)
+        balance_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_genes', False)
+        balance_lnc_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_lnc_genes', False)
+        only_keep_lnc = getattr(config.gene_preprocessing.gene_filtering, 'only_keep_lnc_genes', False)
+        remove_autosomal = getattr(config.gene_preprocessing.gene_filtering, 'remove_autosomal_genes', False)
+        remove_lnc = getattr(config.gene_preprocessing.gene_filtering, 'remove_lnc_genes', False)
         remove_unaccounted = (
-            config.GenePreprocessing.GeneFiltering.remove_unaccounted_genes
+            getattr(config.gene_preprocessing.gene_filtering, 'remove_unaccounted_genes', False)
         )
         balance_autosomal = remove_sex and balance_genes
 
@@ -191,12 +192,12 @@ class GeneFilter:
         original_autosomal_genes = autosomal_genes.copy()
 
         # Balance the number of autosomal genes with the number of X genes if required
-        balance_genes = config.GenePreprocessing.GeneBalancing.balance_genes
+        balance_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_genes', False)
         if balance_genes:
             autosomal_genes = self.balance_genes(autosomal_genes, sex_genes)
 
         # Balance the number of non-lnc genes with the number of lnc genes if required
-        balance_lnc_genes = config.GenePreprocessing.GeneBalancing.balance_lnc_genes
+        balance_lnc_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_lnc_genes', False)
         balanced_non_lnc_genes = None
         if balance_lnc_genes:
             balanced_non_lnc_genes = self.balance_genes(non_lnc_genes, lnc_genes)

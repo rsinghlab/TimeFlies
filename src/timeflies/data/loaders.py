@@ -46,14 +46,14 @@ class DataLoader:
         files based on the configuration provided.
         """
         # Get tissue from config
-        tissue = self.config.DataParameters.GeneralSettings.tissue
+        tissue = getattr(self.config.data, 'tissue', 'head')
 
         # Path to the main h5ad file
         self.h5ad_file_path = os.path.join(
             self.Data_dir,
             tissue,
             "uncorrected",
-            self.config.FileLocations.training_file,
+            getattr(self.config.file_locations, 'training_file', 'fly_train.h5ad'),
         )
 
         # Path to the evaluation h5ad file
@@ -61,7 +61,7 @@ class DataLoader:
             self.Data_dir,
             tissue,
             "uncorrected",
-            self.config.FileLocations.evaluation_file,
+            getattr(self.config.file_locations, 'evaluation_file', 'fly_eval.h5ad'),
         )
 
         # Path to the original unprocessed h5ad file
@@ -69,7 +69,7 @@ class DataLoader:
             self.Data_dir,
             tissue,
             "uncorrected",
-            self.config.FileLocations.original_file,
+            getattr(self.config.file_locations, 'original_file', 'fly_original.h5ad'),
         )
 
         # Paths for batch-corrected data and evaluation files
@@ -77,13 +77,13 @@ class DataLoader:
             self.Data_dir,
             tissue,
             "batch_corrected",
-            self.config.FileLocations.batch_corrected_files.train,
+            getattr(self.config.file_locations.batch_corrected_files, 'train', 'fly_train_batch.h5ad'),
         )
         self.h5ad_eval_file_path_corrected = os.path.join(
             self.Data_dir,
             tissue,
             "batch_corrected",
-            self.config.FileLocations.batch_corrected_files.eval,
+            getattr(self.config.file_locations.batch_corrected_files, 'eval', 'fly_eval_batch.h5ad'),
         )
 
     def load_data(self) -> Tuple[AnnData, AnnData, AnnData]:

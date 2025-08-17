@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import scipy
-from visuals import VisualizationTools
+from .visuals import VisualizationTools
 
 
 class EDAHandler:
@@ -272,17 +272,17 @@ class EDAHandler:
         Returns:
             None
         """
-        if self.config.DataParameters.BatchCorrection.enabled:
+        if getattr(self.config.data.batch_correction, 'enabled', False):
             # Run EDA on batch-corrected datasets
             self.eda(
                 adata=self.adata_corrected,
-                encoding_column=self.config.DataParameters.GeneralSettings.encoding_variable,
+                encoding_column=getattr(self.config.data, 'encoding_variable', 'age'),
                 folder_name="Batch Training Data",
                 dataset_name="batch_train",
             )
             self.eda(
                 adata=self.adata_eval_corrected,
-                encoding_column=self.config.DataParameters.GeneralSettings.encoding_variable,
+                encoding_column=getattr(self.config.data, 'encoding_variable', 'age'),
                 folder_name="Batch Evaluation Data",
                 dataset_name="batch_evaluation",
             )
@@ -290,19 +290,19 @@ class EDAHandler:
             # Run EDA on uncorrected datasets
             self.eda(
                 adata=self.adata,
-                encoding_column=self.config.DataParameters.GeneralSettings.encoding_variable,
+                encoding_column=getattr(self.config.data, 'encoding_variable', 'age'),
                 folder_name="Training Data",
                 dataset_name="train",
             )
             self.eda(
                 adata=self.adata_eval,
-                encoding_column=self.config.DataParameters.GeneralSettings.encoding_variable,
+                encoding_column=getattr(self.config.data, 'encoding_variable', 'age'),
                 folder_name="Evaluation Data",
                 dataset_name="evaluation",
             )
             self.eda(
                 adata=self.adata_original,
-                encoding_column=self.config.DataParameters.GeneralSettings.encoding_variable,
+                encoding_column=getattr(self.config.data, 'encoding_variable', 'age'),
                 folder_name="Original Data",
                 dataset_name="original",
             )

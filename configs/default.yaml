@@ -82,6 +82,11 @@ data_processing:
     required: true
     save_data: true
     
+  # Model management
+  model_management:
+    load_model: false      # Load existing model instead of training
+    model_path: null       # Path to existing model (if load_model=true)
+    
   # Normalization
   normalization:
     enabled: false
@@ -94,13 +99,20 @@ model:
     batch_size: 32
     validation_split: 0.2
     early_stopping_patience: 10
+    learning_rate: 0.001
     
   # Model architecture (CNN specific)
   cnn:
-    filters: [64, 128, 256]
-    kernel_sizes: [3, 3, 3]
+    filters: [32]              # Only one convolutional layer
+    kernel_sizes: [3]          # Corresponding kernel size
+    strides: [1]
+    paddings: ["same"] 
+    pool_sizes: [2]
+    pool_strides: [2]
+    
+    dense_units: [128]         # Only one fully connected layer before output
+    dropout_rate: 0.5
     activation: "relu"
-    dropout_rate: 0.2
     
   # Model architecture (MLP specific)
   mlp:
@@ -110,6 +122,9 @@ model:
 
 # Feature importance and visualizations
 feature_importance:
+  run_interpreter: true     # Enable/disable SHAP interpretation
+  run_visualization: true   # Enable/disable visualization generation
+  load_SHAP: false          # Load existing SHAP values instead of computing
   reference_size: 100
   
 # File locations

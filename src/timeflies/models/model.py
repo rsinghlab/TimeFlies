@@ -204,7 +204,7 @@ class ModelLoader:
         self.path_manager = PathManager(self.config)
 
         # Construct the directory and specific paths for model loading
-        self.model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        self.model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
         self.model_dir = self.path_manager.construct_model_directory()
         self.model_path = self._get_model_path()
 
@@ -360,7 +360,7 @@ class ModelBuilder:
         self.is_scaler_fit = is_scaler_fit
         self.highly_variable_genes = highly_variable_genes
         self.mix_included = mix_included
-        self.model_type = self.config.DataParameters.GeneralSettings.model_type.lower()
+        self.model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
 
     def create_cnn_model(self, num_output_units):
         """
@@ -372,7 +372,7 @@ class ModelBuilder:
         Returns:
             model (tensorflow.python.keras.Model): The created and compiled CNN model.
         """
-        cnn_config = self.config.ModelParameters.CNN_Model
+        cnn_config = getattr(self.config.model, 'cnn', {})
 
         # Create model
         model = tf.keras.Sequential()
@@ -411,7 +411,7 @@ class ModelBuilder:
         model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
 
         # Determine optimizer based on computer type
-        if self.config.Device.processor.lower() == "m":
+        if getattr(self.config.device, 'processor', 'GPU').lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=cnn_config.learning_rate
             )  # for M1/M2/M3 Macs
@@ -423,8 +423,8 @@ class ModelBuilder:
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=self.config.Training.custom_loss,
-            metrics=self.config.Training.metrics,
+            loss=getattr(self.config.model.training, 'custom_loss', 'sparse_categorical_crossentropy'),
+            metrics=getattr(self.config.model.training, 'metrics', ['accuracy']),
         )
 
         return model
@@ -439,7 +439,7 @@ class ModelBuilder:
         Returns:
             model (tensorflow.python.keras.Model): The created and compiled MLP model.
         """
-        mlp_config = self.config.ModelParameters.MLP_Model
+        mlp_config = getattr(self.config.model, 'mlp', {})
 
         model = tf.keras.Sequential()
 
@@ -459,7 +459,7 @@ class ModelBuilder:
         model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
 
         # Determine optimizer based on computer type
-        if self.config.Device.processor.lower() == "m":
+        if getattr(self.config.device, 'processor', 'GPU').lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=mlp_config.learning_rate
             )  # for M1/M2/M3 Macs
@@ -471,8 +471,8 @@ class ModelBuilder:
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=self.config.Training.custom_loss,
-            metrics=self.config.Training.metrics,
+            loss=getattr(self.config.model.training, 'custom_loss', 'sparse_categorical_crossentropy'),
+            metrics=getattr(self.config.model.training, 'metrics', ['accuracy']),
         )
 
         return model
@@ -484,7 +484,7 @@ class ModelBuilder:
         Returns:
             lr (sklearn.linear_model.LogisticRegression): The logistic regression model.
         """
-        lr_config = self.config.ModelParameters.LogisticRegression_Model
+        lr_config = getattr(self.config.model, 'logistic_regression', {})
 
         lr = LogisticRegression(
             penalty=lr_config.penalty,
@@ -503,7 +503,7 @@ class ModelBuilder:
         Returns:
             rf (sklearn.ensemble.RandomForestClassifier): The random forest classifier.
         """
-        rf_config = self.config.ModelParameters.RandomForest_Model
+        rf_config = getattr(self.config.model, 'random_forest', {})
 
         rf = RandomForestClassifier(
             n_estimators=rf_config.n_estimators,
@@ -527,11 +527,11 @@ class ModelBuilder:
         Returns:
             model (xgboost.XGBClassifier): The XGBoost classifier.
         """
-        xgb_config = self.config.ModelParameters.XGBoost_Model
+        xgb_config = getattr(self.config.model, 'xgboost', {})
 
         # Determine task type and set corresponding XGBoost parameters
         if (
-            self.config.DataParameters.GeneralSettings.encoding_variable.lower()
+            getattr(self.config.data, 'encoding_variable', 'age').lower()
             == "sex"
         ):
             task_type = "binary"
@@ -683,14 +683,14 @@ class ModelBuilder:
         ) = train_test_split(
             self.train_data,
             self.train_labels,
-            test_size=self.config.DataSplit.validation_split,
-            random_state=self.config.DataSplit.random_state,
+            test_size=getattr(self.config.model.training, 'validation_split', 0.2),
+            random_state=getattr(self.config.data.train_test_split, 'random_state', 42),
             stratify=self.train_labels,
         )
 
         # Define callbacks for early stopping and model saving
         early_stopping = EarlyStopping(
-            monitor="val_loss", patience=self.config.Training.early_stopping_patience
+            monitor="val_loss", patience=getattr(self.config.model.training, 'early_stopping_patience', 10)
         )
         model_checkpoint = CustomModelCheckpoint(
             custom_model_path,
@@ -719,8 +719,8 @@ class ModelBuilder:
         history = model.fit(
             train_inputs_split,
             train_labels_split,
-            epochs=self.config.Training.epochs,
-            batch_size=self.config.Training.batch_size,
+            epochs=getattr(self.config.model.training, 'epochs', 100),
+            batch_size=getattr(self.config.model.training, 'batch_size', 32),
             validation_data=(val_inputs_split, val_labels_split),
             callbacks=[early_stopping, model_checkpoint],
         )
@@ -754,8 +754,8 @@ class ModelBuilder:
         ) = train_test_split(
             self.train_data,
             train_labels,
-            test_size=self.config.DataSplit.validation_split,
-            random_state=self.config.DataSplit.random_state,
+            test_size=getattr(self.config.model.training, 'validation_split', 0.2),
+            random_state=getattr(self.config.data.train_test_split, 'random_state', 42),
             stratify=train_labels,
         )
 

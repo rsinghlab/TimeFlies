@@ -65,12 +65,12 @@ class CNNModel(BaseModel):
     def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
         """Build CNN architecture."""
         try:
-            model_config = self.config.ModelParameters.get('cnn', {})
+            model_config = getattr(self.config.model, 'cnn', {})
             
-            filters = model_config.get('filters', [64, 128, 256])
-            kernel_sizes = model_config.get('kernel_sizes', [3, 3, 3])
-            activation = model_config.get('activation', 'relu')
-            dropout_rate = model_config.get('dropout_rate', 0.2)
+            filters = getattr(model_config, 'filters', [64, 128, 256])
+            kernel_sizes = getattr(model_config, 'kernel_sizes', [3, 3, 3])
+            activation = getattr(model_config, 'activation', 'relu')
+            dropout_rate = getattr(model_config, 'dropout_rate', 0.2)
             
             self.model = Sequential()
             
@@ -113,11 +113,11 @@ class CNNModel(BaseModel):
               X_val: Optional[np.ndarray] = None, y_val: Optional[np.ndarray] = None) -> Any:
         """Train the CNN model."""
         try:
-            training_config = self.config.ModelParameters.get('training', {})
+            training_config = getattr(self.config.model, 'training', {})
             
-            epochs = training_config.get('epochs', 100)
-            batch_size = training_config.get('batch_size', 32)
-            validation_split = training_config.get('validation_split', 0.2)
+            epochs = getattr(training_config, 'epochs', 100)
+            batch_size = getattr(training_config, 'batch_size', 32)
+            validation_split = getattr(training_config, 'validation_split', 0.2)
             
             # Prepare validation data
             validation_data = None
@@ -172,11 +172,11 @@ class MLPModel(BaseModel):
     def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
         """Build MLP architecture."""
         try:
-            model_config = self.config.ModelParameters.get('mlp', {})
+            model_config = getattr(self.config.model, 'mlp', {})
             
-            hidden_layers = model_config.get('hidden_layers', [512, 256, 128])
-            activation = model_config.get('activation', 'relu')
-            dropout_rate = model_config.get('dropout_rate', 0.2)
+            hidden_layers = getattr(model_config, 'hidden_layers', [512, 256, 128])
+            activation = getattr(model_config, 'activation', 'relu')
+            dropout_rate = getattr(model_config, 'dropout_rate', 0.2)
             
             self.model = Sequential()
             
@@ -249,9 +249,10 @@ class LogisticRegressionModel(BaseModel):
     def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
         """Build logistic regression model."""
         try:
+            random_state = getattr(self.config.general, 'random_state', 42)
             self.model = LogisticRegression(
                 max_iter=1000,
-                random_state=self.config.get('general', {}).get('random_state', 42)
+                random_state=random_state
             )
             logger.info("Logistic Regression model initialized")
         except Exception as e:
@@ -301,6 +302,128 @@ class LogisticRegressionModel(BaseModel):
         logger.info(f"Logistic Regression model loaded from {filepath}")
 
 
+class XGBoostModel(BaseModel):
+    """XGBoost model using xgboost library."""
+    
+    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+        """Build XGBoost model."""
+        try:
+            random_state = getattr(self.config.general, 'random_state', 42)
+            self.model = xgb.XGBClassifier(
+                n_estimators=100,
+                max_depth=6,
+                learning_rate=0.1,
+                random_state=random_state,
+                eval_metric='mlogloss' if num_classes > 2 else 'logloss'
+            )
+            logger.info("XGBoost model initialized")
+        except Exception as e:
+            raise ModelError(f"Failed to build XGBoost model: {e}")
+    
+    def train(self, X_train: np.ndarray, y_train: np.ndarray,
+              X_val: Optional[np.ndarray] = None, y_val: Optional[np.ndarray] = None) -> None:
+        """Train XGBoost model."""
+        try:
+            # Flatten input and convert one-hot to labels
+            if len(X_train.shape) > 2:
+                X_train = X_train.reshape(X_train.shape[0], -1)
+            if len(y_train.shape) > 1:
+                y_train = np.argmax(y_train, axis=1)
+            
+            self.model.fit(X_train, y_train)
+            self.is_trained = True
+            logger.info("XGBoost training completed")
+        except Exception as e:
+            raise ModelError(f"Failed to train XGBoost model: {e}")
+    
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Make predictions with XGBoost."""
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
+        return self.model.predict(X)
+    
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Get prediction probabilities from XGBoost."""
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
+        return self.model.predict_proba(X)
+    
+    def save(self, filepath: str) -> None:
+        """Save XGBoost model."""
+        import pickle
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.model, f)
+        logger.info(f"XGBoost model saved to {filepath}")
+    
+    def load(self, filepath: str) -> None:
+        """Load XGBoost model."""
+        import pickle
+        with open(filepath, 'rb') as f:
+            self.model = pickle.load(f)
+        self.is_trained = True
+        logger.info(f"XGBoost model loaded from {filepath}")
+
+
+class RandomForestModel(BaseModel):
+    """Random Forest model using scikit-learn."""
+    
+    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+        """Build Random Forest model."""
+        try:
+            random_state = getattr(self.config.general, 'random_state', 42)
+            self.model = RandomForestClassifier(
+                n_estimators=100,
+                random_state=random_state,
+                n_jobs=-1
+            )
+            logger.info("Random Forest model initialized")
+        except Exception as e:
+            raise ModelError(f"Failed to build Random Forest model: {e}")
+    
+    def train(self, X_train: np.ndarray, y_train: np.ndarray,
+              X_val: Optional[np.ndarray] = None, y_val: Optional[np.ndarray] = None) -> None:
+        """Train Random Forest model."""
+        try:
+            # Flatten input and convert one-hot to labels
+            if len(X_train.shape) > 2:
+                X_train = X_train.reshape(X_train.shape[0], -1)
+            if len(y_train.shape) > 1:
+                y_train = np.argmax(y_train, axis=1)
+            
+            self.model.fit(X_train, y_train)
+            self.is_trained = True
+            logger.info("Random Forest training completed")
+        except Exception as e:
+            raise ModelError(f"Failed to train Random Forest model: {e}")
+    
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Make predictions with Random Forest."""
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
+        return self.model.predict(X)
+    
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Get prediction probabilities from Random Forest."""
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
+        return self.model.predict_proba(X)
+    
+    def save(self, filepath: str) -> None:
+        """Save Random Forest model."""
+        import pickle
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.model, f)
+        logger.info(f"Random Forest model saved to {filepath}")
+    
+    def load(self, filepath: str) -> None:
+        """Load Random Forest model."""
+        import pickle
+        with open(filepath, 'rb') as f:
+            self.model = pickle.load(f)
+        self.is_trained = True
+        logger.info(f"Random Forest model loaded from {filepath}")
+
+
 class ModelFactory:
     """Factory class for creating different types of models."""
     
@@ -308,7 +431,8 @@ class ModelFactory:
         'cnn': CNNModel,
         'mlp': MLPModel,
         'logistic': LogisticRegressionModel,
-        # Add more models as needed
+        'xgboost': XGBoostModel,
+        'random_forest': RandomForestModel,
     }
     
     @classmethod
