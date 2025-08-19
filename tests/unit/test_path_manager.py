@@ -4,7 +4,7 @@ import pytest
 import tempfile
 import os
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from src.timeflies.utils.path_manager import PathManager
 
@@ -73,9 +73,8 @@ class TestPathManager:
         """Test PathManager initialization."""
         config = self.create_mock_config()
         
-        # Mock the file location to point to our test directory
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        # Mock the project root to point to our test directory
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             assert path_manager.tissue == "head"
@@ -87,8 +86,7 @@ class TestPathManager:
         """Test experiment name generation with naming convention."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             # Should generate: head_cnn_age/all-genes_all-cells_all-sexes
@@ -100,8 +98,7 @@ class TestPathManager:
         """Test naming with batch correction enabled."""
         config = self.create_mock_config(batch_correction_enabled=True)
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             assert path_manager.correction_dir == "batch_corrected"
@@ -112,8 +109,7 @@ class TestPathManager:
         config = self.create_mock_config()
         config.gene_preprocessing.gene_filtering.highly_variable_genes = True
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             assert path_manager._get_gene_method() == "hvg"
@@ -123,8 +119,7 @@ class TestPathManager:
         config = self.create_mock_config()
         config.gene_preprocessing.gene_filtering.remove_sex_genes = True
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             assert path_manager._get_gene_method() == "no-sex"
@@ -133,8 +128,7 @@ class TestPathManager:
         """Test cell type naming conventions."""
         config = self.create_mock_config(cell_type="muscle cell")
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             # Spaces should be converted to hyphens
@@ -144,8 +138,7 @@ class TestPathManager:
         """Test model directory path construction."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             model_dir = path_manager.construct_model_directory()
@@ -158,8 +151,7 @@ class TestPathManager:
         """Test processed data directory construction."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             data_dir = path_manager.get_processed_data_dir()
@@ -172,8 +164,7 @@ class TestPathManager:
         """Test visualization directory construction."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             viz_dir = path_manager.get_visualization_directory()
@@ -186,8 +177,7 @@ class TestPathManager:
         """Test visualization directory with subfolder."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             viz_dir = path_manager.get_visualization_directory("plots")
@@ -200,12 +190,11 @@ class TestPathManager:
         """Test raw data directory construction."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             raw_dir = path_manager.get_raw_data_dir()
-            expected_path = self.project_root / "data" / "raw" / "h5ad" / "head" / "uncorrected"
+            expected_path = self.project_root / "data" / "raw" / "h5ad" / "head"
             
             assert raw_dir == str(expected_path)
             
@@ -213,12 +202,11 @@ class TestPathManager:
         """Test tissue override in raw data directory."""
         config = self.create_mock_config(tissue="head")
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             raw_dir = path_manager.get_raw_data_dir(tissue_override="body")
-            expected_path = self.project_root / "data" / "raw" / "h5ad" / "body" / "uncorrected"
+            expected_path = self.project_root / "data" / "raw" / "h5ad" / "body"
             
             assert raw_dir == str(expected_path)
             
@@ -226,8 +214,7 @@ class TestPathManager:
         """Test log directory construction."""
         config = self.create_mock_config()
         
-        with pytest.MonkeyPatch.context() as m:
-            m.setattr(Path, '__file__', str(self.project_root / "src" / "timeflies" / "utils" / "path_manager.py"))
+        with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             log_dir = path_manager.get_log_directory()

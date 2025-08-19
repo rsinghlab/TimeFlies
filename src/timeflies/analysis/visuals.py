@@ -638,12 +638,17 @@ class Visualizer:
         """
         ages = []
         for label in class_labels:
-            split_label = label.split("_")
-            ages.append(
-                int(split_label[1])
-                if len(split_label) > 1 and split_label[1].isdigit()
-                else -1
-            )
+            # First try to parse the whole label as an integer
+            if str(label).isdigit():
+                ages.append(int(label))
+            else:
+                # If that fails, try splitting by underscore and get the numeric part
+                split_label = str(label).split("_")
+                if len(split_label) > 1 and split_label[1].isdigit():
+                    ages.append(int(split_label[1]))
+                else:
+                    # Fall back to -1 for non-numeric labels
+                    ages.append(-1)
         sorted_labels = [
             pair[0] for pair in sorted(zip(class_labels, ages), key=lambda x: x[1])
         ]

@@ -31,6 +31,14 @@ class TestPipelineManager:
         config.data.batch_correction = Mock()
         config.data.batch_correction.enabled = False
         
+        # Data processing configuration - set up to return False for EDA enabled check
+        config.data_processing = Mock()
+        eda_config = Mock()
+        eda_config.get.return_value = False  # Make .get('enabled', False) return False
+        config.data_processing.exploratory_data_analysis = eda_config
+        config.data_processing.model_management = Mock()
+        config.data_processing.model_management.load_model = False
+        
         # Feature importance configuration
         config.feature_importance = Mock()
         config.feature_importance.run_interpreter = True
@@ -75,6 +83,9 @@ class TestPipelineManager:
     @patch('src.timeflies.core.pipeline_manager.PathManager')
     def test_load_data_success(self, mock_path_manager, mock_data_loader):
         """Test successful data loading."""
+        # Enable batch correction for this test
+        self.mock_config.data.batch_correction.enabled = True
+        
         # Mock data loader methods
         mock_loader_instance = mock_data_loader.return_value
         mock_loader_instance.load_data.return_value = (Mock(), Mock(), Mock())
@@ -115,8 +126,10 @@ class TestPipelineManager:
     @patch('src.timeflies.core.pipeline_manager.EDAHandler')
     def test_run_eda_enabled(self, mock_eda_handler, mock_path_manager, mock_data_loader):
         """Test running EDA when enabled."""
-        # Enable EDA in config
-        self.mock_config.data_processing.exploratory_data_analysis.enabled = True
+        # Set up EDA config to return True
+        eda_config = Mock()
+        eda_config.get.return_value = True  # Make .get('enabled', False) return True
+        self.mock_config.data_processing.exploratory_data_analysis = eda_config
         
         manager = PipelineManager(self.mock_config)
         
@@ -176,8 +189,10 @@ class TestPipelineManager:
         """Test data preprocessing."""
         manager = PipelineManager(self.mock_config)
         
-        # Set up required attributes
+        # Set up required attributes that preprocess_data expects
         manager.adata = Mock()
+        manager.adata_eval = Mock()
+        manager.adata_original = Mock()
         manager.adata_corrected = Mock()
         
         mock_preprocessor_instance = mock_data_preprocessor.return_value
@@ -185,20 +200,29 @@ class TestPipelineManager:
             Mock(), Mock(), Mock(), Mock(), Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
         )
         
+        # Capture references before they get deleted
+        adata_ref = manager.adata
+        adata_corrected_ref = manager.adata_corrected
+        
         manager.preprocess_data()
         
         mock_data_preprocessor.assert_called_once_with(
-            self.mock_config, manager.adata, manager.adata_corrected
+            self.mock_config, adata_ref, adata_corrected_ref
         )
         mock_preprocessor_instance.prepare_data.assert_called_once()
         
-        # Check that all attributes are set
+        # Check that preprocessing output attributes are set
         assert hasattr(manager, 'train_data')
         assert hasattr(manager, 'test_data')
         assert hasattr(manager, 'train_labels')
         assert hasattr(manager, 'test_labels')
         assert hasattr(manager, 'label_encoder')
         assert hasattr(manager, 'reference_data')
+        
+        # Raw data attributes should be deleted for memory cleanup
+        assert not hasattr(manager, 'adata')
+        assert not hasattr(manager, 'adata_eval')
+        assert not hasattr(manager, 'adata_original')
         assert hasattr(manager, 'scaler')
         assert hasattr(manager, 'is_scaler_fit')
         assert hasattr(manager, 'highly_variable_genes')
@@ -417,33 +441,27 @@ class TestPipelineManager:
         
     @patch('src.timeflies.core.pipeline_manager.DataLoader')
     @patch('src.timeflies.core.pipeline_manager.PathManager')
-    def test_display_duration_seconds(self, mock_path_manager, mock_data_loader):
+    @patch('src.timeflies.core.pipeline_manager.logger')
+    def test_display_duration_seconds(self, mock_logger, mock_path_manager, mock_data_loader):
         """Test displaying duration in seconds."""
         manager = PipelineManager(self.mock_config)
         
-        with patch('logging.getLogger') as mock_logger:
-            mock_logger_instance = Mock()
-            mock_logger.return_value = mock_logger_instance
-            
-            manager.display_duration(0, 45)  # 45 seconds
-            
-            # Should log in seconds format
-            mock_logger_instance.info.assert_called_with("The task took 45 seconds.")
+        manager.display_duration(0, 45)  # 45 seconds
+        
+        # Should log in seconds format
+        mock_logger.info.assert_called_with("The task took 45 seconds.")
             
     @patch('src.timeflies.core.pipeline_manager.DataLoader')
     @patch('src.timeflies.core.pipeline_manager.PathManager')
-    def test_display_duration_minutes(self, mock_path_manager, mock_data_loader):
+    @patch('src.timeflies.core.pipeline_manager.logger')
+    def test_display_duration_minutes(self, mock_logger, mock_path_manager, mock_data_loader):
         """Test displaying duration in minutes and seconds."""
         manager = PipelineManager(self.mock_config)
         
-        with patch('logging.getLogger') as mock_logger:
-            mock_logger_instance = Mock()
-            mock_logger.return_value = mock_logger_instance
-            
-            manager.display_duration(0, 125)  # 2 minutes 5 seconds
-            
-            # Should log in minutes and seconds format
-            mock_logger_instance.info.assert_called_with("The task took 2 minutes and 5 seconds.")
+        manager.display_duration(0, 125)  # 2 minutes 5 seconds
+        
+        # Should log in minutes and seconds format
+        mock_logger.info.assert_called_with("The task took 2 minutes and 5 seconds.")
 
 
 if __name__ == "__main__":

@@ -240,7 +240,7 @@ class TestDataPreprocessor:
         # Create train/test data
         train, test = processor.split_data(self.adata)
         
-        train_labels, test_labels, label_encoder = processor.encode_labels(train, test)
+        train_labels, test_labels, label_encoder = processor.prepare_labels(train, test)
         
         # Should return encoded labels
         assert train_labels.shape[0] == train.n_obs
@@ -286,7 +286,7 @@ class TestDataPreprocessor:
         
         train_data = np.random.randn(1000, 50)
         
-        reference_data = processor.generate_reference_data(train_data)
+        reference_data = processor.create_reference_data(train_data)
         
         # Should return reference data of correct size
         assert reference_data.shape[0] <= self.mock_config.feature_importance.reference_size
@@ -299,7 +299,7 @@ class TestDataPreprocessor:
         
         train_data = np.random.randn(50, 50)  # Smaller than reference size
         
-        reference_data = processor.generate_reference_data(train_data)
+        reference_data = processor.create_reference_data(train_data)
         
         # Should use all available data when dataset is smaller
         assert reference_data.shape[0] == train_data.shape[0]

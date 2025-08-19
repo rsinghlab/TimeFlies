@@ -99,8 +99,11 @@ class ConfigManager:
     
     def _find_config_path(self, config_path: Optional[str]) -> str:
         """Find configuration file path."""
-        if config_path and os.path.exists(config_path):
-            return config_path
+        if config_path:
+            if os.path.exists(config_path):
+                return config_path
+            else:
+                raise ConfigurationError(f"Configuration file not found: {config_path}")
             
         # Try to find default config file
         default_paths = [

@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 import tensorflow as tf
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 from sklearn.preprocessing import LabelEncoder
 
 from src.timeflies.models.model import ModelBuilder, ModelLoader, CustomModelCheckpoint
@@ -414,9 +414,9 @@ class TestModelLoader:
             mock_load_model.assert_called_once_with('/tmp/test_model/best_model.h5')
             
     @patch('os.path.exists')
-    @patch('builtins.open', new_callable=Mock)
+    @patch('builtins.open', new_callable=mock_open)
     @patch('dill.load')
-    def test_load_model_sklearn(self, mock_pickle_load, mock_open, mock_exists):
+    def test_load_model_sklearn(self, mock_pickle_load, mock_file, mock_exists):
         """Test loading sklearn model."""
         mock_exists.return_value = True
         mock_model = Mock()
@@ -430,6 +430,7 @@ class TestModelLoader:
             
             model = loader.load_model()
             assert model == mock_model
+            mock_file.assert_called_once_with('/tmp/test_model/best_model.pkl', 'rb')
 
 
 class TestCustomModelCheckpoint:

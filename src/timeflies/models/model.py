@@ -457,7 +457,7 @@ class ModelBuilder:
         model = tf.keras.Sequential()
 
         # Input layer
-        model.add(tf.keras.layers.InputLayer(input_shape=self.train_data.shape[1]))
+        model.add(tf.keras.layers.InputLayer(input_shape=(self.train_data.shape[1],)))
 
         # Fully connected layers
         for units in mlp_config.units:

@@ -389,7 +389,7 @@ class TestVisualizer:
             preserved_var_names=None
         )
         
-        visualizer._visualize_shap_summary()
+        visualizer._plot_shap_summary()
         
         # Should use corrected data variable names when batch correction is enabled
         mock_visual_tools.plot_shap_summary.assert_called_once()
@@ -412,7 +412,7 @@ class TestVisualizer:
             preserved_var_names=None
         )
         
-        visualizer._visualize_shap_summary()
+        visualizer._plot_shap_summary()
         
         # Should use regular data variable names when batch correction is disabled
         mock_visual_tools.plot_shap_summary.assert_called_once()
@@ -430,7 +430,7 @@ class TestVisualizer:
             self.adata, self.adata_corrected, self.mock_path_manager
         )
         
-        visualizer._visualize_shap_summary()
+        visualizer._plot_shap_summary()
         
         # Should not call plot_shap_summary when SHAP values are None
         mock_visual_tools.plot_shap_summary.assert_not_called()
@@ -454,7 +454,7 @@ class TestVisualizer:
         
         with patch.object(visualizer, '_visualize_training_history') as mock_history, \
              patch.object(visualizer, '_visualize_confusion_matrix') as mock_confusion, \
-             patch.object(visualizer, '_visualize_shap_summary') as mock_shap:
+             patch.object(visualizer, '_plot_shap_summary') as mock_shap:
             
             visualizer.run()
             
