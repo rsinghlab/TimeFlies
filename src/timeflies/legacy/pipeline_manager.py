@@ -1,16 +1,12 @@
 import logging
-from typing import Optional, Dict, Any
 
-from .config_manager import Config
-from ..data.preprocessing.data_processor import DataPreprocessor
-from ..data.preprocessing.gene_filter import GeneFilter
-from ..evaluation.interpreter import Interpreter, Metrics
-from ..models.model import ModelBuilder, ModelLoader
-from ..analysis.visuals import Visualizer
-from ..analysis.eda import EDAHandler
-from ..utils.gpu_handler import GPUHandler
-from ..utils.path_manager import PathManager
-from ..data.loaders import DataLoader
+from config import config
+from preprocess import DataPreprocessor, GeneFilter
+from interpreter import Interpreter, Metrics
+from model import ModelBuilder, ModelLoader
+from visuals import Visualizer
+from eda import EDAHandler
+from utilities import GPUHandler, PathManager, DataLoader
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +24,9 @@ class PipelineManager:
         path_manager (PathManager): Manages file paths based on the configuration.
     """
 
-    def __init__(self, config: Config):
+    def __init__(self):
         """
         Initialize the PipelineManager class with configuration and data loader.
-        
-        Args:
-            config: Configuration object
         """
         self.config_instance = config
         self.data_loader = DataLoader(self.config_instance)
@@ -78,7 +71,7 @@ class PipelineManager:
         Perform Exploratory Data Analysis (EDA) if specified in the config.
         """
         try:
-            if getattr(self.config_instance.data_processing, 'exploratory_data_analysis', {}).get('enabled', False):
+            if self.config_instance.DataProcessing.ExploratoryDataAnalysis.enabled:
                 logger.info("Running Exploratory Data Analysis (EDA)...")
                 eda_handler = EDAHandler(
                     self.config_instance,
@@ -158,7 +151,7 @@ class PipelineManager:
             )
 
             batch_correction_enabled = (
-                getattr(self.config_instance.data.batch_correction, 'enabled', False)
+                self.config_instance.DataParameters.BatchCorrection.enabled
             )
             adata_eval = (
                 self.adata_eval_corrected
@@ -191,7 +184,7 @@ class PipelineManager:
         """
         try:
             self.setup_gene_filtering()
-            if getattr(self.config_instance.data_processing, 'model_management', {}).get('load_model', False):
+            if self.config_instance.DataProcessing.ModelManagement.load_model:
                 self.load_model_components()
                 self.preprocess_final_eval_data()  # Call the final evaluation preprocessing
             else:
@@ -267,7 +260,7 @@ class PipelineManager:
         Decide whether to load a pre-trained model or build and train a new one.
         """
         try:
-            if getattr(self.config_instance.data_processing, 'model_management', {}).get('load_model', False):
+            if self.config_instance.DataProcessing.ModelManagement.load_model:
                 logger.info("Loading pre-trained model...")
                 self.load_model()
                 logger.info("Model loaded successfully.")
@@ -283,7 +276,7 @@ class PipelineManager:
         """
         Perform SHAP interpretation for model predictions.
         """
-        if getattr(self.config_instance.feature_importance, 'run_interpreter', True):
+        if self.config_instance.FeatureImportanceAndVisualizations.run_interpreter:
             try:
                 logger.info("Starting SHAP interpretation...")
 
@@ -299,9 +292,10 @@ class PipelineManager:
                 )
 
                 # Compute or load SHAP values
-                squeezed_shap_values, squeezed_test_data = (
-                    self.interpreter.compute_or_load_shap_values()
-                )
+                (
+                    squeezed_shap_values,
+                    squeezed_test_data,
+                ) = self.interpreter.compute_or_load_shap_values()
 
                 # Update SHAP-related attributes for visualization
                 self.squeezed_shap_values = squeezed_shap_values
@@ -322,7 +316,7 @@ class PipelineManager:
         """
         Set up and run visualizations if specified in the configuration.
         """
-        if getattr(self.config_instance.feature_importance, 'run_visualization', True):
+        if self.config_instance.FeatureImportanceAndVisualizations.run_visualization:
             logger.info("Running visualizations...")
             visualizer = Visualizer(
                 self.config_instance,
@@ -377,91 +371,3 @@ class PipelineManager:
             minutes = duration_seconds // 60
             seconds = round(duration_seconds % 60)
             logger.info(f"The task took {int(minutes)} minutes and {seconds} seconds.")
-    
-    def run_shap_interpretation(self):
-        """Run SHAP interpretation if enabled in config."""
-        try:
-            logger.info("Running SHAP interpretation...")
-            from ..evaluation.interpreter import Interpreter
-            
-            interpreter = Interpreter(
-                self.config_instance, 
-                self.model, 
-                self.test_data, 
-                self.test_labels,
-                self.path_manager
-            )
-            interpreter.run_interpretation()
-            logger.info("SHAP interpretation completed successfully.")
-        except Exception as e:
-            logger.error(f"Error running SHAP interpretation: {e}")
-            raise
-    
-    def run_visualizations(self):
-        """Run visualizations if enabled in config.""" 
-        try:
-            logger.info("Running visualizations...")
-            from ..analysis.visuals import VisualizationTools
-            
-            vis_tools = VisualizationTools(
-                self.config_instance,
-                self.model,
-                self.test_data,
-                self.test_labels,
-                self.path_manager
-            )
-            vis_tools.generate_all_visualizations()
-            logger.info("Visualizations completed successfully.")
-        except Exception as e:
-            logger.error(f"Error running visualizations: {e}")
-            raise
-
-    def run(self) -> Dict[str, Any]:
-        """
-        Run the complete pipeline and return results.
-        
-        Returns:
-            Dict containing model path and results path
-        """
-        import time
-        start_time = time.time()
-        
-        try:
-            # Setup phases
-            self.setup_gpu()
-            self.load_data()
-            self.setup_gene_filtering()
-            
-            # Preprocessing 
-            self.preprocess_data()
-            
-            # Model training/loading
-            self.load_or_train_model()
-            
-            # Evaluation  
-            self.preprocess_final_eval_data()
-            self.compute_evaluation_metrics()
-            
-            # Analysis (conditional based on config)
-            if getattr(self.config_instance.feature_importance, 'run_interpreter', True):
-                self.run_shap_interpretation()
-            
-            if getattr(self.config_instance.feature_importance, 'run_visualization', True):
-                self.run_visualizations()
-            
-            end_time = time.time()
-            self.display_duration(start_time, end_time)
-            
-            # Return paths for CLI feedback
-            model_dir = self.path_manager.construct_model_directory()
-            results_dir = self.path_manager.get_visualization_directory()
-            
-            return {
-                "model_path": model_dir,
-                "results_path": results_dir,
-                "duration": end_time - start_time
-            }
-            
-        except Exception as e:
-            logger.error(f"Pipeline execution failed: {e}")
-            raise

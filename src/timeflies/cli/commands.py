@@ -10,7 +10,14 @@ from pathlib import Path
 
 from ..core.config_manager import ConfigManager
 from ..core.pipeline_manager import PipelineManager
-from ..data.preprocessing.batch_correction import BatchCorrector
+
+# Optional import for batch correction
+try:
+    from ..data.preprocessing.batch_correction import BatchCorrector
+    BATCH_CORRECTION_AVAILABLE = True
+except ImportError:
+    BATCH_CORRECTION_AVAILABLE = False
+    BatchCorrector = None
 
 
 def validate_environment() -> bool:
@@ -101,8 +108,12 @@ def train_command(args, config) -> int:
             config.data.model_type = args.model.upper()
         if hasattr(args, 'target') and args.target:
             config.data.encoding_variable = args.target
+        # Handle batch correction flags
         if hasattr(args, 'batch_correction') and args.batch_correction:
             config.data.batch_correction.enabled = True
+        elif hasattr(args, 'no_batch_correction') and args.no_batch_correction:
+            config.data.batch_correction.enabled = False
+        # Otherwise keep the config file default
         if hasattr(args, 'cell_type') and args.cell_type:
             config.data.cell_type = args.cell_type
         if hasattr(args, 'sex_type') and args.sex_type:
@@ -136,6 +147,13 @@ def train_command(args, config) -> int:
 
 def batch_command(args) -> int:
     """Run batch correction pipeline."""
+    if not BATCH_CORRECTION_AVAILABLE:
+        print("Error: Cannot perform batch correction.")
+        print("The scVI dependencies are not installed in this environment.")
+        print("To perform batch correction, install: pip install scvi-tools scanpy scib")
+        print("Note: You can still use existing batch-corrected data files.")
+        return 1
+    
     print("Running batch correction...")
     
     try:

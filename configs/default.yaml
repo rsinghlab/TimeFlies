@@ -22,7 +22,7 @@ data:
   
   # Batch correction
   batch_correction:
-    enabled: true
+    enabled: false  # Set to true to use batch-corrected data (requires large memory)
     
   # Filtering
   filtering:

@@ -31,7 +31,7 @@ class DataLoader:
         self.Data_dir = os.path.join(
             self.Code_dir,
             "..", "..", "..",
-            "Data",
+            "data", "raw",
             "h5ad",
         )
 
@@ -48,11 +48,10 @@ class DataLoader:
         # Get tissue from config
         tissue = getattr(self.config.data, 'tissue', 'head')
 
-        # Path to the main h5ad file
+        # Path to the main h5ad file (directly in tissue directory)
         self.h5ad_file_path = os.path.join(
             self.Data_dir,
             tissue,
-            "uncorrected",
             getattr(self.config.file_locations, 'training_file', 'fly_train.h5ad'),
         )
 
@@ -60,7 +59,6 @@ class DataLoader:
         self.h5ad_eval_file_path = os.path.join(
             self.Data_dir,
             tissue,
-            "uncorrected",
             getattr(self.config.file_locations, 'evaluation_file', 'fly_eval.h5ad'),
         )
 
@@ -68,21 +66,18 @@ class DataLoader:
         self.h5ad_file_path_original = os.path.join(
             self.Data_dir,
             tissue,
-            "uncorrected",
             getattr(self.config.file_locations, 'original_file', 'fly_original.h5ad'),
         )
 
-        # Paths for batch-corrected data and evaluation files
+        # Paths for batch-corrected data (same directory structure)
         self.h5ad_file_path_corrected = os.path.join(
             self.Data_dir,
             tissue,
-            "batch_corrected",
             getattr(self.config.file_locations.batch_corrected_files, 'train', 'fly_train_batch.h5ad'),
         )
         self.h5ad_eval_file_path_corrected = os.path.join(
             self.Data_dir,
             tissue,
-            "batch_corrected",
             getattr(self.config.file_locations.batch_corrected_files, 'eval', 'fly_eval_batch.h5ad'),
         )
 

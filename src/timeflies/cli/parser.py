@@ -51,7 +51,10 @@ Examples:
     train_parser.add_argument('--tissue', choices=['head', 'body', 'all'], default='head')
     train_parser.add_argument('--model', choices=['cnn', 'mlp', 'xgboost', 'random_forest', 'logistic'], default='cnn')
     train_parser.add_argument('--target', choices=['age', 'sex', 'tissue'], default='age')
-    train_parser.add_argument('--batch-correction', action='store_true', help='Use batch correction')
+    # Batch correction flags (mutually exclusive)
+    batch_group = train_parser.add_mutually_exclusive_group()
+    batch_group.add_argument('--batch-correction', action='store_true', help='Enable batch correction')
+    batch_group.add_argument('--no-batch-correction', action='store_true', help='Disable batch correction')
     train_parser.add_argument('--cell-type', default='all', help='Cell type filter')
     train_parser.add_argument('--sex-type', choices=['all', 'male', 'female'], default='all')
     

@@ -311,6 +311,100 @@ class DataPreprocessor:
         ]
         return reference_data
 
-    # Additional methods for saving, loading, and preprocessing would continue here...
-    # For brevity, I'm including key methods. The full implementation would include
-    # all methods from the original DataPreprocessor class.
+    def prepare_data(self):
+        """
+        Preprocesses the data based on the configuration.
+        
+        Returns:
+        - tuple: A tuple containing preprocessed train data, test data, labels, and other related objects.
+        """
+        config = self.config
+        
+        # Decide which dataset to use based on batch correction setting
+        batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
+        
+        if batch_correction_enabled and self.adata_corrected is not None:
+            try:
+                # Only process batch-corrected data if we're using it
+                print("Using batch-corrected data...")
+                adata_corrected = self.adata_corrected.copy()
+                
+                # Replace .X with scVI-normalised expression if it exists
+                if "scvi_normalized" in adata_corrected.layers:
+                    adata_corrected.X = adata_corrected.layers["scvi_normalized"]
+                    print("Using scVI-normalized expression layer")
+                
+                # Process the corrected data
+                dataset_to_use = self.process_adata(adata_corrected)
+            except Exception as e:
+                print(f"Warning: Could not use batch-corrected data: {e}")
+                print("Falling back to uncorrected data...")
+                dataset_to_use = self.process_adata(self.adata)
+        else:
+            # Only process uncorrected data if we're using it
+            if batch_correction_enabled:
+                print("Batch correction requested but batch-corrected data not available")
+            print("Using uncorrected data...")
+            dataset_to_use = self.process_adata(self.adata)
+        
+        # Split the data
+        train_subset, test_subset = self.split_data(dataset_to_use)
+        
+        # Select highly variable genes if required
+        train_subset, test_subset, highly_variable_genes = self.select_highly_variable_genes(
+            train_subset, test_subset
+        )
+        
+        # Print data sizes and class counts
+        print(f"Training data size: {train_subset.shape}")
+        print(f"Testing data size: {test_subset.shape}")
+        
+        encoding_var = getattr(config.data, 'encoding_variable', 'age')
+        print("\nCounts of each class in the training data:")
+        print(train_subset.obs[encoding_var].value_counts())
+        
+        print("\nCounts of each class in the testing data:")
+        print(test_subset.obs[encoding_var].value_counts())
+        
+        # Prepare labels
+        train_labels, test_labels, label_encoder = self.prepare_labels(
+            train_subset, test_subset
+        )
+        
+        # Extract data arrays
+        train_data = train_subset.X
+        if hasattr(train_data, 'toarray'):
+            train_data = train_data.toarray()
+            
+        test_data = test_subset.X
+        if hasattr(test_data, 'toarray'):
+            test_data = test_data.toarray()
+        
+        # Normalize data if required
+        train_data, test_data, scaler, is_scaler_fit = self.normalize_data(
+            train_data, test_data
+        )
+        
+        # Reshape data for CNN if required
+        model_type = getattr(config.data, 'model_type', 'mlp').lower()
+        if model_type == "cnn":
+            train_data, test_data = self.reshape_for_cnn(train_data, test_data)
+        
+        # Create reference data
+        reference_data = self.create_reference_data(train_data)
+        
+        # Get mix_included flag from config
+        mix_included = getattr(config.data.filtering, 'include_mixed_sex', False)
+        
+        return (
+            train_data,
+            test_data,
+            train_labels,
+            test_labels,
+            label_encoder,
+            reference_data,
+            scaler,
+            is_scaler_fit,
+            highly_variable_genes,
+            mix_included,
+        )
