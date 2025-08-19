@@ -1,0 +1,108 @@
+# GPU test configuration - based on quick_test.yaml but with GPU enabled
+# Inherits from default.yaml but with minimal settings and GPU enabled
+
+# General settings
+general:
+  project_name: "TimeFlies"
+  version: "0.2.0"
+  random_state: 42
+
+# Device configuration - ENABLE GPU
+device:
+  processor: "GPU"  # Enable GPU for testing
+  gpu_memory_growth: true
+
+# Data parameters
+data:
+  tissue: "head"
+  model_type: "CNN" 
+  encoding_variable: "age"
+  cell_type: "all"
+  sex_type: "all"
+  
+  # Batch correction
+  batch_correction:
+    enabled: false
+    
+  # Filtering
+  filtering:
+    include_mixed_sex: false
+    
+  # CRITICAL: Limit sample size for quick testing
+  sampling:
+    num_samples: 1000  # Only 1000 cells instead of 224k
+    num_variables: 1000  # Only 1000 genes instead of 15k
+    
+  # Train-test split
+  train_test_split:
+    method: "random"
+    test_split: 0.2
+    random_state: 42
+
+# Gene preprocessing - all disabled for speed
+gene_preprocessing:
+  gene_filtering:
+    remove_sex_genes: false
+    remove_autosomal_genes: false
+    only_keep_lnc_genes: false
+    remove_lnc_genes: false
+    remove_unaccounted_genes: false
+    select_batch_genes: false
+    highly_variable_genes: false
+  gene_balancing:
+    balance_genes: false
+    balance_lnc_genes: false
+  gene_shuffle:
+    shuffle_genes: false
+
+# Data processing
+data_processing:
+  preprocessing:
+    required: true
+    save_data: false  # Don't save for quick test
+  model_management:
+    load_model: false
+  exploratory_data_analysis:
+    enabled: false
+  normalization:
+    enabled: false
+
+# Model parameters - MINIMAL for quick testing
+model:
+  training:
+    epochs: 2  # Only 2 epochs
+    batch_size: 64  # Larger batch for speed
+    validation_split: 0.2
+    early_stopping_patience: 1
+    learning_rate: 0.001
+    
+  # CNN architecture - smaller
+  cnn:
+    filters: [16]  # Smaller CNN
+    kernel_sizes: [3]
+    strides: [1]
+    paddings: ["same"]
+    pool_sizes: [2]
+    pool_strides: [2]
+    dense_units: [32]  # Smaller dense layer
+    dropout_rate: 0.3
+    activation: "relu"
+
+# Feature importance - disabled for speed
+feature_importance:
+  run_interpreter: false
+  run_visualization: false
+
+# File locations
+file_locations:
+  training_file: "fly_train.h5ad"
+  evaluation_file: "fly_eval.h5ad" 
+  original_file: "fly_original.h5ad"
+  batch_corrected_files:
+    train: "fly_train_batch.h5ad"
+    eval: "fly_eval_batch.h5ad"
+
+# Logging
+logging:
+  level: "INFO"
+  format: "detailed"

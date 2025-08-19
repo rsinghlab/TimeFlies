@@ -1,5 +1,6 @@
 """GPU configuration utilities for TensorFlow."""
 
+import os
 import tensorflow as tf
 from typing import Any
 
@@ -51,7 +52,7 @@ class GPUHandler:
 
             if gpus:
                 try:
-                    # Iterate over each available GPU and set memory growth
+                    # Set memory growth FIRST before any GPU operations
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
                     print("GPU memory growth set successfully.")

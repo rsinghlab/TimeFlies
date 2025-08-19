@@ -63,10 +63,18 @@ class PipelineManager:
                 self.adata_eval,
                 self.adata_original,
             ) = self.data_loader.load_data()
-            (
-                self.adata_corrected,
-                self.adata_eval_corrected,
-            ) = self.data_loader.load_corrected_data()
+            # Only load batch-corrected data if batch correction is enabled
+            batch_correction_enabled = getattr(self.config_instance.data.batch_correction, 'enabled', False)
+            if batch_correction_enabled:
+                logger.info("Batch correction enabled - loading corrected data...")
+                (
+                    self.adata_corrected,
+                    self.adata_eval_corrected,
+                ) = self.data_loader.load_corrected_data()
+            else:
+                logger.info("Batch correction disabled - skipping corrected data loading")
+                self.adata_corrected = None
+                self.adata_eval_corrected = None
             self.autosomal_genes, self.sex_genes = self.data_loader.load_gene_lists()
             logger.info("Data loading complete.")
         except Exception as e:
@@ -143,6 +151,22 @@ class PipelineManager:
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
             logger.info("Training and testing data preprocessed successfully.")
+            
+            # Free memory by deleting large raw data objects after preprocessing
+            # (only when training, not when loading models which need final eval preprocessing)
+            if not getattr(self.config_instance.data_processing.model_management, 'load_model', False):
+                logger.info("Cleaning up raw data objects to free memory...")
+                del self.adata
+                del self.adata_eval
+                del self.adata_original
+                if hasattr(self, 'adata_corrected') and self.adata_corrected is not None:
+                    del self.adata_corrected
+                if hasattr(self, 'adata_eval_corrected') and self.adata_eval_corrected is not None:
+                    del self.adata_eval_corrected
+                
+                import gc
+                gc.collect()  # Force garbage collection
+                logger.info("Memory cleanup complete.")
         except Exception as e:
             logger.error(f"Error during general data preprocessing: {e}")
             raise
@@ -180,6 +204,23 @@ class PipelineManager:
                 self.mix_included,
             )
             logger.info("Final evaluation data preprocessed successfully.")
+            
+            # Free memory by deleting large raw data objects after final evaluation preprocessing
+            logger.info("Cleaning up raw data objects to free memory...")
+            if hasattr(self, 'adata'):
+                del self.adata
+            if hasattr(self, 'adata_eval'):
+                del self.adata_eval
+            if hasattr(self, 'adata_original'):
+                del self.adata_original
+            if hasattr(self, 'adata_corrected') and self.adata_corrected is not None:
+                del self.adata_corrected
+            if hasattr(self, 'adata_eval_corrected') and self.adata_eval_corrected is not None:
+                del self.adata_eval_corrected
+            
+            import gc
+            gc.collect()  # Force garbage collection
+            logger.info("Memory cleanup complete.")
         except Exception as e:
             logger.error(f"Error during final evaluation data preprocessing: {e}")
             raise
@@ -438,9 +479,10 @@ class PipelineManager:
             # Model training/loading
             self.load_or_train_model()
             
-            # Evaluation  
-            self.preprocess_final_eval_data()
-            self.compute_evaluation_metrics()
+            # Evaluation (only for loaded models, not newly trained ones)
+            if getattr(self.config_instance.data_processing.model_management, 'load_model', False):
+                self.preprocess_final_eval_data()
+            self.run_metrics()
             
             # Analysis (conditional based on config)
             if getattr(self.config_instance.feature_importance, 'run_interpreter', True):

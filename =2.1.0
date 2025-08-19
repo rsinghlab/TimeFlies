@@ -1,0 +1,26 @@
+Collecting pytest
+  Using cached pytest-8.4.1-py3-none-any.whl.metadata (7.7 kB)
+Collecting pytest-cov
+  Using cached pytest_cov-6.2.1-py3-none-any.whl.metadata (30 kB)
+Collecting pytest-mock
+  Using cached pytest_mock-3.14.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting pytest-timeout
+  Using cached pytest_timeout-2.4.0-py3-none-any.whl.metadata (20 kB)
+Collecting iniconfig>=1 (from pytest)
+  Using cached iniconfig-2.1.0-py3-none-any.whl.metadata (2.7 kB)
+Requirement already satisfied: packaging>=20 in ./.venv/lib/python3.12/site-packages (from pytest) (25.0)
+Collecting pluggy<2,>=1.5 (from pytest)
+  Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: pygments>=2.7.2 in ./.venv/lib/python3.12/site-packages (from pytest) (2.19.2)
+Collecting coverage>=7.5 (from coverage[toml]>=7.5->pytest-cov)
+  Using cached coverage-7.10.4-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.9 kB)
+Using cached pytest-8.4.1-py3-none-any.whl (365 kB)
+Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Using cached pytest_cov-6.2.1-py3-none-any.whl (24 kB)
+Using cached pytest_mock-3.14.1-py3-none-any.whl (9.9 kB)
+Using cached pytest_timeout-2.4.0-py3-none-any.whl (14 kB)
+Using cached coverage-7.10.4-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (251 kB)
+Using cached iniconfig-2.1.0-py3-none-any.whl (6.0 kB)
+Installing collected packages: pluggy, iniconfig, coverage, pytest, pytest-timeout, pytest-mock, pytest-cov
+
+Successfully installed coverage-7.10.4 iniconfig-2.1.0 pluggy-1.6.0 pytest-8.4.1 pytest-cov-6.2.1 pytest-mock-3.14.1 pytest-timeout-2.4.0

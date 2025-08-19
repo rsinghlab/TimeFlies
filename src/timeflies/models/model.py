@@ -436,8 +436,8 @@ class ModelBuilder:
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(self.config.model.training, 'custom_loss', 'sparse_categorical_crossentropy'),
-            metrics=getattr(self.config.model.training, 'metrics', ['accuracy']),
+            loss=getattr(self.config.model.training, 'custom_loss', 'categorical_crossentropy'),
+            metrics=getattr(self.config.model.training, 'metrics', ['accuracy', 'auc']),
         )
 
         return model
@@ -484,8 +484,8 @@ class ModelBuilder:
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(self.config.model.training, 'custom_loss', 'sparse_categorical_crossentropy'),
-            metrics=getattr(self.config.model.training, 'metrics', ['accuracy']),
+            loss=getattr(self.config.model.training, 'custom_loss', 'categorical_crossentropy'),
+            metrics=getattr(self.config.model.training, 'metrics', ['accuracy', 'auc']),
         )
 
         return model

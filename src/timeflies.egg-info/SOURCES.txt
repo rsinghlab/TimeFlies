@@ -25,6 +25,17 @@ src/timeflies/data/preprocessing/gene_filter.py
 src/timeflies/data/preprocessing/setup.py
 src/timeflies/evaluation/__init__.py
 src/timeflies/evaluation/interpreter.py
+src/timeflies/legacy/config.py
+src/timeflies/legacy/eda.py
+src/timeflies/legacy/interpreter.py
+src/timeflies/legacy/model.py
+src/timeflies/legacy/pipeline_manager.py
+src/timeflies/legacy/preprocess.py
+src/timeflies/legacy/scvi_batch.py
+src/timeflies/legacy/setup.py
+src/timeflies/legacy/time_flies.py
+src/timeflies/legacy/utilities.py
+src/timeflies/legacy/visuals.py
 src/timeflies/models/__init__.py
 src/timeflies/models/model.py
 src/timeflies/models/model_factory.py
