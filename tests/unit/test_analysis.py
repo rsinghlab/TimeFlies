@@ -85,11 +85,11 @@ class TestEDAHandler:
         
         assert handler.config == self.mock_config
         assert handler.path_manager == self.mock_path_manager
-        assert handler.adata == self.adata
-        assert handler.adata_eval == self.adata_eval
-        assert handler.adata_original == self.adata_original
-        assert handler.adata_corrected == self.adata_corrected
-        assert handler.adata_eval_corrected == self.adata_eval_corrected
+        assert handler.adata is self.adata
+        assert handler.adata_eval is self.adata_eval
+        assert handler.adata_original is self.adata_original
+        assert handler.adata_corrected is self.adata_corrected
+        assert handler.adata_eval_corrected is self.adata_eval_corrected
         
         # Check that VisualizationTools is initialized
         mock_vis_tools.assert_called_once_with(
@@ -234,7 +234,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         assert visualizer.config == self.mock_config
@@ -245,8 +246,8 @@ class TestVisualizer:
         assert visualizer.label_encoder == self.label_encoder
         assert np.array_equal(visualizer.squeezed_shap_values, self.squeezed_shap_values)
         assert np.array_equal(visualizer.squeezed_test_data, self.squeezed_test_data)
-        assert visualizer.adata == self.adata
-        assert visualizer.adata_corrected == self.adata_corrected
+        assert visualizer.adata is self.adata
+        assert visualizer.adata_corrected is self.adata_corrected
         assert visualizer.path_manager == self.mock_path_manager
         
     @patch('src.timeflies.analysis.visuals.VisualizationTools')
@@ -259,7 +260,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer.import_metrics()
@@ -281,7 +283,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer.import_metrics()
@@ -300,7 +303,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer._visualize_training_history()
@@ -320,7 +324,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer._visualize_training_history()
@@ -339,7 +344,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         # Set up required attributes
@@ -357,7 +363,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         class_labels = ['10', '1', '5', '20']
@@ -378,7 +385,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer._visualize_shap_summary()
@@ -400,7 +408,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         visualizer._visualize_shap_summary()
@@ -436,7 +445,8 @@ class TestVisualizer:
             self.mock_config, self.mock_model, self.mock_history,
             self.test_inputs, self.test_labels, self.label_encoder,
             self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager
+            self.adata, self.adata_corrected, self.mock_path_manager,
+            preserved_var_names=None
         )
         
         # Mock the model predictions

@@ -5,6 +5,7 @@ import scanpy as sc
 import pandas as pd
 from typing import Tuple, List, Any
 from anndata import AnnData
+from ..utils.path_manager import PathManager
 
 
 class DataLoader:
@@ -24,16 +25,9 @@ class DataLoader:
         """
         self.config = config
 
-        # Get the directory of the current script
-        self.Code_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Construct the path to the data directory based on the configuration
-        self.Data_dir = os.path.join(
-            self.Code_dir,
-            "..", "..", "..",
-            "data", "raw",
-            "h5ad",
-        )
+        # Use PathManager to get correct data directory (supports test environments)
+        self.path_manager = PathManager(config)
+        self.Data_dir = self.path_manager.get_raw_data_dir()
 
         # Prepare the paths to various data files
         self._prepare_paths()
@@ -45,39 +39,31 @@ class DataLoader:
         This method constructs the full paths to the h5ad data files and other relevant
         files based on the configuration provided.
         """
-        # Get tissue from config
-        tissue = getattr(self.config.data, 'tissue', 'head')
-
-        # Path to the main h5ad file (directly in tissue directory)
+        # Path to the main h5ad file (directly in tissue directory from PathManager)
         self.h5ad_file_path = os.path.join(
             self.Data_dir,
-            tissue,
             getattr(self.config.file_locations, 'training_file', 'fly_train.h5ad'),
         )
 
         # Path to the evaluation h5ad file
         self.h5ad_eval_file_path = os.path.join(
             self.Data_dir,
-            tissue,
             getattr(self.config.file_locations, 'evaluation_file', 'fly_eval.h5ad'),
         )
 
         # Path to the original unprocessed h5ad file
         self.h5ad_file_path_original = os.path.join(
             self.Data_dir,
-            tissue,
             getattr(self.config.file_locations, 'original_file', 'fly_original.h5ad'),
         )
 
         # Paths for batch-corrected data (same directory structure)
         self.h5ad_file_path_corrected = os.path.join(
             self.Data_dir,
-            tissue,
             getattr(self.config.file_locations.batch_corrected_files, 'train', 'fly_train_batch.h5ad'),
         )
         self.h5ad_eval_file_path_corrected = os.path.join(
             self.Data_dir,
-            tissue,
             getattr(self.config.file_locations.batch_corrected_files, 'eval', 'fly_eval_batch.h5ad'),
         )
 
@@ -130,10 +116,14 @@ class DataLoader:
         Returns:
         - tuple: A tuple containing two lists, one for autosomal genes and one for sex-linked genes.
         """
+        # Use PathManager to get project root and construct gene lists path
+        project_root = self.path_manager._get_project_root()
+        gene_lists_dir = project_root / "data" / "raw" / "gene_lists"
+        
         # Load autosomal gene list from a CSV file
         autosomal_genes = (
             pd.read_csv(
-                os.path.join(self.Data_dir, "..", "gene_lists", "autosomal.csv"),
+                gene_lists_dir / "autosomal.csv",
                 header=None,
                 dtype=str,
             )
@@ -143,7 +133,7 @@ class DataLoader:
 
         # Load sex-linked gene list from a CSV file
         sex_genes = (
-            pd.read_csv(os.path.join(self.Data_dir, "..", "gene_lists", "sex.csv"), header=None)
+            pd.read_csv(gene_lists_dir / "sex.csv", header=None)
             .iloc[:, 0]
             .tolist()
         )

@@ -408,3 +408,83 @@ class DataPreprocessor:
             highly_variable_genes,
             mix_included,
         )
+    
+    def prepare_final_eval_data(self, adata, label_encoder, num_features, scaler, is_scaler_fit, highly_variable_genes, mix_included):
+        """
+        Preprocess the final evaluation data based on the provided configuration parameters.
+        
+        This method follows the legacy implementation to ensure consistency.
+
+        Args:
+            adata (AnnData): The input evaluation data.
+            label_encoder (LabelEncoder): The label encoder used to transform the labels.
+            num_features (int): The number of features to use.
+            scaler (StandardScaler or None): The scaler used for data normalization.
+            is_scaler_fit (bool): Flag indicating if the scaler was fit.
+            highly_variable_genes (list): List of highly variable genes.
+            mix_included (bool): Flag indicating if 'mix' samples were included during training.
+
+        Returns:
+            test_data (ndarray): Testing data.
+            test_labels (ndarray): Labels for the testing data.
+            label_encoder (LabelEncoder): The label encoder used to transform the labels.
+        """
+        config = self.config
+
+        batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
+
+        if batch_correction_enabled:
+            adata = adata.copy()
+            if "scvi_normalized" in adata.layers:
+                adata.X = adata.layers["scvi_normalized"]
+
+        # Remove 'mix' if specified
+        if mix_included is False:
+            adata = adata[adata.obs["sex"] != "mix"].copy()
+
+        # Check if the specified cell type is 'all'
+        cell_type = getattr(config.data, 'cell_type', 'all').lower()
+        if cell_type != "all":
+            adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
+
+        # Sex Mapping
+        sex_type = getattr(config.data, 'sex_type', 'all').lower()
+        if sex_type != "all":
+            adata = adata[adata.obs["sex"] == sex_type].copy()
+
+        # Apply gene selection from corrected data if specified and not already using corrected data
+        select_batch_genes = getattr(config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)
+
+        if select_batch_genes and not batch_correction_enabled:
+            if hasattr(self, 'adata') and hasattr(self, 'adata_corrected'):
+                common_genes = self.adata.var_names.intersection(self.adata_corrected.var_names)
+                adata = adata[:, common_genes]
+
+        # Highly variable genes selection
+        if highly_variable_genes is not None:
+            adata = adata[:, highly_variable_genes]
+        else:
+            # Use num_features to select the top genes
+            adata = adata[:, adata.var_names[:num_features]]
+            adata = adata[:, :num_features]
+
+        # Prepare the testing labels
+        encoding_var = getattr(config.data, 'encoding_variable', 'age')
+        test_labels = label_encoder.transform(adata.obs[encoding_var])
+        test_labels = to_categorical(test_labels)
+
+        test_data = adata.X
+        if issparse(test_data):  # Convert sparse matrices to dense
+            test_data = test_data.toarray()
+
+        if is_scaler_fit and scaler is not None:
+            if not batch_correction_enabled:
+                test_data = np.log1p(test_data)
+            test_data = scaler.transform(test_data)
+
+        # Reshape the testing data for CNN
+        model_type = getattr(config.data, 'model_type', 'mlp').lower()
+        if model_type == "cnn":
+            test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
+
+        return test_data, test_labels, label_encoder

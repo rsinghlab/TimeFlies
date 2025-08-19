@@ -194,8 +194,8 @@ def evaluate_command(args, config=None) -> int:
             config.data.tissue = args.tissue
         
         # Override model loading - force to True for evaluation
+        from types import SimpleNamespace
         if not hasattr(config, 'data_processing'):
-            from types import SimpleNamespace
             config.data_processing = SimpleNamespace()
         if not hasattr(config.data_processing, 'model_management'):
             config.data_processing.model_management = SimpleNamespace()
@@ -214,10 +214,12 @@ def evaluate_command(args, config=None) -> int:
         pipeline.load_or_train_model()
         pipeline.run_metrics()
         
-        if hasattr(args, 'interpret') and args.interpret:
+        # Run interpretation based on config or command line flag
+        if (hasattr(args, 'interpret') and args.interpret) or getattr(config.feature_importance, 'run_interpreter', False):
             pipeline.run_interpretation()
         
-        if hasattr(args, 'visualize') and args.visualize:
+        # Run visualizations based on config or command line flag
+        if (hasattr(args, 'visualize') and args.visualize) or getattr(config.feature_importance, 'run_visualization', True):
             pipeline.run_visualizations()
         
         print("Evaluation completed successfully!")

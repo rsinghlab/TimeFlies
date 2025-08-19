@@ -58,7 +58,7 @@ class BatchCorrector:
         if use_original:
             # Use the full original file
             if data_type == "uncorrected":
-                data_dir = os.path.join(base_dir, tissue, "uncorrected")
+                data_dir = os.path.join(base_dir, tissue)
                 original_path = os.path.join(data_dir, "fly_original.h5ad")
                 self.adata_original = sc.read_h5ad(original_path)
                 # For original file, we don't have separate train/eval
@@ -73,7 +73,7 @@ class BatchCorrector:
         else:
             # Use train/eval splits (existing behavior)
             if data_type == "uncorrected":
-                data_dir = os.path.join(base_dir, tissue, "uncorrected")
+                data_dir = os.path.join(base_dir, tissue)
                 train_path = os.path.join(data_dir, "fly_train.h5ad")
                 eval_path = os.path.join(data_dir, "fly_eval.h5ad")
             elif data_type == "batch_corrected":
@@ -242,10 +242,10 @@ class BatchCorrector:
         # Set default paths based on whether using original file or not
         if raw_path is None:
             if self.use_original:
-                raw_path = os.path.join(self.base_dir, self.tissue, "uncorrected", "fly_original.h5ad")
+                raw_path = os.path.join(self.base_dir, self.tissue, "fly_original.h5ad")
                 out_prefix = "fly_original"
             else:
-                raw_path = os.path.join(self.base_dir, self.tissue, "uncorrected", "fly_eval.h5ad")
+                raw_path = os.path.join(self.base_dir, self.tissue, "fly_eval.h5ad")
                 out_prefix = "fly_eval"
                 
         if batch_path is None:
@@ -353,9 +353,9 @@ class BatchCorrector:
         # Set default paths based on whether using original file or not
         if raw_path is None:
             if self.use_original:
-                raw_path = os.path.join(self.base_dir, self.tissue, "uncorrected", "fly_original.h5ad")
+                raw_path = os.path.join(self.base_dir, self.tissue, "fly_original.h5ad")
             else:
-                raw_path = os.path.join(self.base_dir, self.tissue, "uncorrected", "fly_eval.h5ad")
+                raw_path = os.path.join(self.base_dir, self.tissue, "fly_eval.h5ad")
                 
         if batch_path is None:
             if self.use_original:

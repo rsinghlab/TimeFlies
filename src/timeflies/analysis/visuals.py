@@ -163,10 +163,10 @@ class VisualizationTools:
         for (row, col), cell in table.get_celld().items():
             if row == 0:
                 cell.set_facecolor("#606060")
-                cell.set_text_props(color="white", fontfamily="verdana")
+                cell.set_text_props(color="white", fontfamily="sans-serif")
             else:
                 cell.set_facecolor("white")
-                cell.set_text_props(color="black", fontfamily="verdana")
+                cell.set_text_props(color="black", fontfamily="sans-serif")
 
         # Adjust layout
         plt.tight_layout()
@@ -300,11 +300,20 @@ class VisualizationTools:
             history_data = history.history
 
         # Define the metrics to plot and their titles and y-axis labels
+        # Try different variations of AUC metric names
+        auc_metric = None
+        for auc_name in ["auc", "AUC", "val_auc", "val_AUC"]:
+            if auc_name in history_data:
+                auc_metric = auc_name.replace("val_", "")  # Use the base metric name
+                break
+        
         metrics = [
             ("loss", "Model Loss", "Loss"),
             ("accuracy", "Model Accuracy", "Accuracy"),
-            ("AUC", "Model AUC", "AUC"),
         ]
+        
+        if auc_metric:
+            metrics.append((auc_metric, "Model AUC", "AUC"))
 
         # Determine the number of rows and columns for the subplot grid
         num_metrics = len(metrics)
@@ -318,8 +327,13 @@ class VisualizationTools:
         axes = axes.flatten()
 
         # For each metric, plot the train and validation data, and set the title and y-axis label
+        plot_index = 0
         for i, (metric, title, ylabel) in enumerate(metrics):
-            ax = axes[i]
+            # Skip metrics that don't exist in the history
+            if metric not in history_data:
+                continue
+                
+            ax = axes[plot_index]
             ax.plot(range(1, len(history_data[metric]) + 1), history_data[metric])
             ax.plot(
                 range(1, len(history_data.get(f"val_{metric}", [])) + 1),
@@ -329,9 +343,10 @@ class VisualizationTools:
             ax.set_ylabel(ylabel)
             ax.set_xlabel("Epoch")
             ax.legend(["Train", "Validation"], loc="best")
+            plot_index += 1
 
         # Remove any extra subplots
-        for i in range(num_metrics, len(axes)):
+        for i in range(plot_index, len(axes)):
             fig.delaxes(axes[i])
 
         # Create a new subfolder with the specified name
@@ -539,6 +554,7 @@ class Visualizer:
         adata,
         adata_corrected,
         path_manager,
+        preserved_var_names=None,
     ):
         """
         Initializes the Visualizer with the given configuration and results.
@@ -565,6 +581,7 @@ class Visualizer:
         self.squeezed_test_data = squeezed_test_data
         self.adata = adata
         self.adata_corrected = adata_corrected
+        self.preserved_var_names = preserved_var_names
 
         # Initialize PathManager
         self.path_manager = path_manager
@@ -656,12 +673,24 @@ class Visualizer:
         Generate SHAP summary plot if SHAP values are available.
         """
         if self.squeezed_shap_values is not None:
-            var_names = (
-                self.adata_corrected.var_names
-                if getattr(self.config.data.batch_correction, 'enabled', False)
-                or getattr(self.config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)
-                else self.adata.var_names
-            )
+            # Try to get var_names from adata objects first
+            var_names = None
+            if (getattr(self.config.data.batch_correction, 'enabled', False)
+                or getattr(self.config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)):
+                if self.adata_corrected is not None:
+                    var_names = self.adata_corrected.var_names
+            else:
+                if self.adata is not None:
+                    var_names = self.adata.var_names
+            
+            # If adata objects are not available, use preserved gene names (evaluation mode)
+            if var_names is None and self.preserved_var_names is not None:
+                var_names = self.preserved_var_names
+            
+            # Only proceed if we have actual gene names
+            if var_names is None:
+                logger.warning("No gene names available for SHAP visualization - skipping SHAP plots")
+                return
             self.visual_tools.plot_shap_summary(
                 shap_values=self.squeezed_shap_values,
                 test_data=self.squeezed_test_data,

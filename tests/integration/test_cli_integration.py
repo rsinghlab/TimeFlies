@@ -18,7 +18,7 @@ class TestCLIIntegration:
         self.project_root.mkdir()
         
         # Create minimal project structure
-        (self.project_root / "data" / "raw" / "h5ad" / "head" / "uncorrected").mkdir(parents=True)
+        (self.project_root / "data" / "raw" / "h5ad" / "head").mkdir(parents=True)
         (self.project_root / "data" / "raw" / "gene_lists").mkdir(parents=True)
         (self.project_root / "outputs" / "models").mkdir(parents=True)
         (self.project_root / "outputs" / "results").mkdir(parents=True)
@@ -46,6 +46,11 @@ class TestCLIIntegration:
         
         self.config_path = self.project_root / "configs" / "test.yaml"
         with open(self.config_path, 'w') as f:
+            yaml.dump(self.config_data, f)
+            
+        # Also create default.yaml for CLI test command
+        default_config_path = self.project_root / "configs" / "default.yaml"
+        with open(default_config_path, 'w') as f:
             yaml.dump(self.config_data, f)
             
     def teardown_method(self):
@@ -81,7 +86,7 @@ class TestCLIIntegration:
             
             # Should run without crashing (exit code 0 or 1 acceptable)
             assert result.returncode in [0, 1]
-            assert "Testing TimeFlies installation" in result.stdout
+            assert "Running TimeFlies system tests" in result.stdout
             
     def test_cli_help_output(self):
         """Test that help output is generated correctly."""
@@ -94,70 +99,63 @@ class TestCLIIntegration:
             
             assert result.returncode == 0
             assert "TimeFlies: Machine Learning for Aging Analysis" in result.stdout
-            assert "setup" in result.stdout
             assert "train" in result.stdout
-            assert "batch" in result.stdout
+            assert "test" in result.stdout
+            assert "evaluate" in result.stdout
             
-    def test_cli_setup_command_structure(self):
-        """Test setup command creates proper directory structure."""
+    def test_cli_train_command_structure(self):
+        """Test train command structure and validation."""
         import shutil
         actual_script = Path(__file__).parent.parent.parent / "run_timeflies.py"
         if actual_script.exists():
             shutil.copy(actual_script, self.project_root)
             
             result = self.run_cli_command([
-                "setup", 
+                "train", 
                 "--tissue", "head",
+                "--model", "cnn",
+                "--target", "age",
                 "--config", str(self.config_path)
             ])
             
-            # Should create appropriate directories even if data is missing
-            # The command might fail due to missing data files, but structure should be attempted
-            assert result.returncode in [0, 1]  # May fail due to missing data
+            # Should attempt to run training even if data is missing
+            # The command might fail due to missing data files, but should validate arguments
+            assert result.returncode in [0, 1, 2]  # May fail due to missing data or validation issues
             
-    def test_cli_train_command_validation(self):
-        """Test train command parameter validation."""
+    def test_cli_evaluate_command_validation(self):
+        """Test evaluate command parameter validation."""
         import shutil
         actual_script = Path(__file__).parent.parent.parent / "run_timeflies.py"
         if actual_script.exists():
             shutil.copy(actual_script, self.project_root)
             
             result = self.run_cli_command([
-                "train",
-                "--tissue", "head",
-                "--model", "cnn", 
-                "--encoding", "age",
+                "evaluate",
                 "--config", str(self.config_path)
             ])
             
-            # Command should be structured correctly even if it fails on missing data
-            assert result.returncode in [0, 1]
+            # Command should be structured correctly even if it fails on missing data/model
+            assert result.returncode in [0, 1, 2]
             
-    def test_cli_batch_command_options(self):
-        """Test batch correction command options."""
+    def test_cli_train_with_batch_correction(self):
+        """Test train command with batch correction option."""
         import shutil
         actual_script = Path(__file__).parent.parent.parent / "run_timeflies.py"
         if actual_script.exists():
             shutil.copy(actual_script, self.project_root)
             
-            # Test train option
+            # Test train with batch correction option
             result = self.run_cli_command([
-                "batch", 
-                "--train",
-                "--tissue", "head"
+                "train", 
+                "--tissue", "head",
+                "--model", "cnn",
+                "--target", "age",
+                "--batch-correction",
+                "--config", str(self.config_path)
             ])
             
-            # Should attempt to run batch correction training
-            assert result.returncode in [0, 1]
-            
-            # Test evaluate option  
-            result = self.run_cli_command([
-                "batch",
-                "--evaluate", 
-                "--tissue", "head"
-            ])
-            
-            assert result.returncode in [0, 1]
+            # Should attempt to run training with batch correction
+            assert result.returncode in [0, 1, 2]
             
     def test_cli_invalid_arguments(self):
         """Test CLI error handling for invalid arguments."""

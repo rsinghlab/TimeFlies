@@ -84,6 +84,19 @@ class ConfigManager:
         self._config = None
         self._load_config()
     
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> 'Config':
+        """
+        Create a Config object directly from a dictionary.
+        
+        Args:
+            config_dict: Dictionary containing configuration data
+            
+        Returns:
+            Config object initialized with the provided dictionary
+        """
+        return Config(config_dict)
+    
     def _find_config_path(self, config_path: Optional[str]) -> str:
         """Find configuration file path."""
         if config_path and os.path.exists(config_path):

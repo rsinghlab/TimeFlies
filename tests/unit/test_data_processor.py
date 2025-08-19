@@ -26,6 +26,8 @@ class TestDataPreprocessor:
         config.data.sex_type = 'all'
         config.data.cell_type = 'all'
         config.data.encoding_variable = 'age'
+        config.data.tissue = 'head'
+        config.data.model_type = 'CNN'
         
         # Filtering configuration
         config.data.filtering = Mock()
@@ -106,8 +108,8 @@ class TestDataPreprocessor:
         processor = DataPreprocessor(self.mock_config, self.adata, self.adata_corrected)
         
         assert processor.config == self.mock_config
-        assert processor.adata == self.adata
-        assert processor.adata_corrected == self.adata_corrected
+        assert processor.adata is self.adata
+        assert processor.adata_corrected is self.adata_corrected
         assert processor.path_manager is not None
         
     def test_process_adata_basic(self):

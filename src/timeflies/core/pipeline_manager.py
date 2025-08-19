@@ -205,6 +205,26 @@ class PipelineManager:
             )
             logger.info("Final evaluation data preprocessed successfully.")
             
+            # Preserve gene names before memory cleanup for visualization
+            logger.info("Preserving gene names for visualization...")
+            batch_correction_enabled = getattr(self.config_instance.data.batch_correction, 'enabled', False)
+            select_batch_genes = getattr(self.config_instance.gene_preprocessing.gene_filtering, 'select_batch_genes', False)
+            
+            if batch_correction_enabled or select_batch_genes:
+                if hasattr(self, 'adata_corrected') and self.adata_corrected is not None:
+                    self.preserved_var_names = self.adata_corrected.var_names.copy()
+                elif hasattr(self, 'adata_eval_corrected') and self.adata_eval_corrected is not None:
+                    self.preserved_var_names = self.adata_eval_corrected.var_names.copy()
+                else:
+                    self.preserved_var_names = getattr(self, 'adata', getattr(self, 'adata_eval', None))
+                    if self.preserved_var_names is not None:
+                        self.preserved_var_names = self.preserved_var_names.var_names.copy()
+            else:
+                if hasattr(self, 'adata'):
+                    self.preserved_var_names = self.adata.var_names.copy()
+                elif hasattr(self, 'adata_eval'):
+                    self.preserved_var_names = self.adata_eval.var_names.copy()
+            
             # Free memory by deleting large raw data objects after final evaluation preprocessing
             logger.info("Cleaning up raw data objects to free memory...")
             if hasattr(self, 'adata'):
@@ -369,6 +389,17 @@ class PipelineManager:
         """
         if getattr(self.config_instance.feature_importance, 'run_visualization', True):
             logger.info("Running visualizations...")
+            
+            # Ensure SHAP attributes exist (set to None if not available)
+            if not hasattr(self, 'squeezed_shap_values'):
+                self.squeezed_shap_values = None
+            if not hasattr(self, 'squeezed_test_data'):
+                self.squeezed_test_data = None
+            
+            # Ensure adata attributes exist (may be deleted for memory cleanup)
+            adata = getattr(self, 'adata', None)
+            adata_corrected = getattr(self, 'adata_corrected', None)
+            
             visualizer = Visualizer(
                 self.config_instance,
                 self.model,
@@ -378,9 +409,10 @@ class PipelineManager:
                 self.label_encoder,
                 self.squeezed_shap_values,
                 self.squeezed_test_data,
-                self.adata,
-                self.adata_corrected,
+                adata,
+                adata_corrected,
                 self.path_manager,
+                preserved_var_names=getattr(self, 'preserved_var_names', None),
             )
             visualizer.run()
             logger.info("Visualizations completed.")
@@ -442,24 +474,6 @@ class PipelineManager:
             logger.error(f"Error running SHAP interpretation: {e}")
             raise
     
-    def run_visualizations(self):
-        """Run visualizations if enabled in config.""" 
-        try:
-            logger.info("Running visualizations...")
-            from ..analysis.visuals import VisualizationTools
-            
-            vis_tools = VisualizationTools(
-                self.config_instance,
-                self.model,
-                self.test_data,
-                self.test_labels,
-                self.path_manager
-            )
-            vis_tools.generate_all_visualizations()
-            logger.info("Visualizations completed successfully.")
-        except Exception as e:
-            logger.error(f"Error running visualizations: {e}")
-            raise
 
     def run(self) -> Dict[str, Any]:
         """

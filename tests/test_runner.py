@@ -7,17 +7,19 @@ import subprocess
 from pathlib import Path
 
 
-def run_tests(test_type="all", verbose=False, coverage=False, marker=None):
+def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=False, rerun_failures=False):
     """
-    Run tests with specified options.
+    Run tests with practical options only.
     
     Args:
         test_type: Type of tests to run (unit, integration, all)
-        verbose: Enable verbose output
-        coverage: Enable coverage reporting  
-        marker: Run tests with specific marker
+        verbose: Show detailed output
+        coverage: Generate coverage report
+        fast: Skip slow tests  
+        debug: Stop on first failure with detailed output
+        rerun_failures: Only re-run tests that failed last time
     """
-    cmd = ["python", "-m", "pytest"]
+    cmd = ["python3", "-m", "pytest"]
     
     # Add test path based on type
     if test_type == "unit":
@@ -29,27 +31,44 @@ def run_tests(test_type="all", verbose=False, coverage=False, marker=None):
     else:
         cmd.append(f"tests/{test_type}/")
     
-    # Add options
-    if verbose:
+    # Add practical options only
+    if fast:
+        cmd.extend(["-m", "not slow"])
+        
+    if debug:
+        cmd.extend(["-x", "-v", "--tb=long"])
+    elif verbose:
         cmd.append("-v")
     else:
         cmd.append("-q")
     
     if coverage:
-        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term-missing"])
+        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term"])
     
-    if marker:
-        cmd.extend(["-m", marker])
+    if rerun_failures:
+        cmd.extend(["--lf", "-v"])
     
     # Run tests
-    print(f"Running command: {' '.join(cmd)}")
+    print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
     return result.returncode
 
 
 def main():
-    """Main test runner."""
-    parser = argparse.ArgumentParser(description="Run TimeFlies tests")
+    """Simplified test runner with only useful options."""
+    parser = argparse.ArgumentParser(
+        description="Run TimeFlies tests",
+        epilog="""
+Examples:
+  python test_runner.py                    # Run all tests
+  python test_runner.py unit               # Unit tests only  
+  python test_runner.py --fast             # Skip slow tests
+  python test_runner.py --coverage         # With coverage report
+  python test_runner.py --debug            # Stop on first failure
+  python test_runner.py --rerun            # Re-run failed tests only
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     
     parser.add_argument(
         "test_type",
@@ -62,53 +81,43 @@ def main():
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
-        help="Enable verbose output"
+        help="Show detailed test output"
     )
     
     parser.add_argument(
         "-c", "--coverage", 
         action="store_true",
-        help="Enable coverage reporting"
-    )
-    
-    parser.add_argument(
-        "-m", "--marker",
-        type=str,
-        help="Run tests with specific marker (e.g., 'not slow')"
+        help="Generate coverage report"
     )
     
     parser.add_argument(
         "--fast",
         action="store_true", 
-        help="Run only fast tests (excludes slow and integration tests)"
+        help="Skip slow tests (quick feedback)"
     )
     
     parser.add_argument(
-        "--install-deps",
+        "--debug",
         action="store_true",
-        help="Install test dependencies before running"
+        help="Stop on first failure with full details"
+    )
+    
+    parser.add_argument(
+        "--rerun",
+        action="store_true",
+        help="Only re-run tests that failed last time"
     )
     
     args = parser.parse_args()
     
-    # Install dependencies if requested
-    if args.install_deps:
-        print("Installing test dependencies...")
-        subprocess.run([
-            sys.executable, "-m", "pip", "install", 
-            "pytest", "pytest-cov", "pytest-mock", "pytest-timeout"
-        ])
-    
-    # Set marker for fast tests
-    if args.fast:
-        args.marker = "not slow and not integration"
-    
-    # Run tests
+    # Run tests with simplified options
     exit_code = run_tests(
         test_type=args.test_type,
         verbose=args.verbose,
         coverage=args.coverage,
-        marker=args.marker
+        fast=args.fast,
+        debug=args.debug,
+        rerun_failures=args.rerun
     )
     
     return exit_code

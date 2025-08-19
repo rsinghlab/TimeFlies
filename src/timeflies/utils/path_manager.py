@@ -89,6 +89,15 @@ class PathManager:
         Raises:
             FileNotFoundError: If project root cannot be located
         """
+        # First check if we're in a test environment with a temporary directory
+        current_working_dir = Path(os.getcwd())
+        
+        # If current working directory contains test data structure, use it as project root
+        if ((current_working_dir / "data").exists() and 
+            (current_working_dir / "data" / "raw" / "h5ad").exists()):
+            return current_working_dir
+        
+        # Otherwise, search from the file location for the actual project root
         current_dir = Path(__file__).parent.absolute()
         
         # Search up to 5 levels for project root indicators
@@ -269,13 +278,13 @@ class PathManager:
             str: The path to the raw data directory
             
         Example:
-            data/raw/h5ad/head/uncorrected/
+            data/raw/h5ad/head/
         """
         project_root = self._get_project_root()
         tissue = tissue_override or self.tissue
         
-        # Raw data structure: data/raw/h5ad/tissue/correction_status/
-        raw_data_dir = project_root / "data" / "raw" / "h5ad" / tissue / self.correction_dir
+        # Raw data structure: data/raw/h5ad/tissue/ (no correction_dir subfolder)
+        raw_data_dir = project_root / "data" / "raw" / "h5ad" / tissue
         
         return str(raw_data_dir)
     

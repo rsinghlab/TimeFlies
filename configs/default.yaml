@@ -144,9 +144,9 @@ model:
 
 # Feature importance and visualizations
 feature_importance:
-  run_interpreter: false     # Enable/disable SHAP interpretation
+  run_interpreter: true     # Enable/disable SHAP interpretation
   run_visualization: true   # Enable/disable visualization generation
-  load_SHAP: false          # Load existing SHAP values instead of computing
+  load_SHAP: true          # Load existing SHAP values instead of computing
   reference_size: 100
   
 # File locations
