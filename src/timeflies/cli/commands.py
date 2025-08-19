@@ -187,11 +187,24 @@ def evaluate_command(args, config=None) -> int:
         # Use provided config or load from args
         if config is None:
             config_manager = ConfigManager(args.config) if hasattr(args, 'config') and args.config else ConfigManager()
-        config = config_manager.get_config()
+            config = config_manager.get_config()
         
-        # Override model loading
-        if hasattr(config, 'data_processing') and hasattr(config.data_processing, 'model_management'):
-            config.data_processing.model_management.load_model = True
+        # Override config with command line arguments
+        if hasattr(args, 'tissue') and args.tissue:
+            config.data.tissue = args.tissue
+        
+        # Override model loading - force to True for evaluation
+        if not hasattr(config, 'data_processing'):
+            from types import SimpleNamespace
+            config.data_processing = SimpleNamespace()
+        if not hasattr(config.data_processing, 'model_management'):
+            config.data_processing.model_management = SimpleNamespace()
+        config.data_processing.model_management.load_model = True
+        
+        print(f"Evaluating model with:")
+        print(f"  Tissue: {config.data.tissue}")
+        print(f"  Model: {config.data.model_type}")
+        print(f"  Target: {config.data.encoding_variable}")
         
         # Initialize pipeline in evaluation mode
         pipeline = PipelineManager(config)
@@ -212,6 +225,9 @@ def evaluate_command(args, config=None) -> int:
         
     except Exception as e:
         print(f"Evaluation failed: {e}")
+        if hasattr(args, 'verbose') and args.verbose:
+            import traceback
+            traceback.print_exc()
         return 1
 
 

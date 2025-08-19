@@ -63,8 +63,9 @@ Examples:
     
     # Evaluate command  
     eval_parser = subparsers.add_parser('evaluate', help='Evaluate model')
-    eval_parser.add_argument('--model-path', required=True, help='Path to trained model')
-    eval_parser.add_argument('--tissue', choices=['head', 'body', 'all'], default='head')
+    eval_parser.add_argument('--tissue', choices=['head', 'body', 'all'], help='Tissue type (overrides config)')
+    eval_parser.add_argument('--interpret', action='store_true', help='Run SHAP interpretation')
+    eval_parser.add_argument('--visualize', action='store_true', help='Generate visualizations')
     
     return parser
 

@@ -94,8 +94,9 @@ class PathManager:
         # Search up to 5 levels for project root indicators
         for _ in range(5):
             # Look for key directories that indicate project root
-            if any((current_dir / indicator).exists() for indicator in 
-                   ["data", "outputs", "src", "configs"]):
+            # Require both 'src' and at least one of the other indicators to ensure we find the actual project root
+            if ((current_dir / "src").exists() and 
+                any((current_dir / indicator).exists() for indicator in ["data", "outputs", "configs"])):
                 return current_dir
             current_dir = current_dir.parent
             

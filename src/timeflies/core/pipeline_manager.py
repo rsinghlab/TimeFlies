@@ -154,7 +154,7 @@ class PipelineManager:
             
             # Free memory by deleting large raw data objects after preprocessing
             # (only when training, not when loading models which need final eval preprocessing)
-            if not getattr(self.config_instance.data_processing.model_management, 'load_model', False):
+            if not getattr(getattr(self.config_instance.data_processing, 'model_management', None), 'load_model', False):
                 logger.info("Cleaning up raw data objects to free memory...")
                 del self.adata
                 del self.adata_eval
@@ -232,7 +232,7 @@ class PipelineManager:
         """
         try:
             self.setup_gene_filtering()
-            if getattr(self.config_instance.data_processing, 'model_management', {}).get('load_model', False):
+            if getattr(getattr(self.config_instance.data_processing, 'model_management', None), 'load_model', False):
                 self.load_model_components()
                 self.preprocess_final_eval_data()  # Call the final evaluation preprocessing
             else:
@@ -249,6 +249,10 @@ class PipelineManager:
         Load pre-trained model and preprocess evaluation data to prevent data leakage.
         """
         try:
+            # Initialize model loader if not already done
+            if not hasattr(self, 'model_loader'):
+                self.model_loader = ModelLoader(self.config_instance)
+            
             # Load the pre-trained model
             self.model = self.model_loader.load_model()
 
@@ -308,7 +312,7 @@ class PipelineManager:
         Decide whether to load a pre-trained model or build and train a new one.
         """
         try:
-            if getattr(self.config_instance.data_processing, 'model_management', {}).get('load_model', False):
+            if getattr(getattr(self.config_instance.data_processing, 'model_management', None), 'load_model', False):
                 logger.info("Loading pre-trained model...")
                 self.load_model()
                 logger.info("Model loaded successfully.")
@@ -480,7 +484,7 @@ class PipelineManager:
             self.load_or_train_model()
             
             # Evaluation (only for loaded models, not newly trained ones)
-            if getattr(self.config_instance.data_processing.model_management, 'load_model', False):
+            if getattr(getattr(self.config_instance.data_processing, 'model_management', None), 'load_model', False):
                 self.preprocess_final_eval_data()
             self.run_metrics()
             
