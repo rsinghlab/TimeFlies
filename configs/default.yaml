@@ -7,7 +7,7 @@
 # =============================================================================
 # PROJECT SETTINGS
 # =============================================================================
-project: fruitfly_aging  # <-- CHANGE THIS TO SWITCH PROJECTS
+project: fruitfly_alzheimers  # <-- CHANGE THIS TO SWITCH PROJECTS
 
 general:
   version: "0.2.0"
@@ -30,6 +30,7 @@ data:
   species: "drosophila"
   cell_type: "all"
   sex: "all"  # Options: "all", "male", "female"
+  encoding_variable: "age"  # Target variable for prediction
   
   # Data processing options
   batch_correction:
@@ -43,25 +44,14 @@ data:
     variables: null  # null for all genes, or specify number
     
   # Train-test splitting strategies
+  # Available methods:
+  # - "random": Standard random split - IGNORES project overrides, uses test_ratio below
+  # - "sex": Cross-sex generalization - USES sex settings from project config
+  # - "tissue": Cross-tissue generalization - USES tissue settings from project config 
+  # - "genotype": Aging acceleration analysis - USES genotype settings from project config
   split:
-    # Method options:
-    # - "random": Standard random split using test_ratio (ignores other settings)
-    # - "sex": Train on one sex, test on another (uses sex_split settings)  
-    # - "tissue": Train on one tissue, test on another (uses tissue_split settings)
-    method: "random"  # Options: "random", "sex", "tissue"
-    test_ratio: 0.1   # Used only when method="random"
-    
-    # Sex-based splitting (used only when method="sex")
-    sex:
-      train: "male"    # Train on males
-      test: "female"   # Test on females
-      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
-      
-    # Tissue-based splitting (used only when method="tissue")
-    tissue:
-      train: "head"    # Train on head tissue
-      test: "body"     # Test on body tissue
-      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
+    method: "random"     # When "random", project split configs are ignored
+    test_ratio: 0.2      # Only used for random splits
 
 # =============================================================================
 # FILE PATHS (AUTO-GENERATED FROM TEMPLATES)
@@ -83,7 +73,7 @@ paths:
 # MODEL CONFIGURATION
 # =============================================================================
 model:
-  # Shared training parameters (architectures defined in project configs)
+  # Shared training parameters only - architectures defined in project configs
   training:
     epochs: 100
     batch_size: 32
@@ -113,46 +103,25 @@ preprocessing:
   shuffling:
     shuffle_genes: false
 
-# Gene preprocessing configuration (legacy structure expected by code)
-gene_preprocessing:
-  gene_filtering:
-    remove_sex_genes: false          # Remove sex-linked genes
-    remove_autosomal_genes: false    # Remove autosomal genes
-    only_keep_lnc_genes: false       # Keep only long non-coding genes
-    remove_lnc_genes: false          # Remove long non-coding genes
-    remove_unaccounted_genes: false  # Remove unaccounted genes
-    highly_variable_genes: false     # Filter for highly variable genes
-    select_batch_genes: false        # Select genes based on batch
-    
-  gene_balancing:
-    balance_genes: false
-    balance_lnc_genes: false
-    
-  gene_shuffle:
-    shuffle_genes: false
-    shuffle_random_state: 42
+# =============================================================================
+# DATA PROCESSING CONFIGURATION
+# =============================================================================
+data_processing:
+  # Data normalization
+  normalization:
+    enabled: false
 
 # =============================================================================
 # ANALYSIS CONFIGURATION  
 # =============================================================================
 analysis:
-  # Data normalization
-  normalization:
-    enabled: false
-    
   # Exploratory data analysis
   eda:
     enabled: false
-
-# Data processing configuration (legacy structure expected by code)
-data_processing:
-  # Data normalization
-  normalization:
-    enabled: false
     
-  # Exploratory data analysis
-  exploratory_data_analysis:
-    enabled: false
+  # Run project-specific analysis scripts
+  run_analysis_script:
+    enabled: false  # Set to true to run project-specific analysis after training
     
 # Feature importance analysis
 interpretation:

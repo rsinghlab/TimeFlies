@@ -68,7 +68,7 @@ class PathManager:
 
             # Core experiment parameters
             self.tissue = getattr(config.data, "tissue", "head").lower()
-            self.model_type = getattr(config.data, "model_type", "CNN").lower()
+            self.model_type = getattr(config.data, "model", "CNN").lower()
             self.encoding_variable = getattr(
                 config.data, "encoding_variable", "age"
             ).lower()
@@ -199,8 +199,8 @@ class PathManager:
     def _get_gene_method(self) -> str:
         """Get gene preprocessing method name."""
         try:
-            gene_filtering = self.config.gene_preprocessing.gene_filtering
-            gene_balancing = self.config.gene_preprocessing.gene_balancing
+            gene_filtering = self.config.preprocessing.genes
+            gene_balancing = self.config.preprocessing.balancing
 
             # Check for specific methods
             if getattr(gene_filtering, "highly_variable_genes", False):
@@ -236,7 +236,7 @@ class PathManager:
             outputs/fruitfly_aging/models/batch_corrected/head_cnn_age/all-genes_all-cells_all-sexes/
         """
         project_root = self._get_project_root()
-        project_name = getattr(self.config.data, "project", "fruitfly_aging")
+        project_name = getattr(self.config, "project", "fruitfly_aging")
 
         # Use project-specific structure: outputs/project/models/correction_dir/level1/level2/
         model_dir = (
@@ -268,7 +268,7 @@ class PathManager:
             outputs/fruitfly_aging/results/batch_corrected/head_cnn_age/all-genes_all-cells_all-sexes/plots/
         """
         project_root = self._get_project_root()
-        project_name = getattr(self.config.data, "project", "fruitfly_aging")
+        project_name = getattr(self.config, "project", "fruitfly_aging")
 
         # Use project-specific structure: outputs/project/results/correction_dir/level1/level2/
         output_dir = (
@@ -333,7 +333,7 @@ class PathManager:
         tissue = tissue_override or self.tissue
 
         # New project-specific data structure: data/project/tissue/
-        project = getattr(self.config.data, "project", "fruitfly_aging")
+        project = getattr(self.config, "project", "fruitfly_aging")
         raw_data_dir = project_root / "data" / project / tissue
 
         return str(raw_data_dir)
@@ -346,7 +346,7 @@ class PathManager:
             str: The path to the logs directory
         """
         project_root = self._get_project_root()
-        project_name = getattr(self.config.data, "project", "fruitfly_aging")
+        project_name = getattr(self.config, "project", "fruitfly_aging")
         log_dir = project_root / "outputs" / project_name / "logs"
 
         # Create directory if it doesn't exist
@@ -365,7 +365,7 @@ class PathManager:
             outputs/fruitfly_aging/
         """
         project_root = self._get_project_root()
-        project_name = getattr(self.config.data, "project", "fruitfly_aging")
+        project_name = getattr(self.config, "project", "fruitfly_aging")
         outputs_dir = project_root / "outputs" / project_name
 
         # Create directory if it doesn't exist

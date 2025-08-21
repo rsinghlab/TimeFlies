@@ -8,6 +8,20 @@ base_config: "../default.yaml"
 data:
   # Aging-specific target variable
   encoding_variable: "age"
+  
+  # Sex/tissue splitting settings (used when method="sex"/"tissue" in default.yaml)
+  split:
+    # Sex-based splitting (used when method="sex" in default.yaml)
+    sex:
+      train: "male"    # Train on males
+      test: "female"   # Test on females
+      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
+      
+    # Tissue-based splitting (used when method="tissue" in default.yaml)
+    tissue:
+      train: "head"    # Train on head tissue
+      test: "body"     # Test on body tissue
+      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
 
 # Model architecture overrides for aging
 model:

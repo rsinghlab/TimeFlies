@@ -205,7 +205,7 @@ class ModelLoader:
         self.path_manager = PathManager(self.config)
 
         # Construct the directory and specific paths for model loading
-        self.model_type = getattr(self.config.data, "model_type", "CNN").lower()
+        self.model_type = getattr(self.config.data, "model", "CNN").lower()
         self.model_dir = self.path_manager.construct_model_directory()
         self.model_path = self._get_model_path()
 
@@ -235,7 +235,9 @@ class ModelLoader:
         - tuple: A tuple containing the loaded model and related components like label encoder, reference data, scaler, test data, test labels, and training history.
         """
         # Load the model
+        print(f"DEBUG: Attempting to load model from: {self.model_path}")
         if os.path.exists(self.model_path):
+            print(f"DEBUG: Model file exists, loading...")
             if self.model_type in ["cnn", "mlp"]:
                 # Suppress the compile warning for loaded models
                 import warnings
@@ -246,12 +248,15 @@ class ModelLoader:
                 absl_logger.setLevel(logging.ERROR)
                 
                 model = tf.keras.models.load_model(self.model_path)
+                print(f"DEBUG: Model loaded successfully from {self.model_path}")
                 
                 # Restore logging level
                 absl_logger.setLevel(old_level)
             else:
                 model = self._load_pickle(self.model_path)
+                print(f"DEBUG: Pickle model loaded successfully from {self.model_path}")
         else:
+            print(f"ERROR: Model file not found: {self.model_path}")
             exit()
 
         # Return all loaded components
@@ -372,7 +377,7 @@ class ModelBuilder:
         self.is_scaler_fit = is_scaler_fit
         self.highly_variable_genes = highly_variable_genes
         self.mix_included = mix_included
-        self.model_type = getattr(self.config.data, "model_type", "CNN").lower()
+        self.model_type = getattr(self.config.data, "model", "CNN").lower()
 
     def create_cnn_model(self, num_output_units):
         """

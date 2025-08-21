@@ -219,12 +219,12 @@ except Exception as e:
     print(f'ERROR Core config modules: {e}')
     sys.exit(1)
 
-# Project-specific imports
+# Shared pipeline modules
 try:
-    from src.projects.fruitfly_aging.core.pipeline_manager import PipelineManager
-    print('OK Project pipeline modules')
+    from src.shared.core.pipeline_manager import PipelineManager
+    print('OK Shared pipeline modules')
 except Exception as e:
-    print(f'ERROR Project pipeline modules: {e}')
+    print(f'ERROR Shared pipeline modules: {e}')
     sys.exit(1)
 
 # Scientific packages
@@ -268,8 +268,12 @@ cat > activate.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Environment Activation
 
-# Store original PS1
-ORIG_PS1="\${PS1:-}"
+# Store original PS1 (before venv modifies it)
+if [ -n "${PS1}" ]; then
+    ORIG_PS1="${PS1}"
+else
+    ORIG_PS1="$ "
+fi
 
 # Find and activate virtual environment
 if [ -f ".venv/bin/activate" ]; then
@@ -282,7 +286,7 @@ else
 fi
 
 # Fix PS1 double parentheses issue - override after activation
-export PS1="(.venv) \$ORIG_PS1"
+export PS1="(.venv) ${ORIG_PS1}"
 
 # Suppress TensorFlow warnings
 export TF_CPP_MIN_LOG_LEVEL=3
@@ -309,7 +313,6 @@ echo "  5. Train: python run_timeflies.py train"
 echo "  6. Run tests: python run_timeflies.py test"
 echo ""
 echo "Python: $(which python) ($(python --version 2>&1))"
-echo "Active project: fruitfly_aging (configs/default.yaml)"
 echo "================================================"
 EOF
 

@@ -11,8 +11,13 @@ data:
   # Can fallback to binary (young/old) if continuous age prediction is too noisy
   encoding_variable: "age"
   
-  # Optional: Filter training to control genotype only for cleaner aging baseline
-  # training_filter: "genotype == 'control'"
+  # Splitting settings for when base config uses method: "genotype"
+  split:
+    # Genotype-based splitting settings (used when method="genotype" in base default.yaml)
+    genotype:
+      train: "control"      # Train only on healthy control flies
+      test: "alzheimers"    # Test on Alzheimer's genotype flies (AB42, hTau, etc.)
+      test_ratio: 0.3       # Subsample test set for performance
 
 # Model overrides for alzheimer's analysis (more complex models)
 model:

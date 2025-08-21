@@ -106,7 +106,7 @@ class GeneFilter:
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
         if getattr(
-            config.gene_preprocessing.gene_filtering, "remove_unaccounted_genes", False
+            config.preprocessing.genes, "remove_unaccounted_genes", False
         ):
             accounted_mask = original_autosomal_mask | sex_mask
             data = data[:, accounted_mask]
@@ -127,25 +127,25 @@ class GeneFilter:
 
         # Apply various filters based on configuration settings
         remove_sex = getattr(
-            config.gene_preprocessing.gene_filtering, "remove_sex_genes", False
+            config.preprocessing.genes, "remove_sex_genes", False
         )
         balance_genes = getattr(
-            config.gene_preprocessing.gene_balancing, "balance_genes", False
+            config.preprocessing.balancing, "balance_genes", False
         )
         balance_lnc_genes = getattr(
-            config.gene_preprocessing.gene_balancing, "balance_lnc_genes", False
+            config.preprocessing.balancing, "balance_lnc_genes", False
         )
         only_keep_lnc = getattr(
-            config.gene_preprocessing.gene_filtering, "only_keep_lnc_genes", False
+            config.preprocessing.genes, "only_keep_lnc_genes", False
         )
         remove_autosomal = getattr(
-            config.gene_preprocessing.gene_filtering, "remove_autosomal_genes", False
+            config.preprocessing.genes, "remove_autosomal_genes", False
         )
         remove_lnc = getattr(
-            config.gene_preprocessing.gene_filtering, "remove_lnc_genes", False
+            config.preprocessing.genes, "remove_lnc_genes", False
         )
         remove_unaccounted = getattr(
-            config.gene_preprocessing.gene_filtering, "remove_unaccounted_genes", False
+            config.preprocessing.genes, "remove_unaccounted_genes", False
         )
         balance_autosomal = remove_sex and balance_genes
 
@@ -214,14 +214,14 @@ class GeneFilter:
 
         # Balance the number of autosomal genes with the number of X genes if required
         balance_genes = getattr(
-            config.gene_preprocessing.gene_balancing, "balance_genes", False
+            config.preprocessing.balancing, "balance_genes", False
         )
         if balance_genes:
             autosomal_genes = self.balance_genes(autosomal_genes, sex_genes)
 
         # Balance the number of non-lnc genes with the number of lnc genes if required
         balance_lnc_genes = getattr(
-            config.gene_preprocessing.gene_balancing, "balance_lnc_genes", False
+            config.preprocessing.balancing, "balance_lnc_genes", False
         )
         balanced_non_lnc_genes = None
         if balance_lnc_genes:

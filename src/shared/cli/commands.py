@@ -671,23 +671,15 @@ def train_command(args, config) -> int:
     """Train a model using project configuration settings."""
     try:
         print(f"Starting training with project settings:")
-        print(f"   Project: {getattr(config.data, 'project', 'unknown')}")
+        print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.encoding_variable}")
         print(f"   Batch correction: {config.data.batch_correction.enabled}")
 
-        # Import project-specific PipelineManager
-        active_project = get_active_project()
-        if active_project == "fruitfly_aging":
-            from projects.fruitfly_aging.core.pipeline_manager import PipelineManager
-        elif active_project == "fruitfly_alzheimers":
-            from projects.fruitfly_alzheimers.core.pipeline_manager import (
-                PipelineManager,
-            )
-        else:
-            raise ValueError(f"Unknown project: {active_project}")
-
+        # Use shared PipelineManager for all projects
+        from shared.core import PipelineManager
+        
         # Initialize and run pipeline
         pipeline = PipelineManager(config)
         results = pipeline.run()
@@ -825,21 +817,13 @@ def evaluate_command(args, config) -> int:
     
     try:
         print(f"Starting evaluation with project settings:")
-        print(f"   Project: {getattr(config.data, 'project', 'unknown')}")
+        print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.encoding_variable}")
 
-        # Import project-specific PipelineManager
-        active_project = get_active_project()
-        if active_project == "fruitfly_aging":
-            from projects.fruitfly_aging.core.pipeline_manager import PipelineManager
-        elif active_project == "fruitfly_alzheimers":
-            from projects.fruitfly_alzheimers.core.pipeline_manager import (
-                PipelineManager,
-            )
-        else:
-            raise ValueError(f"Unknown project: {active_project}")
+        # Use shared PipelineManager for all projects
+        from shared.core import PipelineManager
 
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
@@ -854,6 +838,89 @@ def evaluate_command(args, config) -> int:
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
+            traceback.print_exc()
+        return 1
+
+
+def analyze_command(args, config) -> int:
+    """Run project-specific analysis on a trained model."""
+    # Suppress TensorFlow warnings for cleaner output
+    import os
+    from pathlib import Path
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
+    
+    try:
+        print(f"🔬 Starting analysis with project settings:")
+        print(f"   Project: {getattr(config, 'project', 'unknown')}")
+        print(f"   Tissue: {config.data.tissue}")
+        print(f"   Model: {config.data.model}")
+        print(f"   Target: {config.data.encoding_variable}")
+        
+        # Check if predictions already exist
+        project = getattr(config, 'project', 'fruitfly_alzheimers')
+        predictions_path = Path(f"outputs/{project}/results/predictions.csv")
+        
+        if predictions_path.exists():
+            print(f"✅ Found existing predictions at {predictions_path}")
+            print("📊 Running analysis on existing predictions...")
+            
+            # Just run the analysis script without reloading everything
+            from shared.core import PipelineManager
+            pipeline = PipelineManager(config)
+            
+            # Only run the analysis script part
+            if hasattr(pipeline, 'run_analysis_script'):
+                pipeline.run_analysis_script()
+            
+            print("\n✅ Analysis completed successfully!")
+            return 0
+        
+        print("⚠️  No predictions found, need to generate them...")
+        
+        # Check if model exists
+        from shared.utils.path_manager import PathManager
+        path_manager = PathManager(config)
+        model_dir = path_manager.construct_model_directory()
+        model_path = Path(model_dir) / "best_model.h5"
+        
+        if not model_path.exists():
+            print(f"⚠️  No trained model found at {model_path}")
+            print("📦 Training model first...")
+            
+            # Run training
+            from shared.core import PipelineManager
+            pipeline = PipelineManager(config)
+            pipeline.run_training()
+            print("✅ Model training complete!")
+        
+        # Enable analysis script execution in config
+        if not hasattr(config.analysis, 'run_analysis_script'):
+            print("❌ Analysis script configuration not found in config")
+            return 1
+            
+        # Temporarily enable analysis script for this command
+        original_enabled = getattr(config.analysis.run_analysis_script, 'enabled', False)
+        config.analysis.run_analysis_script.enabled = True
+        
+        try:
+            # Use shared PipelineManager to load model and run analysis
+            from shared.core import PipelineManager
+            
+            # Initialize pipeline and run evaluation with analysis
+            pipeline = PipelineManager(config)
+            results = pipeline.run_evaluation()
+            
+            print("\n✅ Analysis completed successfully!")
+            return 0
+            
+        finally:
+            # Restore original setting
+            config.analysis.run_analysis_script.enabled = original_enabled
+            
+    except Exception as e:
+        print(f"❌ Analysis failed: {e}")
+        if hasattr(args, "verbose") and args.verbose:
+            import traceback
             traceback.print_exc()
         return 1
 

@@ -24,6 +24,7 @@ Workflow:
   # Main workflow (auto-detects active project from configs/default.yaml)  
   python run_timeflies.py train              # Train models
   python run_timeflies.py evaluate           # Evaluate with SHAP/visualization
+  python run_timeflies.py analyze            # Run project-specific analysis
   
   # Project switching (temporary override)
   python run_timeflies.py --aging train      # Train aging project
@@ -107,6 +108,11 @@ Workflow:
     # Evaluate command
     eval_parser = subparsers.add_parser(
         "evaluate", help="Evaluate model using project config settings"
+    )
+
+    # Analyze command
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Run project-specific analysis on trained model"
     )
 
     # Batch correction command (no flags - uses project config)

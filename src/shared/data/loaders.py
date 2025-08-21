@@ -43,8 +43,9 @@ class DataLoader:
         # Path to the main h5ad file (directly in tissue directory from PathManager)
         train_template = getattr(self.config.paths.data, "train", "fly_train.h5ad")
         
-        # Map project name to file naming convention
-        project_name = getattr(self.config.data, 'project', 'fruitfly_aging')
+        # Map project name to file naming convention  
+        # Use top-level project name, not data.project (which comes from base config)
+        project_name = getattr(self.config, 'project', 'fruitfly_aging')
         if project_name == 'fruitfly_aging':
             project_for_files = 'aging'
         elif project_name == 'fruitfly_alzheimers':

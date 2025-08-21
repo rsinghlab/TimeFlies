@@ -17,6 +17,12 @@ from tests.fixtures.unit_test_data import (
     TestDataManager
 )
 
+# Import project modules for fixtures
+from projects.fruitfly_aging.core.config_manager import Config, ConfigManager
+from shared.cli.parser import create_main_parser
+from shared.core.active_config import get_config_for_active_project
+from unittest.mock import Mock, patch
+
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -62,24 +68,117 @@ def config_file(temp_dir, minimal_config):
     return str(config_path)
 
 
+@pytest.fixture(scope="function")
+def config_object(minimal_config):
+    """Create Config object from minimal config."""
+    return Config(minimal_config)
+
+
+@pytest.fixture(scope="function")
+def config_manager(config_object):
+    """Create ConfigManager with test config."""
+    return ConfigManager(config_dict=config_object.to_dict())
+
+
+@pytest.fixture(scope="function")
+def cli_parser():
+    """Create CLI parser for testing."""
+    return create_main_parser()
+
+
+@pytest.fixture(scope="function")
+def mock_args():
+    """Create mock args object for CLI testing."""
+    args = Mock()
+    args.verbose = False
+    args.project = None
+    args.command = 'test'
+    return args
+
+
+@pytest.fixture(scope="function")
+def sample_data_files(temp_dir):
+    """Create sample data files for testing."""
+    from tests.fixtures.unit_test_data import create_sample_h5ad_files
+    return create_sample_h5ad_files(temp_dir)
+
+
+@pytest.fixture(scope="function")
+def large_sample_anndata():
+    """Create larger sample AnnData for integration tests."""
+    return create_sample_anndata(n_obs=1000, n_vars=2000)
+
+
+@pytest.fixture(scope="function")
+def small_sample_anndata():
+    """Create small sample AnnData for unit tests."""
+    return create_sample_anndata(n_obs=50, n_vars=100)
+
+
+@pytest.fixture(scope="function")
+def aging_config():
+    """Create aging project config."""
+    config_dict = {
+        'general': {'project_name': 'TimeFlies', 'version': '0.2.0', 'random_state': 42},
+        'data': {
+            'tissue': 'head',
+            'encoding_variable': 'age',
+            'model': 'CNN',
+            'species': 'drosophila',
+            'cell_type': 'all',
+            'sex': 'all',
+            'batch_correction': {'enabled': False},
+            'filtering': {'include_mixed_sex': False},
+            'sampling': {'samples': 1000, 'variables': None},
+            'split': {
+                'method': 'random',
+                'test_ratio': 0.1,
+                'sex': {'train': 'male', 'test': 'female', 'test_ratio': 0.3},
+                'tissue': {'train': 'head', 'test': 'body', 'test_ratio': 0.3}
+            }
+        },
+        'paths': {
+            'data': {
+                'train': 'data/{project}/{tissue}/{species}_{tissue}_{project}_train.h5ad',
+                'eval': 'data/{project}/{tissue}/{species}_{tissue}_{project}_eval.h5ad',
+                'original': 'data/{project}/{tissue}/{species}_{tissue}_{project}_original.h5ad'
+            },
+            'batch_data': {
+                'train': 'data/{project}/{tissue}/{species}_{tissue}_{project}_train_batch.h5ad',
+                'eval': 'data/{project}/{tissue}/{species}_{tissue}_{project}_eval_batch.h5ad'
+            }
+        },
+        'model': {
+            'training': {'epochs': 10, 'batch_size': 32, 'validation_split': 0.2, 'early_stopping_patience': 8, 'learning_rate': 0.001}
+        },
+        'preprocessing': {
+            'genes': {'remove_sex_genes': False, 'highly_variable_genes': False},
+            'balancing': {'balance_genes': False},
+            'shuffling': {'shuffle_genes': False}
+        },
+        'gene_preprocessing': {
+            'gene_filtering': {'remove_sex_genes': False, 'highly_variable_genes': False},
+            'gene_balancing': {'balance_genes': False},
+            'gene_shuffle': {'shuffle_genes': False, 'shuffle_random_state': 42}
+        },
+        'analysis': {'normalization': {'enabled': False}, 'eda': {'enabled': False}},
+        'data_processing': {'normalization': {'enabled': False}, 'exploratory_data_analysis': {'enabled': False}},
+        'interpretation': {'shap': {'enabled': False, 'load_existing': False, 'reference_size': 100}},
+        'visualizations': {'enabled': True},
+        'hardware': {'processor': 'GPU', 'memory_growth': True},
+        'logging': {'level': 'INFO', 'format': 'detailed', 'to_file': False}
+    }
+    return Config(config_dict)
+
+
 @pytest.fixture(autouse=True)
 def reset_global_state():
     """Reset global state before each test."""
-    # Reset config manager global state
-    try:
-        from shared.core.config_manager import reset_config
-        reset_config()
-    except ImportError:
-        pass
-    
+    # Reset any global state if needed
     yield
     
     # Clean up after test
-    try:
-        from shared.core.config_manager import reset_config
-        reset_config()
-    except ImportError:
-        pass
+    pass
 
 
 def pytest_configure(config):

@@ -35,8 +35,8 @@ class AgingAnalyzer:
         self.aging_markers = self._load_aging_markers()
 
     def _define_age_groups(self) -> Dict[str, List[int]]:
-        """Define standard age groups for Drosophila aging studies."""
-        return {"young": [5, 10], "middle": [30, 40], "old": [50, 60], "very_old": [70]}
+        """Define age groups based on actual data: 5, 30, 50, 70 days."""
+        return {"young": [5], "middle": [30], "old": [50], "very_old": [70]}
 
     def _load_aging_markers(self) -> List[str]:
         """Load known aging marker genes for Drosophila."""

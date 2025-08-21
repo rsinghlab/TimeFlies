@@ -22,178 +22,208 @@ Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
 Requires-Dist: pytest-mock>=3.8.0; extra == "dev"
+Requires-Dist: pytest-xdist>=3.0.0; extra == "dev"
 Requires-Dist: black>=23.0.0; extra == "dev"
-Requires-Dist: flake8>=6.0.0; extra == "dev"
+Requires-Dist: isort>=5.12.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: mypy>=1.5.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
 Provides-Extra: batch-correction
 Requires-Dist: scvi-tools>=1.0.0; extra == "batch-correction"
 Requires-Dist: torch>=2.0.0; extra == "batch-correction"
 Dynamic: license-file
 
-# TimeFlies 🕰️🧬
+# TimeFlies 🧬
 
-Machine Learning framework for analyzing aging patterns in Drosophila single-cell RNA sequencing data.
+**Machine Learning for Aging Analysis**
 
-## Features
+A modern machine learning framework for analyzing aging patterns in Drosophila single-cell RNA sequencing data using deep learning with comprehensive visualization and SHAP interpretability.
 
-- **Multi-Project Support**: Supports aging and Alzheimer's disease research
-- **Deep Learning Models**: CNN, MLP, and traditional ML approaches
-- **SHAP Interpretability**: Model explanation and feature importance
-- **Batch Correction**: scVI integration for batch effect removal
-- **Comprehensive Testing**: Automated test suite with real data sampling
-- **GPU Acceleration**: CUDA support for faster training
+## 🚀 Quick Start
 
-## Quick Start
-
-### 1. Setup Environment
-
+### 1. Environment Setup
 ```bash
-# Clone repository
-git clone <repository-url>
+# Clone and setup environment
+git clone <repository>
 cd TimeFlies
-
-# Setup development environment (creates .venv)
 bash setup_dev_env.sh
 
-# Activate environment
+# Activate environment  
 source activate.sh
 ```
 
-### 2. Verify Installation
-
-```bash
-python run_timeflies.py verify
-```
-
-### 3. Add Your Data
-
-Place your H5AD files in the correct structure:
+### 2. Data Preparation
+Place your H5AD files in the data directory:
 ```
 data/
 ├── fruitfly_aging/head/
-│   ├── drosophila_head_aging_original.h5ad
-│   ├── drosophila_head_aging_train.h5ad      # (optional)
-│   └── drosophila_head_aging_eval.h5ad       # (optional)
+│   └── drosophila_head_aging_original.h5ad
 └── fruitfly_alzheimers/head/
     └── drosophila_head_alzheimers_original.h5ad
 ```
 
-### 4. Complete Workflow
-
+### 3. Complete Workflow
 ```bash
-# Create test fixtures from your data
+# Create test fixtures for development
 python run_timeflies.py create-test-data
 
-# Create train/eval splits
+# Setup train/eval splits for all projects  
 python run_timeflies.py setup
 
-# Train model
+# Verify everything is ready
+python run_timeflies.py verify
+
+# Train models
 python run_timeflies.py train
 
-# Evaluate with SHAP interpretation
+# Evaluate with SHAP interpretation (optional)
 python run_timeflies.py evaluate
 ```
 
-## Project Configuration
-
-Active project is set in `configs/default.yaml`:
-```yaml
-project: fruitfly_aging  # Change to: fruitfly_alzheimers
-```
-
-Project-specific configurations in:
-- `configs/fruitfly_aging/default.yaml`
-- `configs/fruitfly_alzheimers/default.yaml`
-
-## Commands
+## 📋 Core Commands
 
 | Command | Description |
 |---------|-------------|
-| `verify` | Verify environment and setup |
-| `create-test-data` | Generate test fixtures from real data |
-| `setup` | Create train/evaluation data splits |
-| `train` | Train models with current project settings |
+| `create-test-data` | Create test fixtures from real data |
+| `setup` | Create stratified train/eval splits for all projects |
+| `verify` | Verify environment and data setup |
+| `train` | Train deep learning models |
 | `evaluate` | Evaluate models with SHAP interpretation |
-| `test` | Run automated test suite |
-| `batch-correct` | Apply scVI batch correction |
+| `test` | Run test suite |
 
-## Batch Correction (Optional)
+> 📖 **Detailed CLI reference**: See [docs/COMMANDS.md](docs/COMMANDS.md) for all options and examples
 
-For batch effect correction using scVI-tools:
+## 🔧 Configuration
 
-```bash
-# Setup creates both environments automatically
-bash setup_dev_env.sh  # Choose 'y' for batch environment
-
-# Use batch correction
-source activate_batch.sh
-python run_timeflies.py batch-correct
-source activate.sh  # Return to main environment
+### Switch Projects
+Edit `configs/default.yaml`:
+```yaml
+project: fruitfly_aging  # or fruitfly_alzheimers
 ```
 
-## Testing
+### Setup Parameters
+Configure splits in `configs/setup.yaml`:
+```yaml
+data:
+  train_test_split:
+    split_size: 5000  # cells in eval set
+general:
+  random_state: 42    # for reproducible splits
+```
 
+## 🧬 Data Setup Features
+
+### Multi-Project Support
+- Automatically detects all projects in `data/` directory
+- Processes both original and batch-corrected data
+- Creates project-specific output directories
+
+### Advanced Stratification
+- **Primary**: Disease/age status from project config
+- **Secondary**: Sex (sex/Sex/gender/Gender columns)
+- **Tertiary**: Cell type (cell_type/celltype/cluster columns)
+
+### Batch Correction Support
+```bash
+# Optional: Setup batch correction environment
+bash setup_dev_env.sh  # choose 'y' for batch environment
+
+# Activate batch environment
+source activate_batch.sh
+
+# Run batch correction (creates *_original_batch.h5ad)
+python run_timeflies.py batch-correct
+
+# Return to main environment
+source activate.sh
+
+# Re-run setup to create batch splits
+python run_timeflies.py setup
+```
+
+## 📊 File Structure
+
+### Data Organization
+```
+data/
+├── fruitfly_aging/head/
+│   ├── drosophila_head_aging_original.h5ad      # Source
+│   ├── drosophila_head_aging_original_batch.h5ad # Batch corrected
+│   ├── drosophila_head_aging_train.h5ad         # Training split
+│   ├── drosophila_head_aging_eval.h5ad          # Evaluation split
+│   ├── drosophila_head_aging_train_batch.h5ad   # Batch training split
+│   └── drosophila_head_aging_eval_batch.h5ad    # Batch evaluation split
+└── fruitfly_alzheimers/head/
+    └── [similar structure]
+```
+
+### Output Organization  
+```
+outputs/
+├── fruitfly_aging/
+│   ├── models/     # Trained models
+│   ├── results/    # SHAP analysis, plots
+│   └── logs/       # Training logs
+└── fruitfly_alzheimers/
+    └── [similar structure]
+```
+
+## 🧪 Development
+
+### Test Suite
 ```bash
 # Run all tests
 python run_timeflies.py test
 
 # Run specific test types
-python run_timeflies.py test unit
+python run_timeflies.py test --type unit
+python run_timeflies.py test --type integration
 python run_timeflies.py test --fast
-python run_timeflies.py test --coverage
 ```
 
-## Generated Outputs
-
-```
-outputs/
-├── fruitfly_aging/
-│   ├── models/           # Trained models
-│   └── results/          # Evaluation results, plots
-└── fruitfly_alzheimers/
-    ├── models/
-    └── results/
-
-tests/fixtures/
-├── fruitfly_aging/       # Test data fixtures
-│   ├── test_data_head.h5ad
-│   └── test_data_head_stats.json
-└── fruitfly_alzheimers/
-```
-
-## Requirements
-
-- **Python**: 3.10+ (3.12 recommended)
-- **GPU**: NVIDIA GPU with CUDA (optional, falls back to CPU)
-- **Memory**: 8GB+ RAM recommended
-- **Dependencies**: Automatically installed via setup script
-
-## Architecture
-
+### Project Structure
 ```
 src/
-├── projects/                    # Project-specific code
-│   ├── fruitfly_aging/         # Aging project
-│   └── fruitfly_alzheimers/    # Alzheimer's project
-├── shared/                      # Shared components
-│   ├── cli/                    # Command-line interface
-│   ├── core/                   # Configuration management
-│   ├── data/                   # Data loading utilities
-│   ├── models/                 # Model architectures
-│   └── utils/                  # Utility functions
-configs/                         # Configuration files
-tests/                          # Test suite
+├── shared/           # Core framework
+│   ├── cli/         # Command line interface
+│   ├── core/        # Configuration management
+│   ├── data/        # Data loading and setup
+│   ├── models/      # Model architectures
+│   └── utils/       # Utilities
+└── projects/        # Project-specific code
+    ├── fruitfly_aging/
+    └── fruitfly_alzheimers/
 ```
 
-## Contributing
+## 🎯 Key Features
 
-1. Ensure all tests pass: `python run_timeflies.py test`
-2. Verify setup works: `python run_timeflies.py verify`
-3. Follow existing code patterns and documentation
+- **🔄 Automated Setup**: One command sets up all projects
+- **🧬 Smart Stratification**: Multi-level stratified splitting
+- **🔒 Safe Operations**: Never overwrites existing data
+- **📊 Batch Support**: Handles both original and batch-corrected data  
+- **🎨 Clean Output**: Organized with clear progress indicators
+- **🧪 Comprehensive Testing**: Unit, integration, and system tests
+- **📈 SHAP Analysis**: Model interpretability with visualizations
 
-## License
+## 🔬 Supported Projects
 
-[Add your license information here]
+- **Fruitfly Aging**: Age-related gene expression analysis
+- **Fruitfly Alzheimers**: Disease condition classification
+- **Extensible**: Easy to add new projects
 
-## Citation
+## ⚙️ Requirements
 
-[Add citation information here]
+- Python 3.12+
+- GPU support (optional, CPU fallback available)
+- 8GB+ RAM recommended for large datasets
+
+## 📄 License
+
+See `LICENSE` file for details.
+
+## Future Improvements
+
+- Convert to Pytorch
+- Combine batch correction and main env into one
+
+---

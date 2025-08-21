@@ -13,6 +13,7 @@ from .parser import parse_arguments
 from .commands import (
     train_command,
     evaluate_command,
+    analyze_command,
     run_system_tests,
     run_test_suite,
     setup_command,
@@ -54,19 +55,16 @@ def main_cli(argv: Optional[list] = None) -> int:
             if hasattr(args, 'project') and args.project:
                 active_project = args.project
                 print(f"🔄 Using CLI project override: {active_project}")
+                
+                # Temporarily override the project in config for this CLI session
+                from ..core.config_manager import ConfigManager
+                config_manager = ConfigManager(project_override=args.project)
             else:
                 # Auto-detect active project from config
                 active_project = get_active_project()
                 print(f"Active project: {active_project}")
-
-            # Load config for active project (temporarily override if needed)
-            if hasattr(args, 'project') and args.project:
-                import importlib
-                config_module = importlib.import_module(f"projects.{args.project}.core.config_manager")
-                ConfigManager = config_module.ConfigManager
-                config_manager = ConfigManager("default")
-            else:
                 config_manager = get_config_for_active_project("default")
+                
             config = config_manager.get_config()
 
         except Exception as e:
@@ -79,6 +77,8 @@ def main_cli(argv: Optional[list] = None) -> int:
             return train_command(args, config)
         elif args.command == "evaluate":
             return evaluate_command(args, config)
+        elif args.command == "analyze":
+            return analyze_command(args, config)
         elif args.command == "test":
             return run_test_suite(args)
         elif args.command == "batch-correct":

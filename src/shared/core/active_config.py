@@ -169,13 +169,8 @@ def get_config_for_active_project(config_type: str = "default"):
     active_project = get_active_project()
     config_path = get_active_config_path(config_type)
 
-    # Import the correct project's config manager
-    if active_project == "fruitfly_aging":
-        from projects.fruitfly_aging.core.config_manager import ConfigManager
-    elif active_project == "fruitfly_alzheimers":
-        from projects.fruitfly_alzheimers.core.config_manager import ConfigManager
-    else:
-        raise ConfigurationError(f"Unknown project: {active_project}")
+    # Use shared config manager for all projects
+    from .config_manager import ConfigManager
 
     # Load the config
     config_manager = ConfigManager(config_path)
