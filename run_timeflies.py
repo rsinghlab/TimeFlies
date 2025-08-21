@@ -15,11 +15,11 @@ Main Commands:
 
 Workflow:
   1. Place data in data/[project]/[tissue]/
-  3. python run_timeflies.py create-test-data
-  4. python run_timeflies.py setup 
-  5. python run_timeflies.py verify 
-  6. python run_timeflies.py train
-  7. python run_timeflies.py evaluate (optional)
+  2. python run_timeflies.py create-test-data
+  3. python run_timeflies.py setup 
+  4. python run_timeflies.py verify 
+  5. python run_timeflies.py train
+  6. python run_timeflies.py evaluate (optional)
 
 Switch Projects:
   Edit configs/default.yaml and change 'project: fruitfly_aging' to 'project: fruitfly_alzheimers'

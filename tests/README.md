@@ -21,9 +21,12 @@ tests/
 
 ```bash
 # Recommended: Use main CLI
-python run_timeflies.py test --fast       # Unit + integration only
 python run_timeflies.py test              # All tests  
+python run_timeflies.py test --fast       # Unit + integration only
 python run_timeflies.py test --coverage   # With coverage report
+python run_timeflies.py test --verbose    # Detailed output
+python run_timeflies.py test --debug      # Stop on first failure
+python run_timeflies.py test --rerun      # Re-run failed tests only
 
 # Direct test runner (alternative)
 python tests/test_runner.py unit          # Fast unit tests
@@ -50,11 +53,14 @@ python tests/test_runner.py system        # CLI/installation
 # Quick feedback while coding
 python run_timeflies.py test --fast
 
+# Debug failing test
+python run_timeflies.py test --debug --verbose
+
 # Before committing  
 python run_timeflies.py test
 
-# Complete verification
-python run_timeflies.py verify
+# Re-run just the failures
+python run_timeflies.py test --rerun
 ```
 
 ## Options
