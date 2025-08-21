@@ -83,7 +83,7 @@ class Prediction:
 
         # Evaluate the model on test data
         results = model.evaluate(test_inputs, test_labels)
-        
+
         # Handle different return lengths based on configured metrics
         if isinstance(results, list):
             if len(results) >= 3:
@@ -92,10 +92,13 @@ class Prediction:
                 test_loss, test_acc = results
                 # Calculate AUC manually if not in metrics
                 from sklearn.metrics import roc_auc_score
+
                 y_pred = model.predict(test_inputs)
                 if len(test_labels.shape) > 1 and test_labels.shape[1] > 1:
                     # Multi-class
-                    test_auc = roc_auc_score(test_labels, y_pred, multi_class='ovr', average='macro')
+                    test_auc = roc_auc_score(
+                        test_labels, y_pred, multi_class="ovr", average="macro"
+                    )
                 else:
                     # Binary
                     test_auc = roc_auc_score(test_labels, y_pred)
@@ -109,7 +112,7 @@ class Prediction:
             test_loss = results
             test_acc = 0.0
             test_auc = 0.0
-            
+
         return test_loss, test_acc, test_auc
 
     @staticmethod
@@ -186,7 +189,7 @@ class Interpreter:
         """
         shap_values = None
 
-        if getattr(self.config.feature_importance, 'load_SHAP', False):
+        if getattr(self.config.feature_importance, "load_SHAP", False):
             # Attempt to load SHAP values from disk
             try:
                 shap_values = self.load_shap_values()
@@ -225,7 +228,7 @@ class Interpreter:
         )
 
         # Access the model type from the configuration
-        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        model_type = getattr(self.config.data, "model_type", "CNN").lower()
 
         # Determine the explainer to use based on the model type
         if model_type in ["mlp", "cnn"]:
@@ -241,9 +244,8 @@ class Interpreter:
         # Compute SHAP values
         shap_values = explainer.shap_values(self.test_data)
 
-
         # Adjust SHAP values and test data shapes based on the system type
-        device = getattr(self.config.device, 'processor', 'GPU').lower()
+        device = getattr(self.config.device, "processor", "GPU").lower()
         if device == "m":
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
@@ -290,7 +292,7 @@ class Interpreter:
         # Collect model and data metadata
         model_weights_hash = self._get_model_weights_hash()
         metadata = {
-            "model_type": getattr(self.config.data, 'model_type', 'CNN'),
+            "model_type": getattr(self.config.data, "model_type", "CNN"),
             "model_config": (
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
@@ -334,7 +336,7 @@ class Interpreter:
         # Collect current model metadata and data hashes before updating data
         model_weights_hash = self._get_model_weights_hash()
         current_metadata = {
-            "model_type": getattr(self.config.data, 'model_type', 'CNN'),
+            "model_type": getattr(self.config.data, "model_type", "CNN"),
             "model_config": (
                 self.model.get_config() if hasattr(self.model, "get_config") else None
             ),
@@ -465,7 +467,7 @@ class Metrics:
         """
         Evaluate the model on the test data and store performance metrics.
         """
-        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        model_type = getattr(self.config.data, "model_type", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
             test_loss, test_acc, test_auc = Prediction.evaluate_model(
                 self.model, self.test_inputs, self.test_labels
@@ -609,7 +611,7 @@ class Metrics:
             json.dump(metrics, file, indent=4)
 
         # If interpretable is True, save an additional copy to the SHAP directory
-        if getattr(self.config.feature_importance, 'run_interpreter', True):
+        if getattr(self.config.feature_importance, "run_interpreter", True):
             shap_dir = self.path_manager.get_visualization_directory(subfolder="SHAP")
             os.makedirs(shap_dir, exist_ok=True)
             shap_output_file_path = os.path.join(shap_dir, "Stats.JSON")
@@ -628,7 +630,7 @@ class Metrics:
             None
         """
         # Convert predictions and true labels to class indices if not already done
-        if getattr(self.config.feature_importance, 'save_predictions', False):
+        if getattr(self.config.feature_importance, "save_predictions", False):
 
             if not hasattr(self, "y_pred_class"):
                 self.y_pred_class = np.argmax(self.y_pred, axis=1)
@@ -646,9 +648,15 @@ class Metrics:
             )
 
             # Determine the relevant train and test attributes based on the method
-            method = getattr(self.config.data.train_test_split, 'method', 'random')  # This could be 'sex', 'tissue', etc.
-            train_attribute = getattr(self.config.data.train_test_split.train, method, "unknown")
-            test_attribute = getattr(self.config.data.train_test_split.test, method, "unknown")
+            method = getattr(
+                self.config.data.train_test_split, "method", "random"
+            )  # This could be 'sex', 'tissue', etc.
+            train_attribute = getattr(
+                self.config.data.train_test_split.train, method, "unknown"
+            )
+            test_attribute = getattr(
+                self.config.data.train_test_split.test, method, "unknown"
+            )
 
             # Capitalize the first letter of train and test attributes
             train_attribute = train_attribute.capitalize()

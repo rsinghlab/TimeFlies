@@ -54,23 +54,27 @@ class DataPreprocessor:
         config = self.config
 
         # Include or exclude 'mix' sex
-        include_mix = getattr(config.data.filtering, 'include_mixed_sex', False)
+        include_mix = getattr(config.data.filtering, "include_mixed_sex", False)
         if not include_mix:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Filter based on 'sex_type' if specified
-        sex_type = getattr(config.data, 'sex_type', 'all').lower()
+        sex_type = getattr(config.data, "sex_type", "all").lower()
         if sex_type in ["male", "female"]:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Filter based on 'cell_type' if specified
-        cell_type = getattr(config.data, 'cell_type', 'all')
+        cell_type = getattr(config.data, "cell_type", "all")
         if cell_type != "all":
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
         # Shuffle genes if required
-        shuffle_genes = getattr(config.gene_preprocessing.gene_shuffle, 'shuffle_genes', False)
-        shuffle_random_state = getattr(config.gene_preprocessing.gene_shuffle, 'shuffle_random_state', 42)
+        shuffle_genes = getattr(
+            config.gene_preprocessing.gene_shuffle, "shuffle_genes", False
+        )
+        shuffle_random_state = getattr(
+            config.gene_preprocessing.gene_shuffle, "shuffle_random_state", 42
+        )
         if shuffle_genes:
             # Create a Generator with a fixed seed
             rng = np.random.default_rng(shuffle_random_state)
@@ -78,16 +82,16 @@ class DataPreprocessor:
             adata = adata[:, gene_order]
 
         # Sample data if required
-        num_samples = getattr(config.data.sampling, 'num_samples', None)
+        num_samples = getattr(config.data.sampling, "num_samples", None)
         if num_samples and num_samples < adata.n_obs:
-            random_state = getattr(config.data.train_test_split, 'random_state', 42)
+            random_state = getattr(config.data.train_test_split, "random_state", 42)
             sample_indices = adata.obs.sample(
                 n=num_samples, random_state=random_state
             ).index
             adata = adata[sample_indices, :]
 
         # Select variables (genes) if required
-        num_variables = getattr(config.data.sampling, 'num_variables', None)
+        num_variables = getattr(config.data.sampling, "num_variables", None)
         if num_variables and num_variables < adata.n_vars:
             adata = adata[:, adata.var_names[:num_variables]]
 
@@ -105,18 +109,22 @@ class DataPreprocessor:
         - test_subset: The testing subset.
         """
         config = self.config
-        split_method = getattr(config.data.train_test_split, 'method', 'random').lower()
+        split_method = getattr(config.data.train_test_split, "method", "random").lower()
 
         if split_method == "sex":
-            train_sex = getattr(config.data.train_test_split.train, 'sex', 'male').lower()
-            test_sex = getattr(config.data.train_test_split.test, 'sex', 'female').lower()
+            train_sex = getattr(
+                config.data.train_test_split.train, "sex", "male"
+            ).lower()
+            test_sex = getattr(
+                config.data.train_test_split.test, "sex", "female"
+            ).lower()
 
             train_subset = dataset[dataset.obs["sex"].str.lower() == train_sex].copy()
             test_subset = dataset[dataset.obs["sex"].str.lower() == test_sex].copy()
 
-            test_size = getattr(config.data.train_test_split.test, 'size', 0.3)
-            random_state = getattr(config.data.train_test_split, 'random_state', 42)
-            
+            test_size = getattr(config.data.train_test_split.test, "size", 0.3)
+            random_state = getattr(config.data.train_test_split, "random_state", 42)
+
             _, test_subset = train_test_split(
                 test_subset,
                 test_size=test_size,
@@ -124,8 +132,12 @@ class DataPreprocessor:
             )
 
         elif split_method == "tissue":
-            train_tissue = getattr(config.data.train_test_split.train, 'tissue', 'head').lower()
-            test_tissue = getattr(config.data.train_test_split.test, 'tissue', 'body').lower()
+            train_tissue = getattr(
+                config.data.train_test_split.train, "tissue", "head"
+            ).lower()
+            test_tissue = getattr(
+                config.data.train_test_split.test, "tissue", "body"
+            ).lower()
 
             train_subset = dataset[
                 dataset.obs["tissue"].str.lower() == train_tissue
@@ -139,9 +151,9 @@ class DataPreprocessor:
             train_subset = train_subset[:, common_genes]
             test_subset = test_subset[:, common_genes]
 
-            test_size = getattr(config.data.train_test_split.test, 'size', 0.3)
-            random_state = getattr(config.data.train_test_split, 'random_state', 42)
-            
+            test_size = getattr(config.data.train_test_split.test, "size", 0.3)
+            random_state = getattr(config.data.train_test_split, "random_state", 42)
+
             _, test_subset = train_test_split(
                 test_subset,
                 test_size=test_size,
@@ -150,9 +162,9 @@ class DataPreprocessor:
 
         else:
             # Perform a stratified train-test split based on encoding variable
-            encoding_var = getattr(config.data, 'encoding_variable', 'age')
-            test_size = getattr(config.data.train_test_split, 'test_split', 0.2)
-            random_state = getattr(config.data.train_test_split, 'random_state', 42)
+            encoding_var = getattr(config.data, "encoding_variable", "age")
+            test_size = getattr(config.data.train_test_split, "test_split", 0.2)
+            random_state = getattr(config.data.train_test_split, "random_state", 42)
 
             train_subset, test_subset = train_test_split(
                 dataset,
@@ -163,9 +175,11 @@ class DataPreprocessor:
 
             # Apply gene selection from corrected data if specified and not already using corrected data
             select_batch_genes = getattr(
-                config.gene_preprocessing.gene_filtering, 'select_batch_genes', False
+                config.gene_preprocessing.gene_filtering, "select_batch_genes", False
             )
-            batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
+            batch_correction_enabled = getattr(
+                config.data.batch_correction, "enabled", False
+            )
             if select_batch_genes and not batch_correction_enabled:
                 adata_corrected_processed = self.process_adata(self.adata_corrected)
                 common_genes = train_subset.var_names.intersection(
@@ -195,12 +209,14 @@ class DataPreprocessor:
         config = self.config
         highly_variable_genes = None
 
-        if getattr(config.gene_preprocessing.gene_filtering, 'highly_variable_genes', False):
+        if getattr(
+            config.gene_preprocessing.gene_filtering, "highly_variable_genes", False
+        ):
             normal = train_subset.copy()
             sc.pp.normalize_total(normal, target_sum=1e4)
             sc.pp.log1p(normal)
             sc.pp.highly_variable_genes(normal, n_top_genes=5000)
-            
+
             highly_variable_genes = normal.var_names[
                 normal.var.highly_variable
             ].tolist()
@@ -225,7 +241,7 @@ class DataPreprocessor:
         - label_encoder: The label encoder used to transform the labels.
         """
         config = self.config
-        encoding_var = getattr(config.data, 'encoding_variable', 'age')
+        encoding_var = getattr(config.data, "encoding_variable", "age")
         label_encoder = LabelEncoder()
 
         train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
@@ -253,8 +269,8 @@ class DataPreprocessor:
         - is_scaler_fit: Flag indicating whether the scaler was fit (i.e., normalization was applied).
         """
         config = self.config
-        norm_on = getattr(config.data_processing.normalization, 'enabled', False)
-        bc_on = getattr(config.data.batch_correction, 'enabled', False)
+        norm_on = getattr(config.data_processing.normalization, "enabled", False)
+        bc_on = getattr(config.data.batch_correction, "enabled", False)
 
         if norm_on:
             logging.info("Normalizing data...")
@@ -302,7 +318,7 @@ class DataPreprocessor:
         - reference_data: Reference data.
         """
         config = self.config
-        reference_size = getattr(config.feature_importance, 'reference_size', 100)
+        reference_size = getattr(config.feature_importance, "reference_size", 100)
         if reference_size > train_data.shape[0]:
             reference_size = train_data.shape[0]
 
@@ -314,26 +330,28 @@ class DataPreprocessor:
     def prepare_data(self):
         """
         Preprocesses the data based on the configuration.
-        
+
         Returns:
         - tuple: A tuple containing preprocessed train data, test data, labels, and other related objects.
         """
         config = self.config
-        
+
         # Decide which dataset to use based on batch correction setting
-        batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
-        
+        batch_correction_enabled = getattr(
+            config.data.batch_correction, "enabled", False
+        )
+
         if batch_correction_enabled and self.adata_corrected is not None:
             try:
                 # Only process batch-corrected data if we're using it
                 print("Using batch-corrected data...")
                 adata_corrected = self.adata_corrected.copy()
-                
+
                 # Replace .X with scVI-normalised expression if it exists
                 if "scvi_normalized" in adata_corrected.layers:
                     adata_corrected.X = adata_corrected.layers["scvi_normalized"]
                     print("Using scVI-normalized expression layer")
-                
+
                 # Process the corrected data
                 dataset_to_use = self.process_adata(adata_corrected)
             except Exception as e:
@@ -343,59 +361,63 @@ class DataPreprocessor:
         else:
             # Only process uncorrected data if we're using it
             if batch_correction_enabled:
-                print("Batch correction requested but batch-corrected data not available")
+                print(
+                    "Batch correction requested but batch-corrected data not available"
+                )
             print("Using uncorrected data...")
             dataset_to_use = self.process_adata(self.adata)
-        
+
         # Split the data
         train_subset, test_subset = self.split_data(dataset_to_use)
-        
+
         # Select highly variable genes if required
-        train_subset, test_subset, highly_variable_genes = self.select_highly_variable_genes(
-            train_subset, test_subset
-        )
-        
+        (
+            train_subset,
+            test_subset,
+            highly_variable_genes,
+        ) = self.select_highly_variable_genes(train_subset, test_subset)
+
         # Print data sizes and class counts
         print(f"Training data size: {train_subset.shape}")
         print(f"Testing data size: {test_subset.shape}")
-        
-        encoding_var = getattr(config.data, 'encoding_variable', 'age')
+
+        encoding_var = getattr(config.data, "encoding_variable", "age")
         print("\nCounts of each class in the training data:")
         print(train_subset.obs[encoding_var].value_counts())
-        
+
         print("\nCounts of each class in the testing data:")
         print(test_subset.obs[encoding_var].value_counts())
-        
+
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(
             train_subset, test_subset
         )
-        
+
         # Extract data arrays
         train_data = train_subset.X
-        if hasattr(train_data, 'toarray'):
+        if hasattr(train_data, "toarray"):
             train_data = train_data.toarray()
-            
+
         test_data = test_subset.X
-        if hasattr(test_data, 'toarray'):
+        if hasattr(test_data, "toarray"):
             test_data = test_data.toarray()
-        
+
         # Normalize data if required
         train_data, test_data, scaler, is_scaler_fit = self.normalize_data(
             train_data, test_data
         )
-        
+
         # Reshape data for CNN if required
-        model_type = getattr(config.data, 'model_type', 'mlp').lower()
+        model_type = getattr(config.data, "model_type", "mlp").lower()
         if model_type == "cnn":
             train_data, test_data = self.reshape_for_cnn(train_data, test_data)
-        
+
         # Create reference data
         reference_data = self.create_reference_data(train_data)
-        
+
         # Get mix_included flag from config
-        mix_included = getattr(config.data.filtering, 'include_mixed_sex', False)
-        
+        mix_included = getattr(config.data.filtering, "include_mixed_sex", False)
+
         return (
             train_data,
             test_data,
@@ -408,11 +430,20 @@ class DataPreprocessor:
             highly_variable_genes,
             mix_included,
         )
-    
-    def prepare_final_eval_data(self, adata, label_encoder, num_features, scaler, is_scaler_fit, highly_variable_genes, mix_included):
+
+    def prepare_final_eval_data(
+        self,
+        adata,
+        label_encoder,
+        num_features,
+        scaler,
+        is_scaler_fit,
+        highly_variable_genes,
+        mix_included,
+    ):
         """
         Preprocess the final evaluation data based on the provided configuration parameters.
-        
+
         This method follows the legacy implementation to ensure consistency.
 
         Args:
@@ -431,7 +462,9 @@ class DataPreprocessor:
         """
         config = self.config
 
-        batch_correction_enabled = getattr(config.data.batch_correction, 'enabled', False)
+        batch_correction_enabled = getattr(
+            config.data.batch_correction, "enabled", False
+        )
 
         if batch_correction_enabled:
             adata = adata.copy()
@@ -443,21 +476,25 @@ class DataPreprocessor:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Check if the specified cell type is 'all'
-        cell_type = getattr(config.data, 'cell_type', 'all').lower()
+        cell_type = getattr(config.data, "cell_type", "all").lower()
         if cell_type != "all":
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
         # Sex Mapping
-        sex_type = getattr(config.data, 'sex_type', 'all').lower()
+        sex_type = getattr(config.data, "sex_type", "all").lower()
         if sex_type != "all":
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Apply gene selection from corrected data if specified and not already using corrected data
-        select_batch_genes = getattr(config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)
+        select_batch_genes = getattr(
+            config.gene_preprocessing.gene_filtering, "select_batch_genes", False
+        )
 
         if select_batch_genes and not batch_correction_enabled:
-            if hasattr(self, 'adata') and hasattr(self, 'adata_corrected'):
-                common_genes = self.adata.var_names.intersection(self.adata_corrected.var_names)
+            if hasattr(self, "adata") and hasattr(self, "adata_corrected"):
+                common_genes = self.adata.var_names.intersection(
+                    self.adata_corrected.var_names
+                )
                 adata = adata[:, common_genes]
 
         # Highly variable genes selection
@@ -469,7 +506,7 @@ class DataPreprocessor:
             adata = adata[:, :num_features]
 
         # Prepare the testing labels
-        encoding_var = getattr(config.data, 'encoding_variable', 'age')
+        encoding_var = getattr(config.data, "encoding_variable", "age")
         test_labels = label_encoder.transform(adata.obs[encoding_var])
         test_labels = to_categorical(test_labels)
 
@@ -483,7 +520,7 @@ class DataPreprocessor:
             test_data = scaler.transform(test_data)
 
         # Reshape the testing data for CNN
-        model_type = getattr(config.data, 'model_type', 'mlp').lower()
+        model_type = getattr(config.data, "model_type", "mlp").lower()
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
 

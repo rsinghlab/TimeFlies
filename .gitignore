@@ -15,14 +15,22 @@ dist/
 # IDE
 .vscode/
 .idea/
-__pycache__ # recursive
-*.pyc
-.vscode
 *.ipynb_checkpoints
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # TimeFlies specific ignores
 outputs/logs/*.log
 *.pkl
-__pycache__/
 .pytest_cache/
+.coverage
+coverage/
 temp_*/
+
+# Development tools
+.mypy_cache/
+.ruff_cache/

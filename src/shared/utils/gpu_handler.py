@@ -30,7 +30,7 @@ class GPUHandler:
         If memory growth cannot be set (e.g., because TensorFlow has already been
         initialized), it catches and prints the RuntimeError.
         """
-        processor = getattr(config.device, 'processor', 'GPU')
+        processor = getattr(config.device, "processor", "GPU")
 
         if processor == "M":
             # Configure TensorFlow for Apple M1/M2/M3 processors

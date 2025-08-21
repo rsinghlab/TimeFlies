@@ -43,29 +43,37 @@ class DataLoader:
         # Path to the main h5ad file (directly in tissue directory from PathManager)
         self.h5ad_file_path = os.path.join(
             self.Data_dir,
-            getattr(self.config.file_locations, 'training_file', 'fly_train.h5ad'),
+            getattr(self.config.file_locations, "training_file", "fly_train.h5ad"),
         )
 
         # Path to the evaluation h5ad file
         self.h5ad_eval_file_path = os.path.join(
             self.Data_dir,
-            getattr(self.config.file_locations, 'evaluation_file', 'fly_eval.h5ad'),
+            getattr(self.config.file_locations, "evaluation_file", "fly_eval.h5ad"),
         )
 
         # Path to the original unprocessed h5ad file
         self.h5ad_file_path_original = os.path.join(
             self.Data_dir,
-            getattr(self.config.file_locations, 'original_file', 'fly_original.h5ad'),
+            getattr(self.config.file_locations, "original_file", "fly_original.h5ad"),
         )
 
         # Paths for batch-corrected data (same directory structure)
         self.h5ad_file_path_corrected = os.path.join(
             self.Data_dir,
-            getattr(self.config.file_locations.batch_corrected_files, 'train', 'fly_train_batch.h5ad'),
+            getattr(
+                self.config.file_locations.batch_corrected_files,
+                "train",
+                "fly_train_batch.h5ad",
+            ),
         )
         self.h5ad_eval_file_path_corrected = os.path.join(
             self.Data_dir,
-            getattr(self.config.file_locations.batch_corrected_files, 'eval', 'fly_eval_batch.h5ad'),
+            getattr(
+                self.config.file_locations.batch_corrected_files,
+                "eval",
+                "fly_eval_batch.h5ad",
+            ),
         )
 
     def load_data(self) -> Tuple[AnnData, AnnData, AnnData]:
@@ -120,7 +128,7 @@ class DataLoader:
         """
         # Gene lists are now in the same directory as the data files
         gene_lists_dir = Path(self.Data_dir)
-        
+
         # Load autosomal gene list from a CSV file
         autosomal_genes = (
             pd.read_csv(
@@ -134,10 +142,7 @@ class DataLoader:
 
         # Load sex-linked gene list from a CSV file
         sex_genes = (
-            pd.read_csv(
-                gene_lists_dir / "sex_genes.csv",
-                header=None
-            )
+            pd.read_csv(gene_lists_dir / "sex_genes.csv", header=None)
             .iloc[:, 0]
             .tolist()
         )

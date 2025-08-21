@@ -14,13 +14,13 @@ class GeneFilter:
     """
 
     def __init__(
-        self, 
-        config: Any, 
-        adata: AnnData, 
-        adata_eval: AnnData, 
-        adata_original: AnnData, 
-        autosomal_genes: List[str], 
-        sex_genes: List[str]
+        self,
+        config: Any,
+        adata: AnnData,
+        adata_eval: AnnData,
+        adata_original: AnnData,
+        autosomal_genes: List[str],
+        sex_genes: List[str],
     ):
         """
         Initializes the GeneFilter with the given configuration and datasets.
@@ -40,7 +40,9 @@ class GeneFilter:
         self.autosomal_genes = autosomal_genes
         self.sex_genes = sex_genes
 
-    def balance_genes(self, gene_type_1: List[str], gene_type_2: List[str]) -> List[str]:
+    def balance_genes(
+        self, gene_type_1: List[str], gene_type_2: List[str]
+    ) -> List[str]:
         """
         Balance the number of genes in gene_type_1 to match the number of genes in gene_type_2.
 
@@ -52,7 +54,7 @@ class GeneFilter:
         balanced_genes: Subset of gene_type_1 with the same size as the number of genes in gene_type_2.
         """
         config = self.config
-        random_state = getattr(config.data.train_test_split, 'random_state', 42)
+        random_state = getattr(config.data.train_test_split, "random_state", 42)
         np.random.seed(random_state)
         num_genes_type_2 = len(gene_type_2)
         if num_genes_type_2 > len(gene_type_1):
@@ -103,7 +105,9 @@ class GeneFilter:
             balanced_non_lnc_mask = data.var.index.isin(balanced_non_lnc_genes)
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
-        if getattr(config.gene_preprocessing.gene_filtering, 'remove_unaccounted_genes', False):
+        if getattr(
+            config.gene_preprocessing.gene_filtering, "remove_unaccounted_genes", False
+        ):
             accounted_mask = original_autosomal_mask | sex_mask
             data = data[:, accounted_mask]
             # Recompute the masks since data has changed
@@ -122,14 +126,26 @@ class GeneFilter:
         final_mask = np.ones(data.shape[1], dtype=bool)
 
         # Apply various filters based on configuration settings
-        remove_sex = getattr(config.gene_preprocessing.gene_filtering, 'remove_sex_genes', False)
-        balance_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_genes', False)
-        balance_lnc_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_lnc_genes', False)
-        only_keep_lnc = getattr(config.gene_preprocessing.gene_filtering, 'only_keep_lnc_genes', False)
-        remove_autosomal = getattr(config.gene_preprocessing.gene_filtering, 'remove_autosomal_genes', False)
-        remove_lnc = getattr(config.gene_preprocessing.gene_filtering, 'remove_lnc_genes', False)
-        remove_unaccounted = (
-            getattr(config.gene_preprocessing.gene_filtering, 'remove_unaccounted_genes', False)
+        remove_sex = getattr(
+            config.gene_preprocessing.gene_filtering, "remove_sex_genes", False
+        )
+        balance_genes = getattr(
+            config.gene_preprocessing.gene_balancing, "balance_genes", False
+        )
+        balance_lnc_genes = getattr(
+            config.gene_preprocessing.gene_balancing, "balance_lnc_genes", False
+        )
+        only_keep_lnc = getattr(
+            config.gene_preprocessing.gene_filtering, "only_keep_lnc_genes", False
+        )
+        remove_autosomal = getattr(
+            config.gene_preprocessing.gene_filtering, "remove_autosomal_genes", False
+        )
+        remove_lnc = getattr(
+            config.gene_preprocessing.gene_filtering, "remove_lnc_genes", False
+        )
+        remove_unaccounted = getattr(
+            config.gene_preprocessing.gene_filtering, "remove_unaccounted_genes", False
         )
         balance_autosomal = remove_sex and balance_genes
 
@@ -138,7 +154,7 @@ class GeneFilter:
 
         elif balance_lnc_genes:
             final_mask &= balanced_non_lnc_mask
-        
+
         else:
             if only_keep_lnc:
                 final_mask &= lnc_mask
@@ -153,7 +169,12 @@ class GeneFilter:
                 final_mask &= no_lnc_mask
 
         # If not removing unaccounted genes, ensure they are included in the final mask
-        if not remove_unaccounted and balanced_non_lnc_genes is None and not only_keep_lnc and not balance_autosomal:
+        if (
+            not remove_unaccounted
+            and balanced_non_lnc_genes is None
+            and not only_keep_lnc
+            and not balance_autosomal
+        ):
             final_mask |= unaccounted_mask
 
         # Apply the final combined mask
@@ -162,12 +183,12 @@ class GeneFilter:
         return data
 
     def filter_genes_based_on_config(
-        self, 
-        adata: AnnData, 
-        adata_eval: AnnData, 
-        adata_original: AnnData, 
-        sex_genes: List[str], 
-        autosomal_genes: List[str]
+        self,
+        adata: AnnData,
+        adata_eval: AnnData,
+        adata_original: AnnData,
+        sex_genes: List[str],
+        autosomal_genes: List[str],
     ) -> Tuple[AnnData, AnnData, AnnData]:
         """
         Filter genes in multiple datasets based on provided configurations.
@@ -192,12 +213,16 @@ class GeneFilter:
         original_autosomal_genes = autosomal_genes.copy()
 
         # Balance the number of autosomal genes with the number of X genes if required
-        balance_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_genes', False)
+        balance_genes = getattr(
+            config.gene_preprocessing.gene_balancing, "balance_genes", False
+        )
         if balance_genes:
             autosomal_genes = self.balance_genes(autosomal_genes, sex_genes)
 
         # Balance the number of non-lnc genes with the number of lnc genes if required
-        balance_lnc_genes = getattr(config.gene_preprocessing.gene_balancing, 'balance_lnc_genes', False)
+        balance_lnc_genes = getattr(
+            config.gene_preprocessing.gene_balancing, "balance_lnc_genes", False
+        )
         balanced_non_lnc_genes = None
         if balance_lnc_genes:
             balanced_non_lnc_genes = self.balance_genes(non_lnc_genes, lnc_genes)
@@ -208,21 +233,27 @@ class GeneFilter:
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
         adata_eval = self.create_and_apply_mask(
             data=adata_eval,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
         adata_original = self.create_and_apply_mask(
             data=adata_original,
             sex_genes=sex_genes,
             autosomal_genes=autosomal_genes,
             original_autosomal_genes=original_autosomal_genes,
-            balanced_non_lnc_genes=balanced_non_lnc_genes if balance_lnc_genes else None,
+            balanced_non_lnc_genes=balanced_non_lnc_genes
+            if balance_lnc_genes
+            else None,
         )
 
         return adata, adata_eval, adata_original
@@ -240,13 +271,15 @@ class GeneFilter:
                  and original datasets.
         """
         # Apply the gene filtering based on the config
-        self.adata, self.adata_eval, self.adata_original = (
-            self.filter_genes_based_on_config(
-                self.adata,
-                self.adata_eval,
-                self.adata_original,
-                self.sex_genes,
-                self.autosomal_genes,
-            )
+        (
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+        ) = self.filter_genes_based_on_config(
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.sex_genes,
+            self.autosomal_genes,
         )
         return self.adata, self.adata_eval, self.adata_original

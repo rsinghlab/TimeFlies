@@ -83,10 +83,10 @@ UMAP_SUBDIR = "UMAP"
 # Configuration validation
 REQUIRED_CONFIG_SECTIONS = [
     "DataParameters",
-    "GenePreprocessing", 
+    "GenePreprocessing",
     "DataProcessing",
     "ModelParameters",
-    "Device"
+    "Device",
 ]
 
 # Error messages
@@ -102,5 +102,5 @@ ERROR_MESSAGES = {
     "preprocessing_failed": "Data preprocessing failed: {}",
     "model_build_failed": "Model building failed: {}",
     "model_train_failed": "Model training failed: {}",
-    "evaluation_failed": "Model evaluation failed: {}"
+    "evaluation_failed": "Model evaluation failed: {}",
 }

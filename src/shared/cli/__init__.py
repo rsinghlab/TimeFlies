@@ -7,15 +7,13 @@ from .commands import (
     batch_command,
     setup_command,
     run_system_tests,
-    validate_command
 )
 
 __all__ = [
-    'main_cli',
-    'train_command',
-    'evaluate_command', 
-    'batch_command',
-    'setup_command',
-    'run_system_tests',
-    'validate_command'
+    "main_cli",
+    "train_command",
+    "evaluate_command",
+    "batch_command",
+    "setup_command",
+    "run_system_tests",
 ]

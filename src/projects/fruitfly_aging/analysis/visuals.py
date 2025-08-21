@@ -306,12 +306,12 @@ class VisualizationTools:
             if auc_name in history_data:
                 auc_metric = auc_name.replace("val_", "")  # Use the base metric name
                 break
-        
+
         metrics = [
             ("loss", "Model Loss", "Loss"),
             ("accuracy", "Model Accuracy", "Accuracy"),
         ]
-        
+
         if auc_metric:
             metrics.append((auc_metric, "Model AUC", "AUC"))
 
@@ -332,7 +332,7 @@ class VisualizationTools:
             # Skip metrics that don't exist in the history
             if metric not in history_data:
                 continue
-                
+
             ax = axes[plot_index]
             ax.plot(range(1, len(history_data[metric]) + 1), history_data[metric])
             ax.plot(
@@ -593,7 +593,7 @@ class Visualizer:
         """
         Sets y_true, y_pred, y_pred_class
         """
-        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        model_type = getattr(self.config.data, "model_type", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
             self.y_pred = self.model.predict(self.test_inputs)
         else:
@@ -607,7 +607,7 @@ class Visualizer:
         """
         Visualize the training history for the model based on the configuration.
         """
-        model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        model_type = getattr(self.config.data, "model_type", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
             self.visual_tools.plot_history(self.history, "training_metrics.png")
         elif model_type == "xgboost":
@@ -621,7 +621,7 @@ class Visualizer:
         class_labels = self.label_encoder.classes_
 
         # Sort the class labels based on age if specified in the config
-        if "age" in getattr(self.config.data, 'encoding_variable', 'age'):
+        if "age" in getattr(self.config.data, "encoding_variable", "age"):
             class_labels = self._sort_labels_by_age(class_labels)
 
         # Create confusion matrix
@@ -680,21 +680,26 @@ class Visualizer:
         if self.squeezed_shap_values is not None:
             # Try to get var_names from adata objects first
             var_names = None
-            if (getattr(self.config.data.batch_correction, 'enabled', False)
-                or getattr(self.config.gene_preprocessing.gene_filtering, 'select_batch_genes', False)):
+            if getattr(self.config.data.batch_correction, "enabled", False) or getattr(
+                self.config.gene_preprocessing.gene_filtering,
+                "select_batch_genes",
+                False,
+            ):
                 if self.adata_corrected is not None:
                     var_names = self.adata_corrected.var_names
             else:
                 if self.adata is not None:
                     var_names = self.adata.var_names
-            
+
             # If adata objects are not available, use preserved gene names (evaluation mode)
             if var_names is None and self.preserved_var_names is not None:
                 var_names = self.preserved_var_names
-            
+
             # Only proceed if we have actual gene names
             if var_names is None:
-                logger.warning("No gene names available for SHAP visualization - skipping SHAP plots")
+                logger.warning(
+                    "No gene names available for SHAP visualization - skipping SHAP plots"
+                )
                 return
             self.visual_tools.plot_shap_summary(
                 shap_values=self.squeezed_shap_values,

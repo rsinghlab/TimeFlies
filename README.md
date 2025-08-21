@@ -186,4 +186,9 @@ src/
 
 See `LICENSE` file for details.
 
+## Future Improvements
+
+- Convert to Pytorch
+- Combine batch correction and main env into one
+
 ---

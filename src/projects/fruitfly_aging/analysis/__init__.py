@@ -9,4 +9,4 @@ from .visuals import VisualizationTools
 from .analyzer import AgingAnalyzer
 from .visualizer import AgingVisualizer
 
-__all__ = ['EDAHandler', 'VisualizationTools', 'AgingAnalyzer', 'AgingVisualizer']
+__all__ = ["EDAHandler", "VisualizationTools", "AgingAnalyzer", "AgingVisualizer"]

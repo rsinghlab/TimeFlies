@@ -7,29 +7,41 @@ and specialized methods for studying aging in Drosophila melanogaster.
 
 # Import submodules to ensure they are available as attributes
 from . import analysis
-from . import evaluation  
+from . import evaluation
 from . import preprocessing
 
 # Analysis tools
 from .analysis import AgingAnalyzer, AgingVisualizer, EDAHandler, VisualizationTools
 
-# Evaluation and metrics  
+# Evaluation and metrics
 from .evaluation import Interpreter, AgingMetrics
 
 # Preprocessing tools
 from .preprocessing import (
-    DataSetupManager, AgingDataSetupManager, 
-    DataPreprocessor, GeneFilter, BatchCorrector
+    DataSetupManager,
+    AgingDataSetupManager,
+    DataPreprocessor,
+    GeneFilter,
+    BatchCorrector,
 )
 
 __all__ = [
     # Modules
-    'analysis', 'evaluation', 'preprocessing',
+    "analysis",
+    "evaluation",
+    "preprocessing",
     # Analysis
-    'AgingAnalyzer', 'AgingVisualizer', 'EDAHandler', 'VisualizationTools',
+    "AgingAnalyzer",
+    "AgingVisualizer",
+    "EDAHandler",
+    "VisualizationTools",
     # Evaluation
-    'Interpreter', 'AgingMetrics', 
+    "Interpreter",
+    "AgingMetrics",
     # Preprocessing
-    'DataSetupManager', 'AgingDataSetupManager',
-    'DataPreprocessor', 'GeneFilter', 'BatchCorrector'
+    "DataSetupManager",
+    "AgingDataSetupManager",
+    "DataPreprocessor",
+    "GeneFilter",
+    "BatchCorrector",
 ]

@@ -1,5 +1,6 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' # Suppress TensorFlow logging
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Suppress TensorFlow logging
 import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
@@ -204,7 +205,7 @@ class ModelLoader:
         self.path_manager = PathManager(self.config)
 
         # Construct the directory and specific paths for model loading
-        self.model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        self.model_type = getattr(self.config.data, "model_type", "CNN").lower()
         self.model_dir = self.path_manager.construct_model_directory()
         self.model_path = self._get_model_path()
 
@@ -360,7 +361,7 @@ class ModelBuilder:
         self.is_scaler_fit = is_scaler_fit
         self.highly_variable_genes = highly_variable_genes
         self.mix_included = mix_included
-        self.model_type = getattr(self.config.data, 'model_type', 'CNN').lower()
+        self.model_type = getattr(self.config.data, "model_type", "CNN").lower()
 
     def create_cnn_model(self, num_output_units):
         """
@@ -372,12 +373,12 @@ class ModelBuilder:
         Returns:
             model (tensorflow.python.keras.Model): The created and compiled CNN model.
         """
-        cnn_config = getattr(self.config.model, 'cnn', {})
+        cnn_config = getattr(self.config.model, "cnn", {})
 
         # Create model
         model = tf.keras.Sequential()
 
-        # Convolutional blocks  
+        # Convolutional blocks
         for i in range(len(cnn_config.filters)):
             if i == 0:
                 # First layer needs input_shape
@@ -415,29 +416,27 @@ class ModelBuilder:
         model.add(tf.keras.layers.Flatten())
         for units in cnn_config.dense_units:
             model.add(
-                tf.keras.layers.Dense(
-                    units=units, activation=cnn_config.activation
-                )
+                tf.keras.layers.Dense(units=units, activation=cnn_config.activation)
             )
             model.add(tf.keras.layers.Dropout(rate=cnn_config.dropout_rate))
         model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
 
         # Determine optimizer based on computer type
-        learning_rate = getattr(self.config.model.training, 'learning_rate', 0.001)
-        if getattr(self.config.device, 'processor', 'GPU').lower() == "m":
+        learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
+        if getattr(self.config.device, "processor", "GPU").lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=learning_rate
             )  # for M1/M2/M3 Macs
         else:
-            optimizer_instance = tf.keras.optimizers.Adam(
-                learning_rate=learning_rate
-            )
+            optimizer_instance = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(self.config.model.training, 'custom_loss', 'categorical_crossentropy'),
-            metrics=getattr(self.config.model.training, 'metrics', ['accuracy', 'auc']),
+            loss=getattr(
+                self.config.model.training, "custom_loss", "categorical_crossentropy"
+            ),
+            metrics=getattr(self.config.model.training, "metrics", ["accuracy", "auc"]),
         )
 
         return model
@@ -452,7 +451,7 @@ class ModelBuilder:
         Returns:
             model (tensorflow.python.keras.Model): The created and compiled MLP model.
         """
-        mlp_config = getattr(self.config.model, 'mlp', {})
+        mlp_config = getattr(self.config.model, "mlp", {})
 
         model = tf.keras.Sequential()
 
@@ -472,7 +471,7 @@ class ModelBuilder:
         model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
 
         # Determine optimizer based on computer type
-        if getattr(self.config.device, 'processor', 'GPU').lower() == "m":
+        if getattr(self.config.device, "processor", "GPU").lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=mlp_config.learning_rate
             )  # for M1/M2/M3 Macs
@@ -484,8 +483,10 @@ class ModelBuilder:
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(self.config.model.training, 'custom_loss', 'categorical_crossentropy'),
-            metrics=getattr(self.config.model.training, 'metrics', ['accuracy', 'auc']),
+            loss=getattr(
+                self.config.model.training, "custom_loss", "categorical_crossentropy"
+            ),
+            metrics=getattr(self.config.model.training, "metrics", ["accuracy", "auc"]),
         )
 
         return model
@@ -497,7 +498,7 @@ class ModelBuilder:
         Returns:
             lr (sklearn.linear_model.LogisticRegression): The logistic regression model.
         """
-        lr_config = getattr(self.config.model, 'logistic_regression', {})
+        lr_config = getattr(self.config.model, "logistic_regression", {})
 
         lr = LogisticRegression(
             penalty=lr_config.penalty,
@@ -516,7 +517,7 @@ class ModelBuilder:
         Returns:
             rf (sklearn.ensemble.RandomForestClassifier): The random forest classifier.
         """
-        rf_config = getattr(self.config.model, 'random_forest', {})
+        rf_config = getattr(self.config.model, "random_forest", {})
 
         rf = RandomForestClassifier(
             n_estimators=rf_config.n_estimators,
@@ -540,13 +541,10 @@ class ModelBuilder:
         Returns:
             model (xgboost.XGBClassifier): The XGBoost classifier.
         """
-        xgb_config = getattr(self.config.model, 'xgboost', {})
+        xgb_config = getattr(self.config.model, "xgboost", {})
 
         # Determine task type and set corresponding XGBoost parameters
-        if (
-            getattr(self.config.data, 'encoding_variable', 'age').lower()
-            == "sex"
-        ):
+        if getattr(self.config.data, "encoding_variable", "age").lower() == "sex":
             task_type = "binary"
             xgb_objective = "binary:logistic"
             eval_metric = "auc"
@@ -696,14 +694,15 @@ class ModelBuilder:
         ) = train_test_split(
             self.train_data,
             self.train_labels,
-            test_size=getattr(self.config.model.training, 'validation_split', 0.2),
-            random_state=getattr(self.config.data.train_test_split, 'random_state', 42),
+            test_size=getattr(self.config.model.training, "validation_split", 0.2),
+            random_state=getattr(self.config.data.train_test_split, "random_state", 42),
             stratify=self.train_labels,
         )
 
         # Define callbacks for early stopping and model saving
         early_stopping = EarlyStopping(
-            monitor="val_loss", patience=getattr(self.config.model.training, 'early_stopping_patience', 10)
+            monitor="val_loss",
+            patience=getattr(self.config.model.training, "early_stopping_patience", 10),
         )
         model_checkpoint = CustomModelCheckpoint(
             custom_model_path,
@@ -732,8 +731,8 @@ class ModelBuilder:
         history = model.fit(
             train_inputs_split,
             train_labels_split,
-            epochs=getattr(self.config.model.training, 'epochs', 100),
-            batch_size=getattr(self.config.model.training, 'batch_size', 32),
+            epochs=getattr(self.config.model.training, "epochs", 100),
+            batch_size=getattr(self.config.model.training, "batch_size", 32),
             validation_data=(val_inputs_split, val_labels_split),
             callbacks=[early_stopping, model_checkpoint],
         )
@@ -767,8 +766,8 @@ class ModelBuilder:
         ) = train_test_split(
             self.train_data,
             train_labels,
-            test_size=getattr(self.config.model.training, 'validation_split', 0.2),
-            random_state=getattr(self.config.data.train_test_split, 'random_state', 42),
+            test_size=getattr(self.config.model.training, "validation_split", 0.2),
+            random_state=getattr(self.config.data.train_test_split, "random_state", 42),
             stratify=train_labels,
         )
 

@@ -14,19 +14,19 @@ logger = logging.getLogger(__name__)
 class AgingDataSetupManager(BaseDataSetupManager):
     """
     Aging-specific data setup manager.
-    
+
     Currently inherits all functionality from the base DataSetupManager.
     Can be extended with aging-specific setup logic in the future.
     """
-    
+
     def __init__(self, config=None):
         """Initialize with aging-specific defaults if needed."""
         super().__init__(config)
-        
+
     def setup_aging_data(self):
         """
         Aging-specific data setup workflow.
-        
+
         Could include aging-specific validation, data quality checks, etc.
         For now, just calls the standard setup.
         """
