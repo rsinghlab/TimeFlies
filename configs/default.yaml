@@ -1,167 +1,149 @@
-# Default configuration for TimeFlies project
+# =============================================================================
+# TIMEFLIES DEFAULT CONFIGURATION
+# =============================================================================
+# Shared settings across all projects. Project-specific overrides go in 
+# project folders (fruitfly_aging/, fruitfly_alzheimers/)
 
-# General settings
+# =============================================================================
+# PROJECT SETTINGS
+# =============================================================================
+project: fruitfly_aging  # <-- CHANGE THIS TO SWITCH PROJECTS
+
 general:
-  project_name: "TimeFlies"
   version: "0.2.0"
   random_state: 42
 
-# Device configuration
-device:
+# =============================================================================
+# HARDWARE CONFIGURATION  
+# =============================================================================
+hardware:
   processor: "GPU"  # Options: "GPU", "CPU", "M" (Apple Silicon)
-  gpu_memory_growth: true
+  memory_growth: true
 
-# Data parameters
+# =============================================================================
+# DATA CONFIGURATION
+# =============================================================================
 data:
-  # General settings
+  # Core data settings
+  model: "CNN"  # Options: "CNN", "MLP", "logistic", "xgboost", "random_forest"
   tissue: "head"  # Options: "head", "body", "all"
-  model_type: "CNN"  # Options: "CNN", "MLP", "logistic", "xgboost", "random_forest"
-  encoding_variable: "age"  # Options: "age", "sex", "tissue", "dataset"
-  cell_type: "all"  # Options: "all", specific cell types
-  sex_type: "all"  # Options: "all", "male", "female"
+  species: "drosophila"
+  cell_type: "all"
+  sex: "all"  # Options: "all", "male", "female"
   
-  # Batch correction
+  # Data processing options
   batch_correction:
-    enabled: false  # Set to true to use batch-corrected data (requires large memory)
+    enabled: false  # Set to true to use batch-corrected data
     
-  # Filtering
   filtering:
     include_mixed_sex: false
     
-  # Sampling
   sampling:
-    num_samples: null  # null for all samples
-    num_variables: null  # null for all variables
+    samples: null  # null for all samples, or specify number
+    variables: null  # null for all genes, or specify number
     
-  # Train-test split
-  train_test_split:
-    # Split method - IMPORTANT:
-    # - "random": Standard random split using test_split ratio (ignores train/test settings below)
-    # - "sex": Train on one sex, test on another (uses train.sex and test.sex)
-    # - "tissue": Train on one tissue, test on another (uses train.tissue and test.tissue)
+  # Train-test splitting strategies
+  split:
+    # Method options:
+    # - "random": Standard random split using test_ratio (ignores other settings)
+    # - "sex": Train on one sex, test on another (uses sex_split settings)  
+    # - "tissue": Train on one tissue, test on another (uses tissue_split settings)
     method: "random"  # Options: "random", "sex", "tissue"
-    test_split: 0.2   # Used only when method="random"
-    random_state: 42
+    test_ratio: 0.2   # Used only when method="random"
     
-    # Settings below are ONLY used when method="sex" or method="tissue"
-    # They are IGNORED when method="random"
-    train:
-      sex: "male"      # Used only when method="sex"
-      tissue: "head"   # Used only when method="tissue"
-    test:
-      sex: "female"    # Used only when method="sex"
-      tissue: "body"   # Used only when method="tissue"
-      size: 0.3        # Optional: limit test set size for sex/tissue splits
+    # Sex-based splitting (used only when method="sex")
+    sex:
+      train: "male"    # Train on males
+      test: "female"   # Test on females
+      
+    # Tissue-based splitting (used only when method="tissue")
+    tissue:
+      train: "head"    # Train on head tissue
+      test: "body"     # Test on body tissue
 
-# Gene preprocessing
-gene_preprocessing:
-  # Gene filtering
-  gene_filtering:
-    remove_sex_genes: false
-    remove_autosomal_genes: false
-    only_keep_lnc_genes: false
-    remove_lnc_genes: false
-    remove_unaccounted_genes: false
-    select_batch_genes: false
-    highly_variable_genes: false
+# =============================================================================
+# FILE PATHS (AUTO-GENERATED FROM TEMPLATES)
+# =============================================================================
+# Uses template variables: {project}, {tissue}, {species}
+paths:
+  # Input/output data files
+  data:
+    train: "data/{project}/{tissue}/{species}_{tissue}_{project}_train.h5ad"
+    eval: "data/{project}/{tissue}/{species}_{tissue}_{project}_eval.h5ad"
+    original: "data/{project}/{tissue}/{species}_{tissue}_{project}_original.h5ad"
     
-  # Gene balancing
-  gene_balancing:
-    balance_genes: false
-    balance_lnc_genes: false
-    
-  # Gene shuffling
-  gene_shuffle:
-    shuffle_genes: false
-    shuffle_random_state: 42
+  # Batch-corrected versions
+  batch_data:
+    train: "data/{project}/{tissue}/{species}_{tissue}_{project}_train_batch.h5ad"
+    eval: "data/{project}/{tissue}/{species}_{tissue}_{project}_eval_batch.h5ad"
 
-# Data processing
-data_processing:
-  # Preprocessing
-  preprocessing:
-    required: true
-    save_data: true
-    
-  # Model management
-  # Note: Use 'evaluate' command to evaluate existing models
-    
-  # Normalization
-  normalization:
-    enabled: false
-
-# Model parameters
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
 model:
-  # Training parameters
+  # Shared training parameters (architectures defined in project configs)
   training:
     epochs: 100
     batch_size: 32
     validation_split: 0.2
     early_stopping_patience: 8
     learning_rate: 0.001
-    
-  # Model architecture (CNN specific)
-  cnn:
-    filters: [32]              # Only one convolutional layer
-    kernel_sizes: [3]          # Corresponding kernel size
-    strides: [1]
-    paddings: ["same"] 
-    pool_sizes: [2]
-    pool_strides: [2]
-    
-    dense_units: [128]         # Only one fully connected layer before output
-    dropout_rate: 0.5
-    activation: "relu"
-    
-  # Model architecture (MLP specific)
-  mlp:
-    hidden_layers: [512, 256, 128]
-    activation: "relu"
-    dropout_rate: 0.2
-    
-  # Model architecture (XGBoost specific)
-  xgboost:
-    n_estimators: 100
-    max_depth: 6
-    learning_rate: 0.1
-    subsample: 0.8
-    colsample_bytree: 0.8
-    eval_metric: "mlogloss"  # Will auto-adjust based on problem type
-    
-  # Model architecture (Random Forest specific)
-  random_forest:
-    n_estimators: 100
-    max_depth: null  # No limit
-    min_samples_split: 2
-    min_samples_leaf: 1
-    max_features: "sqrt"
-    
-  # Model architecture (Logistic Regression specific)
-  logistic:
-    max_iter: 1000
-    C: 1.0  # Regularization strength
-    penalty: "l2"  # Regularization type
-    solver: "lbfgs"
 
-# Feature importance and visualizations
-feature_importance:
-  run_interpreter: true     # Enable/disable SHAP interpretation
-  run_visualization: true   # Enable/disable visualization generation
-  load_SHAP: true          # Load existing SHAP values instead of computing
-  reference_size: 100
-  
-# File locations
-file_locations:
-  training_file: "fly_train.h5ad"
-  evaluation_file: "fly_eval.h5ad"
-  original_file: "fly_original.h5ad"
-  batch_corrected_files:
-    train: "fly_train_batch.h5ad"
-    eval: "fly_eval_batch.h5ad"
+# =============================================================================
+# PREPROCESSING CONFIGURATION
+# =============================================================================
+preprocessing:
+  # Gene filtering options
+  genes:
+    remove_sex_genes: false          # Remove sex-linked genes
+    remove_autosomal_genes: false    # Remove autosomal genes
+    only_keep_lnc_genes: false       # Keep only long non-coding genes
+    remove_lnc_genes: false          # Remove long non-coding genes
+    remove_unaccounted_genes: false  # Remove unaccounted genes
+    highly_variable_genes: false     # Filter for highly variable genes
+    
+  # Gene balancing
+  balancing:
+    balance_genes: false
+    balance_lnc_genes: false
+    
+  # Gene shuffling
+  shuffling:
+    shuffle_genes: false
 
-# Logging
+# =============================================================================
+# ANALYSIS CONFIGURATION  
+# =============================================================================
+analysis:
+  # Data normalization
+  normalization:
+    enabled: false
+    
+  # Exploratory data analysis
+  eda:
+    enabled: false
+    
+  # Model management
+  model_management:
+    load_existing: false
+
+# Feature importance analysis
+interpretation:
+  shap:
+    enabled: false           # Enable/disable SHAP interpretation (includes visualizations)
+    load_existing: false     # Load existing SHAP values instead of computing
+    reference_size: 100      # Reference size for SHAP analysis
+
+# Visualizations
+visualizations:
+  enabled: false             # Enable general visualizations (training plots, confusion matrix, ROC curves, etc.)
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
 logging:
-  level: "INFO"  # Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
-  format: "detailed"  # Options: "simple", "detailed", "json"
-  log_to_file: false
-  log_directory: "logs"
-  log_filename: "timeflies.log"
+  level: "INFO"              # Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+  format: "detailed"         # Options: "simple", "detailed", "json"
+  to_file: false             # Save logs to file
+  directory: "logs"          # Log directory
+  filename: "timeflies.log"  # Log filename

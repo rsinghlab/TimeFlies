@@ -6,7 +6,7 @@ import tensorflow as tf
 from unittest.mock import Mock, patch, MagicMock, mock_open
 from sklearn.preprocessing import LabelEncoder
 
-from src.timeflies.models.model import ModelBuilder, ModelLoader, CustomModelCheckpoint
+from shared.models.model import ModelBuilder, ModelLoader, CustomModelCheckpoint
 
 
 class TestModelBuilder:
@@ -308,7 +308,7 @@ class TestModelBuilder:
         with pytest.raises(ValueError, match="Unsupported model type provided"):
             builder.build_model()
             
-    @patch('src.timeflies.models.model.PathManager')
+    @patch('shared.models.model.PathManager')
     def test_prepare_directories(self, mock_path_manager):
         """Test directory preparation for model saving."""
         train_data, _ = self.train_data
@@ -364,7 +364,7 @@ class TestModelLoader:
         config.data.model_type = 'CNN'
         return config
         
-    @patch('src.timeflies.models.model.PathManager')
+    @patch('shared.models.model.PathManager')
     def test_model_loader_initialization(self, mock_path_manager):
         """Test ModelLoader initialization."""
         mock_path_manager.return_value.construct_model_directory.return_value = '/tmp/test_model'
@@ -377,7 +377,7 @@ class TestModelLoader:
         
     def test_get_model_path_neural_network(self):
         """Test model path generation for neural networks."""
-        with patch('src.timeflies.models.model.PathManager'):
+        with patch('shared.models.model.PathManager'):
             loader = ModelLoader(self.mock_config)
             loader.model_type = 'cnn'
             loader.model_dir = '/tmp/test_model'
@@ -388,7 +388,7 @@ class TestModelLoader:
     def test_get_model_path_sklearn_model(self):
         """Test model path generation for sklearn models."""
         self.mock_config.data.model_type = 'LogisticRegression'
-        with patch('src.timeflies.models.model.PathManager'):
+        with patch('shared.models.model.PathManager'):
             loader = ModelLoader(self.mock_config)
             loader.model_type = 'logisticregression'
             loader.model_dir = '/tmp/test_model'
@@ -404,7 +404,7 @@ class TestModelLoader:
         mock_model = Mock()
         mock_load_model.return_value = mock_model
         
-        with patch('src.timeflies.models.model.PathManager'):
+        with patch('shared.models.model.PathManager'):
             loader = ModelLoader(self.mock_config)
             loader.model_type = 'cnn'
             loader.model_path = '/tmp/test_model/best_model.h5'
@@ -423,7 +423,7 @@ class TestModelLoader:
         mock_pickle_load.return_value = mock_model
         
         self.mock_config.data.model_type = 'LogisticRegression'
-        with patch('src.timeflies.models.model.PathManager'):
+        with patch('shared.models.model.PathManager'):
             loader = ModelLoader(self.mock_config)
             loader.model_type = 'logisticregression'
             loader.model_path = '/tmp/test_model/best_model.pkl'

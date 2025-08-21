@@ -6,7 +6,7 @@ import pandas as pd
 from unittest.mock import Mock, patch
 from anndata import AnnData
 
-from src.timeflies.data.preprocessing.data_processor import DataPreprocessor
+from shared.data.preprocessing.data_processor import DataPreprocessor
 
 
 class TestDataPreprocessor:

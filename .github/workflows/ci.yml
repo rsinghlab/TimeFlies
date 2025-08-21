@@ -41,11 +41,11 @@ jobs:
         
     - name: Test imports
       run: |
-        python -c "from src.timeflies.core.config_manager import ConfigManager; print('✅ Import test passed')"
+        python -c "from shared.core.config_manager import ConfigManager; print('✅ Import test passed')"
         
     - name: Run tests
       run: |
-        pytest tests/ --cov=src/timeflies --cov-report=xml --cov-report=term -v
+        pytest tests/ --cov=src/projects --cov=src/shared --cov-report=xml --cov-report=term -v
         
     - name: Upload coverage to Codecov
       if: matrix.python-version == env.PYTHON_VERSION_DEFAULT && matrix.os == 'ubuntu-latest'
@@ -88,7 +88,7 @@ jobs:
         
     - name: Type checking with mypy
       run: |
-        mypy src/timeflies --ignore-missing-imports
+        mypy src/projects src/shared --ignore-missing-imports
       continue-on-error: true
 
   # Security

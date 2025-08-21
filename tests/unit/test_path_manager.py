@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.timeflies.utils.path_manager import PathManager
+from shared.utils.path_manager import PathManager
 
 
 class TestPathManager:
@@ -39,7 +39,8 @@ class TestPathManager:
             "encoding_variable": "age",
             "cell_type": "all",
             "sex_type": "all",
-            "batch_correction_enabled": False
+            "batch_correction_enabled": False,
+            "project": "fruitfly_aging"
         }
         defaults.update(overrides)
         
@@ -48,6 +49,7 @@ class TestPathManager:
         config.data = Mock()
         config.data.tissue = defaults["tissue"]
         config.data.model_type = defaults["model_type"]
+        config.data.project = defaults["project"]
         config.data.encoding_variable = defaults["encoding_variable"]
         config.data.cell_type = defaults["cell_type"]
         config.data.sex_type = defaults["sex_type"]
@@ -142,7 +144,7 @@ class TestPathManager:
             path_manager = PathManager(config)
             
             model_dir = path_manager.construct_model_directory()
-            expected_path = self.project_root / "outputs" / "models" / "uncorrected" / "head_cnn_age" / "all-genes_all-cells_all-sexes"
+            expected_path = self.project_root / "outputs" / "fruitfly_aging" / "models" / "uncorrected" / "head_cnn_age" / "all-genes_all-cells_all-sexes"
             
             assert model_dir == str(expected_path)
             assert expected_path.exists()  # Should be created
@@ -189,24 +191,26 @@ class TestPathManager:
     def test_raw_data_directory(self):
         """Test raw data directory construction."""
         config = self.create_mock_config()
+        config.data.project = 'fruitfly_aging'  # Set explicit project value
         
         with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             raw_dir = path_manager.get_raw_data_dir()
-            expected_path = self.project_root / "data" / "raw" / "h5ad" / "head"
+            expected_path = self.project_root / "data" / "fruitfly_aging" / "head"
             
             assert raw_dir == str(expected_path)
             
     def test_tissue_override(self):
         """Test tissue override in raw data directory."""
         config = self.create_mock_config(tissue="head")
+        config.data.project = 'fruitfly_aging'  # Set explicit project value
         
         with patch.object(PathManager, '_get_project_root', return_value=self.project_root):
             path_manager = PathManager(config)
             
             raw_dir = path_manager.get_raw_data_dir(tissue_override="body")
-            expected_path = self.project_root / "data" / "raw" / "h5ad" / "body"
+            expected_path = self.project_root / "data" / "fruitfly_aging" / "body"
             
             assert raw_dir == str(expected_path)
             

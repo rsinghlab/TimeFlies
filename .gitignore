@@ -3,6 +3,18 @@
 best_model.pkl
 shap_values.pkl
 .venv
+.venv_batch/
+activate_batch.sh
+activate.sh
+
+# Build and dist
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
 __pycache__ # recursive
 *.pyc
 .vscode
@@ -10,7 +22,6 @@ __pycache__ # recursive
 
 # TimeFlies specific ignores
 outputs/logs/*.log
-data/processed/*/
 *.pkl
 __pycache__/
 .pytest_cache/

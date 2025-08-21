@@ -1,0 +1,52 @@
+# Alzheimer's Project Configuration
+# Import shared default configuration
+base_config: "../default.yaml"
+
+# Alzheimer's-specific overrides
+data:
+  # Alzheimer's-specific target variable
+  encoding_variable: "condition"
+
+# Model overrides for alzheimer's analysis (more complex models)
+model:
+  # CNN architecture
+  cnn:
+    filters: [32]              # Single convolutional layer
+    kernel_sizes: [3]          
+    strides: [1]
+    paddings: ["same"] 
+    pool_sizes: [2]
+    pool_strides: [2]
+    dense_units: [128]         # Single dense layer before output
+    dropout_rate: 0.5
+    activation: "relu"
+    
+  # MLP architecture
+  mlp:
+    hidden_layers: [512, 256, 128]
+    activation: "relu"
+    dropout_rate: 0.2
+    
+  # XGBoost architecture
+  xgboost:
+    n_estimators: 100
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    eval_metric: "mlogloss"
+    
+  # Random Forest architecture
+  random_forest:
+    n_estimators: 100
+    max_depth: null  # No limit
+    min_samples_split: 2
+    min_samples_leaf: 1
+    max_features: "sqrt"
+    
+  # Logistic Regression architecture
+  logistic:
+    max_iter: 1000
+    C: 1.0  # Regularization strength
+    penalty: "l2"
+    solver: "lbfgs"

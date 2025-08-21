@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to Python path for testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from tests.fixtures.sample_data import (
+from tests.fixtures.unit_test_data import (
     create_sample_anndata, 
     create_test_project_structure,
     create_minimal_config,
@@ -67,7 +67,7 @@ def reset_global_state():
     """Reset global state before each test."""
     # Reset config manager global state
     try:
-        from src.timeflies.core.config_manager import reset_config
+        from shared.core.config_manager import reset_config
         reset_config()
     except ImportError:
         pass
@@ -76,7 +76,7 @@ def reset_global_state():
     
     # Clean up after test
     try:
-        from src.timeflies.core.config_manager import reset_config
+        from shared.core.config_manager import reset_config
         reset_config()
     except ImportError:
         pass

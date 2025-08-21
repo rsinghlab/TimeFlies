@@ -1,0 +1,21 @@
+# Shared setup configuration for TimeFlies projects
+# Contains only settings that exist in current setup configs
+
+general:
+  project_name: TimeFlies
+  version: 0.2.0
+  random_state: 42
+
+data:
+  # Common settings found in both projects
+  tissue: head  # Both projects use head tissue
+  species: drosophila  # Both use drosophila
+  
+  # Train/test split settings (both have this)
+  train_test_split:
+    split_size: 5000  # Default split size
+    
+  # Sampling settings (both have this)
+  sampling:
+    num_samples: null  # null = use all samples
+    num_variables: null  # null = use all genes

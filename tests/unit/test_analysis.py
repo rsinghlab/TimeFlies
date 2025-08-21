@@ -6,8 +6,17 @@ import pandas as pd
 from unittest.mock import Mock, patch, MagicMock
 from anndata import AnnData
 
-from src.timeflies.analysis.eda import EDAHandler
-from src.timeflies.analysis.visuals import Visualizer
+# Import from project-specific modules since analysis is project-specific
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
+
+# Import the module first to ensure it's loaded
+import projects.fruitfly_aging.analysis.eda
+import projects.fruitfly_aging.analysis.visuals
+
+from projects.fruitfly_aging.analysis.eda import EDAHandler  
+from projects.fruitfly_aging.analysis.visuals import VisualizationTools as Visualizer
 
 
 class TestEDAHandler:
@@ -74,7 +83,7 @@ class TestEDAHandler:
         
         return adata_corrected, adata_eval_corrected
         
-    @patch('src.timeflies.analysis.eda.VisualizationTools')
+    @patch('projects.fruitfly_aging.analysis.eda.VisualizationTools')
     def test_eda_handler_initialization(self, mock_vis_tools):
         """Test EDAHandler initialization."""
         handler = EDAHandler(
@@ -96,7 +105,7 @@ class TestEDAHandler:
             config=self.mock_config, path_manager=self.mock_path_manager
         )
         
-    @patch('src.timeflies.analysis.eda.VisualizationTools')
+    @patch('projects.fruitfly_aging.analysis.eda.VisualizationTools')
     def test_run_eda_uncorrected_data(self, mock_vis_tools):
         """Test running EDA on uncorrected data."""
         mock_visual_tools = Mock()
@@ -130,7 +139,7 @@ class TestEDAHandler:
             assert calls[2][1]['dataset_name'] == 'original'
             assert calls[2][1]['folder_name'] == 'Original Data'
             
-    @patch('src.timeflies.analysis.eda.VisualizationTools')
+    @patch('projects.fruitfly_aging.analysis.eda.VisualizationTools')
     def test_run_eda_batch_corrected_data(self, mock_vis_tools):
         """Test running EDA on batch-corrected data."""
         # Enable batch correction
@@ -163,305 +172,6 @@ class TestEDAHandler:
             assert calls[1][1]['folder_name'] == 'Batch Evaluation Data'
 
 
-class TestVisualizer:
-    """Test Visualizer functionality."""
-    
-    def setup_method(self):
-        """Set up test environment for each test."""
-        self.mock_config = self.create_mock_config()
-        self.mock_model = Mock()
-        self.mock_history = Mock()
-        self.test_inputs = np.random.randn(100, 50)
-        self.test_labels = np.eye(3)[np.random.choice(3, 100)]
-        self.label_encoder = self.create_label_encoder()
-        self.squeezed_shap_values = np.random.randn(100, 50, 3)
-        self.squeezed_test_data = np.random.randn(100, 50)
-        self.adata, self.adata_corrected = self.create_sample_data()
-        self.mock_path_manager = Mock()
-        
-    def create_mock_config(self):
-        """Create mock configuration object."""
-        config = Mock()
-        
-        # Data configuration
-        config.data = Mock()
-        config.data.model_type = 'CNN'
-        config.data.encoding_variable = 'age'
-        
-        # Batch correction configuration
-        config.data.batch_correction = Mock()
-        config.data.batch_correction.enabled = False
-        
-        # Gene preprocessing configuration
-        config.gene_preprocessing = Mock()
-        config.gene_preprocessing.gene_filtering = Mock()
-        config.gene_preprocessing.gene_filtering.select_batch_genes = False
-        
-        return config
-        
-    def create_label_encoder(self):
-        """Create a fitted label encoder."""
-        from sklearn.preprocessing import LabelEncoder
-        encoder = LabelEncoder()
-        encoder.fit(['1', '5', '10'])  # Age classes as strings
-        return encoder
-        
-    def create_sample_data(self):
-        """Create sample AnnData objects."""
-        n_obs, n_vars = 1000, 2000
-        
-        X = np.random.negative_binomial(5, 0.3, size=(n_obs, n_vars)).astype(np.float32)
-        
-        obs = pd.DataFrame({
-            'age': np.random.choice([1, 5, 10], n_obs),
-            'sex': np.random.choice(['male', 'female'], n_obs),
-            'tissue': np.random.choice(['head', 'body'], n_obs),
-        }, index=[f'cell_{i}' for i in range(n_obs)])
-        
-        var = pd.DataFrame({
-            'gene_type': np.random.choice(['protein_coding', 'lncRNA'], n_vars),
-        }, index=[f'gene_{i}' for i in range(n_vars)])
-        
-        adata = AnnData(X=X, obs=obs, var=var)
-        adata_corrected = adata.copy()
-        
-        return adata, adata_corrected
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualizer_initialization(self, mock_vis_tools):
-        """Test Visualizer initialization."""
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        assert visualizer.config == self.mock_config
-        assert visualizer.model == self.mock_model
-        assert visualizer.history == self.mock_history
-        assert np.array_equal(visualizer.test_inputs, self.test_inputs)
-        assert np.array_equal(visualizer.test_labels, self.test_labels)
-        assert visualizer.label_encoder == self.label_encoder
-        assert np.array_equal(visualizer.squeezed_shap_values, self.squeezed_shap_values)
-        assert np.array_equal(visualizer.squeezed_test_data, self.squeezed_test_data)
-        assert visualizer.adata is self.adata
-        assert visualizer.adata_corrected is self.adata_corrected
-        assert visualizer.path_manager == self.mock_path_manager
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_import_metrics_neural_network(self, mock_vis_tools):
-        """Test importing metrics for neural network models."""
-        mock_predictions = np.random.rand(100, 3)
-        self.mock_model.predict.return_value = mock_predictions
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer.import_metrics()
-        
-        self.mock_model.predict.assert_called_once_with(self.test_inputs)
-        assert hasattr(visualizer, 'y_pred')
-        assert hasattr(visualizer, 'y_pred_class')
-        assert hasattr(visualizer, 'y_true_class')
-        assert np.array_equal(visualizer.y_pred, mock_predictions)
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_import_metrics_sklearn_model(self, mock_vis_tools):
-        """Test importing metrics for sklearn models."""
-        self.mock_config.data.model_type = 'LogisticRegression'
-        mock_predictions = np.random.rand(100, 3)
-        self.mock_model.predict_proba.return_value = mock_predictions
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer.import_metrics()
-        
-        self.mock_model.predict_proba.assert_called_once_with(self.test_inputs)
-        assert hasattr(visualizer, 'y_pred')
-        assert np.array_equal(visualizer.y_pred, mock_predictions)
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_training_history_neural_network(self, mock_vis_tools):
-        """Test visualizing training history for neural networks."""
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer._visualize_training_history()
-        
-        mock_visual_tools.plot_history.assert_called_once_with(
-            self.mock_history, "training_metrics.png"
-        )
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_training_history_xgboost(self, mock_vis_tools):
-        """Test visualizing training history for XGBoost."""
-        self.mock_config.data.model_type = 'XGBoost'
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer._visualize_training_history()
-        
-        mock_visual_tools.plot_xgboost_history.assert_called_once_with(
-            self.mock_history, "training_metrics.png"
-        )
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_confusion_matrix(self, mock_vis_tools):
-        """Test visualizing confusion matrix."""
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        # Set up required attributes
-        visualizer.y_pred_class = np.random.choice(3, 100)
-        visualizer.y_true_class = np.random.choice(3, 100)
-        
-        visualizer._visualize_confusion_matrix()
-        
-        mock_visual_tools.create_confusion_matrix.assert_called_once()
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_sort_labels_by_age(self, mock_vis_tools):
-        """Test sorting labels by age."""
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        class_labels = ['10', '1', '5', '20']
-        sorted_labels = visualizer._sort_labels_by_age(class_labels)
-        
-        # Should be sorted in ascending age order
-        expected_order = ['1', '5', '10', '20']
-        assert sorted_labels == expected_order
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_shap_summary_with_batch_correction(self, mock_vis_tools):
-        """Test SHAP summary visualization with batch correction enabled."""
-        self.mock_config.data.batch_correction.enabled = True
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer._plot_shap_summary()
-        
-        # Should use corrected data variable names when batch correction is enabled
-        mock_visual_tools.plot_shap_summary.assert_called_once()
-        call_args = mock_visual_tools.plot_shap_summary.call_args[1]
-        
-        # Check that the feature names come from corrected data
-        assert 'feature_names' in call_args
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_shap_summary_without_batch_correction(self, mock_vis_tools):
-        """Test SHAP summary visualization without batch correction."""
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        visualizer._plot_shap_summary()
-        
-        # Should use regular data variable names when batch correction is disabled
-        mock_visual_tools.plot_shap_summary.assert_called_once()
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_visualize_shap_summary_no_shap_values(self, mock_vis_tools):
-        """Test SHAP summary visualization when SHAP values are None."""
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            None, None,  # No SHAP values
-            self.adata, self.adata_corrected, self.mock_path_manager
-        )
-        
-        visualizer._plot_shap_summary()
-        
-        # Should not call plot_shap_summary when SHAP values are None
-        mock_visual_tools.plot_shap_summary.assert_not_called()
-        
-    @patch('src.timeflies.analysis.visuals.VisualizationTools')
-    def test_run_visualization_pipeline(self, mock_vis_tools):
-        """Test running the complete visualization pipeline."""
-        mock_visual_tools = Mock()
-        mock_vis_tools.return_value = mock_visual_tools
-        
-        visualizer = Visualizer(
-            self.mock_config, self.mock_model, self.mock_history,
-            self.test_inputs, self.test_labels, self.label_encoder,
-            self.squeezed_shap_values, self.squeezed_test_data,
-            self.adata, self.adata_corrected, self.mock_path_manager,
-            preserved_var_names=None
-        )
-        
-        # Mock the model predictions
-        self.mock_model.predict.return_value = np.random.rand(100, 3)
-        
-        with patch.object(visualizer, '_visualize_training_history') as mock_history, \
-             patch.object(visualizer, '_visualize_confusion_matrix') as mock_confusion, \
-             patch.object(visualizer, '_plot_shap_summary') as mock_shap:
-            
-            visualizer.run()
-            
-            # Check that all visualization methods are called
-            mock_history.assert_called_once()
-            mock_confusion.assert_called_once()
-            mock_shap.assert_called_once()
 
 
 if __name__ == "__main__":

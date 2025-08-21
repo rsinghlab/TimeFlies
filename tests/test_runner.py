@@ -12,13 +12,19 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
     Run tests with practical options only.
     
     Args:
-        test_type: Type of tests to run (unit, integration, all)
+        test_type: Type of tests to run (unit, integration, functional, system, all)
         verbose: Show detailed output
-        coverage: Generate coverage report
+        coverage: Generate HTML coverage report
         fast: Skip slow tests  
         debug: Stop on first failure with detailed output
         rerun_failures: Only re-run tests that failed last time
     """
+    # Set environment variables to suppress TensorFlow warnings
+    import os
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+    os.environ['PYTHONWARNINGS'] = 'ignore'
+    
     cmd = ["python3", "-m", "pytest"]
     
     # Add test path based on type
@@ -26,6 +32,10 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
         cmd.append("tests/unit/")
     elif test_type == "integration":
         cmd.append("tests/integration/")
+    elif test_type == "functional":
+        cmd.append("tests/functional/")
+    elif test_type == "system":
+        cmd.append("tests/system/")
     elif test_type == "all":
         cmd.append("tests/")
     else:
@@ -33,7 +43,9 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
     
     # Add practical options only
     if fast:
-        cmd.extend(["-m", "not slow"])
+        # Fast mode: only unit and integration tests (skip slow functional tests)
+        if test_type == "all":
+            cmd = ["python3", "-m", "pytest", "tests/unit/", "tests/integration/"]
         
     if debug:
         cmd.extend(["-x", "-v", "--tb=long"])
@@ -43,7 +55,12 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
         cmd.append("-q")
     
     if coverage:
-        cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term"])
+        cmd.extend([
+            "--cov=src/projects",
+            "--cov=src/shared", 
+            "--cov-report=html:coverage/html",
+            "--cov-report=term"
+        ])
     
     if rerun_failures:
         cmd.extend(["--lf", "-v"])
@@ -74,7 +91,7 @@ Examples:
         "test_type",
         nargs="?",
         default="all",
-        choices=["unit", "integration", "all"],
+        choices=["unit", "integration", "functional", "system", "all"],
         help="Type of tests to run (default: all)"
     )
     
@@ -84,10 +101,11 @@ Examples:
         help="Show detailed test output"
     )
     
+    
     parser.add_argument(
-        "-c", "--coverage", 
+        "-c", "--coverage",
         action="store_true",
-        help="Generate coverage report"
+        help="Generate HTML coverage report"
     )
     
     parser.add_argument(

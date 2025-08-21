@@ -1,0 +1,7 @@
+# Future Alzheimer's project body tissue data will go here:
+# - fly_original.h5ad (required for setup)
+# - autosomal_genes.csv 
+# - sex_genes.csv
+#
+# This folder is prepared for future Alzheimer's research using fruit flies.
+# Same file structure as the aging project.

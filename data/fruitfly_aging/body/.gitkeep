@@ -1,0 +1,12 @@
+# Place your aging project body tissue data here:
+# - drosophila_body_aging_original.h5ad (required for setup)
+# - autosomal_genes.csv 
+# - sex_genes.csv
+#
+# After running setup, this folder will also contain:
+# - drosophila_body_aging_train.h5ad (training data split)
+# - drosophila_body_aging_eval.h5ad (holdout evaluation data)
+#
+# After batch correction, this folder will also contain:
+# - drosophila_body_aging_train_batch.h5ad (batch-corrected training)
+# - drosophila_body_aging_eval_batch.h5ad (batch-corrected evaluation)

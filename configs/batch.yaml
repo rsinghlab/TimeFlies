@@ -1,0 +1,53 @@
+# Shared batch correction configuration for TimeFlies projects
+# Contains only settings that are common across projects
+
+general:
+  project_name: TimeFlies
+  version: 0.2.0
+  random_state: 42
+
+data:
+  # Common settings found in batch configs
+  tissue: head  # Both projects use head tissue
+  species: drosophila  # Both use drosophila
+
+# scVI model parameters (common across projects)
+batch_correction:
+  model:
+    n_latent: 25
+    n_hidden: 256  
+    n_layers: 2
+    dropout_rate: 0.15
+    
+  # Training parameters
+  training:
+    max_epochs: null  # null = early stopping
+    weight_decay: 1e-4
+    plan_kwargs:
+      weight_decay: 1e-4
+      
+  # Data processing
+  preprocessing:
+    batch_column: "dataset"
+    label_column: "afca_annotation_broad"
+    library_size: 1e4
+    
+  # Output settings
+  output:
+    scvi_latent_key: "X_scVI"
+    scvi_normalized_key: "scvi_normalized"
+    save_intermediate: true
+    
+  # Evaluation settings
+  evaluation:
+    run_metrics: false  # Set to true to automatically run evaluation metrics
+    run_visualization: false  # Set to true to automatically generate UMAPs
+    metrics_output_dir: "outputs/{active_project}/results/batch_correction"
+    umap_output_dir: "outputs/{active_project}/results/batch_correction/umaps"
+
+# PyTorch settings (for batch correction environment)
+pytorch:
+  float32_matmul_precision: "medium"
+  dl_num_workers: -1  # -1 = cpu_count() - 1
+  dl_pin_memory: true
+  seed: 42

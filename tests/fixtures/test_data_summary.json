@@ -1,0 +1,91 @@
+{
+  "created_at": "2025-08-21T13:56:03.160437",
+  "projects": [
+    {
+      "project": "fruitfly_alzheimers",
+      "tissue": "head",
+      "stats": {
+        "project": "fruitfly_alzheimers",
+        "tissue": "head",
+        "n_obs": 100,
+        "n_vars": 500,
+        "batch_corrected": false,
+        "created_at": "2025-08-21T13:56:00.718704",
+        "age_distribution": {
+          "20": 43,
+          "10": 29,
+          "30": 28
+        },
+        "sex_distribution": {
+          "female": 53,
+          "male": 47
+        },
+        "expression_stats": {
+          "min": 0.0,
+          "max": 5.603115558624268,
+          "mean": 0.07611392438411713,
+          "median": 0.0,
+          "sparsity": 0.96824,
+          "non_zero_mean": 2.396533966064453
+        },
+        "gene_info": {
+          "columns": [
+            "gene_ids",
+            "highly_variable",
+            "means",
+            "dispersions",
+            "dispersions_norm"
+          ],
+          "n_highly_variable": 83
+        }
+      }
+    },
+    {
+      "project": "fruitfly_aging",
+      "tissue": "head",
+      "stats": {
+        "project": "fruitfly_aging",
+        "tissue": "head",
+        "n_obs": 100,
+        "n_vars": 500,
+        "batch_corrected": true,
+        "created_at": "2025-08-21T13:56:03.158989",
+        "age_distribution": {
+          "5": 41,
+          "50": 23,
+          "30": 20,
+          "70": 16
+        },
+        "sex_distribution": {
+          "female": 50,
+          "male": 48,
+          "mix": 2
+        },
+        "cell_types": {
+          "CNS neuron": 49,
+          "sensory neuron": 29,
+          "glial cell": 11,
+          "epithelial cell": 7,
+          "muscle cell": 3,
+          "fat cell": 1
+        },
+        "expression_stats": {
+          "min": 0.0,
+          "max": 27.0,
+          "mean": 0.07670000195503235,
+          "median": 0.0,
+          "sparsity": 0.95778,
+          "non_zero_mean": 1.8166745901107788
+        },
+        "gene_info": {
+          "columns": [
+            "gene_ids",
+            "geneName"
+          ],
+          "n_highly_variable": 0
+        }
+      }
+    }
+  ],
+  "total_projects": 2
+}
