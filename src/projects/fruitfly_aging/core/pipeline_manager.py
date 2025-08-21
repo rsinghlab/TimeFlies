@@ -13,9 +13,7 @@ from src.shared.data.loaders import DataLoader
 try:
     from projects.fruitfly_aging.analysis.eda import EDAHandler
     from projects.fruitfly_aging.evaluation.interpreter import Interpreter, Metrics
-    from projects.fruitfly_aging.analysis.visualizer import (
-        AgingVisualizer as Visualizer,
-    )
+    from projects.fruitfly_aging.analysis.visuals import Visualizer
 except ImportError:
     # Fallback for when project modules are not available
     EDAHandler = None
@@ -170,31 +168,26 @@ class PipelineManager:
             logger.info("Training and testing data preprocessed successfully.")
 
             # Free memory by deleting large raw data objects after preprocessing
-            # (only when training, not when loading models which need final eval preprocessing)
-            if not getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
-                "load_model",
-                False,
+            # (only during training - evaluation uses dedicated run_evaluation method)
+            logger.info("Cleaning up raw data objects to free memory...")
+            del self.adata
+            del self.adata_eval
+            del self.adata_original
+            if (
+                hasattr(self, "adata_corrected")
+                and self.adata_corrected is not None
             ):
-                logger.info("Cleaning up raw data objects to free memory...")
-                del self.adata
-                del self.adata_eval
-                del self.adata_original
-                if (
-                    hasattr(self, "adata_corrected")
-                    and self.adata_corrected is not None
-                ):
-                    del self.adata_corrected
-                if (
-                    hasattr(self, "adata_eval_corrected")
-                    and self.adata_eval_corrected is not None
-                ):
-                    del self.adata_eval_corrected
+                del self.adata_corrected
+            if (
+                hasattr(self, "adata_eval_corrected")
+                and self.adata_eval_corrected is not None
+            ):
+                del self.adata_eval_corrected
 
-                import gc
+            import gc
 
-                gc.collect()  # Force garbage collection
-                logger.info("Memory cleanup complete.")
+            gc.collect()  # Force garbage collection
+            logger.info("Memory cleanup complete.")
         except Exception as e:
             logger.error(f"Error during general data preprocessing: {e}")
             raise
@@ -297,21 +290,12 @@ class PipelineManager:
 
     def run_preprocessing(self):
         """
-        Decides whether to preprocess final evaluation data (if loading model) or
-        preprocess training/test data (if building a model).
+        Preprocess training/test data for model building.
+        Note: Evaluation uses the dedicated run_evaluation() method instead.
         """
         try:
             self.setup_gene_filtering()
-            if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
-                "load_model",
-                False,
-            ):
-                self.load_model_components()
-                self.preprocess_final_eval_data()  # Call the final evaluation preprocessing
-            else:
-                self.preprocess_data()  # Call the general data preprocessing
-
+            self.preprocess_data()  # Always do training preprocessing
             logger.info("Preprocessing completed.")
 
         except Exception as e:
@@ -383,30 +367,22 @@ class PipelineManager:
 
     def load_or_train_model(self):
         """
-        Decide whether to load a pre-trained model or build and train a new one.
+        Build and train a new model (training pipeline only).
+        Note: Model loading is handled by the dedicated run_evaluation() method.
         """
         try:
-            if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
-                "load_model",
-                False,
-            ):
-                logger.info("Loading pre-trained model...")
-                self.load_model()
-                logger.info("Model loaded successfully.")
-            else:
-                logger.info("Building and training model...")
-                self.build_and_train_model()
-                logger.info("Model built and trained successfully.")
+            logger.info("Building and training model...")
+            self.build_and_train_model()
+            logger.info("Model built and trained successfully.")
         except Exception as e:
-            logger.error(f"Error in model handling: {e}")
+            logger.error(f"Error in model training: {e}")
             raise
 
     def run_interpretation(self):
         """
         Perform SHAP interpretation for model predictions.
         """
-        if getattr(self.config_instance.feature_importance, "run_interpreter", True):
+        if getattr(self.config_instance.interpretation.shap, "enabled", False):
             try:
                 logger.info("Starting SHAP interpretation...")
 
@@ -446,7 +422,7 @@ class PipelineManager:
         """
         Set up and run visualizations if specified in the configuration.
         """
-        if getattr(self.config_instance.feature_importance, "run_visualization", True):
+        if getattr(self.config_instance.visualizations, "enabled", False):
             logger.info("Running visualizations...")
 
             # Ensure SHAP attributes exist (set to None if not available)
@@ -533,6 +509,57 @@ class PipelineManager:
             logger.error(f"Error running SHAP interpretation: {e}")
             raise
 
+    def run_evaluation(self) -> Dict[str, Any]:
+        """
+        Run evaluation-only pipeline that uses pre-trained model on holdout data.
+        
+        Returns:
+            Dict containing model path and results path
+        """
+        import time
+        
+        start_time = time.time()
+        
+        try:
+            # Setup phases
+            self.setup_gpu()
+            self.load_data()
+            self.setup_gene_filtering()
+            
+            # Load model components and preprocess only eval data
+            self.load_model_components()
+            self.preprocess_final_eval_data()
+            
+            # Load pre-trained model
+            self.load_model()
+            
+            # Run evaluation metrics
+            self.run_metrics()
+            
+            # Analysis (conditional based on config)
+            if getattr(self.config_instance.interpretation.shap, "enabled", False):
+                self.run_interpretation()
+                
+            if getattr(self.config_instance.visualizations, "enabled", False):
+                self.run_visualizations()
+            
+            end_time = time.time()
+            self.display_duration(start_time, end_time)
+            
+            # Return paths for CLI feedback
+            model_dir = self.path_manager.construct_model_directory()
+            results_dir = self.path_manager.get_visualization_directory()
+            
+            return {
+                "model_path": model_dir,
+                "results_path": results_dir,
+                "duration": end_time - start_time,
+            }
+            
+        except Exception as e:
+            logger.error(f"Evaluation pipeline execution failed: {e}")
+            raise
+
     def run(self) -> Dict[str, Any]:
         """
         Run the complete pipeline and return results.
@@ -556,23 +583,17 @@ class PipelineManager:
             # Model training/loading
             self.load_or_train_model()
 
-            # Evaluation (only for loaded models, not newly trained ones)
-            if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
-                "load_model",
-                False,
-            ):
-                self.preprocess_final_eval_data()
+            # No evaluation during training - that's handled by the evaluate command
             self.run_metrics()
 
             # Analysis (conditional based on config)
             if getattr(
-                self.config_instance.feature_importance, "run_interpreter", True
+                self.config_instance.interpretation.shap, "enabled", False
             ):
                 self.run_shap_interpretation()
 
             if getattr(
-                self.config_instance.feature_importance, "run_visualization", True
+                self.config_instance.visualizations, "enabled", False
             ):
                 self.run_visualizations()
 

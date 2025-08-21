@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Tuple, List, Any
 from anndata import AnnData
-from ..utils.path_manager import PathManager
+from ...utils.path_manager import PathManager
 
 
 class DataLoader:
@@ -41,58 +41,40 @@ class DataLoader:
         files based on the configuration provided.
         """
         # Path to the main h5ad file (directly in tissue directory from PathManager)
-        train_template = getattr(self.config.paths.data, "train", "fly_train.h5ad")
-        
-        # Map project name to file naming convention
-        project_name = getattr(self.config.data, 'project', 'fruitfly_aging')
-        if project_name == 'fruitfly_aging':
-            project_for_files = 'aging'
-        elif project_name == 'fruitfly_alzheimers':
-            project_for_files = 'alzheimers'
-        else:
-            project_for_files = project_name
-            
-        train_filename = train_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'), 
-            species=getattr(self.config.data, 'species', 'drosophila')
-        ).split('/')[-1]
-        self.h5ad_file_path = os.path.join(self.Data_dir, train_filename)
+        self.h5ad_file_path = os.path.join(
+            self.Data_dir,
+            getattr(self.config.paths.data, "train", "fly_train.h5ad").split('/')[-1],
+        )
 
         # Path to the evaluation h5ad file
-        eval_template = getattr(self.config.paths.data, "eval", "fly_eval.h5ad")
-        eval_filename = eval_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'),
-            species=getattr(self.config.data, 'species', 'drosophila')
-        ).split('/')[-1]
-        self.h5ad_eval_file_path = os.path.join(self.Data_dir, eval_filename)
+        self.h5ad_eval_file_path = os.path.join(
+            self.Data_dir,
+            getattr(self.config.paths.data, "eval", "fly_eval.h5ad").split('/')[-1],
+        )
 
         # Path to the original unprocessed h5ad file
-        original_template = getattr(self.config.paths.data, "original", "fly_original.h5ad")
-        original_filename = original_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'),
-            species=getattr(self.config.data, 'species', 'drosophila')
-        ).split('/')[-1]
-        self.h5ad_file_path_original = os.path.join(self.Data_dir, original_filename)
+        self.h5ad_file_path_original = os.path.join(
+            self.Data_dir,
+            getattr(self.config.paths.data, "original", "fly_original.h5ad").split('/')[-1],
+        )
 
         # Paths for batch-corrected data (same directory structure)
-        train_batch_template = getattr(self.config.paths.batch_data, "train", "fly_train_batch.h5ad")
-        train_batch_filename = train_batch_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'),
-            species=getattr(self.config.data, 'species', 'drosophila')
-        ).split('/')[-1]
-        self.h5ad_file_path_corrected = os.path.join(self.Data_dir, train_batch_filename)
-        
-        eval_batch_template = getattr(self.config.paths.batch_data, "eval", "fly_eval_batch.h5ad")
-        eval_batch_filename = eval_batch_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'),
-            species=getattr(self.config.data, 'species', 'drosophila')
-        ).split('/')[-1]
-        self.h5ad_eval_file_path_corrected = os.path.join(self.Data_dir, eval_batch_filename)
+        self.h5ad_file_path_corrected = os.path.join(
+            self.Data_dir,
+            getattr(
+                self.config.paths.batch_data,
+                "train",
+                "fly_train_batch.h5ad",
+            ).split('/')[-1],
+        )
+        self.h5ad_eval_file_path_corrected = os.path.join(
+            self.Data_dir,
+            getattr(
+                self.config.paths.batch_data,
+                "eval",
+                "fly_eval_batch.h5ad",
+            ).split('/')[-1],
+        )
 
     def load_data(self) -> Tuple[AnnData, AnnData, AnnData]:
         """

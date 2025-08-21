@@ -44,21 +44,14 @@ def type_check():
     return run_command("python3 -m mypy src/", "Running mypy")
 
 
-def run_tests():
-    """Run the test suite."""
-    print("🧪 Running tests...")
-    return run_command("python3 run_timeflies.py test --fast", "Running test suite")
-
-
 def run_all():
-    """Run all checks: format, lint, type-check, test."""
+    """Run all checks: format, lint, type-check."""
     print("🚀 Running all development checks...")
     
     steps = [
         ("Format", format_code),
         ("Lint", lint_code), 
         ("Type Check", type_check),
-        ("Test", run_tests)
     ]
     
     results = {}
@@ -83,14 +76,27 @@ def run_all():
 
 
 def clean():
-    """Clean cache files."""
-    print("🧹 Cleaning cache files...")
+    """Clean cache files and temporary outputs."""
+    print("🧹 Cleaning cache files and temporary outputs...")
+    
+    # Cache directories
     cache_dirs = [".pytest_cache", ".mypy_cache", ".ruff_cache", "coverage", "__pycache__"]
     
     for cache_dir in cache_dirs:
         run_command(f"find . -name '{cache_dir}' -type d -exec rm -rf {{}} + 2>/dev/null || true")
     
+    # Python cache files
     run_command("find . -name '*.pyc' -delete")
+    run_command("find . -name '*.pyo' -delete") 
+    run_command("find . -name '*.pyd' -delete")
+    
+    # Temporary files
+    run_command("find . -name 'temp_*' -type d -exec rm -rf {} + 2>/dev/null || true")
+    run_command("find . -name '*.tmp' -delete 2>/dev/null || true")
+    
+    # Coverage files
+    run_command("rm -f .coverage 2>/dev/null || true")
+    
     print("✅ Cleanup complete")
 
 
@@ -102,7 +108,7 @@ def main():
 Examples:
   python3 dev.py format     # Format code with Black + isort
   python3 dev.py lint       # Lint with ruff
-  python3 dev.py test       # Run fast tests
+  python3 dev.py type       # Type check with mypy
   python3 dev.py all        # Run all checks
   python3 dev.py clean      # Clean cache files
         """
@@ -110,7 +116,7 @@ Examples:
     
     parser.add_argument(
         'command',
-        choices=['format', 'lint', 'type', 'test', 'all', 'clean'],
+        choices=['format', 'lint', 'type', 'all', 'clean'],
         help='Development command to run'
     )
     
@@ -125,7 +131,6 @@ Examples:
         'format': format_code,
         'lint': lint_code,
         'type': type_check, 
-        'test': run_tests,
         'all': run_all,
         'clean': clean
     }

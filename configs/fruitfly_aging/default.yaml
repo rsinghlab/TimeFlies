@@ -52,12 +52,3 @@ model:
     C: 1.0  # Regularization strength
     penalty: "l2"
     solver: "lbfgs"
-
-# Analysis overrides for aging
-interpretation:
-  shap:
-    enabled: true            # Enable SHAP interpretation (includes visualizations)
-    load_existing: true      # Load existing SHAP values instead of computing
-
-visualizations:
-  enabled: true              # Enable general visualizations

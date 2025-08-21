@@ -25,19 +25,38 @@ Workflow:
   python run_timeflies.py train              # Train models
   python run_timeflies.py evaluate           # Evaluate with SHAP/visualization
   
+  # Project switching (temporary override)
+  python run_timeflies.py --aging train      # Train aging project
+  python run_timeflies.py --alzheimers train # Train Alzheimer's project
+  python run_timeflies.py --alz verify       # Quick verify on Alzheimer's
+  
   # Development/testing
   python run_timeflies.py test               # Run all tests
-  python run_timeflies.py test unit --fast   # Quick unit tests
-  python run_timeflies.py test --coverage    # Run with coverage
-  python run_timeflies.py test --rerun       # Re-run failed tests
+  python run_timeflies.py test unit          # Run unit tests only
+  python run_timeflies.py test integration   # Run integration tests only
+  python run_timeflies.py test --fast        # Quick tests (unit + integration)
+  python run_timeflies.py test --coverage    # Generate HTML coverage report
+  python run_timeflies.py test --debug       # Stop on first failure with details
+  python run_timeflies.py test --rerun       # Re-run failed tests only
   
-  # Project switching: Edit configs/default.yaml and change 'project: fruitfly_aging'
+  # Permanent project switching: Edit configs/default.yaml and change 'project: fruitfly_aging'
         """,
     )
 
     # Global options
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
+    
+    # Project selection (mutually exclusive)
+    project_group = parser.add_mutually_exclusive_group()
+    project_group.add_argument(
+        "--aging", action="store_const", const="fruitfly_aging", dest="project",
+        help="Use fruitfly_aging project (healthy flies)"
+    )
+    project_group.add_argument(
+        "--alzheimers", "--alz", action="store_const", const="fruitfly_alzheimers", dest="project",
+        help="Use fruitfly_alzheimers project (disease models)"
     )
 
     # Create subparsers

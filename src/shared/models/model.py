@@ -237,7 +237,18 @@ class ModelLoader:
         # Load the model
         if os.path.exists(self.model_path):
             if self.model_type in ["cnn", "mlp"]:
+                # Suppress the compile warning for loaded models
+                import warnings
+                import logging
+                # Temporarily suppress absl warnings
+                absl_logger = logging.getLogger('absl')
+                old_level = absl_logger.level
+                absl_logger.setLevel(logging.ERROR)
+                
                 model = tf.keras.models.load_model(self.model_path)
+                
+                # Restore logging level
+                absl_logger.setLevel(old_level)
             else:
                 model = self._load_pickle(self.model_path)
         else:
@@ -423,7 +434,7 @@ class ModelBuilder:
 
         # Determine optimizer based on computer type
         learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
-        if getattr(self.config.device, "processor", "GPU").lower() == "m":
+        if getattr(self.config.hardware, "processor", "GPU").lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=learning_rate
             )  # for M1/M2/M3 Macs
@@ -471,7 +482,7 @@ class ModelBuilder:
         model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
 
         # Determine optimizer based on computer type
-        if getattr(self.config.device, "processor", "GPU").lower() == "m":
+        if getattr(self.config.hardware, "processor", "GPU").lower() == "m":
             optimizer_instance = tf.keras.optimizers.legacy.Adam(
                 learning_rate=mlp_config.learning_rate
             )  # for M1/M2/M3 Macs
@@ -695,7 +706,7 @@ class ModelBuilder:
             self.train_data,
             self.train_labels,
             test_size=getattr(self.config.model.training, "validation_split", 0.2),
-            random_state=getattr(self.config.data.train_test_split, "random_state", 42),
+            random_state=getattr(self.config.general, "random_state", 42),
             stratify=self.train_labels,
         )
 
@@ -767,7 +778,7 @@ class ModelBuilder:
             self.train_data,
             train_labels,
             test_size=getattr(self.config.model.training, "validation_split", 0.2),
-            random_state=getattr(self.config.data.train_test_split, "random_state", 42),
+            random_state=getattr(self.config.general, "random_state", 42),
             stratify=train_labels,
         )
 

@@ -82,16 +82,16 @@ class DataPreprocessor:
             adata = adata[:, gene_order]
 
         # Sample data if required
-        num_samples = getattr(config.data.sampling, "num_samples", None)
+        num_samples = getattr(config.data.sampling, "samples", None)
         if num_samples and num_samples < adata.n_obs:
-            random_state = getattr(config.data.train_test_split, "random_state", 42)
+            random_state = getattr(config.general, "random_state", 42)
             sample_indices = adata.obs.sample(
                 n=num_samples, random_state=random_state
             ).index
             adata = adata[sample_indices, :]
 
         # Select variables (genes) if required
-        num_variables = getattr(config.data.sampling, "num_variables", None)
+        num_variables = getattr(config.data.sampling, "variables", None)
         if num_variables and num_variables < adata.n_vars:
             adata = adata[:, adata.var_names[:num_variables]]
 
@@ -109,21 +109,21 @@ class DataPreprocessor:
         - test_subset: The testing subset.
         """
         config = self.config
-        split_method = getattr(config.data.train_test_split, "method", "random").lower()
+        split_method = getattr(config.data.split, "method", "random").lower()
 
         if split_method == "sex":
             train_sex = getattr(
-                config.data.train_test_split.train, "sex", "male"
+                config.data.split.sex, "train", "male"
             ).lower()
             test_sex = getattr(
-                config.data.train_test_split.test, "sex", "female"
+                config.data.split.sex, "test", "female"
             ).lower()
 
             train_subset = dataset[dataset.obs["sex"].str.lower() == train_sex].copy()
             test_subset = dataset[dataset.obs["sex"].str.lower() == test_sex].copy()
 
-            test_size = getattr(config.data.train_test_split.test, "size", 0.3)
-            random_state = getattr(config.data.train_test_split, "random_state", 42)
+            test_size = getattr(config.data.split.sex, "test_ratio", 0.3)
+            random_state = getattr(config.general, "random_state", 42)
 
             _, test_subset = train_test_split(
                 test_subset,
@@ -133,10 +133,10 @@ class DataPreprocessor:
 
         elif split_method == "tissue":
             train_tissue = getattr(
-                config.data.train_test_split.train, "tissue", "head"
+                config.data.split.tissue, "train", "head"
             ).lower()
             test_tissue = getattr(
-                config.data.train_test_split.test, "tissue", "body"
+                config.data.split.tissue, "test", "body"
             ).lower()
 
             train_subset = dataset[
@@ -151,8 +151,8 @@ class DataPreprocessor:
             train_subset = train_subset[:, common_genes]
             test_subset = test_subset[:, common_genes]
 
-            test_size = getattr(config.data.train_test_split.test, "size", 0.3)
-            random_state = getattr(config.data.train_test_split, "random_state", 42)
+            test_size = getattr(config.data.split.tissue, "test_ratio", 0.3)
+            random_state = getattr(config.general, "random_state", 42)
 
             _, test_subset = train_test_split(
                 test_subset,
@@ -163,8 +163,8 @@ class DataPreprocessor:
         else:
             # Perform a stratified train-test split based on encoding variable
             encoding_var = getattr(config.data, "encoding_variable", "age")
-            test_size = getattr(config.data.train_test_split, "test_split", 0.2)
-            random_state = getattr(config.data.train_test_split, "random_state", 42)
+            test_size = getattr(config.data.split, "test_ratio", 0.2)
+            random_state = getattr(config.general, "random_state", 42)
 
             train_subset, test_subset = train_test_split(
                 dataset,
@@ -318,7 +318,7 @@ class DataPreprocessor:
         - reference_data: Reference data.
         """
         config = self.config
-        reference_size = getattr(config.feature_importance, "reference_size", 100)
+        reference_size = getattr(config.interpretation.shap, "reference_size", 100)
         if reference_size > train_data.shape[0]:
             reference_size = train_data.shape[0]
 
@@ -408,7 +408,7 @@ class DataPreprocessor:
         )
 
         # Reshape data for CNN if required
-        model_type = getattr(config.data, "model_type", "mlp").lower()
+        model_type = getattr(config.data, "model", "mlp").lower()
         if model_type == "cnn":
             train_data, test_data = self.reshape_for_cnn(train_data, test_data)
 
@@ -520,7 +520,7 @@ class DataPreprocessor:
             test_data = scaler.transform(test_data)
 
         # Reshape the testing data for CNN
-        model_type = getattr(config.data, "model_type", "mlp").lower()
+        model_type = getattr(config.data, "model", "mlp").lower()
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
 

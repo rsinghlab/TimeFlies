@@ -172,7 +172,7 @@ class PipelineManager:
             # Free memory by deleting large raw data objects after preprocessing
             # (only when training, not when loading models which need final eval preprocessing)
             if not getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
+                None,
                 "load_model",
                 False,
             ):
@@ -303,7 +303,7 @@ class PipelineManager:
         try:
             self.setup_gene_filtering()
             if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
+                None,
                 "load_model",
                 False,
             ):
@@ -387,7 +387,7 @@ class PipelineManager:
         """
         try:
             if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
+                None,
                 "load_model",
                 False,
             ):
@@ -533,6 +533,57 @@ class PipelineManager:
             logger.error(f"Error running SHAP interpretation: {e}")
             raise
 
+    def run_evaluation(self) -> Dict[str, Any]:
+        """
+        Run evaluation-only pipeline that uses pre-trained model on holdout data.
+        
+        Returns:
+            Dict containing model path and results path
+        """
+        import time
+        
+        start_time = time.time()
+        
+        try:
+            # Setup phases
+            self.setup_gpu()
+            self.load_data()
+            self.setup_gene_filtering()
+            
+            # Load model components and preprocess only eval data
+            self.load_model_components()
+            self.preprocess_final_eval_data()
+            
+            # Load pre-trained model
+            self.load_model()
+            
+            # Run evaluation metrics
+            self.run_metrics()
+            
+            # Analysis (conditional based on config)
+            if getattr(self.config_instance.interpretation.shap, "enabled", False):
+                self.run_interpretation()
+                
+            if getattr(self.config_instance.visualizations, "enabled", False):
+                self.run_visualizations()
+            
+            end_time = time.time()
+            self.display_duration(start_time, end_time)
+            
+            # Return paths for CLI feedback
+            model_dir = self.path_manager.construct_model_directory()
+            results_dir = self.path_manager.get_visualization_directory()
+            
+            return {
+                "model_path": model_dir,
+                "results_path": results_dir,
+                "duration": end_time - start_time,
+            }
+            
+        except Exception as e:
+            logger.error(f"Evaluation pipeline execution failed: {e}")
+            raise
+
     def run(self) -> Dict[str, Any]:
         """
         Run the complete pipeline and return results.
@@ -558,7 +609,7 @@ class PipelineManager:
 
             # Evaluation (only for loaded models, not newly trained ones)
             if getattr(
-                getattr(self.config_instance.data_processing, "model_management", None),
+                None,
                 "load_model",
                 False,
             ):

@@ -1,11 +1,18 @@
 # Alzheimer's Project Configuration
-# Import shared default configuration
+# Research Strategy: Train age predictor and test if Alzheimer's pathology disrupts age prediction
+# - Train on control flies (healthy aging patterns)
+# - Test on all genotypes (control, AB42, hTau) 
+# - Hypothesis: Disease should disrupt normal aging gene expression patterns
 base_config: "../default.yaml"
 
 # Alzheimer's-specific overrides
 data:
-  # Alzheimer's-specific target variable
-  encoding_variable: "condition"
+  # Target variable: age (10, 20, 30 days)
+  # Can fallback to binary (young/old) if continuous age prediction is too noisy
+  encoding_variable: "age"
+  
+  # Optional: Filter training to control genotype only for cleaner aging baseline
+  # training_filter: "genotype == 'control'"
 
 # Model overrides for alzheimer's analysis (more complex models)
 model:

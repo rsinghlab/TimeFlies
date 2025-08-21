@@ -166,31 +166,31 @@ class PathManager:
         # Handle train-test split naming for special cases
         try:
             split_method = getattr(
-                self.config.data.split, "method", "random"
+                self.config.data.train_test_split, "method", "random"
             ).lower()
 
             if split_method == "sex":
                 train_sex = getattr(
-                    self.config.data.split.sex, "train", "male"
+                    self.config.data.train_test_split.train, "sex", "male"
                 ).lower()
                 test_sex = getattr(
-                    self.config.data.split.sex, "test", "female"
+                    self.config.data.train_test_split.test, "sex", "female"
                 ).lower()
                 self.config_details = self.config_details.replace(
                     "all-sexes", f"train-{train_sex}_test-{test_sex}"
                 )
             elif split_method == "tissue":
                 train_tissue = getattr(
-                    self.config.data.split.tissue, "train", "head"
+                    self.config.data.train_test_split.train, "tissue", "head"
                 ).lower()
                 test_tissue = getattr(
-                    self.config.data.split.tissue, "test", "body"
+                    self.config.data.train_test_split.test, "tissue", "body"
                 ).lower()
                 self.base_experiment = self.base_experiment.replace(
                     self.tissue, f"train-{train_tissue}_test-{test_tissue}"
                 )
         except AttributeError:
-            # Use default naming if split config is not available
+            # Use default naming if train_test_split config is not available
             pass
 
         # Return combined path

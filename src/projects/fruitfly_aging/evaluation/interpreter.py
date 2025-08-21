@@ -189,7 +189,7 @@ class Interpreter:
         """
         shap_values = None
 
-        if getattr(self.config.feature_importance, "load_SHAP", False):
+        if getattr(self.config.interpretation.shap, "load_SHAP", False):
             # Attempt to load SHAP values from disk
             try:
                 shap_values = self.load_shap_values()
@@ -245,7 +245,7 @@ class Interpreter:
         shap_values = explainer.shap_values(self.test_data)
 
         # Adjust SHAP values and test data shapes based on the system type
-        device = getattr(self.config.device, "processor", "GPU").lower()
+        device = getattr(self.config.hardware, "processor", "GPU").lower()
         if device == "m":
             # Adjust SHAP values for macOS
             if isinstance(shap_values, list):
@@ -611,7 +611,7 @@ class Metrics:
             json.dump(metrics, file, indent=4)
 
         # If interpretable is True, save an additional copy to the SHAP directory
-        if getattr(self.config.feature_importance, "run_interpreter", True):
+        if getattr(self.config.interpretation.shap, "run_interpreter", True):
             shap_dir = self.path_manager.get_visualization_directory(subfolder="SHAP")
             os.makedirs(shap_dir, exist_ok=True)
             shap_output_file_path = os.path.join(shap_dir, "Stats.JSON")
@@ -630,7 +630,7 @@ class Metrics:
             None
         """
         # Convert predictions and true labels to class indices if not already done
-        if getattr(self.config.feature_importance, "save_predictions", False):
+        if getattr(self.config.interpretation.shap, "save_predictions", False):
 
             if not hasattr(self, "y_pred_class"):
                 self.y_pred_class = np.argmax(self.y_pred, axis=1)

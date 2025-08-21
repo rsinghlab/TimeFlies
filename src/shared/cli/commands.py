@@ -75,10 +75,20 @@ def run_system_tests(args) -> int:
     # 2. Test project configuration
     print("\n2. Testing project configuration...")
     try:
-        active_project = get_active_project()
-        print(f"   ✅ Active project detected: {active_project}")
-
-        config_manager = get_config_for_active_project("default")
+        # Check for project override from CLI flags
+        if hasattr(args, 'project') and args.project:
+            active_project = args.project
+            print(f"   🔄 Using CLI project override: {active_project}")
+            # Use importlib to dynamically import the project's config manager
+            import importlib
+            config_module = importlib.import_module(f"projects.{args.project}.core.config_manager")
+            ConfigManager = config_module.ConfigManager
+            config_manager = ConfigManager("default")
+        else:
+            active_project = get_active_project()
+            print(f"   ✅ Active project detected: {active_project}")
+            config_manager = get_config_for_active_project("default")
+        
         config = config_manager.get_config()
         print(f"   ✅ Project config loaded successfully")
         print(f"   ✅ Target variable: {config.data.encoding_variable}")
@@ -660,7 +670,7 @@ def process_data_splits(
 def train_command(args, config) -> int:
     """Train a model using project configuration settings."""
     try:
-        print(f"🚀 Starting training with project settings:")
+        print(f"Starting training with project settings:")
         print(f"   Project: {getattr(config.data, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
@@ -683,10 +693,28 @@ def train_command(args, config) -> int:
         results = pipeline.run()
 
         print(f"\n✅ Training completed successfully!")
-        print(f"   Model saved to: {results.get('model_path', 'outputs/models/')}")
-        print(f"   Results saved to: {results.get('results_path', 'outputs/results/')}")
+        
+        # Check if model was actually saved (based on validation loss improvement)
+        model_path = results.get('model_path', 'outputs/models/')
+        import os
+        model_file = os.path.join(model_path, 'best_model.h5')
+        
+        # Check if model was updated by comparing file modification time with start time
+        if os.path.exists(model_file):
+            import time
+            file_mod_time = os.path.getmtime(model_file)
+            # If file was modified in the last minute, it was likely updated
+            if time.time() - file_mod_time < 60:
+                print(f"   ✅ Model saved (validation loss improved): {model_path}")
+            else:
+                print(f"   ⏭️  Model not saved (validation loss did not improve)")
+                print(f"   📁 Existing model location: {model_path}")
+        else:
+            print(f"   ✅ New model saved: {model_path}")
+            
+        print(f"   📊 Results saved to: {results.get('results_path', 'outputs/results/')}")
         if "duration" in results:
-            print(f"   Training duration: {results['duration']:.1f} seconds")
+            print(f"   ⏱️  Training duration: {results['duration']:.1f} seconds")
 
         return 0
 
@@ -791,8 +819,12 @@ def batch_command(args) -> int:
 
 def evaluate_command(args, config) -> int:
     """Evaluate a trained model using project configuration settings."""
+    # Suppress TensorFlow warnings for cleaner output
+    import os
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
+    
     try:
-        print(f"📊 Starting evaluation with project settings:")
+        print(f"Starting evaluation with project settings:")
         print(f"   Project: {getattr(config.data, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
@@ -809,30 +841,10 @@ def evaluate_command(args, config) -> int:
         else:
             raise ValueError(f"Unknown project: {active_project}")
 
-        # Override model loading - force to True for evaluation
-        config.analysis.model_management.load_existing = True
-
-        # Initialize pipeline in evaluation mode
+        # Initialize pipeline and run evaluation-only workflow
+        # (This includes metrics, interpretation, and visualizations based on config)
         pipeline = PipelineManager(config)
-        pipeline.setup_gpu()
-        pipeline.load_data()
-        pipeline.run_preprocessing()
-        pipeline.load_or_train_model()
-        pipeline.run_metrics()
-
-        # Run interpretation based on project config
-        if getattr(config.interpretation.shap, "enabled", False):
-            print("📈 Running SHAP interpretation...")
-            pipeline.run_interpretation()
-        else:
-            print("⏭️  SHAP interpretation disabled in project config")
-
-        # Run visualizations based on project config
-        if getattr(config.visualizations, "enabled", False):
-            print("📊 Generating visualizations...")
-            pipeline.run_visualizations()
-        else:
-            print("⏭️  Visualizations disabled in project config")
+        results = pipeline.run_evaluation()
 
         print("\n✅ Evaluation completed successfully!")
         return 0

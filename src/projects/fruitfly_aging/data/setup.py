@@ -149,8 +149,8 @@ class DataSetupManager:
 
         # Get stratification parameters
         encoding_var = self.config.data.encoding_variable
-        test_split = self.config.data.train_test_split.test_split
-        random_state = self.config.data.train_test_split.random_state
+        test_split = getattr(self.config.data.split, "test_ratio", 0.1)
+        random_state = getattr(self.config.general, "random_state", 42)
 
         # Perform stratified split
         from sklearn.model_selection import train_test_split

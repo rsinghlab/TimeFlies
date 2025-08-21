@@ -39,7 +39,7 @@ data:
     include_mixed_sex: false
     
   sampling:
-    samples: null  # null for all samples, or specify number
+    samples: 1000  # null for all samples, or specify number
     variables: null  # null for all genes, or specify number
     
   # Train-test splitting strategies
@@ -49,17 +49,19 @@ data:
     # - "sex": Train on one sex, test on another (uses sex_split settings)  
     # - "tissue": Train on one tissue, test on another (uses tissue_split settings)
     method: "random"  # Options: "random", "sex", "tissue"
-    test_ratio: 0.2   # Used only when method="random"
+    test_ratio: 0.1   # Used only when method="random"
     
     # Sex-based splitting (used only when method="sex")
     sex:
       train: "male"    # Train on males
       test: "female"   # Test on females
+      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
       
     # Tissue-based splitting (used only when method="tissue")
     tissue:
       train: "head"    # Train on head tissue
       test: "body"     # Test on body tissue
+      test_ratio: 0.3  # Subsample test set to avoid huge test sizes
 
 # =============================================================================
 # FILE PATHS (AUTO-GENERATED FROM TEMPLATES)
@@ -111,6 +113,25 @@ preprocessing:
   shuffling:
     shuffle_genes: false
 
+# Gene preprocessing configuration (legacy structure expected by code)
+gene_preprocessing:
+  gene_filtering:
+    remove_sex_genes: false          # Remove sex-linked genes
+    remove_autosomal_genes: false    # Remove autosomal genes
+    only_keep_lnc_genes: false       # Keep only long non-coding genes
+    remove_lnc_genes: false          # Remove long non-coding genes
+    remove_unaccounted_genes: false  # Remove unaccounted genes
+    highly_variable_genes: false     # Filter for highly variable genes
+    select_batch_genes: false        # Select genes based on batch
+    
+  gene_balancing:
+    balance_genes: false
+    balance_lnc_genes: false
+    
+  gene_shuffle:
+    shuffle_genes: false
+    shuffle_random_state: 42
+
 # =============================================================================
 # ANALYSIS CONFIGURATION  
 # =============================================================================
@@ -122,11 +143,17 @@ analysis:
   # Exploratory data analysis
   eda:
     enabled: false
-    
-  # Model management
-  model_management:
-    load_existing: false
 
+# Data processing configuration (legacy structure expected by code)
+data_processing:
+  # Data normalization
+  normalization:
+    enabled: false
+    
+  # Exploratory data analysis
+  exploratory_data_analysis:
+    enabled: false
+    
 # Feature importance analysis
 interpretation:
   shap:
@@ -136,7 +163,7 @@ interpretation:
 
 # Visualizations
 visualizations:
-  enabled: false             # Enable general visualizations (training plots, confusion matrix, ROC curves, etc.)
+  enabled: true             # Enable general visualizations (training plots, confusion matrix, ROC curves, etc.)
 
 # =============================================================================
 # LOGGING CONFIGURATION

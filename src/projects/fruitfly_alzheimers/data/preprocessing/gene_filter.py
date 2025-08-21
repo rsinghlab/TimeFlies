@@ -54,7 +54,7 @@ class GeneFilter:
         balanced_genes: Subset of gene_type_1 with the same size as the number of genes in gene_type_2.
         """
         config = self.config
-        random_state = getattr(config.general, "random_state", 42)
+        random_state = getattr(config.data.train_test_split, "random_state", 42)
         np.random.seed(random_state)
         num_genes_type_2 = len(gene_type_2)
         if num_genes_type_2 > len(gene_type_1):

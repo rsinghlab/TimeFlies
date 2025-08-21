@@ -32,8 +32,19 @@ Author: Singh Lab
 Repository: https://github.com/rsinghlab/TimeFlies
 """
 
+import os
 import sys
 from pathlib import Path
+
+# Suppress TensorFlow and CUDA warnings for cleaner output
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Only show errors
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN custom ops message
+os.environ['GRPC_VERBOSITY'] = 'ERROR'
+os.environ['AUTOGRAPH_VERBOSITY'] = '0'
+
+# Suppress ABSL warnings
+import logging
+logging.getLogger('absl').setLevel(logging.ERROR)
 
 def show_banner():
     """Show TimeFlies banner and basic info."""
@@ -74,14 +85,12 @@ def main():
         
     # Run the CLI and pipeline
     try:
-        print("Starting TimeFlies pipeline...")
+        # Only show "Starting" message for specific setup commands
+        if len(sys.argv) > 1 and sys.argv[1] in ['setup', 'create-test-data']:
+            print("Starting TimeFlies pipeline...")
         exit_code = main_cli()
         
-        if exit_code == 0:
-            print("\nPipeline completed successfully!")
-        else:
-            print(f"\nPipeline failed with exit code {exit_code}")
-            
+        # Don't print additional success/failure messages - commands handle this themselves
         sys.exit(exit_code)
     except KeyboardInterrupt:
         print("\n\nPipeline cancelled by user")
