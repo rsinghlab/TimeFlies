@@ -28,6 +28,44 @@ def run_system_tests(args) -> int:
 
     # Suppress verbose logging during verification
     import logging
+
+
+def execute_command(args) -> bool:
+    """Execute the appropriate command based on parsed arguments."""
+    try:
+        if args.command == "train":
+            config = get_config_for_active_project()
+            return train_command(args, config) == 0
+        elif args.command == "evaluate":
+            config = get_config_for_active_project() 
+            return evaluate_command(args, config) == 0
+        elif args.command == "eda":
+            config = get_config_for_active_project()
+            return eda_command(args, config) == 0
+        elif args.command == "analyze":
+            config = get_config_for_active_project()
+            return analyze_command(args, config) == 0
+        elif args.command == "batch-correct":
+            return batch_command(args) == 0
+        elif args.command == "setup":
+            return setup_command(args) == 0
+        elif args.command == "split":
+            return split_command(args) == 0
+        elif args.command == "setup-all":
+            return unified_setup_command(args) == 0
+        elif args.command == "verify":
+            from common.cli.system_checks import verify_system
+            return verify_system() == 0
+        elif args.command == "test":
+            return run_system_tests(args) == 0
+        elif args.command == "create-test-data":
+            return create_test_data_command(args) == 0
+        else:
+            print(f"Unknown command: {args.command}")
+            return False
+    except Exception as e:
+        print(f"Command execution failed: {e}")
+        return False
     import os
     import warnings
 
@@ -451,6 +489,31 @@ def unified_setup_command(args) -> int:
     
     return 0
 
+
+def split_command(args) -> int:
+    """Create train/eval data splits from original data."""
+    try:
+        from common.data.setup import DataSetupManager
+        
+        print("🔄 Creating train/eval data splits...")
+        print("============================================================")
+        
+        # Use the existing setup manager to create splits
+        setup_manager = DataSetupManager()
+        success = setup_manager.setup_all_projects()
+        
+        if success:
+            print("✅ Data splits created successfully!")
+            return 0
+        else:
+            print("❌ Failed to create data splits")
+            return 1
+            
+    except Exception as e:
+        print(f"Error creating data splits: {e}")
+        return 1
+
+
 def setup_command(args) -> int:
     """Set up train/eval splits for all projects with both original and batch corrected data."""
     print("🔧 Setting up train/eval data splits...")
@@ -848,7 +911,7 @@ def train_command(args, config) -> int:
         print(f"   Batch correction: {config.data.batch_correction.enabled}")
 
         # Use shared PipelineManager for all projects
-        from shared.core import PipelineManager
+        from common.core import PipelineManager
         
         # Initialize and run pipeline
         pipeline = PipelineManager(config)
@@ -1013,7 +1076,7 @@ def evaluate_command(args, config) -> int:
         print(f"   Target: {config.data.target_variable}")
 
         # Use shared PipelineManager for all projects
-        from shared.core import PipelineManager
+        from common.core import PipelineManager
 
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
@@ -1061,7 +1124,7 @@ def analyze_command(args, config) -> int:
             print(f"📂 Using provided predictions path: {predictions_path}")
         else:
             # Auto-detect predictions in new experiment structure
-            from shared.utils.path_manager import PathManager
+            from common.utils.path_manager import PathManager
             path_manager = PathManager(config)
             
             # Try to find best model for current config
@@ -1080,7 +1143,7 @@ def analyze_command(args, config) -> int:
             print("📊 Running analysis on existing predictions...")
             
             # Just run the analysis script without reloading everything
-            from shared.core import PipelineManager
+            from common.core import PipelineManager
             pipeline = PipelineManager(config)
             
             # Only run the analysis script part
@@ -1093,7 +1156,7 @@ def analyze_command(args, config) -> int:
         print("⚠️  No predictions found, need to generate them...")
         
         # Check if model exists
-        from shared.utils.path_manager import PathManager
+        from common.utils.path_manager import PathManager
         path_manager = PathManager(config)
         model_dir = path_manager.construct_model_directory()
         model_path = Path(model_dir) / "model.h5"
@@ -1103,7 +1166,7 @@ def analyze_command(args, config) -> int:
             print("📦 Training model first...")
             
             # Run training
-            from shared.core import PipelineManager
+            from common.core import PipelineManager
             pipeline = PipelineManager(config)
             pipeline.load_or_train_model()
             print("✅ Model training complete!")
@@ -1119,7 +1182,7 @@ def analyze_command(args, config) -> int:
         
         try:
             # Use shared PipelineManager to load model and run analysis
-            from shared.core import PipelineManager
+            from common.core import PipelineManager
             
             # Initialize pipeline and run evaluation with analysis
             pipeline = PipelineManager(config)

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -42,11 +42,7 @@ batch-correction = [
 ]
 
 [project.scripts]
-timeflies = "shared.cli.main:main_cli"
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+timeflies = "common.cli.main:main"
 
 [tool.black]
 line-length = 88
@@ -67,9 +63,6 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
-
-[project.scripts]
-timeflies = "shared.cli.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -116,11 +109,11 @@ output = "coverage/coverage.xml"
 profile = "black"
 multi_line_output = 3
 line_length = 88
-known_first_party = ["shared", "projects"]
+known_first_party = ["common", "analysis"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py310"
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings  
@@ -142,7 +135,7 @@ exclude = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false  # Gradually enable

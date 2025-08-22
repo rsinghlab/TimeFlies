@@ -64,7 +64,7 @@ def main():
     sys.path.insert(0, str(src_path))
 
     try:
-        from shared.cli import main_cli
+        from common.cli import main_cli
     except ImportError as e:
         print("Import Error:")
         print(f"   {e}")

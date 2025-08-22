@@ -4,8 +4,8 @@ import os
 import yaml
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
-from shared.utils.exceptions import ConfigurationError
-from shared.utils.logging_config import get_logger
+from common.utils.exceptions import ConfigurationError
+from common.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

@@ -3,13 +3,13 @@ import os
 from typing import Optional, Dict, Any
 
 from .config_manager import Config
-from shared.data.preprocessing.data_processor import DataPreprocessor
-from shared.data.preprocessing.gene_filter import GeneFilter
-from shared.models.model import ModelBuilder, ModelLoader
-from shared.utils.gpu_handler import GPUHandler
-from shared.utils.path_manager import PathManager
-from shared.utils.storage_manager import StorageManager
-from shared.data.loaders import DataLoader
+from common.data.preprocessing.data_processor import DataPreprocessor
+from common.data.preprocessing.gene_filter import GeneFilter
+from common.models.model import ModelBuilder, ModelLoader
+from common.utils.gpu_handler import GPUHandler
+from common.utils.path_manager import PathManager
+from common.utils.storage_manager import StorageManager
+from common.data.loaders import DataLoader
 
 # Optional project-specific components (injected at runtime)
 EDAHandler = None
@@ -53,8 +53,8 @@ class PipelineManager:
         
         # Auto-inject shared analysis components
         try:
-            from shared.analysis import EDAHandler, Visualizer
-            from shared.evaluation import Interpreter, Metrics
+            from common.analysis import EDAHandler, Visualizer
+            from common.evaluation import Interpreter, Metrics
             self.eda_handler_class = EDAHandler
             self.interpreter_class = Interpreter
             self.metrics_class = Metrics
@@ -537,7 +537,7 @@ class PipelineManager:
             os.makedirs(plots_dir, exist_ok=True)
             
             # Run metrics and save to experiment directory
-            from shared.evaluation import Metrics
+            from common.evaluation import Metrics
             metrics = Metrics(
                 self.config_instance,
                 self.model,
@@ -606,7 +606,7 @@ class PipelineManager:
             )
             
             # Process EVALUATION data using fitted training components (no data leakage)
-            from shared.data.preprocessing import DataPreprocessor
+            from common.data.preprocessing import DataPreprocessor
             data_preprocessor = DataPreprocessor(self.config_instance, None, None)
             
             (

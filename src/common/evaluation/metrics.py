@@ -9,7 +9,7 @@ import pandas as pd
 from typing import Dict, List, Optional, Tuple, Any
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import scipy.stats as stats
-from shared.utils.logging_config import get_logger
+from common.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

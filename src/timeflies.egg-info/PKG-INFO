@@ -41,44 +41,107 @@ A modern machine learning framework for analyzing aging patterns in Drosophila s
 
 ## 🚀 Quick Start
 
-### 1. Environment Setup
+### 1. Install TimeFlies
 ```bash
-# Clone and setup environment
-git clone <repository>
-cd TimeFlies
-bash setup_dev_env.sh
+# Download the installer
+curl -O https://raw.githubusercontent.com/yourusername/TimeFlies/main/install_timeflies.sh
 
-# Activate environment  
+# Run installation (creates Python 3.12+ environment)
+bash install_timeflies.sh
+
+# Activate environment
 source activate.sh
 ```
 
-### 2. Data Preparation
-Place your H5AD files in the data directory:
-```
-data/
-├── fruitfly_aging/head/
-│   └── drosophila_head_aging_original.h5ad
-└── fruitfly_alzheimers/head/
-    └── drosophila_head_alzheimers_original.h5ad
-```
-
-### 3. Complete Workflow
+### 2. Setup Project
 ```bash
-# Create test fixtures for development
-python run_timeflies.py create-test-data
+# Create project structure and config
+timeflies setup
 
-# Setup train/eval splits for all projects  
-python run_timeflies.py setup
+# Add your H5AD data files
+mkdir -p data/fruitfly_alzheimers/head
+# Copy your *_original.h5ad files into data/[project]/[tissue]/
+```
+
+### 3. Run Analysis
+```bash
+# Split data for training
+timeflies split
 
 # Verify everything is ready
-python run_timeflies.py verify
+timeflies verify
 
 # Train models
-python run_timeflies.py train
+timeflies train
 
-# Evaluate with SHAP interpretation (optional)
-python run_timeflies.py evaluate
+# Evaluate with SHAP interpretation
+timeflies evaluate
 ```
+
+## 🚀 Deployment Usage
+
+### For End Users (Researchers)
+
+1. **Install TimeFlies Package**
+```bash
+# Install from source (for now)
+pip install -e git+<repository-url>#egg=timeflies
+
+# Or local development install
+pip install -e /path/to/TimeFlies
+```
+
+2. **Create Your Project Directory**
+```bash
+mkdir my_aging_research
+cd my_aging_research
+```
+
+3. **Add Your Data**
+```bash
+# Create data directory and add your H5AD files
+mkdir -p data/fruitfly_alzheimers/head
+# Copy your *_original.h5ad files into the appropriate folders
+```
+
+4. **Initialize Configuration**
+```bash
+# First run creates config.yaml in your project directory
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py verify
+
+# Edit config.yaml to customize your analysis
+nano config.yaml
+```
+
+5. **Run Your Analysis**
+```bash
+# Setup train/eval splits
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py setup-all
+
+# Run analysis with command chaining
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py train --with-eda --with-analysis
+```
+
+### Project Structure for Users
+```
+my_aging_research/
+├── config.yaml              # Your editable configuration (auto-created)
+├── data/                     # Your input data
+│   └── fruitfly_alzheimers/head/
+│       └── your_data_original.h5ad
+└── outputs/                  # All results go here (auto-created)
+    └── fruitfly_alzheimers/
+        ├── experiments/      # Training results with timestamps
+        ├── eda/             # Exploratory data analysis
+        └── analysis/        # Post-training analysis
+```
+
+### Key Benefits for Deployment
+- **📋 Visible Config**: `config.yaml` appears in your project directory for easy editing
+- **📁 Local Outputs**: All results stay in your project directory
+- **🔧 No Hidden Files**: No system-wide configuration in `~/.timeflies`
+- **🎛️ Full Control**: Edit any parameter in your visible config file
+- **📊 Command Chaining**: Run multiple steps with `--with-eda`, `--with-analysis` flags
 
 ## 📋 Core Commands
 
@@ -184,15 +247,17 @@ python run_timeflies.py test --fast
 ### Project Structure
 ```
 src/
-├── shared/           # Core framework
+├── common/          # Core framework
 │   ├── cli/         # Command line interface
 │   ├── core/        # Configuration management
-│   ├── data/        # Data loading and setup
+│   ├── data/        # Data loading and preprocessing
 │   ├── models/      # Model architectures
+│   ├── evaluation/  # SHAP analysis and metrics
+│   ├── analysis/    # EDA and visualizations
 │   └── utils/       # Utilities
-└── projects/        # Project-specific code
-    ├── fruitfly_aging/
-    └── fruitfly_alzheimers/
+└── analysis/        # Project-specific analysis files
+    ├── fruitfly_aging_analysis.py
+    └── fruitfly_alzheimers_analysis.py
 ```
 
 ## 🎯 Key Features

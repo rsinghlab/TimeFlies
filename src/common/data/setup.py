@@ -6,7 +6,7 @@ import anndata
 import logging
 from typing import List
 import pandas as pd
-from shared.core import ConfigManager
+from common.core import ConfigManager
 
 # Configure logging for better control over output
 logging.basicConfig(level=logging.INFO)
@@ -45,7 +45,7 @@ class DataSetupManager:
                         "target_variable": "age",
                     },
                 }
-                from shared.core import Config
+                from common.core import Config
 
                 self.config = Config(minimal_config)
         else:

@@ -116,6 +116,9 @@ Workflow:
     
     # Setup command (individual steps)
     setup_parser = subparsers.add_parser("setup", help="Set up data and directories only")
+    
+    # Split command (create train/eval data splits)
+    split_parser = subparsers.add_parser("split", help="Create train/eval data splits from your original data")
 
     # Verify command (system setup verification)
     verify_parser = subparsers.add_parser(
