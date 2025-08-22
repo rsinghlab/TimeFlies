@@ -18,7 +18,7 @@ from tests.fixtures.unit_test_data import (
 )
 
 # Import project modules for fixtures
-from projects.fruitfly_aging.core.config_manager import Config, ConfigManager
+# from projects.fruitfly_aging.core.config_manager import Config, ConfigManager
 from shared.cli.parser import create_main_parser
 from shared.core.active_config import get_config_for_active_project
 from unittest.mock import Mock, patch
@@ -122,7 +122,7 @@ def aging_config():
         'general': {'project_name': 'TimeFlies', 'version': '0.2.0', 'random_state': 42},
         'data': {
             'tissue': 'head',
-            'encoding_variable': 'age',
+            'target_variable': 'age',
             'model': 'CNN',
             'species': 'drosophila',
             'cell_type': 'all',

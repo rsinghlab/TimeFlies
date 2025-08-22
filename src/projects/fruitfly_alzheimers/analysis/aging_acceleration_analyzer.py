@@ -69,11 +69,26 @@ class AlzheimersAgingAccelerationAnalyzer:
         
     def load_prediction_results(self):
         """Load prediction results from known pipeline output location"""
-        # Pipeline outputs go to outputs/fruitfly_alzheimers/results/
-        results_path = Path("outputs/fruitfly_alzheimers/results/predictions.csv")
+        # Pipeline outputs go to outputs/fruitfly_alzheimers/results/best/eval/ or recent/eval/
+        # Try best first (post-training), then recent (standalone evaluation)
+        project_root = Path.cwd()
+        base_path = project_root / "outputs" / "fruitfly_alzheimers" / "results" / "uncorrected" / "head_cnn_age" / "all-genes_all-cells_all-sexes"
         
-        if not results_path.exists():
-            raise FileNotFoundError(f"Prediction results not found at {results_path}. Run the pipeline first.")
+        # Try best results first, then recent
+        results_path = None
+        for result_type in ["best", "recent"]:
+            candidate_path = base_path / result_type / "eval" / "predictions.csv"
+            if candidate_path.exists():
+                results_path = candidate_path
+                break
+        
+        if results_path is None:
+            # Fallback to old structure for backward compatibility
+            old_path = Path("outputs/fruitfly_alzheimers/results/predictions.csv")
+            if old_path.exists():
+                results_path = old_path
+            else:
+                raise FileNotFoundError(f"Prediction results not found. Tried:\n  - {base_path}/best/eval/predictions.csv\n  - {base_path}/recent/eval/predictions.csv\n  - {old_path}\nRun the pipeline first.")
         
         df = pd.read_csv(results_path)
         

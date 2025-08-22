@@ -54,7 +54,7 @@ def get_active_project() -> str:
                         default_config = yaml.safe_load(f)
                     project = default_config.get("project")
                     if project:
-                        logger.info(f"Active project from default.yaml: {project}")
+                        logger.debug(f"Active project from default.yaml: {project}")
                         return project
                     break
 
@@ -106,8 +106,8 @@ def get_active_config_path(config_type: str = "default") -> str:
 
     config_filename = config_files.get(config_type, f"{config_type}.yaml")
 
-    # Build the config path
-    config_path = f"configs/{active_project}/{config_filename}"
+    # Use unified config structure (no more project-specific folders)
+    config_path = f"configs/{config_filename}"
 
     # Check if it exists
     if not os.path.exists(config_path):
@@ -125,7 +125,7 @@ def get_active_config_path(config_type: str = "default") -> str:
                 break
         else:
             raise ConfigurationError(
-                f"Config file not found for active project '{active_project}': {config_filename}"
+                f"Config file not found: {config_filename} (looked in configs/ directory)"
             )
 
     logger.info(f"Using config: {config_path}")

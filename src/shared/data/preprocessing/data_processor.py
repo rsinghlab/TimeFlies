@@ -99,197 +99,89 @@ class DataPreprocessor:
 
     def split_data(self, dataset: AnnData, evaluation_mode: bool = False) -> Tuple[AnnData, AnnData]:
         """
-        Split the dataset into training and testing subsets based on the configuration.
+        Filter/split the dataset based on the configuration using generic column-based approach.
+        
+        For training: Returns filtered training data + empty test set
+        For evaluation: Returns empty train set + filtered test data
 
         Parameters:
         - dataset: The dataset to be split.
+        - evaluation_mode: If True, return test data for evaluation
 
         Returns:
-        - train_subset: The training subset.
-        - test_subset: The testing subset.
+        - train_subset: The training subset (empty if evaluation_mode=True).
+        - test_subset: The testing subset (empty if evaluation_mode=False).
         """
         config = self.config
         split_method = getattr(config.data.split, "method", "random").lower()
 
-        if split_method == "sex":
-            train_sex = getattr(
-                config.data.split.sex, "train", "male"
-            ).lower()
-            test_sex = getattr(
-                config.data.train_test_split.test, "sex", "female"
-            ).lower()
-
-            train_subset = dataset[dataset.obs["sex"].str.lower() == train_sex].copy()
-            test_subset = dataset[dataset.obs["sex"].str.lower() == test_sex].copy()
-
-            # Apply test_ratio to reduce test set size if specified (for performance)
-            test_ratio = getattr(config.data.split.sex, "test_ratio", 1.0)
-            if test_ratio < 1.0:
-                random_state = getattr(config.general, "random_state", 42)
-                _, test_subset = train_test_split(
-                    test_subset,
-                    test_size=test_ratio,
-                    random_state=random_state,
-                )
-                print(f"Applied test_ratio {test_ratio}: Using {test_subset.n_obs} test cells")
+        if split_method == "column":
+            # Generic column-based splitting
+            column = getattr(config.data.split, "column", None)
+            train_values = getattr(config.data.split, "train", [])
+            test_values = getattr(config.data.split, "test", [])
             
-            # Apply sampling after sex split to get balanced samples
-            num_samples = getattr(config.data.sampling, "samples", None)
-            if num_samples:
-                random_state = getattr(config.general, "random_state", 42)
-                
-                # Sample from train set
-                if num_samples < train_subset.n_obs:
-                    train_sample_indices = train_subset.obs.sample(
-                        n=min(num_samples, train_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    train_subset = train_subset[train_sample_indices, :]
-                
-                # Sample from test set
-                if num_samples < test_subset.n_obs:
-                    test_sample_indices = test_subset.obs.sample(
-                        n=min(num_samples, test_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    test_subset = test_subset[test_sample_indices, :]
-
-        elif split_method == "tissue":
-            train_tissue = getattr(
-                config.data.train_test_split.train, "tissue", "head"
-            ).lower()
-            test_tissue = getattr(
-                config.data.train_test_split.test, "tissue", "body"
-            ).lower()
-
-            train_subset = dataset[
-                dataset.obs["tissue"].str.lower() == train_tissue
-            ].copy()
-            test_subset = dataset[
-                dataset.obs["tissue"].str.lower() == test_tissue
-            ].copy()
-
-            # Ensure common genes between train and test data
-            common_genes = train_subset.var_names.intersection(test_subset.var_names)
-            train_subset = train_subset[:, common_genes]
-            test_subset = test_subset[:, common_genes]
-
-            # Apply test_ratio to reduce test set size if specified (for performance)
-            test_ratio = getattr(config.data.split.tissue, "test_ratio", 1.0)
-            if test_ratio < 1.0:
-                random_state = getattr(config.general, "random_state", 42)
-                _, test_subset = train_test_split(
-                    test_subset,
-                    test_size=test_ratio,
-                    random_state=random_state,
-                )
-                print(f"Applied test_ratio {test_ratio}: Using {test_subset.n_obs} test cells")
+            if not column:
+                raise ValueError("Column name must be specified for column-based splits")
             
-            # Apply sampling after tissue split to get balanced samples
-            num_samples = getattr(config.data.sampling, "samples", None)
-            if num_samples:
-                random_state = getattr(config.general, "random_state", 42)
-                
-                # Sample from train set
-                if num_samples < train_subset.n_obs:
-                    train_sample_indices = train_subset.obs.sample(
-                        n=min(num_samples, train_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    train_subset = train_subset[train_sample_indices, :]
-                
-                # Sample from test set
-                if num_samples < test_subset.n_obs:
-                    test_sample_indices = test_subset.obs.sample(
-                        n=min(num_samples, test_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    test_subset = test_subset[test_sample_indices, :]
-
-        elif split_method == "genotype":
-            # Genotype-based splitting for Alzheimer's analysis
+            if column not in dataset.obs.columns:
+                raise ValueError(f"Column '{column}' not found in dataset observations")
             
-            # Handle multiple test genotypes (e.g., "alzheimers" maps to AB42, hTau)
-            test_genotype_spec = getattr(
-                config.data.split.genotype, "test", "alzheimers"
-            ).lower()
+            # Convert values to lowercase strings for consistent matching
+            train_values_norm = [str(v).lower() for v in train_values]
+            test_values_norm = [str(v).lower() for v in test_values]
             
-            if test_genotype_spec == "alzheimers":
-                # Test on all alzheimer's genotypes
-                test_genotypes = ["ab42", "htau"]
-                test_subset = dataset[
-                    dataset.obs["genotype"].str.lower().isin(test_genotypes)
-                ].copy()
-            else:
-                # Test on specific genotype
-                test_subset = dataset[
-                    dataset.obs["genotype"].str.lower() == test_genotype_spec
-                ].copy()
-            
+            # Filter data based on column values
             if evaluation_mode:
-                # For evaluation, we only need test data (all alzheimer's flies)
-                # Create a dummy train_subset to maintain interface compatibility
-                train_subset = test_subset[:0].copy()  # Empty subset with same structure
-                
-                print(f"Evaluation mode: Using all {test_subset.n_obs} test genotype cells")
-            else:
-                # For training, create proper train subset (control flies)
-                train_genotype = getattr(
-                    config.data.split.genotype, "train", "control"
-                ).lower()
-                
-                train_subset = dataset[
-                    dataset.obs["genotype"].str.lower() == train_genotype
+                # For evaluation: return test data only
+                train_subset = dataset[:0].copy()  # Empty subset
+                test_subset = dataset[
+                    dataset.obs[column].str.lower().isin(test_values_norm)
                 ].copy()
+                print(f"Evaluation mode: Using {test_subset.n_obs} cells with {column} in {test_values}")
+            else:
+                # For training: return training data only
+                train_subset = dataset[
+                    dataset.obs[column].str.lower().isin(train_values_norm)
+                ].copy()
+                test_subset = dataset[:0].copy()  # Empty subset
+                print(f"Training mode: Using {train_subset.n_obs} cells with {column} in {train_values}")
             
-            # Apply test_ratio to reduce test set size if specified (for performance)
-            test_ratio = getattr(config.data.split.genotype, "test_ratio", 1.0)
-            if test_ratio < 1.0:
-                random_state = getattr(config.general, "random_state", 42)
-                _, test_subset = train_test_split(
-                    test_subset,
-                    test_size=test_ratio,
-                    random_state=random_state,
-                )
-                print(f"Applied test_ratio {test_ratio}: Using {test_subset.n_obs} test cells")
-            
-            # Apply sampling after genotype split to get balanced samples
+            # Apply sampling (only to training data during training)
             num_samples = getattr(config.data.sampling, "samples", None)
-            if num_samples and not evaluation_mode:
-                # Only apply sampling during training
+            if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
                 random_state = getattr(config.general, "random_state", 42)
-                
-                # Sample from train set
-                if num_samples < train_subset.n_obs:
-                    train_sample_indices = train_subset.obs.sample(
-                        n=min(num_samples, train_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    train_subset = train_subset[train_sample_indices, :]
-                
-                # Sample from test set
-                if num_samples < test_subset.n_obs:
-                    test_sample_indices = test_subset.obs.sample(
-                        n=min(num_samples, test_subset.n_obs), 
-                        random_state=random_state
-                    ).index
-                    test_subset = test_subset[test_sample_indices, :]
+                train_sample_indices = train_subset.obs.sample(
+                    n=min(num_samples, train_subset.n_obs), 
+                    random_state=random_state
+                ).index
+                train_subset = train_subset[train_sample_indices, :]
+                print(f"Applied sampling: Using {train_subset.n_obs} training cells")
 
         else:
-            # Perform a stratified train-test split based on encoding variable
-            encoding_var = getattr(config.data, "encoding_variable", "age")
-            test_size = getattr(config.data.train_test_split, "test_split", 0.2)
-            random_state = getattr(config.general, "random_state", 42)
-
-            train_subset, test_subset = train_test_split(
-                dataset,
-                stratify=dataset.obs[encoding_var],
-                test_size=test_size,
-                random_state=random_state,
-            )
-
-            # Note: Legacy gene selection from corrected data removed - 
-            # batch correction now uses all genes
+            # Random split method - no test_ratio, pass entire dataset
+            if evaluation_mode:
+                # For evaluation: return empty train, full dataset as test
+                train_subset = dataset[:0].copy()  # Empty subset
+                test_subset = dataset.copy()
+                print(f"Evaluation mode: Using full dataset ({test_subset.n_obs} cells)")
+            else:
+                # For training: return full dataset for training
+                # Keras will handle train/validation split internally
+                train_subset = dataset.copy()
+                test_subset = dataset[:0].copy()  # Empty subset
+                print(f"Training mode: Using full dataset ({train_subset.n_obs} cells)")
+                
+            # Apply sampling if specified (only during training)
+            num_samples = getattr(config.data.sampling, "samples", None)
+            if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
+                random_state = getattr(config.general, "random_state", 42)
+                train_sample_indices = train_subset.obs.sample(
+                    n=min(num_samples, train_subset.n_obs), 
+                    random_state=random_state
+                ).index
+                train_subset = train_subset[train_sample_indices, :]
+                print(f"Applied sampling: Using {train_subset.n_obs} training cells")
 
         return train_subset, test_subset
 
@@ -344,14 +236,20 @@ class DataPreprocessor:
         - label_encoder: The label encoder used to transform the labels.
         """
         config = self.config
-        encoding_var = getattr(config.data, "encoding_variable", "age")
+        encoding_var = getattr(config.data, "target_variable", "age")
         label_encoder = LabelEncoder()
 
         train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
-        test_labels = label_encoder.transform(test_subset.obs[encoding_var])
+        
+        # Handle empty test set (simplified training approach)
+        if test_subset.n_obs > 0:
+            test_labels = label_encoder.transform(test_subset.obs[encoding_var])
+            test_labels = to_categorical(test_labels)
+        else:
+            # Create empty test labels with correct shape
+            test_labels = np.array([]).reshape(0, len(label_encoder.classes_))
 
         train_labels = to_categorical(train_labels)
-        test_labels = to_categorical(test_labels)
 
         return train_labels, test_labels, label_encoder
 
@@ -467,7 +365,7 @@ class DataPreprocessor:
                 print(
                     "Batch correction requested but batch-corrected data not available"
                 )
-            print("Using uncorrected data...")
+            # Using uncorrected data for training
             dataset_to_use = self.process_adata(self.adata)
 
         # Split the data
@@ -482,14 +380,16 @@ class DataPreprocessor:
 
         # Print data sizes and class counts
         print(f"Training data size: {train_subset.shape}")
-        print(f"Testing data size: {test_subset.shape}")
-
-        encoding_var = getattr(config.data, "encoding_variable", "age")
+        
+        encoding_var = getattr(config.data, "target_variable", "age")
         print("\nCounts of each class in the training data:")
         print(train_subset.obs[encoding_var].value_counts())
 
-        print("\nCounts of each class in the testing data:")
-        print(test_subset.obs[encoding_var].value_counts())
+        # Only show test data info if we actually have test data
+        if test_subset.n_obs > 0:
+            print(f"Testing data size: {test_subset.shape}")
+            print("\nCounts of each class in the testing data:")
+            print(test_subset.obs[encoding_var].value_counts())
 
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(
@@ -520,6 +420,12 @@ class DataPreprocessor:
 
         # Get mix_included flag from config
         mix_included = getattr(config.data.filtering, "include_mixed_sex", False)
+        
+        # Store the gene names used in training for consistent evaluation
+        if highly_variable_genes is not None:
+            self.train_gene_names = highly_variable_genes
+        else:
+            self.train_gene_names = train_subset.var_names.tolist()
 
         return (
             train_data,
@@ -543,6 +449,7 @@ class DataPreprocessor:
         is_scaler_fit,
         highly_variable_genes,
         mix_included,
+        train_gene_names=None,
     ):
         """
         Preprocess the final evaluation data based on the provided configuration parameters.
@@ -591,52 +498,20 @@ class DataPreprocessor:
         # Split-specific filtering for evaluation (only test groups)
         split_method = getattr(config.data.split, "method", "random").lower()
         
-        if split_method == "genotype":
-            test_genotype_spec = getattr(
-                config.data.split.genotype, "test", "alzheimers"
-            ).lower()
+        if split_method == "column":
+            # Generic column-based evaluation filtering
+            column = getattr(config.data.split, "column", None)
+            test_values = getattr(config.data.split, "test", [])
             
-            if test_genotype_spec == "alzheimers":
-                # Filter to only alzheimer's genotypes for evaluation
-                test_genotypes = ["ab42", "htau"]
-                adata = adata[
-                    adata.obs["genotype"].str.lower().isin(test_genotypes)
-                ].copy()
-                print(f"Evaluation: Filtered to {adata.n_obs} cells with test genotypes {test_genotypes}")
-            else:
-                # Filter to specific test genotype
-                adata = adata[
-                    adata.obs["genotype"].str.lower() == test_genotype_spec
-                ].copy()
-                print(f"Evaluation: Filtered to {adata.n_obs} cells with genotype {test_genotype_spec}")
-            
-            # Apply test_ratio for evaluation performance if specified
-            test_ratio = getattr(config.data.split.genotype, "test_ratio", 1.0)
-            if test_ratio < 1.0:
-                from sklearn.model_selection import train_test_split
-                random_state = getattr(config.general, "random_state", 42)
-                _, adata = train_test_split(
-                    adata,
-                    test_size=test_ratio,
-                    random_state=random_state,
-                )
-                print(f"Evaluation: Applied test_ratio {test_ratio}, using {adata.n_obs} cells")
+            if column and test_values:
+                # Convert values to lowercase strings for consistent matching
+                test_values_norm = [str(v).lower() for v in test_values]
                 
-        elif split_method == "sex":
-            # Filter to only test sex group for evaluation (matches training config structure)
-            test_sex = getattr(
-                config.data.train_test_split.test, "sex", "female"
-            ).lower()
-            adata = adata[adata.obs["sex"].str.lower() == test_sex].copy()
-            print(f"Evaluation: Filtered to {adata.n_obs} cells with test sex '{test_sex}'")
-            
-        elif split_method == "tissue":
-            # Filter to only test tissue group for evaluation (matches training config structure)
-            test_tissue = getattr(
-                config.data.train_test_split.test, "tissue", "body"
-            ).lower()
-            adata = adata[adata.obs["tissue"].str.lower() == test_tissue].copy()
-            print(f"Evaluation: Filtered to {adata.n_obs} cells with test tissue '{test_tissue}'")
+                # Filter to only test values for evaluation
+                adata = adata[
+                    adata.obs[column].str.lower().isin(test_values_norm)
+                ].copy()
+                print(f"Evaluation: Filtered to {adata.n_obs} cells with {column} in {test_values}")
 
         # Apply gene selection from corrected data if specified and not already using corrected data
         select_batch_genes = getattr(
@@ -650,8 +525,11 @@ class DataPreprocessor:
                 )
                 adata = adata[:, common_genes]
 
-        # Highly variable genes selection
-        if highly_variable_genes is not None:
+        # Gene selection - use exact same genes as training
+        if train_gene_names is not None:
+            # Use the exact gene names from training for consistency
+            adata = adata[:, train_gene_names]
+        elif highly_variable_genes is not None:
             adata = adata[:, highly_variable_genes]
         else:
             # Use num_features to select the top genes
@@ -659,7 +537,7 @@ class DataPreprocessor:
             adata = adata[:, :num_features]
 
         # Prepare the testing labels
-        encoding_var = getattr(config.data, "encoding_variable", "age")
+        encoding_var = getattr(config.data, "target_variable", "age")
         test_labels = label_encoder.transform(adata.obs[encoding_var])
         test_labels = to_categorical(test_labels)
 

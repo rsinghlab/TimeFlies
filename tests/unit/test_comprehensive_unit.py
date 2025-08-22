@@ -138,7 +138,7 @@ class TestConfigSystem:
         assert hasattr(config, 'general')
         assert hasattr(config.data, 'tissue')
         assert hasattr(config.data, 'model')
-        assert hasattr(config.data, 'encoding_variable')
+        assert hasattr(config.data, 'target_variable')
     
     def test_config_structure(self):
         """Test modern config structure."""

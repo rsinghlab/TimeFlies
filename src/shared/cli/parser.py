@@ -49,6 +49,23 @@ Workflow:
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
     
+    # Batch correction flag (global)
+    parser.add_argument(
+        "--batch-corrected", action="store_true", 
+        help="Use batch-corrected data for all operations"
+    )
+    
+    # Common overrides  
+    parser.add_argument(
+        "--tissue", type=str, help="Override tissue type (e.g., head, body)"
+    )
+    parser.add_argument(
+        "--model", type=str, help="Override model type (e.g., CNN, MLP, xgboost)"
+    )
+    parser.add_argument(
+        "--target", type=str, help="Override target variable (e.g., age)"
+    )
+    
     # Project selection (mutually exclusive)
     project_group = parser.add_mutually_exclusive_group()
     project_group.add_argument(
@@ -66,11 +83,39 @@ Workflow:
 
     # Train command
     train_parser = subparsers.add_parser(
-        "train", help="Train a model using project config settings"
+        "train", help="Train a model using project config settings (includes auto-evaluation)"
+    )
+    train_parser.add_argument(
+        "--with-eda", action="store_true", help="Run EDA before training"
+    )
+    train_parser.add_argument(
+        "--with-analysis", action="store_true", help="Run analysis after training"
+    )
+    
+    # EDA command (new)
+    eda_parser = subparsers.add_parser(
+        "eda", help="Run exploratory data analysis on the dataset"
+    )
+    eda_parser.add_argument(
+        "--split", type=str, choices=["all", "train", "test"], default="all",
+        help="Which data split to analyze (default: all)"
+    )
+    eda_parser.add_argument(
+        "--save-report", action="store_true", 
+        help="Generate HTML report of EDA results"
     )
 
-    # Setup command
-    setup_parser = subparsers.add_parser("setup", help="Set up data and directories")
+    # Unified setup command (new!)
+    unified_setup_parser = subparsers.add_parser(
+        "setup-all", help="🚀 One-command setup: verify + test-data + splits + directories (RECOMMENDED)"
+    )
+    unified_setup_parser.add_argument(
+        "--skip-batch", action="store_true",
+        help="Skip batch correction setup"
+    )
+    
+    # Setup command (individual steps)
+    setup_parser = subparsers.add_parser("setup", help="Set up data and directories only")
 
     # Verify command (system setup verification)
     verify_parser = subparsers.add_parser(
@@ -109,10 +154,24 @@ Workflow:
     eval_parser = subparsers.add_parser(
         "evaluate", help="Evaluate model using project config settings"
     )
+    eval_parser.add_argument(
+        "--with-eda", action="store_true", help="Run EDA before evaluation"
+    )
+    eval_parser.add_argument(
+        "--with-analysis", action="store_true", help="Run analysis after evaluation"
+    )
 
     # Analyze command
     analyze_parser = subparsers.add_parser(
         "analyze", help="Run project-specific analysis on trained model"
+    )
+    analyze_parser.add_argument(
+        "--predictions-path", type=str,
+        help="Path to existing predictions CSV (skip model loading)"
+    )
+    analyze_parser.add_argument(
+        "--with-eda", action="store_true", 
+        help="Run EDA before analysis"
     )
 
     # Batch correction command (no flags - uses project config)

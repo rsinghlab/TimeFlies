@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from ..core.active_config import get_config_for_active_project, get_active_project
+from ..analysis.eda import EDAHandler
 
 # Optional import for batch correction
 try:
@@ -91,7 +92,7 @@ def run_system_tests(args) -> int:
         
         config = config_manager.get_config()
         print(f"   ✅ Project config loaded successfully")
-        print(f"   ✅ Target variable: {config.data.encoding_variable}")
+        print(f"   ✅ Target variable: {config.data.target_variable}")
         print(f"   ✅ Model type: {config.data.model}")
 
     except Exception as e:
@@ -368,6 +369,88 @@ def run_test_suite(args) -> int:
         return 1
 
 
+def unified_setup_command(args) -> int:
+    """
+    Unified setup that does EVERYTHING needed to get TimeFlies ready.
+    
+    This replaces multiple setup steps with one comprehensive setup:
+    - Verifies environment
+    - Creates test data  
+    - Sets up data splits
+    - Optionally runs batch correction
+    - Creates all necessary directories
+    """
+    print("🚀 TimeFlies Unified Setup")
+    print("=" * 50)
+    print("Setting up your complete TimeFlies environment...")
+    
+    # 1. System Verification
+    print("\n1️⃣ Verifying system...")
+    verify_result = run_system_tests(args)
+    if verify_result != 0:
+        print("❌ System verification failed. Please fix issues above.")
+        return verify_result
+    
+    # 2. Create test data
+    print("\n2️⃣ Creating test data...")
+    test_data_result = create_test_data_command(args)
+    if test_data_result != 0:
+        print("❌ Test data creation failed.")
+        return test_data_result
+        
+    # 3. Set up data splits
+    print("\n3️⃣ Setting up data splits...")
+    split_result = setup_command(args)
+    if split_result != 0:
+        print("❌ Data split setup failed.")
+        return split_result
+    
+    # 4. Optional batch correction
+    if not hasattr(args, 'skip_batch') or not args.skip_batch:
+        try:
+            print("\n4️⃣ Setting up batch correction (optional)...")
+            batch_result = batch_command(args)
+            if batch_result == 0:
+                print("✅ Batch correction setup complete")
+            else:
+                print("⚠️  Batch correction failed - continuing without it")
+        except Exception as e:
+            print(f"⚠️  Batch correction unavailable: {e}")
+    else:
+        print("\n4️⃣ Skipping batch correction setup")
+    
+    # 5. Create output directories
+    print("\n5️⃣ Creating output directories...")
+    from pathlib import Path
+    
+    output_dirs = [
+        "outputs/fruitfly_aging/experiments/uncorrected",
+        "outputs/fruitfly_aging/experiments/batch_corrected", 
+        "outputs/fruitfly_aging/eda/uncorrected",
+        "outputs/fruitfly_aging/eda/batch_corrected",
+        "outputs/fruitfly_alzheimers/experiments/uncorrected",
+        "outputs/fruitfly_alzheimers/experiments/batch_corrected",
+        "outputs/fruitfly_alzheimers/eda/uncorrected", 
+        "outputs/fruitfly_alzheimers/eda/batch_corrected",
+        "logs"
+    ]
+    
+    for dir_path in output_dirs:
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
+    
+    print("✅ Output directories created")
+    
+    print("\n🎉 SETUP COMPLETE!")
+    print("=" * 50)
+    print("Your TimeFlies environment is ready!")
+    print("\nNext steps:")
+    print("  🔬 Run EDA:        python run_timeflies.py --alzheimers eda --save-report")
+    print("  🚂 Train models:   python run_timeflies.py --alzheimers train")
+    print("  📊 Full pipeline:  python run_timeflies.py --alzheimers train --with-eda --with-analysis")
+    print("\nAll results will be saved to organized directories in outputs/")
+    
+    return 0
+
 def setup_command(args) -> int:
     """Set up train/eval splits for all projects with both original and batch corrected data."""
     print("🔧 Setting up train/eval data splits...")
@@ -451,7 +534,7 @@ def setup_command(args) -> int:
                     with open(project_config_path, "r") as f:
                         project_data = yaml.safe_load(f)
                     encoding_var = project_data.get("data", {}).get(
-                        "encoding_variable", "age"
+                        "target_variable", "age"
                     )
                     print(f"🎯 Stratification variable: {encoding_var}")
                 else:
@@ -667,14 +750,101 @@ def process_data_splits(
         return False
 
 
+def eda_command(args, config) -> int:
+    """Run exploratory data analysis on the dataset."""
+    import os
+    from datetime import datetime
+    from pathlib import Path
+    
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
+    
+    try:
+        print(f"📊 Starting EDA with project settings:")
+        print(f"   Project: {getattr(config, 'project', 'unknown')}")
+        print(f"   Tissue: {config.data.tissue}")
+        print(f"   Batch corrected: {getattr(args, 'batch_corrected', False)}")
+        print(f"   Split: {getattr(args, 'split', 'all')}")
+        
+        # Apply CLI overrides to config
+        if hasattr(args, 'batch_corrected') and args.batch_corrected:
+            config.data.batch_correction.enabled = True
+        if hasattr(args, 'tissue') and args.tissue:
+            config.data.tissue = args.tissue
+            
+        # Create EDA output directory structure
+        project = getattr(config, 'project', 'fruitfly_alzheimers')
+        tissue = config.data.tissue
+        correction = "batch_corrected" if config.data.batch_correction.enabled else "uncorrected"
+        
+        # Generate descriptive name for this EDA run
+        split_desc = getattr(args, 'split', 'all')
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        
+        # Add data subset description
+        if split_desc == "all":
+            subset_desc = "all-samples"
+        elif split_desc == "train":
+            # Get train values from config
+            train_values = getattr(config.data.split, 'train', [])
+            if train_values:
+                subset_desc = f"train-{'-'.join(str(v).lower()[:4] for v in train_values[:2])}"
+            else:
+                subset_desc = "train-subset"
+        else:  # test
+            test_values = getattr(config.data.split, 'test', [])
+            if test_values:
+                subset_desc = f"test-{'-'.join(str(v).lower()[:4] for v in test_values[:2])}"
+            else:
+                subset_desc = "test-subset"
+        
+        # EDA doesn't need timestamps - always overwrite with latest results
+        eda_dir = Path(f"outputs/{project}/eda/{correction}/{tissue}")
+        if subset_desc != "all":
+            eda_dir = eda_dir / subset_desc
+        eda_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize EDA handler with output directory
+        eda_handler = EDAHandler(config, output_dir=str(eda_dir))
+        
+        # Run comprehensive EDA on specified split
+        if hasattr(args, 'split'):
+            eda_handler.run_comprehensive_eda(split=args.split)
+        else:
+            eda_handler.run_comprehensive_eda()
+            
+        # Generate HTML report if requested
+        if hasattr(args, 'save_report') and args.save_report:
+            report_path = eda_dir / "eda_report.html"
+            eda_handler.generate_html_report(report_path)
+            print(f"   📄 HTML report saved to: {report_path}")
+        
+        print("\n✅ EDA completed successfully!")
+        print(f"   Results saved to: {eda_dir}")
+        return 0
+        
+    except Exception as e:
+        print(f"❌ EDA failed: {e}")
+        if hasattr(args, "verbose") and args.verbose:
+            import traceback
+            traceback.print_exc()
+        return 1
+
 def train_command(args, config) -> int:
     """Train a model using project configuration settings."""
     try:
+        # Run EDA first if requested
+        if hasattr(args, 'with_eda') and args.with_eda:
+            print("\n📊 Running EDA before training...")
+            result = eda_command(args, config)
+            if result != 0:
+                print("❌ EDA failed, stopping pipeline")
+                return result
+                
         print(f"Starting training with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.encoding_variable}")
+        print(f"   Target: {config.data.target_variable}")
         print(f"   Batch correction: {config.data.batch_correction.enabled}")
 
         # Use shared PipelineManager for all projects
@@ -686,6 +856,13 @@ def train_command(args, config) -> int:
 
         print(f"\n✅ Training completed successfully!")
         
+        # Run analysis after training if requested
+        if hasattr(args, 'with_analysis') and args.with_analysis:
+            print("\n🔬 Running analysis after training...")
+            result = analyze_command(args, config)
+            if result != 0:
+                print("⚠️  Analysis failed but training was successful")
+        
         # Check if model was actually saved (based on validation loss improvement)
         model_path = results.get('model_path', 'outputs/models/')
         import os
@@ -695,8 +872,8 @@ def train_command(args, config) -> int:
         if os.path.exists(model_file):
             import time
             file_mod_time = os.path.getmtime(model_file)
-            # If file was modified in the last minute, it was likely updated
-            if time.time() - file_mod_time < 60:
+            # If file was modified in the last 5 minutes, it was likely updated
+            if time.time() - file_mod_time < 300:
                 print(f"   ✅ Model saved (validation loss improved): {model_path}")
             else:
                 print(f"   ⏭️  Model not saved (validation loss did not improve)")
@@ -705,6 +882,11 @@ def train_command(args, config) -> int:
             print(f"   ✅ New model saved: {model_path}")
             
         print(f"   📊 Results saved to: {results.get('results_path', 'outputs/results/')}")
+        
+        # Show best results path only if model improved
+        if results.get('model_improved', False) and 'best_results_path' in results:
+            print(f"   🏆 Best results also saved to: {results['best_results_path']}")
+            
         if "duration" in results:
             print(f"   ⏱️  Training duration: {results['duration']:.1f} seconds")
 
@@ -816,11 +998,19 @@ def evaluate_command(args, config) -> int:
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
     
     try:
+        # Run EDA first if requested
+        if hasattr(args, 'with_eda') and args.with_eda:
+            print("\n📊 Running EDA before evaluation...")
+            result = eda_command(args, config)
+            if result != 0:
+                print("❌ EDA failed, stopping pipeline")
+                return result
+                
         print(f"Starting evaluation with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.encoding_variable}")
+        print(f"   Target: {config.data.target_variable}")
 
         # Use shared PipelineManager for all projects
         from shared.core import PipelineManager
@@ -831,6 +1021,14 @@ def evaluate_command(args, config) -> int:
         results = pipeline.run_evaluation()
 
         print("\n✅ Evaluation completed successfully!")
+        
+        # Run analysis after evaluation if requested
+        if hasattr(args, 'with_analysis') and args.with_analysis:
+            print("\n🔬 Running analysis after evaluation...")
+            result = analyze_command(args, config)
+            if result != 0:
+                print("⚠️  Analysis failed but evaluation was successful")
+                
         return 0
 
     except Exception as e:
@@ -854,13 +1052,30 @@ def analyze_command(args, config) -> int:
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.encoding_variable}")
+        print(f"   Target: {config.data.target_variable}")
         
-        # Check if predictions already exist
-        project = getattr(config, 'project', 'fruitfly_alzheimers')
-        predictions_path = Path(f"outputs/{project}/results/predictions.csv")
+        # Check for CLI-provided predictions path first
+        predictions_path = None
+        if hasattr(args, 'predictions_path') and args.predictions_path:
+            predictions_path = Path(args.predictions_path)
+            print(f"📂 Using provided predictions path: {predictions_path}")
+        else:
+            # Auto-detect predictions in new experiment structure
+            from shared.utils.path_manager import PathManager
+            path_manager = PathManager(config)
+            
+            # Try to find best model for current config
+            try:
+                best_model_dir = path_manager.get_best_model_dir_for_config()
+                predictions_path = Path(best_model_dir) / "evaluation" / "predictions.csv"
+                if predictions_path.exists():
+                    print(f"✅ Found predictions from best model: {predictions_path}")
+                else:
+                    predictions_path = None
+            except:
+                predictions_path = None
         
-        if predictions_path.exists():
+        if predictions_path and predictions_path.exists():
             print(f"✅ Found existing predictions at {predictions_path}")
             print("📊 Running analysis on existing predictions...")
             
@@ -881,7 +1096,7 @@ def analyze_command(args, config) -> int:
         from shared.utils.path_manager import PathManager
         path_manager = PathManager(config)
         model_dir = path_manager.construct_model_directory()
-        model_path = Path(model_dir) / "best_model.h5"
+        model_path = Path(model_dir) / "model.h5"
         
         if not model_path.exists():
             print(f"⚠️  No trained model found at {model_path}")
@@ -890,7 +1105,7 @@ def analyze_command(args, config) -> int:
             # Run training
             from shared.core import PipelineManager
             pipeline = PipelineManager(config)
-            pipeline.run_training()
+            pipeline.load_or_train_model()
             print("✅ Model training complete!")
         
         # Enable analysis script execution in config

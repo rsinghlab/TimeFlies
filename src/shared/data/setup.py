@@ -42,7 +42,7 @@ class DataSetupManager:
                         "batch_correction": {"enabled": False},
                         "sampling": {"num_samples": None, "num_variables": None},
                         "train_test_split": {"test_split": 0.2, "random_state": 42},
-                        "encoding_variable": "age",
+                        "target_variable": "age",
                     },
                 }
                 from shared.core import Config
@@ -148,7 +148,7 @@ class DataSetupManager:
         adata = anndata.read_h5ad(original_file)
 
         # Get stratification parameters
-        encoding_var = self.config.data.encoding_variable
+        encoding_var = self.config.data.target_variable
         test_split = getattr(self.config.data.split, "test_ratio", 0.1)
         random_state = getattr(self.config.general, "random_state", 42)
 
@@ -225,7 +225,7 @@ class DataSetupManager:
             raise ValueError("Found overlapping samples between train and eval sets")
 
         # Verify stratification worked
-        encoding_var = self.config.data.encoding_variable
+        encoding_var = self.config.data.target_variable
         original_dist = (
             adata_original.obs[encoding_var].value_counts(normalize=True).sort_index()
         )

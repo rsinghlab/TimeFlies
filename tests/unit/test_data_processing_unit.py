@@ -87,7 +87,7 @@ class TestDataPreprocessor:
     def test_prepare_labels(self, small_sample_anndata):
         """Test label preparation."""
         config = MagicMock()
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
         
@@ -136,7 +136,7 @@ class TestDataPreprocessor:
     def test_prepare_data(self, small_sample_anndata):
         """Test complete data preparation pipeline."""
         config = MagicMock()
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         config.general.random_state = 42
         config.data.split.method = "random"
         config.data.split.test_size = 0.2
@@ -160,7 +160,7 @@ class TestDataPreprocessor:
     def test_prepare_final_eval_data(self, small_sample_anndata):
         """Test final evaluation data preparation."""
         config = MagicMock()
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
         

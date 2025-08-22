@@ -96,7 +96,7 @@ class TestPipelineManager:
     def test_prepare_model_data(self, small_sample_anndata):
         """Test model data preparation."""
         config = MagicMock()
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         
         pipeline = PipelineManager(config)
         
@@ -205,7 +205,7 @@ class TestPipelineManager:
         """Test running the full pipeline."""
         config = MagicMock()
         config.data.tissue = "head"
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         config.model.type = "CNN"
         config.model.training.epochs = 1
         
@@ -256,7 +256,7 @@ class TestPipelineManager:
         """Test configuration validation."""
         config = MagicMock()
         config.data.tissue = "head"
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         config.model.type = "CNN"
         
         pipeline = PipelineManager(config)
@@ -326,7 +326,7 @@ class TestPipelineManager:
         """Test pipeline configuration summary."""
         config = MagicMock()
         config.data.tissue = "head"
-        config.data.encoding_variable = "age"
+        config.data.target_variable = "age"
         config.model.type = "CNN"
         
         pipeline = PipelineManager(config)
@@ -335,5 +335,5 @@ class TestPipelineManager:
         
         assert isinstance(summary, dict)
         assert 'tissue' in summary
-        assert 'encoding_variable' in summary
+        assert 'target_variable' in summary
         assert 'model_type' in summary

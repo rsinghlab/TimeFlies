@@ -14,6 +14,8 @@ from .commands import (
     train_command,
     evaluate_command,
     analyze_command,
+    eda_command,
+    unified_setup_command,
     run_system_tests,
     run_test_suite,
     setup_command,
@@ -41,7 +43,9 @@ def main_cli(argv: Optional[list] = None) -> int:
         setup_logging(level=log_level)
 
         # Execute commands that don't need config immediately (but might need project override)
-        if args.command == "setup":
+        if args.command == "setup-all":
+            return unified_setup_command(args)
+        elif args.command == "setup":
             return setup_command(args)
         elif args.command == "create-test-data":
             return create_test_data_command(args)
@@ -72,6 +76,16 @@ def main_cli(argv: Optional[list] = None) -> int:
             print("Please check your configs/default.yaml file")
             return 1
 
+        # Apply global CLI overrides to config
+        if hasattr(args, 'batch_corrected') and args.batch_corrected:
+            config.data.batch_correction.enabled = True
+        if hasattr(args, 'tissue') and args.tissue:
+            config.data.tissue = args.tissue
+        if hasattr(args, 'model') and args.model:
+            config.data.model = args.model
+        if hasattr(args, 'target') and args.target:
+            config.data.target_variable = args.target
+            
         # Execute based on subcommand
         if args.command == "train":
             return train_command(args, config)
@@ -79,6 +93,8 @@ def main_cli(argv: Optional[list] = None) -> int:
             return evaluate_command(args, config)
         elif args.command == "analyze":
             return analyze_command(args, config)
+        elif args.command == "eda":
+            return eda_command(args, config)
         elif args.command == "test":
             return run_test_suite(args)
         elif args.command == "batch-correct":

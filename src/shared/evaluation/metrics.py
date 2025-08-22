@@ -25,7 +25,7 @@ class AgingMetrics:
     - Cross-tissue aging consistency
     """
 
-    def __init__(self, config=None, model=None, test_data=None, test_labels=None, label_encoder=None, path_manager=None):
+    def __init__(self, config=None, model=None, test_data=None, test_labels=None, label_encoder=None, path_manager=None, result_type="recent", output_dir=None):
         """
         Initialize aging metrics calculator.
 
@@ -36,6 +36,7 @@ class AgingMetrics:
             test_labels: Test labels/targets
             label_encoder: Label encoder for predictions
             path_manager: Path manager for saving results
+            result_type: "recent" (standalone) or "best" (post-training)
         """
         self.config = config
         self.model = model
@@ -43,6 +44,8 @@ class AgingMetrics:
         self.test_labels = test_labels
         self.label_encoder = label_encoder
         self.path_manager = path_manager
+        self.result_type = result_type
+        self.output_dir = output_dir
 
     def compute_metrics(self):
         """
@@ -104,13 +107,20 @@ class AgingMetrics:
             import json
             import os
             
-            # Create metrics output directory
-            output_root = self.path_manager.get_outputs_directory()
-            metrics_dir = os.path.join(output_root, "metrics")
+            # Use experiment-specific directory or fallback to global
+            if self.output_dir:
+                metrics_dir = self.output_dir
+                metrics_filename = "metrics.json"
+            else:
+                # Fallback to old global location
+                output_root = self.path_manager.get_outputs_directory()
+                metrics_dir = os.path.join(output_root, "metrics")
+                metrics_filename = "evaluation_metrics.json"
+                
             os.makedirs(metrics_dir, exist_ok=True)
             
             # Save metrics to JSON
-            metrics_file = os.path.join(metrics_dir, "evaluation_metrics.json")
+            metrics_file = os.path.join(metrics_dir, metrics_filename)
             with open(metrics_file, 'w') as f:
                 json.dump(metrics, f, indent=2)
                 
@@ -120,8 +130,13 @@ class AgingMetrics:
         if self.path_manager:
             import pandas as pd
             
-            # Create results directory
-            results_dir = os.path.join(self.path_manager.get_outputs_directory(), "results")
+            # Save predictions to experiment directory or fallback to old structure
+            if self.output_dir:
+                results_dir = self.output_dir
+            else:
+                # Fallback to old structure
+                results_dir = self.path_manager.get_results_dir(self.result_type, "eval")
+                
             os.makedirs(results_dir, exist_ok=True)
             
             # Create predictions dataframe

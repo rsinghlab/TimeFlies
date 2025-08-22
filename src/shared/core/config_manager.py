@@ -98,6 +98,9 @@ class ConfigManager:
             except:
                 # Fallback to aging project if detection fails
                 self.project_name = "fruitfly_aging"
+        # Ensure user configs are installed to ~/.timeflies/
+        self._ensure_user_configs()
+        
         self.config_path = self._find_config_path(config_path)
         self._config = None
         self._load_config()
@@ -124,19 +127,14 @@ class ConfigManager:
             else:
                 raise ConfigurationError(f"Configuration file not found: {config_path}")
 
-        # For project overrides, use the global default.yaml
-        # For normal usage, try project-specific configs first
+        # Priority order: local config.yaml > user ~/.timeflies/configs/ > dev configs
+        user_config_dir = Path.home() / ".timeflies" / "configs"
         default_paths = [
-            "configs/default.yaml",  # Global default for project overrides
-            f"configs/{self.project_name}/default.yaml",
-            f"../configs/{self.project_name}/default.yaml", 
-            f"../../configs/{self.project_name}/default.yaml",
+            "./config.yaml",  # Project-local config (highest priority)
+            str(user_config_dir / "default.yaml"),  # User's installed config
+            "configs/default.yaml",  # Dev config (development only)
             "../configs/default.yaml",
-            "../../configs/default.yaml",
-            os.path.join(
-                os.path.dirname(__file__),
-                f"../../../configs/{self.project_name}/default.yaml",
-            ),
+            "../../configs/default.yaml", 
             os.path.join(
                 os.path.dirname(__file__),
                 "../../../configs/default.yaml",
@@ -218,6 +216,80 @@ class ConfigManager:
                 result[key] = value
 
         return result
+
+    def _ensure_user_configs(self) -> None:
+        """Ensure user has a config.yaml in their project directory."""
+        import shutil
+        
+        # Check if user already has config.yaml in current directory
+        project_config = Path("./config.yaml")
+        if project_config.exists():
+            return  # User already has their config
+        
+        # Copy default config to user's project directory
+        print("📋 Creating config.yaml in your project directory...")
+        if not project_config.exists():
+            # Find source config from package/development
+            source_configs = [
+                Path(__file__).parent.parent.parent / "configs" / "default.yaml",  # dev path
+                Path(__file__).parent / "configs" / "default.yaml",  # potential package path
+            ]
+            
+            for source_config in source_configs:
+                if source_config.exists():
+                    shutil.copy2(source_config, project_config)
+                    print(f"✅ Created config.yaml from TimeFlies defaults")
+                    print(f"📝 You can now edit ./config.yaml to customize your project settings")
+                    return  # Success - exit method
+            
+            # If no source config found, create from current repo's config
+            try:
+                import subprocess
+                result = subprocess.run(['find', '/home/nikolaitennant/projects/TimeFlies', '-name', 'default.yaml', '-path', '*/configs/*'], 
+                                      capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    source_path = result.stdout.strip().split('\n')[0]
+                    shutil.copy2(source_path, project_config)
+                    print(f"✅ Created config.yaml from {source_path}")
+                    print(f"📝 You can now edit ./config.yaml to customize your project settings")
+                    return
+            except:
+                pass
+                # Create minimal default config if no source found
+                minimal_config = {
+                    "project": "fruitfly_alzheimers",
+                    "general": {
+                        "random_seed": 42,
+                        "log_level": "INFO"
+                    },
+                    "data": {
+                        "tissue": "head",
+                        "model": "cnn",
+                        "target_variable": "age",
+                        "batch_correction": {"enabled": False},
+                        "sampling": {"samples": 10000, "variables": None},
+                        "split": {
+                            "method": "column",
+                            "column": "genotype", 
+                            "train": ["control"],
+                            "test": ["ab42", "htau"]
+                        }
+                    },
+                    "model": {
+                        "cnn": {
+                            "filters": 32,
+                            "kernel_size": 48
+                        },
+                        "training": {
+                            "epochs": 100,
+                            "batch_size": 32,
+                            "validation_split": 0.2
+                        }
+                    }
+                }
+                with open(default_config, 'w') as f:
+                    yaml.dump(minimal_config, f, default_flow_style=False)
+                logger.info(f"Created minimal config at {default_config}")
 
     def validate_config(self) -> None:
         """Validate configuration for required sections and parameters."""

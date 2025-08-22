@@ -35,7 +35,7 @@ class TestEDAHandler:
         
         # Data configuration
         config.data = Mock()
-        config.data.encoding_variable = 'age'
+        config.data.target_variable = 'age'
         
         # Batch correction configuration
         config.data.batch_correction = Mock()

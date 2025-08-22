@@ -204,9 +204,9 @@ class ModelLoader:
         self.config = config
         self.path_manager = PathManager(self.config)
 
-        # Construct the directory and specific paths for model loading
+        # Use best experiment for current config instead of old model directory
         self.model_type = getattr(self.config.data, "model", "CNN").lower()
-        self.model_dir = self.path_manager.construct_model_directory()
+        self.model_dir = self.path_manager.get_best_model_dir_for_config()
         self.model_path = self._get_model_path()
 
     def _get_model_path(self):
@@ -217,11 +217,55 @@ class ModelLoader:
         - str: The path to the model file.
         """
         if self.model_type in ["cnn", "mlp"]:
-            model_filename = "best_model.h5"
+            model_filename = "model.h5"
         else:
-            model_filename = "best_model.pkl"
+            model_filename = "model.pkl"
         model_path = os.path.join(self.model_dir, model_filename)
         return model_path
+    
+    def _verify_split_compatibility(self):
+        """
+        Verify that the current config's split settings are compatible with the saved model.
+        Raises a warning or error if there's a mismatch that could cause issues.
+        """
+        import json
+        from ..utils.split_naming import SplitNamingUtils
+        
+        # Look for metadata.json in the model directory
+        metadata_path = os.path.join(self.model_dir, "metadata.json")
+        
+        if not os.path.exists(metadata_path):
+            print("WARNING: No metadata found for saved model, cannot verify split compatibility")
+            return
+        
+        try:
+            with open(metadata_path, 'r') as f:
+                saved_metadata = json.load(f)
+            
+            # Extract current split configuration
+            current_split = SplitNamingUtils.extract_split_details_for_metadata(self.config)
+            
+            # Get saved split details if they exist
+            saved_split = saved_metadata.get('split_details', {})
+            
+            if not saved_split:
+                print("WARNING: No split details in saved model metadata, cannot verify compatibility")
+                return
+            
+            # Compare key split parameters
+            method_match = current_split.get('method') == saved_split.get('method')
+            split_name_match = current_split.get('split_name') == saved_split.get('split_name')
+            
+            if not method_match or not split_name_match:
+                print(f"WARNING: Split configuration mismatch!")
+                print(f"  Current: {current_split.get('split_name')} ({current_split.get('method')})")
+                print(f"  Saved model: {saved_split.get('split_name')} ({saved_split.get('method')})")
+                print("  This may cause evaluation issues if train/test data differs from model training")
+            else:
+                print(f"✓ Split configuration matches saved model: {current_split.get('split_name')}")
+                
+        except Exception as e:
+            print(f"WARNING: Could not verify split compatibility: {e}")
 
     def load_model(self):
         """
@@ -234,6 +278,9 @@ class ModelLoader:
         Returns:
         - tuple: A tuple containing the loaded model and related components like label encoder, reference data, scaler, test data, test labels, and training history.
         """
+        # Verify split compatibility before loading
+        self._verify_split_compatibility()
+        
         # Load the model
         print(f"DEBUG: Attempting to load model from: {self.model_path}")
         if os.path.exists(self.model_path):
@@ -275,15 +322,17 @@ class ModelLoader:
         """
 
         # Load other related components from the model directory
-        label_encoder = self._load_file("label_encoder.pkl")
-        scaler = self._load_file("scaler.pkl")
-        is_scaler_fit = self._load_file("is_scaler_fit.pkl")
-        highly_variable_genes = self._load_file("highly_variable_genes.pkl")
-        num_features = self._load_file("num_features.pkl")
-        history = self._load_file("history.pkl")
+        label_encoder = self._load_component_file("label_encoder.pkl")
+        scaler = self._load_component_file("scaler.pkl")
+        is_scaler_fit = self._load_component_file("is_scaler_fit.pkl")
+        highly_variable_genes = self._load_component_file("highly_variable_genes.pkl")
+        num_features = self._load_component_file("num_features.pkl")
+        mix_included = self._load_component_file("mix_included.pkl")
 
-        reference_data = self._load_file("reference_data.npy", file_type="numpy")
-        mix_included = self._load_file("mix_included.pkl")
+        reference_data = self._load_component_file("reference_data.npy", file_type="numpy")
+        
+        # History is in training subdirectory
+        history = self._load_training_file("history.pkl")
 
         # Return all loaded components
         return (
@@ -333,6 +382,72 @@ class ModelLoader:
             print(f"Error: {file_name} not found in {file_path}")
             exit()
 
+    def _load_component_file(self, file_name, file_type="pickle"):
+        """
+        Loads a component file, checking both new model_components/ and old root directory.
+        
+        Parameters:
+        - file_name (str): The name of the file to be loaded.
+        - file_type (str): The type of the file to be loaded, either 'pickle' or 'numpy'.
+        
+        Returns:
+        - object: The object loaded from the file.
+        """
+        # Try new model_components directory first
+        components_dir = os.path.join(self.model_dir, "model_components")
+        new_path = os.path.join(components_dir, file_name)
+        
+        if os.path.exists(new_path):
+            if file_type == "pickle":
+                return self._load_pickle(new_path)
+            elif file_type == "numpy":
+                return np.load(new_path, allow_pickle=True)
+        
+        # Fallback to old location (root of model directory)
+        old_path = os.path.join(self.model_dir, file_name)
+        if os.path.exists(old_path):
+            if file_type == "pickle":
+                return self._load_pickle(old_path)
+            elif file_type == "numpy":
+                return np.load(old_path, allow_pickle=True)
+        
+        # File not found in either location
+        print(f"Error: {file_name} not found in {new_path} or {old_path}")
+        exit()
+
+    def _load_training_file(self, file_name, file_type="pickle"):
+        """
+        Loads a training file from training/ subdirectory or fallback to root.
+        
+        Parameters:
+        - file_name (str): The name of the file to be loaded.
+        - file_type (str): The type of the file to be loaded.
+        
+        Returns:
+        - object: The object loaded from the file.
+        """
+        # Try new training directory first
+        training_dir = os.path.join(self.model_dir, "training")
+        new_path = os.path.join(training_dir, file_name)
+        
+        if os.path.exists(new_path):
+            if file_type == "pickle":
+                return self._load_pickle(new_path)
+            elif file_type == "numpy":
+                return np.load(new_path, allow_pickle=True)
+        
+        # Fallback to old location (root of model directory)
+        old_path = os.path.join(self.model_dir, file_name)
+        if os.path.exists(old_path):
+            if file_type == "pickle":
+                return self._load_pickle(old_path)
+            elif file_type == "numpy":
+                return np.load(old_path, allow_pickle=True)
+        
+        # File not found in either location
+        print(f"Error: {file_name} not found in {new_path} or {old_path}")
+        exit()
+
 
 class ModelBuilder:
     """
@@ -353,6 +468,7 @@ class ModelBuilder:
         is_scaler_fit,
         highly_variable_genes,
         mix_included,
+        experiment_name=None,
     ):
         """
         Initializes the ModelBuilder with the given configuration and training data.
@@ -377,6 +493,7 @@ class ModelBuilder:
         self.is_scaler_fit = is_scaler_fit
         self.highly_variable_genes = highly_variable_genes
         self.mix_included = mix_included
+        self.experiment_name = experiment_name
         self.model_type = getattr(self.config.data, "model", "CNN").lower()
 
     def create_cnn_model(self, num_output_units):
@@ -560,7 +677,7 @@ class ModelBuilder:
         xgb_config = getattr(self.config.model, "xgboost", {})
 
         # Determine task type and set corresponding XGBoost parameters
-        if getattr(self.config.data, "encoding_variable", "age").lower() == "sex":
+        if getattr(self.config.data, "target_variable", "age").lower() == "sex":
             task_type = "binary"
             xgb_objective = "binary:logistic"
             eval_metric = "auc"
@@ -630,47 +747,57 @@ class ModelBuilder:
         paths = self._define_paths(model_dir)
 
         if self.model_type in ["cnn", "mlp"]:
-            history = self._train_neural_network(model, paths)
+            history, model_improved = self._train_neural_network(model, paths)
         else:
-            history = self._train_sklearn_model(model, paths)
+            history, model_improved = self._train_sklearn_model(model, paths)
 
-        return history, model
+        return history, model, model_improved
 
     def _prepare_directories(self):
         """
-        Prepare directories for saving models and related artifacts.
+        Prepare directories for saving models and related artifacts in experiment structure.
 
         Returns:
-            model_dir (str): The directory where the model and artifacts will be saved.
+            experiment_dir (str): The directory where the experiment and artifacts will be saved.
         """
         self.path_manager = PathManager(self.config)
 
-        model_dir = self.path_manager.construct_model_directory()
-        os.makedirs(model_dir, exist_ok=True)
-        return model_dir
+        # Use experiment directory instead of old model directory
+        if self.experiment_name:
+            experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+        else:
+            experiment_dir = self.path_manager.get_experiment_dir()
+        
+        os.makedirs(experiment_dir, exist_ok=True)
+        return experiment_dir
 
-    def _define_paths(self, model_dir):
+    def _define_paths(self, experiment_dir):
         """
-        Define paths for saving model checkpoints and related artifacts.
+        Define paths for saving model checkpoints and related artifacts in experiment structure.
 
         Args:
-            model_dir (str): The directory where the model and artifacts will be saved.
+            experiment_dir (str): The experiment directory where everything will be saved.
 
         Returns:
             dict: A dictionary containing paths for various artifacts.
         """
+        # Create model_components subdirectory for cleaner organization
+        components_dir = os.path.join(experiment_dir, "model_components")
+        training_dir = os.path.join(experiment_dir, "training")
+        os.makedirs(components_dir, exist_ok=True)
+        os.makedirs(training_dir, exist_ok=True)
+        
         paths = {
-            "label_path": os.path.join(model_dir, "label_encoder.pkl"),
-            "reference_path": os.path.join(model_dir, "reference_data.npy"),
-            "scaler_path": os.path.join(model_dir, "scaler.pkl"),
-            "is_scaler_fit_path": os.path.join(model_dir, "is_scaler_fit.pkl"),
-            "num_features_path": os.path.join(model_dir, "num_features.pkl"),
-            "highly_variable_genes_path": os.path.join(
-                model_dir, "highly_variable_genes.pkl"
-            ),
-            "mix_included_path": os.path.join(model_dir, "mix_included.pkl"),
-            "history_path": os.path.join(model_dir, "history.pkl"),
-            "model_dir": model_dir,
+            "label_path": os.path.join(components_dir, "label_encoder.pkl"),
+            "reference_path": os.path.join(components_dir, "reference_data.npy"),
+            "scaler_path": os.path.join(components_dir, "scaler.pkl"),
+            "is_scaler_fit_path": os.path.join(components_dir, "is_scaler_fit.pkl"),
+            "num_features_path": os.path.join(components_dir, "num_features.pkl"),
+            "highly_variable_genes_path": os.path.join(components_dir, "highly_variable_genes.pkl"),
+            "mix_included_path": os.path.join(components_dir, "mix_included.pkl"),
+            "history_path": os.path.join(training_dir, "history.pkl"),
+            "experiment_dir": experiment_dir,
+            "components_dir": components_dir,
         }
         return paths
 
@@ -685,8 +812,8 @@ class ModelBuilder:
         Returns:
             history: The training history.
         """
-        custom_model_path = os.path.join(paths["model_dir"], "best_model.h5")
-        best_val_loss_path = os.path.join(paths["model_dir"], "best_val_loss.json")
+        custom_model_path = os.path.join(paths["experiment_dir"], "model.h5")
+        best_val_loss_path = os.path.join(paths["components_dir"], "best_val_loss.json")
         self.num_features = (
             self.train_data.shape[2]
             if self.model_type == "cnn"
@@ -759,7 +886,7 @@ class ModelBuilder:
             with open(paths["history_path"], "wb") as f:
                 pickle.dump(history.history, f)
 
-        return history
+        return history, model_checkpoint.model_improved
 
     def _train_sklearn_model(self, model, paths):
         """
@@ -812,7 +939,7 @@ class ModelBuilder:
 
         # Load the best validation accuracy from file, if it exists
         best_val_accuracy_path = os.path.join(
-            paths["model_dir"], "best_val_accuracy.json"
+            paths["components_dir"], "best_val_accuracy.json"
         )
 
         try:
@@ -824,9 +951,10 @@ class ModelBuilder:
         # Check if the current model outperforms the best one so far
         print("Validation accuracy:", val_accuracy)
         print("Best validation accuracy so far:", best_val_accuracy)
-        print("Model improved:", val_accuracy > best_val_accuracy)
+        model_improved = val_accuracy > best_val_accuracy
+        print("Model improved:", model_improved)
 
-        if val_accuracy > best_val_accuracy:
+        if model_improved:
             # Update the record with the new best validation accuracy
             with open(best_val_accuracy_path, "w") as f:
                 json.dump({"best_val_accuracy": val_accuracy}, f)
@@ -837,7 +965,7 @@ class ModelBuilder:
                 pickle.dump(num_features, f)
 
             # Save the model as it's the best one so far using pickle
-            model_path = os.path.join(paths["model_dir"], "best_model.pkl")
+            model_path = os.path.join(paths["experiment_dir"], "model.pkl")
             with open(model_path, "wb") as f:
                 pickle.dump(model, f)
 
@@ -874,7 +1002,7 @@ class ModelBuilder:
 
             print("New best model saved with validation accuracy:", val_accuracy)
 
-        return history
+        return history, model_improved
 
     def run(self):
         """
@@ -890,6 +1018,6 @@ class ModelBuilder:
         model = self.build_model()
 
         # Train the model using the provided training data and additional components
-        history, model = self.train_model(model)
+        history, model, model_improved = self.train_model(model)
 
-        return model, history
+        return model, history, model_improved

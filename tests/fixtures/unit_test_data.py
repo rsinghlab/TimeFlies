@@ -196,7 +196,7 @@ def create_test_project_structure(base_dir):
         "data": {
             "tissue": "head",
             "model_type": "CNN",
-            "encoding_variable": "age",
+            "target_variable": "age",
             "cell_type": "all",
             "sex_type": "all",
             "batch_correction": {"enabled": False},
@@ -257,7 +257,7 @@ def create_minimal_config():
         "data": {
             "tissue": "head",
             "model_type": "CNN", 
-            "encoding_variable": "age",
+            "target_variable": "age",
             "cell_type": "all",
             "sex_type": "all",
             "batch_correction": {"enabled": False}

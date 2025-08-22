@@ -45,6 +45,71 @@ python run_timeflies.py train
 python run_timeflies.py evaluate
 ```
 
+## 🚀 Deployment Usage
+
+### For End Users (Researchers)
+
+1. **Install TimeFlies Package**
+```bash
+# Install from source (for now)
+pip install -e git+<repository-url>#egg=timeflies
+
+# Or local development install
+pip install -e /path/to/TimeFlies
+```
+
+2. **Create Your Project Directory**
+```bash
+mkdir my_aging_research
+cd my_aging_research
+```
+
+3. **Add Your Data**
+```bash
+# Create data directory and add your H5AD files
+mkdir -p data/fruitfly_alzheimers/head
+# Copy your *_original.h5ad files into the appropriate folders
+```
+
+4. **Initialize Configuration**
+```bash
+# First run creates config.yaml in your project directory
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py verify
+
+# Edit config.yaml to customize your analysis
+nano config.yaml
+```
+
+5. **Run Your Analysis**
+```bash
+# Setup train/eval splits
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py setup-all
+
+# Run analysis with command chaining
+PYTHONPATH=/path/to/TimeFlies/src python3 /path/to/TimeFlies/run_timeflies.py train --with-eda --with-analysis
+```
+
+### Project Structure for Users
+```
+my_aging_research/
+├── config.yaml              # Your editable configuration (auto-created)
+├── data/                     # Your input data
+│   └── fruitfly_alzheimers/head/
+│       └── your_data_original.h5ad
+└── outputs/                  # All results go here (auto-created)
+    └── fruitfly_alzheimers/
+        ├── experiments/      # Training results with timestamps
+        ├── eda/             # Exploratory data analysis
+        └── analysis/        # Post-training analysis
+```
+
+### Key Benefits for Deployment
+- **📋 Visible Config**: `config.yaml` appears in your project directory for easy editing
+- **📁 Local Outputs**: All results stay in your project directory
+- **🔧 No Hidden Files**: No system-wide configuration in `~/.timeflies`
+- **🎛️ Full Control**: Edit any parameter in your visible config file
+- **📊 Command Chaining**: Run multiple steps with `--with-eda`, `--with-analysis` flags
+
 ## 📋 Core Commands
 
 | Command | Description |

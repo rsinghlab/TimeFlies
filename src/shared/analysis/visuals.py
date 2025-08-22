@@ -54,19 +54,24 @@ class VisualizationTools:
             Plots the SHAP summary plot for the given SHAP values and test data.
     """
 
-    def __init__(self, config, path_manager):
+    def __init__(self, config, path_manager, output_dir=None):
         """
         Initializes the VisualizationTools with the given configuration, path manager, and model version.
 
         Parameters:
         - config (ConfigHandler): Configuration handler object with nested configuration attributes.
         - path_manager (PathManager): The path manager object for directory paths.
+        - output_dir (str, optional): Explicit output directory. If None, uses path_manager default.
         """
         self.config = config
         self.path_manager = path_manager
 
-        # Determine the main output directory using PathManager
-        self.output_dir = self.path_manager.get_visualization_directory()
+        # Use explicit output directory or fall back to path manager
+        if output_dir:
+            self.output_dir = output_dir
+        else:
+            # For backward compatibility, use old structure
+            self.output_dir = self.path_manager.get_visualization_directory()
 
     def plot_class_distribution(self, class_counts, file_name, dataset, subfolder_name):
         """
@@ -273,6 +278,7 @@ class VisualizationTools:
         ax.set_title("Confusion Matrix")
 
         # Save the plot to a file in the output directory
+        os.makedirs(self.output_dir, exist_ok=True)
         output_file_path = os.path.join(self.output_dir, file_name)
         plt.tight_layout()
         fig.savefig(output_file_path)
@@ -390,6 +396,7 @@ class VisualizationTools:
             plt.legend()
 
             # Save the plot to a file in the output directory and close the figure to free up memory
+            os.makedirs(self.output_dir, exist_ok=True)
             output_file_path = os.path.join(self.output_dir, file_name)
             plt.savefig(output_file_path)
             plt.close()
@@ -464,6 +471,7 @@ class VisualizationTools:
         plt.legend(loc="lower right")
 
         # Save the plot
+        os.makedirs(self.output_dir, exist_ok=True)
         output_file_path = os.path.join(self.output_dir, file_name)
         plt.savefig(output_file_path)
         plt.close()
@@ -586,8 +594,28 @@ class Visualizer:
         # Initialize PathManager
         self.path_manager = path_manager
 
-        # Initialize VisualizationTools with PathManager
+        # Initialize VisualizationTools for evaluation visuals (will be updated based on context)
         self.visual_tools = VisualizationTools(self.config, self.path_manager)
+        
+        # Separate tool for training visuals
+        training_visuals_dir = self.path_manager.get_training_visuals_dir()
+        self.training_visual_tools = VisualizationTools(self.config, self.path_manager, training_visuals_dir)
+
+    def set_evaluation_context(self, experiment_name=None):
+        """
+        Set the context for evaluation visuals using experiment structure.
+        
+        Args:
+            experiment_name: Specific experiment name to use
+        """
+        if experiment_name:
+            experiment_dir = self.path_manager.get_experiment_dir(experiment_name)
+        else:
+            experiment_dir = self.path_manager.get_experiment_dir()
+            
+        eval_visuals_dir = os.path.join(experiment_dir, "evaluation", "plots")
+        os.makedirs(eval_visuals_dir, exist_ok=True)
+        self.visual_tools = VisualizationTools(self.config, self.path_manager, eval_visuals_dir)
 
     def import_metrics(self):
         """
@@ -606,12 +634,13 @@ class Visualizer:
     def _visualize_training_history(self):
         """
         Visualize the training history for the model based on the configuration.
+        Saves to models/.../training/visuals/ directory.
         """
         model_type = getattr(self.config.data, "model", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
-            self.visual_tools.plot_history(self.history, "training_metrics.png")
+            self.training_visual_tools.plot_history(self.history, "training_metrics.png")
         elif model_type == "xgboost":
-            self.visual_tools.plot_xgboost_history(self.history, "training_metrics.png")
+            self.training_visual_tools.plot_xgboost_history(self.history, "training_metrics.png")
 
     def _visualize_confusion_matrix(self):
         """
@@ -621,7 +650,7 @@ class Visualizer:
         class_labels = self.label_encoder.classes_
 
         # Sort the class labels based on age if specified in the config
-        if "age" in getattr(self.config.data, "encoding_variable", "age"):
+        if "age" in getattr(self.config.data, "target_variable", "age"):
             class_labels = self._sort_labels_by_age(class_labels)
 
         # Create confusion matrix
@@ -711,10 +740,16 @@ class Visualizer:
 
     def run(self):
         """
-        Run the visualization pipeline.
+        Run the full visualization pipeline (evaluation-only, no training plots).
         """
-        self._visualize_training_history()
         self.import_metrics()
         self._visualize_confusion_matrix()
         self._plot_roc_curve()
         self._plot_shap_summary()
+        
+    def run_with_training(self):
+        """
+        Run visualization pipeline including training plots.
+        """
+        self._visualize_training_history()
+        self.run()  # Run evaluation visualizations
