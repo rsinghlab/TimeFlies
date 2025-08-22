@@ -193,19 +193,53 @@ alias tf-eval="timeflies evaluate"
 echo "🧬 TimeFlies Research Environment Activated!"
 echo ""
 echo "Quick commands:"
-echo "  timeflies verify     # Check installation & data setup"
 echo "  timeflies split      # Create train/eval splits"  
 echo "  timeflies train      # Train ML models"
 echo "  timeflies evaluate   # Generate SHAP analysis & plots"
+echo "  timeflies batch-correct  # Apply batch correction"
 echo ""
 echo "Research workflow:"
 echo "  1. Add your H5AD files to: data/project_name/tissue_type/"
 echo "  2. timeflies split    # Create stratified splits"
 echo "  3. timeflies train    # Train with auto-evaluation"
 echo "  4. Check results in:  outputs/project_name/"
+echo ""
+echo "With batch correction:"
+echo "  1. timeflies split          # Split original data first"
+echo "  2. timeflies batch-correct  # Apply correction to splits"
+echo "  3. timeflies train --batch-corrected  # Train on corrected data"
 EOF
 
 chmod +x activate.sh
+
+# Create batch correction activation script
+print_status "Creating batch correction activation script..."
+cat > activate_batch.sh << 'EOF'
+#!/bin/bash
+# TimeFlies Batch Correction Environment (PyTorch + scvi)
+
+# Activate batch correction environment
+if [[ -f ".venv_batch/bin/activate" ]]; then
+    source .venv_batch/bin/activate
+elif [[ -f ".venv_batch/Scripts/activate" ]]; then
+    source .venv_batch/Scripts/activate  
+else
+    echo "❌ Batch correction environment not found"
+    return 1
+fi
+
+echo "🧬 TimeFlies Batch Correction Environment Activated!"
+echo ""
+echo "Available tools:"
+echo "  timeflies batch-correct  # Run scVI batch correction"
+echo "  python                   # PyTorch + scvi-tools available"
+echo ""
+echo "To return to main environment:"
+echo "  deactivate"
+echo "  source activate.sh"
+EOF
+
+chmod +x activate_batch.sh
 
 # Test installation
 print_status "Testing TimeFlies installation..."
@@ -215,41 +249,41 @@ else
     print_warning "CLI test had warnings (this is normal)"
 fi
 
-# Create initial directory structure
+# Create basic directory structure (configs come from repo)
 print_status "Setting up project structure..."
-mkdir -p data configs outputs
-if [[ ! -f "configs/default.yaml" ]]; then
-    cat > configs/default.yaml << 'EOF'
-# TimeFlies Configuration
-project: fruitfly_aging  # or fruitfly_alzheimers
+mkdir -p data outputs
 
-data:
-  tissue: head
-  model_type: CNN
-  encoding_variable: age
-  sex_type: all
-  cell_type: all
-  batch_correction:
-    enabled: false
-
-training:
-  epochs: 100
-  batch_size: 32
-  learning_rate: 0.001
-
-feature_importance:
-  run_interpreter: true
-  run_visualization: true
-EOF
-    print_success "Created default configuration"
-fi
-
-# Run basic verification
-print_status "Running system verification..."
-if timeflies verify 2>/dev/null; then
-    print_success "System verification passed!"
+# Setup batch correction environment
+print_status "Setting up batch correction environment..."
+if [[ ! -d ".venv_batch" ]]; then
+    print_status "Creating PyTorch environment for batch correction..."
+    $PYTHON_CMD -m venv .venv_batch
+    
+    # Activate batch environment
+    if [[ "$PLATFORM" == "windows" ]]; then
+        source .venv_batch/Scripts/activate
+    else
+        source .venv_batch/bin/activate
+    fi
+    
+    # Install PyTorch + scvi-tools
+    pip install --upgrade pip
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip install scvi-tools scanpy pandas numpy matplotlib seaborn
+    
+    # Deactivate batch environment
+    deactivate
+    
+    # Reactivate main environment
+    if [[ "$PLATFORM" == "windows" ]]; then
+        source .venv/Scripts/activate
+    else
+        source .venv/bin/activate
+    fi
+    
+    print_success "Batch correction environment created!"
 else
-    print_warning "Some verification checks failed (expected without data)"
+    print_success "Batch correction environment already exists"
 fi
 
 print_success "================================================"
@@ -271,9 +305,13 @@ echo -e "${BLUE}3. Configure analysis:${NC}"
 echo "   nano configs/default.yaml  # Edit project settings"
 echo ""
 echo -e "${BLUE}4. Run complete analysis:${NC}"  
-echo "   timeflies verify      # Verify data & setup"
-echo "   timeflies split       # Create train/eval splits"
+echo "   timeflies setup-all   # One-command setup (recommended)"
 echo "   timeflies train       # Train models with auto-eval"
+echo ""
+echo -e "${BLUE}   With batch correction:${NC}"
+echo "   timeflies split          # Split original data first"
+echo "   timeflies batch-correct  # Apply correction to splits"
+echo "   timeflies train --batch-corrected  # Train on corrected splits"
 echo ""
 echo -e "${BLUE}5. View results:${NC}"
 echo "   ls outputs/           # All results, plots, SHAP analysis"
@@ -281,6 +319,11 @@ echo ""
 echo -e "${YELLOW}📓 For Jupyter analysis:${NC}"
 echo "   pip install jupyter"
 echo "   jupyter notebook docs/notebooks/analysis.ipynb"
+echo ""
+echo -e "${BLUE}🔬 For batch correction:${NC}"
+echo "   source activate_batch.sh  # Switch to PyTorch environment"
+echo "   timeflies batch-correct    # Run scVI batch correction"
+echo "   source activate.sh         # Return to main environment"
 echo ""
 echo -e "${GREEN}🔬 Research Lab${NC}"
 echo "Contact your lab administrator for data access and support"
