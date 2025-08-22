@@ -23,7 +23,7 @@ print_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Configuration - Update these URLs for your repository
-REPO_URL="https://github.com/your-username/TimeFlies.git"  # Main repository
+REPO_URL="https://github.com/nikolaitennant/TimeFlies.git"  # Main repository
 WHEEL_BRANCH="research"  # Branch containing the wheel file
 WHEEL_PATH="dist/timeflies-0.2.0-py3-none-any.whl"  # Path to wheel in repo
 MAIN_BRANCH="main"  # Main development branch
@@ -92,54 +92,18 @@ print_success "Environment created and activated"
 print_status "Upgrading pip..."
 pip install --upgrade pip
 
-# Install TimeFlies with multiple fallback methods
-print_status "Installing TimeFlies from Brown repository..."
+# Install TimeFlies - single method to avoid multiple auth prompts
+print_status "Installing TimeFlies..."
 
 INSTALL_SUCCESS=false
 
-# Method 1: Try direct wheel download from research branch
-print_status "Method 1: Downloading pre-built wheel..."
-WHEEL_URL="$REPO_URL/raw/$WHEEL_BRANCH/$WHEEL_PATH"
-
-if command -v curl >/dev/null 2>&1; then
-    if curl -L -f -o timeflies.whl "$WHEEL_URL" 2>/dev/null; then
-        if pip install timeflies.whl 2>/dev/null; then
-            print_success "Installed TimeFlies from pre-built wheel"
-            rm -f timeflies.whl
-            INSTALL_SUCCESS=true
-        else
-            rm -f timeflies.whl
-        fi
-    fi
-elif command -v wget >/dev/null 2>&1; then
-    if wget -q -O timeflies.whl "$WHEEL_URL" 2>/dev/null; then
-        if pip install timeflies.whl 2>/dev/null; then
-            print_success "Installed TimeFlies from pre-built wheel"
-            rm -f timeflies.whl
-            INSTALL_SUCCESS=true
-        else
-            rm -f timeflies.whl
-        fi
-    fi
-fi
-
-# Method 2: Git install from main branch
-if [[ "$INSTALL_SUCCESS" == "false" ]] && command -v git >/dev/null 2>&1; then
-    print_status "Method 2: Installing from git repository..."
+# Just use git clone method - most reliable and only authenticates once
+if command -v git >/dev/null 2>&1; then
+    print_status "Cloning repository and installing..."
     
-    if pip install git+"$REPO_URL"@"$MAIN_BRANCH" 2>/dev/null; then
-        print_success "Installed TimeFlies from git repository"
-        INSTALL_SUCCESS=true
-    fi
-fi
-
-# Method 3: Clone and local install (most compatible)
-if [[ "$INSTALL_SUCCESS" == "false" ]] && command -v git >/dev/null 2>&1; then
-    print_status "Method 3: Cloning repository for local install..."
-    
-    if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" timeflies_temp 2>/dev/null; then
-        if cd timeflies_temp && pip install -e . 2>/dev/null; then
-            print_success "Installed TimeFlies from local clone"
+    if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" timeflies_temp; then
+        if cd timeflies_temp && pip install -e .; then
+            print_success "Installed TimeFlies successfully"
             cd ..
             rm -rf timeflies_temp
             INSTALL_SUCCESS=true
