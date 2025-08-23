@@ -843,43 +843,82 @@ class PipelineManager:
         Run project-specific analysis script if available.
         """
         try:
+            # Check for custom analysis script first
+            if hasattr(self.config_instance, '_custom_analysis_script'):
+                self._run_custom_analysis_script(self.config_instance._custom_analysis_script)
+                return
+                
             logger.info("Running project-specific analysis script...")
             
-            # Determine project name and import the appropriate analyzer
+            # Auto-detect analysis script in templates folder
             project_name = getattr(self.config_instance, "project", "fruitfly_aging")
             
-            if project_name == "fruitfly_alzheimers":
-                try:
-                    from projects.fruitfly_alzheimers.analysis.aging_acceleration_analyzer import AlzheimersAgingAccelerationAnalyzer
-                    
-                    # Create analyzer with optional model and data
-                    analyzer = AlzheimersAgingAccelerationAnalyzer(
-                        model=getattr(self, 'model', None),
-                        config=self.config_instance,
-                        path_manager=getattr(self, 'path_manager', None)
-                    )
-                    
-                    # Run the analysis
-                    analyzer.run_complete_analysis()
-                    logger.info("Alzheimer's aging acceleration analysis completed.")
-                    
-                except ImportError:
-                    logger.warning("Alzheimer's analysis script not found, skipping analysis.")
-                    
-            elif project_name == "fruitfly_aging":
-                try:
-                    from projects.fruitfly_aging.analysis.analyzer import AgingAnalyzer
-                    
-                    # Create analyzer (would need to be implemented)
-                    logger.info("Aging analysis script would run here (not yet implemented).")
-                    
-                except ImportError:
-                    logger.warning("Aging analysis script not found, skipping analysis.")
+            # Look for templates/{project}_analysis.py
+            from pathlib import Path
+            template_path = Path("templates") / f"{project_name}_analysis.py"
+            
+            if template_path.exists():
+                logger.info(f"Found project analysis script: {template_path}")
+                self._run_custom_analysis_script(str(template_path))
             else:
-                logger.info(f"No analysis script configured for project: {project_name}")
+                logger.info(f"No analysis script found at {template_path}")
+                logger.info("Available templates:")
+                templates_dir = Path("templates")
+                if templates_dir.exists():
+                    template_files = [f.name for f in templates_dir.glob("*_analysis.py")]
+                    if template_files:
+                        for template_file in template_files:
+                            logger.info(f"  - {template_file}")
+                    else:
+                        logger.info("  - No analysis templates found")
                 
         except Exception as e:
             logger.error(f"Error running analysis script: {e}")
+            # Don't raise - analysis scripts are optional
+
+    def _run_custom_analysis_script(self, script_path: str):
+        """
+        Run a custom analysis script provided by the user.
+        
+        Args:
+            script_path: Path to the custom analysis Python file
+        """
+        try:
+            from pathlib import Path
+            import importlib.util
+            import sys
+            
+            script_path = Path(script_path)
+            if not script_path.exists():
+                logger.error(f"Custom analysis script not found: {script_path}")
+                return
+                
+            if not script_path.suffix == '.py':
+                logger.error(f"Custom analysis script must be a .py file: {script_path}")
+                return
+                
+            logger.info(f"Running custom analysis script: {script_path}")
+            
+            # Import the custom script as a module
+            spec = importlib.util.spec_from_file_location("custom_analysis", script_path)
+            custom_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(custom_module)
+            
+            # Look for a run_analysis function
+            if hasattr(custom_module, 'run_analysis'):
+                # Call with pipeline manager context
+                custom_module.run_analysis(
+                    model=getattr(self, 'model', None),
+                    config=self.config_instance,
+                    path_manager=getattr(self, 'path_manager', None),
+                    pipeline=self
+                )
+                logger.info("Custom analysis script completed successfully.")
+            else:
+                logger.error(f"Custom analysis script must define a 'run_analysis' function")
+                
+        except Exception as e:
+            logger.error(f"Error running custom analysis script: {e}")
             # Don't raise - analysis scripts are optional
 
     def run_evaluation(self) -> Dict[str, Any]:

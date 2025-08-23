@@ -33,7 +33,7 @@ timeflies train [--with-eda --with-analysis]
 # Evaluate trained models
 timeflies evaluate [--with-eda --with-analysis]
 
-# Run SHAP analysis
+# Run project-specific analysis
 timeflies analyze
 ```
 
@@ -44,7 +44,7 @@ timeflies analyze
 3. **Setup**: Run `timeflies setup` to create train/eval splits and verify system
 4. **Training**: Run `timeflies train` for model training with automatic evaluation
 5. **Evaluation**: Run `timeflies evaluate` to assess model performance on test data
-6. **Analysis**: Results available in `outputs/[project]/` with SHAP interpretability
+6. **Analysis**: Results available in `outputs/[project]/` with model interpretability
 
 ## Supported Projects
 
@@ -55,9 +55,9 @@ timeflies analyze
 
 ### Machine Learning Pipeline
 - **Deep Learning Models**: CNN, MLP architectures for single-cell analysis
-- **Traditional ML**: XGBoost support for comparison studies
+- **Traditional ML**: XGBoost, Random Forest, Logistic Regression for comparison studies
 - **Automated Evaluation**: Built-in performance metrics and validation
-- **SHAP Analysis**: Model interpretability with feature importance
+- **Model Interpretability**: SHAP analysis and feature importance (configurable)
 
 ### Data Processing
 - **Batch Correction**: scVI-tools integration for technical noise removal
@@ -77,8 +77,8 @@ timeflies analyze
 ```bash
 timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
 timeflies train [--with-eda] [--with-analysis] # Train models  
-timeflies evaluate [--with-eda] [--with-analysis] # Evaluate models on test data
-timeflies analyze [--predictions-path PATH] [--with-eda] # SHAP analysis
+timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
+timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
 ```
 
 ### Data & Analysis Commands  
@@ -101,11 +101,81 @@ timeflies update                              # Update to latest version
 --verbose                 # Detailed logging
 --batch-corrected         # Use batch-corrected data  
 --tissue head|body        # Override tissue type
---model CNN|MLP|xgboost   # Override model type
+--model CNN|MLP|xgboost|random_forest|logistic   # Override model type
 --target age              # Override target variable
 --aging                   # Use fruitfly_aging project
 --alzheimers              # Use fruitfly_alzheimers project
 ```
+
+## Configuration
+
+TimeFlies uses YAML configuration files to control model training, evaluation, and analysis settings. The main configuration is in `configs/default.yaml`.
+
+### Key Configuration Sections
+
+#### Model Interpretability (SHAP Analysis)
+Control SHAP interpretation and visualizations:
+
+```yaml
+# Enable/disable SHAP analysis during evaluation
+interpretation:
+  shap:
+    enabled: true          # Enable SHAP interpretation
+    n_samples: 100        # Number of samples for SHAP calculation
+    feature_names: true   # Include gene names in output
+    save_values: true     # Save SHAP values to CSV
+
+# Control visualization generation
+visualizations:
+  enabled: true           # Enable plot generation
+  save_plots: true       # Save plots to files
+  plot_formats: ["png", "pdf"]  # Output formats
+```
+
+#### Analysis Scripts
+Configure project-specific analysis workflows:
+
+```yaml
+analysis:
+  run_analysis_script:
+    enabled: true         # Run project-specific analysis after evaluation
+  custom_analysis:        # Custom analysis settings
+    save_intermediate: true
+    generate_reports: true
+```
+
+### CLI Overrides
+Override configuration settings using command-line flags:
+
+```bash
+# Force SHAP interpretation (overrides config)
+timeflies evaluate --interpret
+
+# Force visualizations (overrides config)  
+timeflies evaluate --visualize
+
+# Use custom analysis script
+timeflies analyze --analysis-script /path/to/script.py
+
+# Combine flags
+timeflies evaluate --interpret --visualize --with-analysis
+```
+
+### Custom Analysis Scripts
+Create custom analysis workflows using templates:
+
+```bash
+# Copy template and customize
+cp templates/aging_analysis_template.py my_analysis.py
+
+# Run your custom analysis
+timeflies analyze --analysis-script my_analysis.py
+```
+
+Available templates:
+- `templates/custom_analysis_example.py` - Basic template with all features
+- `templates/aging_analysis_template.py` - Aging-specific analysis patterns
+- `templates/README.md` - Full documentation and examples
 
 ## Development
 
@@ -177,7 +247,7 @@ TimeFlies is designed for researchers studying:
 ## Output Examples
 
 - **Model Performance**: Accuracy, precision, recall metrics
-- **SHAP Analysis**: Feature importance plots and gene rankings
+- **Model Interpretability**: SHAP feature importance and gene rankings
 - **Visualizations**: t-SNE/UMAP plots, expression heatmaps
 - **Reports**: Comprehensive HTML analysis reports
 

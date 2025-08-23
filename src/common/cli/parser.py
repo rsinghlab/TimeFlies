@@ -162,6 +162,14 @@ User Workflow:
     eval_parser.add_argument(
         "--with-analysis", action="store_true", help="Run analysis after evaluation"
     )
+    eval_parser.add_argument(
+        "--interpret", action="store_true", 
+        help="Enable SHAP interpretation (overrides config setting)"
+    )
+    eval_parser.add_argument(
+        "--visualize", action="store_true",
+        help="Enable visualizations (overrides config setting)"
+    )
 
     # Analyze command
     analyze_parser = subparsers.add_parser(
@@ -174,6 +182,10 @@ User Workflow:
     analyze_parser.add_argument(
         "--with-eda", action="store_true", 
         help="Run EDA before analysis"
+    )
+    analyze_parser.add_argument(
+        "--analysis-script", type=str,
+        help="Path to custom analysis script (Python file with run_analysis function)"
     )
 
     # Batch correction command (no flags - uses project config)

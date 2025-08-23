@@ -121,7 +121,7 @@ jobs:
       continue-on-error: true
         
     - name: Upload bandit report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bandit-report
@@ -244,7 +244,7 @@ jobs:
         twine check dist/*
         
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: distribution
         path: dist/
@@ -259,7 +259,7 @@ jobs:
     
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: distribution
         path: dist/
