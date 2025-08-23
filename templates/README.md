@@ -6,7 +6,7 @@ This directory contains template scripts for creating custom analysis workflows 
 
 1. **Copy a template**: Choose the template closest to your needs
 2. **Customize the analysis**: Modify the `run_analysis` function
-3. **Run your analysis**: `timeflies analyze --analysis-script path/to/your_script.py`
+3. **Run your analysis**: `timeflies analyze --analysis-script templates/your_script.py`
 
 ## Available Templates
 
@@ -124,13 +124,13 @@ Your custom analysis runs as part of the TimeFlies workflow:
 
 ```bash
 # Run with predictions from trained model
-timeflies analyze --analysis-script your_analysis.py
+timeflies analyze --analysis-script templates/your_analysis.py
 
 # Run with specific predictions file
-timeflies analyze --analysis-script your_analysis.py --predictions-path path/to/predictions.csv
+timeflies analyze --analysis-script templates/your_analysis.py --predictions-path path/to/predictions.csv
 
 # Run with project override
-timeflies --aging analyze --analysis-script your_analysis.py
+timeflies --aging analyze --analysis-script templates/your_analysis.py
 ```
 
 ## Best Practices
@@ -167,12 +167,31 @@ def run_analysis(model, config, path_manager, pipeline):
     print("✅ Custom analysis completed!")
 ```
 
+## How Analysis Auto-Detection Works
+
+TimeFlies automatically finds and runs analysis scripts based on your project:
+
+1. **Automatic detection**: `timeflies analyze` looks for `templates/{project}_analysis.py`
+2. **Manual override**: `timeflies analyze --analysis-script templates/your_custom_analysis.py`
+3. **Available projects**: Check `configs/default.yaml` for your current project setting
+
+### Examples:
+```bash
+# Auto-detects templates/fruitfly_alzheimers_analysis.py (if project = "fruitfly_alzheimers")
+timeflies analyze
+
+# Uses custom script instead
+timeflies analyze --analysis-script templates/my_custom_analysis.py
+
+# Switch project and auto-detect its template
+timeflies --aging analyze    # Uses templates/fruitfly_aging_analysis.py
+```
+
 ## Getting Help
 
-- Check the example templates for common patterns
+- Check the example templates in this directory for common patterns
 - TimeFlies configuration: `configs/default.yaml`
-- Pipeline source: `src/common/core/pipeline_manager.py`
-- Built-in analysis: `src/analysis/`
+- Available templates: Run `timeflies verify` to see what's detected
 
 ## Contributing
 
