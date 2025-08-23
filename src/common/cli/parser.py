@@ -20,7 +20,7 @@ User Workflow:
   python run_timeflies.py setup [--batch-correct]    # Split data + verify + create dirs
   python run_timeflies.py train [--with-eda]         # Train models with evaluation
   python run_timeflies.py evaluate [--with-eda]      # Evaluate models on test data
-  python run_timeflies.py analyze [--with-eda]       # SHAP analysis and interpretability
+  python run_timeflies.py analyze [--with-eda]       # Project-specific analysis scripts
   
   # Individual steps
   python run_timeflies.py split                      # Just create train/eval splits
