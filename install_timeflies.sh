@@ -139,18 +139,31 @@ cat > .activate.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Research Environment
 
-# Suppress TensorFlow/CUDA warnings for cleaner output
+# Suppress TensorFlow/CUDA warnings and logs for cleaner output
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
 export CUDA_VISIBLE_DEVICES=""
+export ABSL_LOG_LEVEL=ERROR
 
 # Activate virtual environment
 if [[ -f ".venv/bin/activate" ]]; then
     source .venv/bin/activate
+    # Clean up prompt - remove any existing (.venv) and empty parentheses
+    PS1="\${PS1//\\(.venv\\) /}"
+    PS1="\${PS1//\\(.venv\\)/}"
+    PS1="\${PS1//\\(\\) /}"
+    PS1="\${PS1//\\(\\)/}"
+    export PS1="(.venv) \${PS1}"
 elif [[ -f ".venv/Scripts/activate" ]]; then
-    source .venv/Scripts/activate  
+    source .venv/Scripts/activate
+    # Clean up prompt - remove any existing (.venv) and empty parentheses
+    PS1="\${PS1//\\(.venv\\) /}"
+    PS1="\${PS1//\\(.venv\\)/}"
+    PS1="\${PS1//\\(\\) /}"
+    PS1="\${PS1//\\(\\)/}"
+    export PS1="(.venv) \${PS1}"
 else
     echo "❌ Virtual environment not found"
     return 1
@@ -165,22 +178,22 @@ alias tf-eval="timeflies evaluate"
 
 echo "🧬 TimeFlies Research Environment Activated!"
 echo ""
-echo "Quick commands:"
-echo "  timeflies split      # Create train/eval splits"  
-echo "  timeflies train      # Train ML models"
-echo "  timeflies evaluate   # Generate SHAP analysis & plots"
-echo "  timeflies batch-correct  # Apply batch correction"
-echo ""
 echo "Research workflow:"
-echo "  1. Add your H5AD files to: data/project_name/tissue_type/"
-echo "  2. timeflies split    # Create stratified splits"
-echo "  3. timeflies train    # Train with auto-evaluation"
-echo "  4. Check results in:  outputs/project_name/"
+echo "  timeflies setup              # Complete setup workflow"
+echo "  timeflies train              # Train ML models with evaluation"
+echo "  timeflies evaluate           # Evaluate models on test data"
+echo "  timeflies analyze            # SHAP analysis and interpretability"
 echo ""
-echo "With batch correction:"
-echo "  1. timeflies split          # Split original data first"
-echo "  2. timeflies batch-correct  # Apply correction to splits"
-echo "  3. timeflies train --batch-corrected  # Train on corrected data"
+echo "Quick commands:"
+echo "  timeflies split              # Create train/eval splits"  
+echo "  timeflies batch-correct      # Apply batch correction"
+echo "  timeflies verify             # System verification"
+echo ""
+echo "Getting started:"
+echo "  1. Add your H5AD files to: data/project_name/tissue_type/"
+echo "  2. timeflies setup           # Setup and verify everything"
+echo "  3. timeflies train           # Train with auto-evaluation"
+echo "  4. Check results in:         outputs/project_name/"
 EOF
 
 chmod +x .activate.sh
@@ -191,18 +204,31 @@ cat > .activate_batch.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Batch Correction Environment (PyTorch + scvi)
 
-# Suppress TensorFlow/CUDA warnings for cleaner output
+# Suppress TensorFlow/CUDA warnings and logs for cleaner output
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
 export CUDA_VISIBLE_DEVICES=""
+export ABSL_LOG_LEVEL=ERROR
 
 # Activate batch correction environment
 if [[ -f ".venv_batch/bin/activate" ]]; then
     source .venv_batch/bin/activate
+    # Clean up prompt - remove any existing (.venv_batch) and empty parentheses
+    PS1="\${PS1//\\(.venv_batch\\) /}"
+    PS1="\${PS1//\\(.venv_batch\\)/}"
+    PS1="\${PS1//\\(\\) /}"
+    PS1="\${PS1//\\(\\)/}"
+    export PS1="(.venv_batch) \${PS1}"
 elif [[ -f ".venv_batch/Scripts/activate" ]]; then
-    source .venv_batch/Scripts/activate  
+    source .venv_batch/Scripts/activate
+    # Clean up prompt - remove any existing (.venv_batch) and empty parentheses
+    PS1="\${PS1//\\(.venv_batch\\) /}"
+    PS1="\${PS1//\\(.venv_batch\\)/}"
+    PS1="\${PS1//\\(\\) /}"
+    PS1="\${PS1//\\(\\)/}"
+    export PS1="(.venv_batch) \${PS1}"
 else
     echo "❌ Batch correction environment not found"
     return 1
