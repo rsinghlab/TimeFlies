@@ -85,7 +85,7 @@ timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda
 ```bash
 timeflies split                               # Create train/eval splits
 timeflies eda [--save-report]                 # Exploratory data analysis
-timeflies batch-correct                       # Apply batch correction
+timeflies batch-correct                       # Create batch-corrected files (requires .venv_batch)
 timeflies verify                              # System verification
 ```
 
@@ -99,7 +99,7 @@ timeflies update                              # Update to latest version
 ### Global Options (work with any command)
 ```bash
 --verbose                 # Detailed logging
---batch-corrected         # Use batch-corrected data  
+--batch-corrected         # Use existing batch-corrected data (any command)  
 --tissue head|body        # Override tissue type
 --model CNN|MLP|xgboost|random_forest|logistic   # Override model type
 --target age              # Override target variable
