@@ -196,6 +196,10 @@ source .activate.sh
 timeflies verify
 timeflies test --coverage
 timeflies create-test-data --tier tiny  # (optional - already included)
+
+# For batch correction development (specialized)
+source .activate_batch.sh  # PyTorch + scVI environment (separate from main)
+timeflies batch-correct    # Creates batch-corrected versions of test data
 ```
 
 ### Test Data System
