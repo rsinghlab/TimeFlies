@@ -57,7 +57,7 @@ timeflies analyze
 - **Deep Learning Models**: CNN, MLP architectures for single-cell analysis
 - **Traditional ML**: XGBoost, Random Forest, Logistic Regression for comparison studies
 - **Automated Evaluation**: Built-in performance metrics and validation
-- **Model Interpretability**: SHAP analysis and feature importance (configurable)
+- **Model Interpretability**: Feature importance analysis with SHAP (configurable)
 
 ### Data Processing
 - **Batch Correction**: scVI-tools integration for technical noise removal
@@ -247,7 +247,7 @@ TimeFlies is designed for researchers studying:
 ## Output Examples
 
 - **Model Performance**: Accuracy, precision, recall metrics
-- **Model Interpretability**: SHAP feature importance and gene rankings
+- **Model Interpretability**: Gene importance rankings and analysis visualizations
 - **Visualizations**: t-SNE/UMAP plots, expression heatmaps
 - **Reports**: Comprehensive HTML analysis reports
 
