@@ -2,7 +2,7 @@
 
 **Machine Learning for Aging Analysis in Drosophila Single-Cell Data**
 
-TimeFlies is a comprehensive machine learning framework for analyzing aging patterns in Drosophila single-cell RNA sequencing data. It provides deep learning models, SHAP interpretability analysis, batch correction capabilities, and a complete research workflow.
+TimeFlies is a comprehensive machine learning framework for analyzing aging patterns in Drosophila single-cell RNA sequencing data. It provides deep learning models, model interpretability analysis, batch correction capabilities, and a complete research workflow.
 
 ## Quick Start
 
