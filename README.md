@@ -155,7 +155,7 @@ timeflies evaluate --interpret
 timeflies evaluate --visualize
 
 # Use custom analysis script
-timeflies analyze --analysis-script /path/to/script.py
+timeflies analyze --analysis-script templates/my_custom_analysis.py
 
 # Combine flags
 timeflies evaluate --interpret --visualize --with-analysis
@@ -166,10 +166,10 @@ Create custom analysis workflows using templates:
 
 ```bash
 # Copy template and customize
-cp templates/aging_analysis_template.py my_analysis.py
+cp templates/aging_analysis_template.py templates/my_analysis.py
 
 # Run your custom analysis
-timeflies analyze --analysis-script my_analysis.py
+timeflies analyze --analysis-script templates/my_analysis.py
 ```
 
 Available templates:
