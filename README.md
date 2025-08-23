@@ -195,11 +195,11 @@ source .activate.sh
 # Now you can use timeflies command directly
 timeflies verify
 timeflies test --coverage
-timeflies create-test-data --tier tiny
+timeflies create-test-data --tier tiny  # (optional - already included)
 
-# For batch correction work
+# Only for batch correction development (optional)
 source .activate_batch.sh
-timeflies batch-correct
+timeflies batch-correct  # Uses tiny test data for development
 ```
 
 ### Test Data System
@@ -208,8 +208,8 @@ timeflies batch-correct
 - **Real**: 5000 cells, 2000 genes (performance testing)
 
 ```bash
-timeflies create-test-data --tier tiny --batch-versions
-timeflies create-test-data --tier synthetic --batch-versions
+timeflies create-test-data --tier tiny --batch-versions     # (optional - already committed)
+timeflies create-test-data --tier synthetic --batch-versions # Generate on-demand for testing
 ```
 
 ## Project Structure

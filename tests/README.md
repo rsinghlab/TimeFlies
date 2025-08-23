@@ -27,7 +27,7 @@ tests/
 timeflies test [unit|integration|functional|system|all] [--coverage] [--fast] [--debug] [--rerun]
 
 # Generate test data for testing
-timeflies create-test-data --tier tiny --batch-versions      # Always available
+timeflies create-test-data --tier tiny --batch-versions      # (optional - already committed)
 timeflies create-test-data --tier synthetic --batch-versions # Generated on demand  
 timeflies create-test-data --tier real --batch-versions      # Local performance testing
 ```
