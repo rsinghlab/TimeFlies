@@ -1,9 +1,0 @@
-metric,score
-ASW_label,0.49188335333019495
-ASW_label/batch,0.9128170013427734
-PCR_batch,0.0
-isolated_label_silhouette,0.518922746181488
-graph_conn,0.7502559242086257
-hvg_overlap,1.0
-silhouette_sex,0.520636485889554
-silhouette_age,0.5058328192681074

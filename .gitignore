@@ -1,9 +1,40 @@
+# Data files
 *.h5ad
 *.npy
-best_model.pkl
-shap_values.pkl
-.venv
-__pycache__ # recursive
+
+# 3-Tier Test Data Strategy  
+!tests/fixtures/*/tiny_*.h5ad          # Tier 1: Committed tiny fixtures
+!tests/fixtures/*/tiny_*_metadata.json # Metadata for generation
+tests/fixtures/*/synthetic_*.h5ad      # Tier 2: Generated on demand
+tests/fixtures/*/real_*.h5ad          # Tier 3: Local dev only
+
+# Environments and activation
+.venv/
+.venv_batch/
+.activate*.sh
+
+# Python
+__pycache__/
 *.pyc
-.vscode
+*.egg-info/
+
+# Build artifacts  
+build/
+dist/
+
+# Results and models
+outputs/
+*.pkl
+.coverage
+coverage/
+
+# Development tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.claude/
+
+# IDE
+.vscode/
+.idea/
 *.ipynb_checkpoints
