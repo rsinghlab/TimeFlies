@@ -61,15 +61,32 @@ timeflies create-test-data --tier real --batch-versions      # Local performance
 
 ```bash
 # Quick development feedback
-timeflies test --fast         # Unit + integration only
+timeflies test --fast         # Unit + integration only (auto-handles environments)
 
-# Full test suite before commit
-timeflies test --coverage     # All tests + coverage report
+# Full test suite before commit  
+timeflies test --coverage     # All tests + coverage report (auto-switches environments)
 
 # Debug specific failures
 timeflies test --debug unit   # Stop on first unit test failure
 timeflies test --rerun        # Re-run only failed tests
 ```
+
+## Automatic Environment Switching
+
+The test runner automatically handles batch correction tests:
+
+**What happens when you run `timeflies test --coverage`:**
+1. 🧪 **Regular tests** run in main `.venv` environment
+2. 🔄 **Auto-detects** batch correction tests  
+3. 🧬 **Switches** to `.venv_batch` environment for batch correction tests
+4. 🔄 **Returns** to main `.venv` environment  
+5. 📊 **Combines** coverage reports from both environments
+
+**Developer Experience:**
+- ✅ **One command**: `timeflies test` - everything works automatically
+- ✅ **No manual switching**: Test runner handles environments  
+- ✅ **Always ends in main env**: Never left in wrong environment
+- ✅ **Comprehensive testing**: Real batch correction testing, not just mocks
 
 ## Test Data Tiers
 

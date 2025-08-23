@@ -5,11 +5,74 @@ import sys
 import argparse
 import subprocess
 from pathlib import Path
+import os
+
+
+def get_batch_correction_tests():
+    """Find all batch correction related test files."""
+    batch_tests = []
+    
+    # Look for batch correction specific tests
+    test_dirs = ['tests/unit/', 'tests/integration/']
+    
+    for test_dir in test_dirs:
+        test_path = Path(test_dir)
+        if test_path.exists():
+            # Find test files that mention batch correction
+            for test_file in test_path.glob('test_*batch*.py'):
+                batch_tests.append(str(test_file))
+            # Also check for batch correction in file content
+            for test_file in test_path.glob('test_*.py'):
+                try:
+                    content = test_file.read_text()
+                    if 'batch_correction' in content.lower() or 'batchcorrector' in content:
+                        batch_tests.append(str(test_file))
+                except:
+                    continue
+    
+    return list(set(batch_tests))  # Remove duplicates
+
+
+def has_batch_environment():
+    """Check if .venv_batch environment exists."""
+    return Path('.venv_batch').exists()
+
+
+def run_in_batch_environment(test_files, cmd_options):
+    """Run specific tests in batch correction environment."""
+    if not test_files:
+        return 0
+        
+    if not has_batch_environment():
+        print("⚠️  Batch correction environment (.venv_batch) not found")
+        print("   Skipping batch correction tests")
+        print("   Run 'python3 run_timeflies.py setup --dev' to create it")
+        return 0
+    
+    print(f"\n🔄 Switching to batch correction environment for {len(test_files)} test(s)...")
+    
+    # Build command to run in batch environment
+    batch_python = ".venv_batch/bin/python" if Path(".venv_batch/bin/python").exists() else ".venv_batch/Scripts/python.exe"
+    
+    cmd = [batch_python, "-m", "pytest"] + test_files + cmd_options
+    
+    print(f"   Running: {' '.join(cmd)}")
+    
+    # Temporarily set batch environment variables
+    env = os.environ.copy()
+    env['VIRTUAL_ENV'] = str(Path('.venv_batch').resolve())
+    env['PATH'] = f"{Path('.venv_batch/bin').resolve()}:{env.get('PATH', '')}"
+    
+    result = subprocess.run(cmd, env=env)
+    
+    print("🔄 Returning to main environment...")
+    
+    return result.returncode
 
 
 def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=False, rerun_failures=False):
     """
-    Run tests with practical options only.
+    Run tests with automatic environment switching for batch correction tests.
     
     Args:
         test_type: Type of tests to run (unit, integration, functional, system, all)
@@ -20,55 +83,90 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
         rerun_failures: Only re-run tests that failed last time
     """
     # Set environment variables to suppress TensorFlow warnings
-    import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
     os.environ['PYTHONWARNINGS'] = 'ignore'
     
-    cmd = ["python3", "-m", "pytest"]
-    
-    # Add test path based on type
+    # Get all test files to run
+    all_test_files = []
     if test_type == "unit":
-        cmd.append("tests/unit/")
-    elif test_type == "integration":
-        cmd.append("tests/integration/")
+        all_test_files = list(Path("tests/unit/").glob("test_*.py"))
+    elif test_type == "integration": 
+        all_test_files = list(Path("tests/integration/").glob("test_*.py"))
     elif test_type == "functional":
-        cmd.append("tests/functional/")
+        all_test_files = list(Path("tests/functional/").glob("test_*.py"))
     elif test_type == "system":
-        cmd.append("tests/system/")
+        all_test_files = list(Path("tests/system/").glob("test_*.py"))
     elif test_type == "all":
-        cmd.append("tests/")
+        for test_dir in ["unit", "integration", "functional", "system"]:
+            test_path = Path(f"tests/{test_dir}/")
+            if test_path.exists():
+                all_test_files.extend(test_path.glob("test_*.py"))
     else:
-        cmd.append(f"tests/{test_type}/")
+        test_path = Path(f"tests/{test_type}/")
+        if test_path.exists():
+            all_test_files.extend(test_path.glob("test_*.py"))
     
-    # Add practical options only
-    if fast:
-        # Fast mode: only unit and integration tests (skip slow functional tests)
-        if test_type == "all":
-            cmd = ["python3", "-m", "pytest", "tests/unit/", "tests/integration/"]
-        
+    # Fast mode: skip functional tests
+    if fast and test_type == "all":
+        all_test_files = [f for f in all_test_files if "functional" not in str(f)]
+    
+    # Separate batch correction tests from regular tests
+    batch_tests = get_batch_correction_tests()
+    batch_test_files = [f for f in all_test_files if str(f) in batch_tests]
+    regular_test_files = [f for f in all_test_files if str(f) not in batch_tests]
+    
+    # Build pytest options
+    pytest_options = []
     if debug:
-        cmd.extend(["-x", "-v", "--tb=long"])
+        pytest_options.extend(["-x", "-v", "--tb=long"])
     elif verbose:
-        cmd.append("-v")
+        pytest_options.append("-v")
     else:
-        cmd.append("-q")
+        pytest_options.append("-q")
     
     if coverage:
-        cmd.extend([
-            "--cov=src/projects",
-            "--cov=src/shared", 
+        pytest_options.extend([
+            "--cov=src",
             "--cov-report=html:coverage/html",
-            "--cov-report=term"
+            "--cov-report=term",
+            "--cov-append"  # Append coverage from multiple runs
         ])
     
     if rerun_failures:
-        cmd.extend(["--lf", "-v"])
+        pytest_options.extend(["--lf", "-v"])
     
-    # Run tests
-    print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
-    return result.returncode
+    # Track overall success
+    overall_success = True
+    
+    # 1. Run regular tests in main environment
+    if regular_test_files:
+        print(f"🧪 Running {len(regular_test_files)} regular tests in main environment...")
+        
+        cmd = ["python3", "-m", "pytest"] + [str(f) for f in regular_test_files] + pytest_options
+        print(f"Running: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
+        if result.returncode != 0:
+            overall_success = False
+    
+    # 2. Run batch correction tests in batch environment
+    if batch_test_files:
+        batch_result = run_in_batch_environment(
+            [str(f) for f in batch_test_files], 
+            pytest_options
+        )
+        if batch_result != 0:
+            overall_success = False
+    
+    # 3. Show summary
+    if batch_test_files and regular_test_files:
+        print(f"\n📋 Test Summary:")
+        print(f"   Regular tests: {len(regular_test_files)} files")
+        print(f"   Batch correction tests: {len(batch_test_files)} files")
+        print(f"   Status: {'✅ All passed' if overall_success else '❌ Some failed'}")
+    
+    return 0 if overall_success else 1
 
 
 def main():
