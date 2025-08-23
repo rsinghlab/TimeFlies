@@ -950,6 +950,38 @@ def evaluate_command(args, config) -> int:
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.target_variable}")
+        
+        # Handle CLI flag overrides for SHAP and visualizations
+        if hasattr(args, 'interpret') and args.interpret:
+            print("   📊 SHAP interpretation: ENABLED (via --interpret flag)")
+            # Temporarily override config
+            if hasattr(config, 'interpretation') and hasattr(config.interpretation, 'shap'):
+                original_shap = config.interpretation.shap.enabled
+                config.interpretation.shap.enabled = True
+            else:
+                # Create the config structure if it doesn't exist
+                if not hasattr(config, 'interpretation'):
+                    from types import SimpleNamespace
+                    config.interpretation = SimpleNamespace()
+                    config.interpretation.shap = SimpleNamespace()
+                config.interpretation.shap.enabled = True
+                original_shap = False
+        else:
+            original_shap = None
+            
+        if hasattr(args, 'visualize') and args.visualize:
+            print("   📈 Visualizations: ENABLED (via --visualize flag)")
+            # Temporarily override config
+            if hasattr(config, 'visualizations'):
+                original_viz = config.visualizations.enabled
+                config.visualizations.enabled = True
+            else:
+                from types import SimpleNamespace
+                config.visualizations = SimpleNamespace()
+                config.visualizations.enabled = True
+                original_viz = False
+        else:
+            original_viz = None
 
         # Use shared PipelineManager for all projects
         from common.core import PipelineManager
@@ -958,6 +990,12 @@ def evaluate_command(args, config) -> int:
         # (This includes metrics, interpretation, and visualizations based on config)
         pipeline = PipelineManager(config)
         results = pipeline.run_evaluation()
+        
+        # Restore original config settings if overridden
+        if original_shap is not None:
+            config.interpretation.shap.enabled = original_shap
+        if original_viz is not None:
+            config.visualizations.enabled = original_viz
 
         print("\n✅ Evaluation completed successfully!")
         
@@ -992,6 +1030,11 @@ def analyze_command(args, config) -> int:
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.target_variable}")
+        
+        # Store custom analysis script path in config for pipeline manager
+        if hasattr(args, 'analysis_script') and args.analysis_script:
+            config._custom_analysis_script = args.analysis_script
+            print(f"   Custom script: {args.analysis_script}")
         
         # Check for CLI-provided predictions path first
         predictions_path = None

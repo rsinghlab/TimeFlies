@@ -50,6 +50,10 @@ def verify_system(dev_mode: bool = None) -> bool:
     config_check = check_configuration()
     all_checks_passed &= config_check
     
+    # Check analysis templates
+    templates_check = check_analysis_templates()
+    all_checks_passed &= templates_check
+    
     # Check data availability (skip for dev mode)
     if not dev_mode:
         data_check = check_data_availability()
@@ -121,10 +125,9 @@ def check_directory_structure(dev_mode: bool = False) -> bool:
     print("-" * 30)
     
     if dev_mode:
-        # For development, only check source directories
+        # For development, only check source directories  
         required_dirs = [
             "src/common",
-            "src/analysis", 
             "configs",
             "tests",
         ]
@@ -254,6 +257,48 @@ def check_gpu_availability() -> bool:
     except Exception as e:
         print(f"⚠️  Could not check GPU status: {e}")
         return True  # GPU is optional
+
+
+def check_analysis_templates() -> bool:
+    """Check if analysis templates directory exists and list available templates."""
+    print("\n🔬 Analysis Templates Check")
+    print("-" * 30)
+    
+    templates_dir = Path("templates")
+    
+    if not templates_dir.exists():
+        print("⚠️  templates/ directory not found")
+        print("   Analysis templates are optional but recommended for custom analysis")
+        return True  # Templates are optional
+    
+    print("✅ templates/ directory exists")
+    
+    # Find analysis template files
+    analysis_templates = list(templates_dir.glob("*_analysis.py"))
+    
+    if not analysis_templates:
+        print("ℹ️  No project analysis templates found")
+        print("   Create templates/{project}_analysis.py for custom analysis")
+    else:
+        print(f"✅ Found {len(analysis_templates)} analysis templates:")
+        for template in sorted(analysis_templates):
+            template_name = template.stem.replace('_analysis', '')
+            print(f"   📄 {template.name} -> project '{template_name}'")
+    
+    # Find other template files
+    other_templates = [f for f in templates_dir.glob("*.py") if not f.name.endswith("_analysis.py")]
+    example_templates = list(templates_dir.glob("*example*.py"))
+    readme_files = list(templates_dir.glob("README*"))
+    
+    if other_templates or readme_files:
+        print(f"ℹ️  Additional template files:")
+        for template in sorted(other_templates + readme_files):
+            if template.name.startswith("README"):
+                print(f"   📋 {template.name} (documentation)")
+            else:
+                print(f"   📄 {template.name}")
+    
+    return True
 
 
 if __name__ == "__main__":
