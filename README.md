@@ -196,10 +196,6 @@ source .activate.sh
 timeflies verify
 timeflies test --coverage
 timeflies create-test-data --tier tiny  # (optional - already included)
-
-# Only for batch correction development (optional)
-source .activate_batch.sh
-timeflies batch-correct  # Uses tiny test data for development
 ```
 
 ### Test Data System
