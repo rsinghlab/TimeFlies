@@ -19,8 +19,8 @@ from tests.fixtures.unit_test_data import (
 
 # Import project modules for fixtures
 # from projects.fruitfly_aging.core.config_manager import Config, ConfigManager
-from shared.cli.parser import create_main_parser
-from shared.core.active_config import get_config_for_active_project
+from common.cli.parser import create_main_parser
+from common.core.active_config import get_config_for_active_project
 from unittest.mock import Mock, patch
 
 

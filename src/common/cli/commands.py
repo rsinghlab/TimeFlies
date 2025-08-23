@@ -106,7 +106,9 @@ def execute_command(args) -> bool:
             return split_command(args) == 0
         elif args.command == "verify":
             from common.cli.system_checks import verify_system
-            return verify_system() == 0
+            # Let verify_system auto-detect dev mode unless explicitly overridden
+            dev_mode = args.dev if hasattr(args, 'dev') and args.dev is not None else None
+            return verify_system(dev_mode=dev_mode) == 0
         elif args.command == "test":
             return run_system_tests(args) == 0
         elif args.command == "create-test-data":
@@ -521,7 +523,8 @@ def new_setup_command(args) -> int:
     # 4. System verification (always runs last)
     print("\n4️⃣ Verifying system setup...")
     from common.cli.system_checks import verify_system
-    verify_result = verify_system()
+    dev_mode = hasattr(args, 'dev') and args.dev
+    verify_result = verify_system(dev_mode=dev_mode)
     if verify_result != 0:
         print("❌ System verification failed. Please fix issues above.")
         return verify_result
@@ -1706,7 +1709,22 @@ def setup_dev_environments() -> int:
         
         subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
         subprocess.run([venv_pip, "install", "-e", "."], check=True)
-        print("✅ Main dependencies installed")
+        
+        # Install development dependencies
+        print("🛠️  Installing development dependencies...")
+        dev_deps = [
+            "pytest>=7.0.0",
+            "pytest-cov>=4.0.0", 
+            "pytest-mock>=3.8.0",
+            "pytest-xdist>=3.0.0",
+            "black>=23.0.0",
+            "isort>=5.12.0",
+            "ruff>=0.1.0",
+            "mypy>=1.5.0",
+            "pre-commit>=3.0.0"
+        ]
+        subprocess.run([venv_pip, "install"] + dev_deps, check=True)
+        print("✅ Main and development dependencies installed")
         
         # Create batch environment  
         print("\n🔬 Setting up batch correction environment (.venv_batch)...")
@@ -1753,16 +1771,23 @@ def create_activation_scripts():
     main_script = '''#!/bin/bash
 # TimeFlies Development Environment
 
-# Suppress TensorFlow/CUDA warnings
+# Suppress TensorFlow/CUDA warnings and logs
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
 export CUDA_VISIBLE_DEVICES=""
+export ABSL_LOG_LEVEL=ERROR
 
 # Activate virtual environment
 if [[ -f ".venv/bin/activate" ]]; then
     source .venv/bin/activate
+    # Clean up prompt - remove any existing (.venv) and empty parentheses
+    PS1="${PS1//\\(.venv\\) /}"
+    PS1="${PS1//\\(.venv\\)/}"
+    PS1="${PS1//\\(\\) /}"
+    PS1="${PS1//\\(\\)/}"
+    export PS1="(.venv) ${PS1}"
 else
     echo "❌ Main environment not found (.venv/bin/activate)"
     return 1
@@ -1778,32 +1803,38 @@ alias tf-test="timeflies test"
 
 echo "🧬 TimeFlies Development Environment Activated!"
 echo ""
-echo "Quick commands:"
-echo "  timeflies verify     # Check system"
-echo "  timeflies test       # Run test suite"  
-echo "  timeflies setup      # Setup workflow"
-echo "  timeflies train      # Train models"
-echo ""
-echo "Development:"
+echo "Development commands:"
+echo "  timeflies test --coverage    # Run test suite with coverage"
 echo "  timeflies test --fast        # Quick tests"
-echo "  timeflies test --coverage    # Full coverage"
-echo "  timeflies create-test-data   # Generate fixtures"
+echo "  timeflies create-test-data   # Generate test fixtures"
+echo "  timeflies verify             # System verification"
+echo ""
+echo "Code quality:"
+echo "  ruff check src/              # Linting"
+echo "  ruff format src/             # Code formatting"
 '''
 
     # Batch activation script
     batch_script = '''#!/bin/bash
 # TimeFlies Batch Correction Environment
 
-# Suppress TensorFlow/CUDA warnings
+# Suppress TensorFlow/CUDA warnings and logs
 export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
 export CUDA_VISIBLE_DEVICES=""
+export ABSL_LOG_LEVEL=ERROR
 
 # Activate batch correction environment
 if [[ -f ".venv_batch/bin/activate" ]]; then
     source .venv_batch/bin/activate
+    # Clean up prompt - remove any existing (.venv_batch) and empty parentheses
+    PS1="${PS1//\\(.venv_batch\\) /}"
+    PS1="${PS1//\\(.venv_batch\\)/}"
+    PS1="${PS1//\\(\\) /}"
+    PS1="${PS1//\\(\\)/}"
+    export PS1="(.venv_batch) ${PS1}"
 else
     echo "❌ Batch correction environment not found"
     return 1
