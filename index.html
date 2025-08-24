@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeFlies v1.0 Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .highlight {
+            background: #e8f4f8;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        code {
+            background: #f1f2f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .badge {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧬 TimeFlies v1.0 Documentation</h1>
+
+        <div class="highlight">
+            <strong>Machine Learning for Aging Analysis in Drosophila Single-Cell Data</strong><br>
+            Complete framework with deep learning, SHAP analysis, and batch correction
+        </div>
+
+        <h2>🚀 Quick Start</h2>
+        <div class="code-block">
+# Install TimeFlies
+curl -O https://raw.githubusercontent.com/rsinghlab/TimeFlies/main/install_timeflies.sh
+chmod +x install_timeflies.sh
+./install_timeflies.sh
+
+# Activate and run
+source .activate.sh
+timeflies setup
+timeflies train
+        </div>
+
+        <h2>🔬 Research Workflow</h2>
+        <ol>
+            <li><strong>Data Setup</strong>: Add your <code>*_original.h5ad</code> files to <code>data/project/tissue/</code></li>
+            <li><strong>Configuration</strong>: Edit <code>configs/default.yaml</code></li>
+            <li><strong>Setup</strong>: Run <code>timeflies setup</code> for complete preparation</li>
+            <li><strong>Training</strong>: Run <code>timeflies train</code> with auto-evaluation</li>
+            <li><strong>Evaluation</strong>: Run <code>timeflies evaluate</code> to assess model performance</li>
+            <li><strong>Analysis</strong>: Results in <code>outputs/</code> with SHAP interpretability</li>
+        </ol>
+
+        <h2>📋 All 11 Commands</h2>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;">
+            <strong>🔬 Research:</strong> setup, train, evaluate, analyze<br>
+            <strong>📊 Data:</strong> split, eda, batch-correct, verify<br>
+            <strong>🧪 Development:</strong> test, create-test-data, update
+        </div>
+        <p><em>See <a href="https://github.com/rsinghlab/TimeFlies#-complete-command-reference">full command reference</a> for all options</em></p>
+
+        <h2>🧪 Supported Projects</h2>
+        <div style="display: flex; gap: 20px; margin: 20px 0;">
+            <div style="flex: 1; padding: 15px; background: #e8f4f8; border-radius: 5px;">
+                <strong>🧬 Fruitfly Aging</strong><br>
+                <span class="badge">Healthy Aging</span><br>
+                Analysis of normal aging patterns in Drosophila head tissue
+            </div>
+            <div style="flex: 1; padding: 15px; background: #fef2e8; border-radius: 5px;">
+                <strong>🧠 Fruitfly Alzheimer's</strong><br>
+                <span class="badge" style="background: #e74c3c;">Disease Models</span><br>
+                Neurodegeneration and disease model analysis
+            </div>
+        </div>
+
+        <h2>🛠️ Key Features</h2>
+        <ul>
+            <li><strong>Deep Learning</strong>: CNN, MLP architectures for sc-RNA-seq</li>
+            <li><strong>SHAP Analysis</strong>: Model interpretability and feature importance</li>
+            <li><strong>Batch Correction</strong>: scVI-tools integration</li>
+            <li><strong>3-Tier Testing</strong>: Tiny/synthetic/real test data strategy</li>
+            <li><strong>Automated Pipeline</strong>: End-to-end research workflow</li>
+        </ul>
+
+        <h2>📁 Documentation</h2>
+        <ul>
+            <li><a href="https://github.com/rsinghlab/TimeFlies">📖 Full README</a></li>
+            <li><a href="https://github.com/rsinghlab/TimeFlies/tree/main/docs">📚 Documentation</a></li>
+            <li><a href="https://github.com/rsinghlab/TimeFlies/issues">🐛 Issues & Support</a></li>
+            <li><a href="https://github.com/rsinghlab/TimeFlies/blob/main/LICENSE">📄 License</a></li>
+        </ul>
+
+        <h2>🔧 System Requirements</h2>
+        <ul>
+            <li><strong>Python</strong>: 3.12+</li>
+            <li><strong>OS</strong>: Linux, macOS, Windows (WSL2)</li>
+            <li><strong>Memory</strong>: 8GB+ recommended</li>
+            <li><strong>Storage</strong>: 2GB+ for environments</li>
+        </ul>
+
+        <div class="footer">
+            <strong>🏫 Singh Lab</strong><br>
+            <a href="https://github.com/rsinghlab/TimeFlies">TimeFlies v1.0</a> |
+            <a href="https://github.com/rsinghlab">Singh Lab</a><br>
+            <em>Advancing aging research through machine learning</em>
+        </div>
+    </div>
+</body>
+</html>
