@@ -52,6 +52,10 @@ def verify_system(dev_mode: bool = None) -> bool:
     templates_check = check_analysis_templates()
     all_checks_passed &= templates_check
 
+    # Check timeflies launcher installation
+    launcher_check = check_timeflies_launcher()
+    all_checks_passed &= launcher_check
+
     # Check data availability (skip for dev mode)
     if not dev_mode:
         data_check = check_data_availability()
@@ -72,7 +76,7 @@ def check_python_version() -> bool:
     print("-" * 30)
 
     current_version = sys.version_info
-    required_version = (3, 12)  # Updated to match pyproject.toml
+    required_version = (3, 10)  # Updated to match pyproject.toml
 
     if current_version >= required_version:
         print(
@@ -271,6 +275,39 @@ def check_gpu_availability() -> bool:
     except Exception as e:
         print(f"⚠️  Could not check GPU status: {e}")
         return True  # GPU is optional
+
+
+def check_timeflies_launcher() -> bool:
+    """Check if timeflies launcher is properly installed and accessible."""
+    print("\nLAUNCHER: TimeFlies CLI Installation Check")
+    print("-" * 30)
+
+    import shutil
+    import subprocess
+
+    # Check if timeflies command is available in PATH
+    if shutil.which("timeflies"):
+        print("[OK] timeflies command found in PATH")
+
+        # Test if command works
+        try:
+            result = subprocess.run(
+                ["timeflies", "--help"], capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                print("[OK] timeflies command working correctly")
+                return True
+            else:
+                print(f"[ERROR] timeflies command failed: {result.stderr}")
+                return False
+        except Exception as e:
+            print(f"[ERROR] Could not test timeflies command: {e}")
+            return False
+    else:
+        print("[ERROR] timeflies command not found in PATH")
+        print("   Run: pip install -e . (from TimeFlies directory)")
+        print("   Or: source .activate.sh (if using installed version)")
+        return False
 
 
 def check_analysis_templates() -> bool:
