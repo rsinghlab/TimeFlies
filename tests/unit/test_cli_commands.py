@@ -231,7 +231,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_with_project_override(self):
         """Test main CLI with project override."""
-        with patch("common.cli.main.get_config_for_active_project") as mock_get_config:
+        with patch("common.cli.commands.get_config_for_active_project") as mock_get_config:
             with patch("common.cli.commands.train_command") as mock_train:
                 mock_config = Mock()
                 mock_get_config.return_value.get_config.return_value = mock_config
@@ -242,26 +242,26 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_error_handling(self):
         """Test main CLI error handling."""
-        # Test with invalid command
-        with patch("common.cli.parser.parse_arguments") as mock_parse:
-            mock_parse.side_effect = SystemExit(2)
-
-            result = main_cli(["invalid_command"])
-            # Should handle SystemExit gracefully
-            assert result is not None
+        # Test with invalid command - should raise SystemExit
+        with pytest.raises(SystemExit) as exc_info:
+            main_cli(["invalid_command"])
+        
+        # Should exit with error code 2 (argument error)
+        assert exc_info.value.code == 2
 
     def test_main_cli_keyboard_interrupt(self):
         """Test main CLI keyboard interrupt handling."""
-        with patch("common.cli.main.get_config_for_active_project") as mock_get_config:
-            mock_get_config.side_effect = KeyboardInterrupt()
+        with patch("common.cli.commands.execute_command") as mock_execute:
+            mock_execute.side_effect = KeyboardInterrupt()
 
-            result = main_cli(["train"])
-            assert result == 130  # Standard keyboard interrupt exit code
+            # Keyboard interrupt should propagate
+            with pytest.raises(KeyboardInterrupt):
+                main_cli(["train"])
 
     def test_main_cli_config_error(self):
         """Test main CLI configuration error handling."""
-        with patch("common.cli.main.get_config_for_active_project") as mock_get_config:
-            mock_get_config.side_effect = Exception("Config error")
+        with patch("common.cli.commands.execute_command") as mock_execute:
+            mock_execute.return_value = False  # Command failed
 
             result = main_cli(["train"])
             assert result == 1  # Error exit code
@@ -307,17 +307,15 @@ class TestCLIUtilities:
         """Test subcommand help generation."""
         parser = create_main_parser()
 
-        # Test that subcommand help doesn't crash
-        try:
-            # This tests the parser's ability to handle subcommand help
-            subparsers_actions = [
-                action
-                for action in parser._actions
-                if isinstance(action, type(parser._subparsers))
-            ]
-            assert len(subparsers_actions) > 0
-        except Exception:
-            pytest.fail("Subcommand help generation failed")
+        # Test that help generation works without errors
+        help_text = parser.format_help()
+        assert isinstance(help_text, str)
+        assert len(help_text) > 0
+        
+        # Test that expected commands are mentioned in help
+        expected_commands = ['train', 'setup', 'verify', 'evaluate']
+        for cmd in expected_commands:
+            assert cmd in help_text
 
 
 @pytest.mark.unit

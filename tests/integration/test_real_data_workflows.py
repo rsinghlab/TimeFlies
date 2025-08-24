@@ -101,25 +101,30 @@ class TestCLIWorkflowIntegration:
 class TestDataWorkflowIntegration:
     """Test data workflow integration."""
 
-    def test_anndata_processing_workflow(self, large_sample_anndata):
-        """Test real AnnData processing workflow."""
-        import scanpy as sc
-
-        # Test actual scanpy processing pipeline
-        adata = large_sample_anndata.copy()
-
-        # Normalization
-        sc.pp.normalize_total(adata, target_sum=1e4)
-        sc.pp.log1p(adata)
-
-        # Basic filtering
-        sc.pp.filter_cells(adata, min_genes=10)
-        sc.pp.filter_genes(adata, min_cells=3)
-
-        # Verify processing worked
-        assert adata.n_obs <= large_sample_anndata.n_obs
-        assert adata.n_vars <= large_sample_anndata.n_vars
-        assert np.all(adata.X >= 0)  # Log1p ensures non-negative
+    def test_timeflies_dataprocessor_workflow(self, large_sample_anndata):
+        """Test TimeFlies DataPreprocessor workflow (not just scanpy)."""
+        from common.data.preprocessing.data_processor import DataPreprocessor
+        from common.core.active_config import get_config_for_active_project
+        from unittest.mock import patch
+        
+        # Add genotype column that TimeFlies expects
+        genotype_values = ['ctrl', 'alz'] * (large_sample_anndata.n_obs // 2)
+        if large_sample_anndata.n_obs % 2 == 1:
+            genotype_values.append('ctrl')
+        large_sample_anndata.obs['genotype'] = genotype_values
+        
+        config_manager = get_config_for_active_project("default")
+        config = config_manager.get_config()
+        
+        # Test actual TimeFlies DataPreprocessor
+        with patch("common.utils.path_manager.PathManager"):
+            preprocessor = DataPreprocessor(config, large_sample_anndata, large_sample_anndata.copy())
+            
+            # Test actual TimeFlies processing method
+            processed = preprocessor.process_adata(large_sample_anndata.copy())
+            assert processed.n_obs > 0
+            assert processed.n_vars > 0
+            assert 'age' in processed.obs.columns
 
     def test_data_splitting_workflow(self, large_sample_anndata):
         """Test real data splitting workflow."""

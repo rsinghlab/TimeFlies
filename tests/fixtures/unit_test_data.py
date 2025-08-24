@@ -38,6 +38,10 @@ def create_sample_anndata(
         obs["age_group"] = pd.cut(
             ages, bins=[0, 5, 15, 25], labels=["young", "middle", "old"]
         )
+        
+        # Add sex and tissue columns for TimeFlies compatibility
+        obs["sex"] = np.random.choice(["male", "female"], n_cells)
+        obs["tissue"] = np.random.choice(["head", "body"], n_cells)
 
     if add_batch:
         # Create batch effects
