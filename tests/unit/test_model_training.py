@@ -30,7 +30,7 @@ class TestModelBuilder:
 
         # Data configuration
         config.data = Mock()
-        config.data.model_type = "CNN"
+        config.data.model = "CNN"
 
         # Device configuration
         config.device = Mock()
@@ -183,7 +183,7 @@ class TestModelBuilder:
             self.highly_variable_genes,
             self.mix_included,
         )
-        builder.model_type = "mlp"
+        # Model type is set from config automatically
 
         model = builder.create_mlp_model(num_output_units=3)
 
@@ -270,7 +270,7 @@ class TestModelBuilder:
     def test_build_model_cnn(self):
         """Test building CNN model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = "CNN"
+        self.mock_config.data.model = "CNN"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -289,7 +289,7 @@ class TestModelBuilder:
     def test_build_model_mlp(self):
         """Test building MLP model through build_model method."""
         _, train_data = self.train_data
-        self.mock_config.data.model_type = "MLP"
+        self.mock_config.data.model = "MLP"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -308,7 +308,7 @@ class TestModelBuilder:
     def test_build_model_logistic_regression(self):
         """Test building Logistic Regression model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = "LogisticRegression"
+        self.mock_config.data.model = "LogisticRegression"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -329,7 +329,7 @@ class TestModelBuilder:
     def test_build_model_random_forest(self):
         """Test building Random Forest model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = "RandomForest"
+        self.mock_config.data.model = "RandomForest"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -350,7 +350,7 @@ class TestModelBuilder:
     def test_build_model_xgboost(self):
         """Test building XGBoost model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = "XGBoost"
+        self.mock_config.data.model = "XGBoost"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -371,7 +371,7 @@ class TestModelBuilder:
     def test_build_model_unsupported_type(self):
         """Test building model with unsupported type raises ValueError."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = "UnsupportedModel"
+        self.mock_config.data.model = "UnsupportedModel"
         builder = ModelBuilder(
             self.mock_config,
             train_data,
@@ -391,7 +391,7 @@ class TestModelBuilder:
     def test_prepare_directories(self, mock_path_manager):
         """Test directory preparation for model saving."""
         train_data, _ = self.train_data
-        mock_path_manager.return_value.construct_model_directory.return_value = (
+        mock_path_manager.return_value.get_experiment_dir.return_value = (
             "/tmp/test_model"
         )
 
@@ -438,13 +438,16 @@ class TestModelBuilder:
             "highly_variable_genes_path",
             "mix_included_path",
             "history_path",
-            "model_dir",
+            "experiment_dir",
+            "components_dir",
         ]
 
         for path_key in expected_paths:
             assert path_key in paths
-            if path_key == "model_dir":
+            if path_key == "experiment_dir":
                 assert paths[path_key] == "/tmp/test_model"
+            elif path_key == "components_dir":
+                assert paths[path_key] == "/tmp/test_model/model_components"
             else:
                 assert paths[path_key].startswith("/tmp/test_model/")
 
@@ -460,13 +463,13 @@ class TestModelLoader:
         """Create mock configuration object."""
         config = Mock()
         config.data = Mock()
-        config.data.model_type = "CNN"
+        config.data.model = "CNN"
         return config
 
     @patch("common.models.model.PathManager")
     def test_model_loader_initialization(self, mock_path_manager):
         """Test ModelLoader initialization."""
-        mock_path_manager.return_value.construct_model_directory.return_value = (
+        mock_path_manager.return_value.get_best_model_dir_for_config.return_value = (
             "/tmp/test_model"
         )
 
@@ -480,22 +483,22 @@ class TestModelLoader:
         """Test model path generation for neural networks."""
         with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = "cnn"
+            # Model type is set automatically from config
             loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == "/tmp/test_model/best_model.h5"
+            assert path == "/tmp/test_model/model.h5"
 
     def test_get_model_path_sklearn_model(self):
         """Test model path generation for sklearn models."""
-        self.mock_config.data.model_type = "LogisticRegression"
+        self.mock_config.data.model = "LogisticRegression"
         with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = "logisticregression"
+            # Model type is set automatically from config
             loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == "/tmp/test_model/best_model.pkl"
+            assert path == "/tmp/test_model/model.pkl"
 
     @patch("os.path.exists")
     @patch("tensorflow.keras.models.load_model")
@@ -507,7 +510,7 @@ class TestModelLoader:
 
         with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = "cnn"
+            # Model type is set automatically from config
             loader.model_path = "/tmp/test_model/best_model.h5"
 
             model = loader.load_model()
@@ -523,15 +526,17 @@ class TestModelLoader:
         mock_model = Mock()
         mock_pickle_load.return_value = mock_model
 
-        self.mock_config.data.model_type = "LogisticRegression"
+        self.mock_config.data.model = "LogisticRegression"
         with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = "logisticregression"
-            loader.model_path = "/tmp/test_model/best_model.pkl"
+            # Model type is set automatically from config
+            loader.model_path = "/tmp/test_model/model.pkl"
 
             model = loader.load_model()
             assert model == mock_model
-            mock_file.assert_called_once_with("/tmp/test_model/best_model.pkl", "rb")
+            # Note: The loader also tries to read metadata.json, so we can't use assert_called_once_with
+            # Instead, check that the model file was opened with correct path
+            mock_file.assert_any_call("/tmp/test_model/model.pkl", "rb")
 
 
 class TestCustomModelCheckpoint:
