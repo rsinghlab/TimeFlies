@@ -21,25 +21,11 @@ chmod +x install_timeflies.sh
 source .activate.sh
 ```
 
-### TimeFlies Launcher Installation (Optional)
-
-For cleaner command syntax, you can install the TimeFlies launcher:
-
-```bash
-# Install TimeFlies as a system command (after environment activation)
-pip install .
-
-# Now you can use 'timeflies' instead of 'python3 run_timeflies.py'
-timeflies --help
-```
-
-**Note:** The launcher and direct Python methods are functionally identical - use whichever you prefer.
-
 ### Basic Usage
 
-TimeFlies provides two equivalent ways to run commands:
+After installation, TimeFlies provides two equivalent ways to run commands:
 
-**Option 1: TimeFlies Launcher (after installation)**
+**Option 1: TimeFlies Launcher (recommended)**
 ```bash
 # Complete setup workflow
 timeflies setup [--batch-correct]
@@ -54,20 +40,22 @@ timeflies evaluate [--with-eda --with-analysis]
 timeflies analyze
 ```
 
-**Option 2: Direct Python (works immediately)**
+**Option 2: Direct Python**
 ```bash
 # Complete setup workflow
-python3 run_timeflies.py setup [--batch-correct]
+python run_timeflies.py setup [--batch-correct]
 
 # Train models with evaluation
-python3 run_timeflies.py train [--with-eda --with-analysis]
+python run_timeflies.py train [--with-eda --with-analysis]
 
 # Evaluate trained models
-python3 run_timeflies.py evaluate [--with-eda --with-analysis]
+python run_timeflies.py evaluate [--with-eda --with-analysis]
 
 # Run project-specific analysis
-python3 run_timeflies.py analyze
+python run_timeflies.py analyze
 ```
+
+Both methods are functionally identical - the `timeflies` launcher provides cleaner syntax.
 
 ## Research Workflow
 
