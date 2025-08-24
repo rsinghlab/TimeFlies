@@ -16,9 +16,9 @@ class TestInstallation:
         """Test that we're running on supported Python version."""
         version = sys.version_info
         assert version.major == 3
-        assert (
-            version.minor >= 10
-        ), f"Python 3.10+ required, got {version.major}.{version.minor}"
+        assert version.minor >= 10, (
+            f"Python 3.10+ required, got {version.major}.{version.minor}"
+        )
 
     def test_core_dependencies_available(self):
         """Test that core dependencies are importable."""
@@ -230,9 +230,9 @@ class TestEnvironmentValidation:
 
         # Require at least 1GB available memory
         available_gb = memory.available / (1024**3)
-        assert (
-            available_gb >= 1.0
-        ), f"Insufficient memory: {available_gb:.1f}GB available"
+        assert available_gb >= 1.0, (
+            f"Insufficient memory: {available_gb:.1f}GB available"
+        )
 
     def test_disk_space(self):
         """Test disk space availability."""
