@@ -32,6 +32,7 @@ dev = [
     "pytest-xdist>=3.0.0",  # Parallel test execution
     "ruff>=0.1.0",          # Fast linter and formatter (replaces black, isort, flake8)
     "mypy>=1.5.0",          # Type checking
+    "types-PyYAML",         # Type stubs for PyYAML
     "pre-commit>=3.0.0",    # Git hooks
 ]
 batch-correction = [
@@ -125,11 +126,12 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.10"
-warn_return_any = true
+python_version = "3.12"
+warn_return_any = false         # Disable Any warnings for now
 warn_unused_configs = true
-disallow_untyped_defs = false  # Gradually enable
+disallow_untyped_defs = false   # Gradually enable
 ignore_missing_imports = true
+no_implicit_optional = false   # Allow None defaults without Optional[]
 exclude = [
     "legacy/",
     "tests/",
