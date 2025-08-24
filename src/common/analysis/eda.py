@@ -984,10 +984,10 @@ class EDAHandler:
     def _generate_visualization_section(self, img_file, title, embedded_images):
         """Generate HTML for a visualization section."""
         if img_file in embedded_images:
-            return f'''
+            return f"""
         <div class="visualization">
             <h3>{title}</h3>
             <img src="{embedded_images[img_file]}" alt="{title}">
         </div>
-            '''
+            """
         return ""

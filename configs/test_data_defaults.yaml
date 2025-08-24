@@ -2,7 +2,7 @@
 # This config is for developers only - not included in user installations
 #
 # Controls default sizes for 3-tier test data strategy:
-# - Tiny: Small real-like samples (committed to git)  
+# - Tiny: Small real-like samples (committed to git)
 # - Synthetic: Medium integration testing (generated from metadata)
 # - Real: Large dev samples (gitignored)
 
@@ -13,22 +13,22 @@ test_data:
       cells: 50
       genes: 100
       description: "Fast unit tests, CI/CD, always available"
-      
+
     # Tier 2: Synthetic fixtures (generated from metadata)
     synthetic:
       cells: 500
       genes: 1000
       description: "Integration tests, realistic patterns"
-      
+
     # Tier 3: Real fixtures (gitignored, large files)
     real:
       cells: 5000
       genes: 2000
       description: "Performance testing, full biological complexity"
-  
+
   # Batch correction simulation parameters
   batch_correction:
     noise_std: 0.1  # Standard deviation for batch effect simulation
-    
+
   # Random seed for reproducible test data
   random_seed: 42

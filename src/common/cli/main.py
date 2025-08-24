@@ -8,7 +8,7 @@ from pathlib import Path
 
 def main_cli(argv=None):
     """Main entry point for CLI - returns exit code.
-    
+
     Args:
         argv: Optional list of arguments. If None, uses sys.argv
     """

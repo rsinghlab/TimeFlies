@@ -31,7 +31,7 @@ MAIN_BRANCH="main"  # Main development branch
 # Detect OS
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then echo "linux"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then echo "macos"  
+    elif [[ "$OSTYPE" == "darwin"* ]]; then echo "macos"
     elif [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]]; then echo "windows"
     else echo "unknown"; fi
 }
@@ -99,7 +99,7 @@ INSTALL_SUCCESS=false
 
 if command -v git >/dev/null 2>&1; then
     print_status "Downloading and installing TimeFlies..."
-    
+
     # Clone to hidden temporary directory for user install
     if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_install_tmp >/dev/null 2>&1; then
         print_status "Installing dependencies (this may take a few minutes)..."
@@ -185,7 +185,7 @@ echo "  timeflies evaluate           # Evaluate models on test data"
 echo "  timeflies analyze            # Project-specific analysis scripts"
 echo ""
 echo "Quick commands:"
-echo "  timeflies split              # Create train/eval splits"  
+echo "  timeflies split              # Create train/eval splits"
 echo "  timeflies batch-correct      # Apply batch correction"
 echo "  timeflies verify             # System verification"
 echo ""
@@ -271,29 +271,29 @@ print_status "Setting up batch correction environment..."
 if [[ ! -d ".venv_batch" ]]; then
     print_status "Creating PyTorch environment for batch correction..."
     $PYTHON_CMD -m venv .venv_batch
-    
+
     # Activate batch environment
     if [[ "$PLATFORM" == "windows" ]]; then
         source .venv_batch/Scripts/activate
     else
         source .venv_batch/bin/activate
     fi
-    
+
     # Install PyTorch + scvi-tools
     pip install --upgrade pip
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
     pip install scvi-tools scanpy pandas numpy matplotlib seaborn
-    
+
     # Deactivate batch environment
     deactivate
-    
+
     # Reactivate main environment
     if [[ "$PLATFORM" == "windows" ]]; then
         source .venv/Scripts/activate
     else
         source .venv/bin/activate
     fi
-    
+
     print_success "Batch correction environment created!"
 else
     print_success "Batch correction environment already exists"
@@ -307,7 +307,7 @@ echo ""
 echo -e "${GREEN}🔬 Ready for Research!${NC}"
 echo ""
 echo -e "${BLUE}Next steps:${NC}"
-echo ""  
+echo ""
 echo -e "${BLUE}1. Activate environment:${NC}"
 echo "   source .activate.sh"
 echo ""
@@ -318,10 +318,10 @@ echo ""
 echo -e "${BLUE}3. Configure analysis:${NC}"
 echo "   nano configs/default.yaml  # Edit project settings"
 echo ""
-echo -e "${BLUE}4. Run analysis workflow:${NC}"  
+echo -e "${BLUE}4. Run analysis workflow:${NC}"
 echo "   timeflies setup              # Split data + verify + create directories"
 echo "   timeflies train              # Train models with auto-evaluation"
-echo "   timeflies evaluate           # Evaluate models on test data"  
+echo "   timeflies evaluate           # Evaluate models on test data"
 echo "   timeflies analyze            # Project-specific analysis scripts"
 echo ""
 echo -e "${BLUE}5. View results:${NC}"

@@ -1,7 +1,7 @@
 # =============================================================================
 # TIMEFLIES DEFAULT CONFIGURATION
 # =============================================================================
-# Shared settings across all projects. Project-specific overrides go in 
+# Shared settings across all projects. Project-specific overrides go in
 # project folders (fruitfly_aging/, fruitfly_alzheimers/)
 
 # =============================================================================
@@ -15,7 +15,7 @@ general:
   random_state: 42
 
 # =============================================================================
-# HARDWARE CONFIGURATION  
+# HARDWARE CONFIGURATION
 # =============================================================================
 hardware:
   processor: "GPU"  # Options: "GPU", "CPU", "M" (Apple Silicon)
@@ -32,37 +32,37 @@ data:
   cell_type: "all"
   sex: "all"  # Options: "all", "male", "female"
   target_variable: "age"  # Target variable for prediction
-  
+
   # Data processing options
   batch_correction:
     enabled: false  # Set to true to use batch-corrected data
-    
+
   filtering:
     include_mixed_sex: false
-    
+
   sampling:
     samples: 10000  # null for all samples, or specify number
     variables: null  # null for all genes, or specify number
-    
+
   # Train-eval splitting configuration
   # "train" values: Used for model training (Keras handles internal validation split)
   # "test" values: Used for final evaluation on separate holdout adata_eval object
   # For "random" splits, entire dataset is used for training, eval uses full adata_eval
   split:
     method: "column"          # Options: "random" or "column"
-    
+
     # Column-based splitting (ignored if method="random")
     column: "genotype"       # Column name to split on
     train: ["control"]       # Values for training from adata_train (can be multiple)
     test: ["ab42", "htau"]   # Values for evaluation from adata_eval (can be multiple)
-    
+
     # Optional: Additional column filters (AND logic with main split)
     # These filters are applied to BOTH train and test sets from the main split above
     # Example: Train on control males aged 10-20, test on ab42/htau males aged 30
     # additional_filters:
     #   - column: "sex"
     #     values: ["male"]           # Only include males in both train and test
-    #   - column: "age" 
+    #   - column: "age"
     #     train: [10, 20]           # Further filter training to ages 10-20
     #     test: [30]                # Further filter test to age 30
 
@@ -92,25 +92,25 @@ model:
     validation_split: 0.2
     early_stopping_patience: 8
     learning_rate: 0.001
-    
+
   # CNN architecture
   cnn:
     filters: [32]              # Single convolutional layer
-    kernel_sizes: [3]          
+    kernel_sizes: [3]
     strides: [1]
-    paddings: ["same"] 
+    paddings: ["same"]
     pool_sizes: [2]
     pool_strides: [2]
     dense_units: [128]         # Single dense layer before output
     dropout_rate: 0.5
     activation: "relu"
-    
+
   # MLP architecture
   mlp:
     hidden_layers: [512, 256, 128]
     activation: "relu"
     dropout_rate: 0.2
-    
+
   # XGBoost architecture
   xgboost:
     n_estimators: 100
@@ -119,7 +119,7 @@ model:
     subsample: 0.8
     colsample_bytree: 0.8
     eval_metric: "mlogloss"
-    
+
   # Random Forest architecture
   random_forest:
     n_estimators: 100
@@ -127,7 +127,7 @@ model:
     min_samples_split: 2
     min_samples_leaf: 1
     max_features: "sqrt"
-    
+
   # Logistic Regression architecture
   logistic:
     max_iter: 1000
@@ -147,13 +147,13 @@ preprocessing:
     remove_lnc_genes: false          # Remove long non-coding genes
     remove_unaccounted_genes: false  # Remove genes not classified in any category
     highly_variable_genes: false     # Filter for highly variable genes across cells
-    
+
   # Gene count balancing - experimental controls for bias testing
   balancing:
     balance_genes: false             # Balance gene counts between categories (e.g., equal autosomal vs sex genes)
     balance_lnc_genes: false         # Balance long non-coding RNA gene counts with other gene types
-    
-  # Gene randomization - control studies to test model robustness  
+
+  # Gene randomization - control studies to test model robustness
   shuffling:
     shuffle_genes: false             # Randomly shuffle gene expression values to test if model learns meaningful patterns vs noise
 
@@ -166,17 +166,17 @@ data_processing:
     enabled: false
 
 # =============================================================================
-# ANALYSIS CONFIGURATION  
+# ANALYSIS CONFIGURATION
 # =============================================================================
 analysis:
   # Exploratory data analysis
   eda:
     enabled: false
-    
+
   # Run project-specific analysis scripts
   run_analysis_script:
     enabled: false  # Set to true to run project-specific analysis after training
-    
+
 # Feature importance analysis
 interpretation:
   shap:
@@ -197,7 +197,7 @@ storage:
     keep_days: 30                # Keep experiments from last N days
     keep_best: true              # Always keep experiments linked in best/
     auto_cleanup: true           # Run cleanup after each experiment
-    
+
   model_saving:
     save_model_only_if_best: true    # Only save model.h5 if validation improves
     compress_predictions: false      # Compress large CSV files (future feature)
@@ -221,26 +221,26 @@ batch_correction:
     n_hidden: 256             # Hidden layer size
     n_layers: 2               # Number of layers
     dropout_rate: 0.15        # Dropout rate
-    
+
   # Training parameters
   training:
     max_epochs: null          # null = early stopping
     weight_decay: 1e-4        # Weight decay for regularization
     plan_kwargs:
       weight_decay: 1e-4
-      
+
   # Data processing
   preprocessing:
     batch_column: "dataset"              # Column containing batch information
     label_column: "afca_annotation_broad" # Cell type annotation column
     library_size: 1e4                    # Target library size for normalization
-    
+
   # Output settings
   output:
     scvi_latent_key: "X_scVI"            # Key for latent representations
     scvi_normalized_key: "scvi_normalized" # Key for normalized data
     save_intermediate: true               # Save intermediate results
-    
+
   # Evaluation settings
   evaluation:
     run_metrics: false        # Set to true to automatically run evaluation metrics
@@ -258,11 +258,11 @@ pytorch:
   seed: 42                              # Random seed for reproducibility
 
 # =============================================================================
-# SETUP CONFIGURATION  
+# SETUP CONFIGURATION
 # =============================================================================
 setup:
   train_test_split:
     split_size: 5000          # Number of cells in evaluation set
   sampling:
-    num_samples: null         # null = use all samples, or specify number  
+    num_samples: null         # null = use all samples, or specify number
     num_variables: null       # null = use all genes, or specify number

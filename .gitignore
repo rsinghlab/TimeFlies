@@ -2,7 +2,7 @@
 *.h5ad
 *.npy
 
-# 3-Tier Test Data Strategy  
+# 3-Tier Test Data Strategy
 !tests/fixtures/*/tiny_*.h5ad          # Tier 1: Committed tiny fixtures
 !tests/fixtures/*/tiny_*_metadata.json # Metadata for generation
 tests/fixtures/*/synthetic_*.h5ad      # Tier 2: Generated on demand
@@ -18,7 +18,7 @@ __pycache__/
 *.pyc
 *.egg-info/
 
-# Build artifacts  
+# Build artifacts
 build/
 dist/
 

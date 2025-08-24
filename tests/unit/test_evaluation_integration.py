@@ -25,7 +25,7 @@ class TestInterpreter:
         """Test Interpreter initialization."""
         config = MagicMock()
         config.interpretation.method = "shap"
-        
+
         # Create mock arguments for all required parameters
         mock_model = MagicMock()
         test_data = np.random.rand(10, 5)
@@ -35,8 +35,13 @@ class TestInterpreter:
         path_manager = MagicMock()
 
         interpreter = Interpreter(
-            config, mock_model, test_data, test_labels, 
-            label_encoder, reference_data, path_manager
+            config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
         assert interpreter.config == config
 
@@ -55,12 +60,17 @@ class TestInterpreter:
         path_manager = MagicMock()
 
         interpreter = Interpreter(
-            config, mock_model, test_data, test_labels, 
-            label_encoder, reference_data, path_manager
+            config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
 
         # Test that interpreter can be used with mock data
-        X_test = np.random.rand(5, 100)
+        _ = np.random.rand(5, 100)
 
         # Mock the SHAP computation process
         with patch.object(interpreter, "compute_or_load_shap_values") as mock_compute:
@@ -83,7 +93,7 @@ class TestAgingMetrics:
     def test_calculate_basic_metrics(self):
         """Test basic metrics calculation."""
         config = MagicMock()
-        
+
         # Create mock model and data for AgingMetrics
         mock_model = MagicMock()
         test_data = np.random.rand(10, 5)
@@ -95,17 +105,26 @@ class TestAgingMetrics:
         # Mock path_manager methods to return string paths instead of mock objects
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Mock model predictions - one-hot encoded predictions for 10 samples, 3 classes
-        predictions = np.array([
-            [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0], 
-            [0, 0, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 0, 0]
-        ])
+        predictions = np.array(
+            [
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0],
+            ]
+        )
         mock_model.predict.return_value = predictions
-        
+
         metrics = AgingMetrics(
-            config, mock_model, test_data, test_labels, 
-            label_encoder, path_manager
+            config, mock_model, test_data, test_labels, label_encoder, path_manager
         )
 
         # Test that metrics can compute performance (method doesn't return anything)
@@ -118,7 +137,7 @@ class TestAgingMetrics:
     def test_aging_specific_metrics(self):
         """Test aging-specific metrics."""
         config = MagicMock()
-        
+
         # Create mock model and data for AgingMetrics
         mock_model = MagicMock()
         test_data = np.random.rand(10, 5)
@@ -128,18 +147,17 @@ class TestAgingMetrics:
         # Mock path_manager methods to return string paths instead of mock objects
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         metrics = AgingMetrics(
-            config, mock_model, test_data, test_labels, 
-            label_encoder, path_manager
+            config, mock_model, test_data, test_labels, label_encoder, path_manager
         )
 
         # Test aging-specific functionality - calculate_aging_score exists
-        mock_trajectory = {"age_progression": np.array([1, 2, 3, 2, 3, 4])}
-        
+        _ = {"age_progression": np.array([1, 2, 3, 2, 3, 4])}
+
         # Just test that the method exists and can be called
-        assert hasattr(metrics, 'calculate_aging_score')
-        assert hasattr(metrics, 'evaluate_age_prediction')
+        assert hasattr(metrics, "calculate_aging_score")
+        assert hasattr(metrics, "evaluate_age_prediction")
 
 
 # Additional tests can be added here for other evaluation components

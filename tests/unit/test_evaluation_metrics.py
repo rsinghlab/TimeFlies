@@ -29,33 +29,7 @@ class TestSHAPInterpreter:
         assert isinstance(aging_config.interpretation.shap.reference_size, int)
         assert aging_config.interpretation.shap.reference_size > 0
 
-    @pytest.mark.skip(
-        reason="Interpreter requires actual model and data - test in integration suite"
-    )
-    def test_shap_interpreter_initialization(self, aging_config):
-        """Test SHAP interpreter initialization."""
-        pass
-
-    @pytest.mark.skip(
-        reason="Explainer creation requires actual model - test in integration suite"
-    )
-    def test_shap_explainer_creation(self, aging_config):
-        """Test SHAP explainer creation."""
-        pass
-
-    @pytest.mark.skip(
-        reason="SHAP value calculation requires actual model - test in integration suite"
-    )
-    def test_shap_value_calculation(self, aging_config):
-        """Test SHAP value calculation."""
-        pass
-
-    @pytest.mark.skip(
-        reason="File operations require initialized interpreter - test in integration suite"
-    )
-    def test_shap_file_operations(self, aging_config, temp_dir):
-        """Test SHAP file save/load operations."""
-        pass
+    # Note: SHAP interpreter integration tests moved to tests/integration/test_evaluation_workflows.py
 
 
 @pytest.mark.unit
@@ -68,33 +42,7 @@ class TestMetricsCalculator:
         assert calculator.config == aging_config
         assert hasattr(calculator, "config")
 
-    @pytest.mark.skip(
-        reason="Classification metrics methods not implemented in AgingMetrics - test in integration suite"
-    )
-    def test_classification_metrics(self, aging_config):
-        """Test classification metrics calculation."""
-        pass
-
-    @pytest.mark.skip(
-        reason="Regression metrics methods not implemented in AgingMetrics - test in integration suite"
-    )
-    def test_regression_metrics(self, aging_config):
-        """Test regression metrics calculation."""
-        pass
-
-    @pytest.mark.skip(
-        reason="Confusion matrix methods not implemented in AgingMetrics - test in integration suite"
-    )
-    def test_confusion_matrix_generation(self, aging_config):
-        """Test confusion matrix generation."""
-        pass
-
-    @pytest.mark.skip(
-        reason="ROC curve methods not implemented in AgingMetrics - test in integration suite"
-    )
-    def test_roc_curve_generation(self, aging_config):
-        """Test ROC curve generation."""
-        pass
+    # Note: Metrics calculator integration tests moved to tests/integration/test_evaluation_workflows.py
 
 
 @pytest.mark.unit

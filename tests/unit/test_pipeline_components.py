@@ -24,10 +24,10 @@ class TestPathManager:
     def test_path_manager_initialization(self, mock_path_manager, aging_config):
         """Test PathManager initialization."""
         from common.utils.path_manager import PathManager
-        
+
         mock_instance = Mock()
         mock_path_manager.return_value = mock_instance
-        
+
         path_manager = PathManager(aging_config)
         assert path_manager is not None
         mock_path_manager.assert_called_once_with(aging_config)
@@ -36,11 +36,11 @@ class TestPathManager:
     def test_get_tissue_directory(self, mock_path_manager, aging_config):
         """Test tissue directory generation."""
         from common.utils.path_manager import PathManager
-        
+
         mock_instance = Mock()
         mock_instance.get_tissue_directory.return_value = "/test/head"
         mock_path_manager.return_value = mock_instance
-        
+
         path_manager = PathManager(aging_config)
         tissue_dir = path_manager.get_tissue_directory()
         assert "head" in str(tissue_dir)
@@ -49,11 +49,11 @@ class TestPathManager:
     def test_get_file_path_train(self, mock_path_manager, aging_config):
         """Test training file path generation."""
         from common.utils.path_manager import PathManager
-        
+
         mock_instance = Mock()
         mock_instance.get_file_path.return_value = "/test/train.h5ad"
         mock_path_manager.return_value = mock_instance
-        
+
         path_manager = PathManager(aging_config)
         train_path = path_manager.get_file_path("train")
         assert "train" in train_path
@@ -63,11 +63,11 @@ class TestPathManager:
     def test_get_file_path_eval(self, mock_path_manager, aging_config):
         """Test evaluation file path generation."""
         from common.utils.path_manager import PathManager
-        
+
         mock_instance = Mock()
         mock_instance.get_file_path.return_value = "/test/eval.h5ad"
         mock_path_manager.return_value = mock_instance
-        
+
         path_manager = PathManager(aging_config)
         eval_path = path_manager.get_file_path("eval")
         assert "eval" in eval_path
@@ -77,11 +77,11 @@ class TestPathManager:
     def test_get_file_path_original(self, mock_path_manager, aging_config):
         """Test original file path generation."""
         from common.utils.path_manager import PathManager
-        
+
         mock_instance = Mock()
         mock_instance.get_file_path.return_value = "/test/original.h5ad"
         mock_path_manager.return_value = mock_instance
-        
+
         path_manager = PathManager(aging_config)
         original_path = path_manager.get_file_path("original")
         assert "original" in original_path
@@ -101,7 +101,7 @@ class TestGPUHandler:
 
             # GPUHandler.configure is a static method
             GPUHandler.configure(aging_config)
-            
+
             # Should complete without error
             assert True
 
@@ -115,7 +115,7 @@ class TestGPUHandler:
 
                 # GPUHandler.configure is a static method
                 GPUHandler.configure(aging_config)
-                
+
                 # Should complete without error
                 assert True
 
@@ -125,7 +125,7 @@ class TestGPUHandler:
 
         # GPUHandler.configure is a static method
         GPUHandler.configure(aging_config)
-        
+
         # Should handle Apple Silicon without error
         assert True
 
@@ -137,9 +137,10 @@ class TestGPUHandler:
             # GPUHandler doesn't have detect_gpus method - test configure instead
             # This tests the GPU detection logic inside configure
             from unittest.mock import MagicMock
+
             mock_config = MagicMock()
             mock_config.hardware.processor = "GPU"
-            
+
             GPUHandler.configure(mock_config)
             mock_tf.assert_called_with("GPU")
 
@@ -150,7 +151,7 @@ class TestGPUHandler:
 
             # The method is just 'configure', not 'configure_gpu'
             GPUHandler.configure(aging_config)
-            
+
             # Should complete without error
             assert True
 
@@ -177,7 +178,9 @@ class TestDataLoaderFunctionality:
         """Test DataLoader load_data method."""
         with patch("common.data.loaders.PathManager") as mock_path_manager:
             mock_path_manager.return_value.get_file_path.side_effect = [
-                "train.h5ad", "eval.h5ad", "original.h5ad"
+                "train.h5ad",
+                "eval.h5ad",
+                "original.h5ad",
             ]
             mock_read.return_value = small_sample_anndata
 
@@ -208,12 +211,15 @@ class TestDataLoaderFunctionality:
                 # May fail due to file paths, but should not be import errors
                 assert "file" in str(e).lower() or "path" in str(e).lower()
 
-    @patch("scanpy.read_h5ad") 
-    def test_load_corrected_data_method(self, mock_read, aging_config, small_sample_anndata):
+    @patch("scanpy.read_h5ad")
+    def test_load_corrected_data_method(
+        self, mock_read, aging_config, small_sample_anndata
+    ):
         """Test DataLoader load_corrected_data method."""
         with patch("common.data.loaders.PathManager") as mock_path_manager:
             mock_path_manager.return_value.get_file_path.side_effect = [
-                "train_batch.h5ad", "eval_batch.h5ad"
+                "train_batch.h5ad",
+                "eval_batch.h5ad",
             ]
             mock_read.return_value = small_sample_anndata
 
@@ -241,12 +247,14 @@ class TestPipelineManagerCore:
 
     def test_setup_gpu_functionality(self, aging_config):
         """Test GPU setup functionality."""
-        with patch("common.core.pipeline_manager.GPUHandler.configure") as mock_configure:
+        with patch(
+            "common.core.pipeline_manager.GPUHandler.configure"
+        ) as mock_configure:
             with patch("common.core.pipeline_manager.PathManager"):
                 pipeline = PipelineManager(aging_config)
                 # setup_gpu doesn't return a value, but should not raise an exception
                 pipeline.setup_gpu()
-                
+
                 # Should call the GPU configuration method
                 mock_configure.assert_called_once_with(aging_config)
 
@@ -262,8 +270,8 @@ class TestPipelineManagerCore:
                         small_sample_anndata.copy(),
                     )
                     mock_loader_instance.load_gene_lists.return_value = (
-                        ["gene1", "gene2"], 
-                        ["geneX", "geneY"]
+                        ["gene1", "gene2"],
+                        ["geneX", "geneY"],
                     )
                     mock_loader.return_value = mock_loader_instance
 
@@ -279,20 +287,24 @@ class TestPipelineManagerCore:
         with patch("common.core.pipeline_manager.GPUHandler"):
             with patch("common.core.pipeline_manager.PathManager"):
                 with patch("common.core.pipeline_manager.DataLoader") as mock_loader:
-                    with patch("common.core.pipeline_manager.GeneFilter") as mock_filter:
+                    with patch(
+                        "common.core.pipeline_manager.GeneFilter"
+                    ) as mock_filter:
                         # Set up data loader to return test data
                         mock_loader_instance = Mock()
                         mock_loader_instance.load_data.return_value = (
-                            small_sample_anndata, small_sample_anndata.copy(), small_sample_anndata.copy()
+                            small_sample_anndata,
+                            small_sample_anndata.copy(),
+                            small_sample_anndata.copy(),
                         )
                         mock_loader_instance.load_gene_lists.return_value = ([], [])
                         mock_loader.return_value = mock_loader_instance
-                        
+
                         mock_filter_instance = Mock()
                         mock_filter_instance.apply_filter.return_value = (
-                            small_sample_anndata, 
-                            small_sample_anndata.copy(), 
-                            small_sample_anndata.copy()
+                            small_sample_anndata,
+                            small_sample_anndata.copy(),
+                            small_sample_anndata.copy(),
                         )
                         mock_filter.return_value = mock_filter_instance
 
@@ -311,10 +323,12 @@ class TestPipelineManagerCore:
         with patch("common.core.pipeline_manager.GPUHandler"):
             with patch("common.core.pipeline_manager.PathManager"):
                 with patch("common.core.pipeline_manager.DataLoader") as mock_loader:
-                    # Set up data loader 
+                    # Set up data loader
                     mock_loader_instance = Mock()
                     mock_loader_instance.load_data.return_value = (
-                        small_sample_anndata, small_sample_anndata.copy(), small_sample_anndata.copy()
+                        small_sample_anndata,
+                        small_sample_anndata.copy(),
+                        small_sample_anndata.copy(),
                     )
                     mock_loader_instance.load_gene_lists.return_value = ([], [])
                     mock_loader.return_value = mock_loader_instance
@@ -323,8 +337,8 @@ class TestPipelineManagerCore:
                     # Load data first
                     pipeline.load_data()
                     # Now test preprocessing method exists
-                    assert hasattr(pipeline, 'preprocess_data')
-                    
+                    assert hasattr(pipeline, "preprocess_data")
+
                     # Test the actual method
                     result = pipeline.preprocess_data()
                     # Method should complete (may return None)
@@ -337,13 +351,13 @@ class TestPipelineManagerCore:
                 pipeline = PipelineManager(aging_config)
 
                 # Test that pipeline has required attributes
-                assert hasattr(pipeline, 'config_instance')
-                assert hasattr(pipeline, 'path_manager')
-                assert hasattr(pipeline, 'data_loader')
-                assert hasattr(pipeline, 'storage_manager')
-                assert hasattr(pipeline, 'experiment_name')
-                assert hasattr(pipeline, 'config_key')
-                
+                assert hasattr(pipeline, "config_instance")
+                assert hasattr(pipeline, "path_manager")
+                assert hasattr(pipeline, "data_loader")
+                assert hasattr(pipeline, "storage_manager")
+                assert hasattr(pipeline, "experiment_name")
+                assert hasattr(pipeline, "config_key")
+
                 # Verify the attributes are properly set
                 assert pipeline.config_instance == aging_config
 
@@ -354,7 +368,7 @@ class TestUtilityFunctions:
 
     def test_exceptions_hierarchy(self):
         """Test custom exception hierarchy."""
-        from common.utils.exceptions import ConfigurationError, DataError
+        from common.utils.exceptions import ConfigurationError
 
         # Test that they inherit from Exception
         assert issubclass(ModelError, Exception)

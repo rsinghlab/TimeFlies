@@ -25,16 +25,21 @@ class TestSHAPInterpreterIntegration:
         label_encoder = MagicMock()
         reference_data = np.random.rand(5, 5)
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods to prevent directory creation
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
 
         interpreter = Interpreter(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, reference_data, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
-        
+
         assert interpreter.config == aging_config
         assert interpreter.model == mock_model
         assert np.array_equal(interpreter.test_data, test_data)
@@ -50,22 +55,31 @@ class TestSHAPInterpreterIntegration:
         label_encoder = MagicMock()
         reference_data = np.random.rand(5, 5)
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
 
         interpreter = Interpreter(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, reference_data, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
-        
+
         # Test that compute_shap_values method exists and can be called
-        with patch("shap.Explainer") as mock_explainer:
+        with patch("shap.GradientExplainer") as mock_explainer:
             with patch("os.makedirs"):
                 with patch("builtins.open", create=True):
-                    mock_explainer.return_value.return_value = np.random.rand(10, 5)
-                    
+                    mock_explainer_instance = MagicMock()
+                    mock_explainer_instance.shap_values.return_value = np.random.rand(
+                        10, 5
+                    )
+                    mock_explainer.return_value = mock_explainer_instance
+
                     # This should not crash
                     result = interpreter.compute_shap_values()
                     assert result is not None
@@ -79,22 +93,27 @@ class TestSHAPInterpreterIntegration:
         label_encoder = MagicMock()
         reference_data = np.random.rand(3, 5)  # Reference data for SHAP
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
 
         interpreter = Interpreter(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, reference_data, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
-        
+
         # Mock SHAP computation with realistic values
         expected_shap_values = np.random.rand(10, 5)
-        
+
         with patch.object(interpreter, "compute_shap_values") as mock_compute:
             mock_compute.return_value = expected_shap_values
-            
+
             result = interpreter.compute_shap_values()
             assert result is not None
             assert result.shape == expected_shap_values.shape
@@ -109,19 +128,24 @@ class TestSHAPInterpreterIntegration:
         label_encoder = MagicMock()
         reference_data = np.random.rand(3, 5)
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
 
         interpreter = Interpreter(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, reference_data, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
-        
+
         # Test save operations with mocked file operations
         test_shap_values = np.random.rand(10, 5)
-        
+
         with patch("os.makedirs"):
             with patch("numpy.save") as mock_save:
                 with patch("builtins.open", create=True):
@@ -143,26 +167,30 @@ class TestMetricsCalculatorIntegration:
         label_encoder = MagicMock()
         label_encoder.inverse_transform = lambda x: x
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Create realistic one-hot encoded predictions
         predictions = np.eye(3)[np.random.choice(3, 20)]  # 20x3 one-hot
         mock_model.predict.return_value = predictions
 
         calculator = AgingMetrics(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            path_manager,
         )
-        
+
         # Test compute_metrics with proper mocking
         with patch("os.makedirs"):
             with patch("builtins.open", create=True):
                 with patch("pandas.DataFrame.to_csv"):
                     calculator.compute_metrics()
-                    
+
                     # Verify model was called
                     mock_model.predict.assert_called_once_with(test_data)
 
@@ -174,25 +202,29 @@ class TestMetricsCalculatorIntegration:
         test_labels = np.random.rand(20)  # Continuous values for regression
         label_encoder = None  # No encoder for regression
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Mock continuous predictions
         mock_model.predict.return_value = np.random.rand(20)
 
         calculator = AgingMetrics(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            path_manager,
         )
-        
+
         # Test age prediction evaluation (which handles regression metrics)
         true_ages = test_labels
         pred_ages = np.random.rand(20)
-        
+
         metrics = calculator.evaluate_age_prediction(true_ages, pred_ages)
-        
+
         # Verify regression metrics are calculated
         assert "mae" in metrics
         assert "rmse" in metrics
@@ -208,26 +240,30 @@ class TestMetricsCalculatorIntegration:
         label_encoder = MagicMock()
         label_encoder.inverse_transform = lambda x: x
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Create predictions with some correct and some incorrect
         predictions = np.eye(3)[np.array([0, 1, 2, 1, 1, 2, 0, 0, 2] * 3 + [0, 1, 2])]
         mock_model.predict.return_value = predictions
 
         calculator = AgingMetrics(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            path_manager,
         )
-        
+
         # Test that metrics computation includes confusion matrix data
         with patch("os.makedirs"):
             with patch("builtins.open", create=True):
                 with patch("pandas.DataFrame.to_csv"):
                     calculator.compute_metrics()
-                    
+
                     # Verify the basic metrics computation workflow
                     mock_model.predict.assert_called_once_with(test_data)
 
@@ -240,11 +276,11 @@ class TestMetricsCalculatorIntegration:
         label_encoder = MagicMock()
         label_encoder.inverse_transform = lambda x: x
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Create binary predictions with probabilities
         predictions = np.random.rand(20, 2)  # 20x2 for binary classification
         # Normalize to make valid probabilities
@@ -252,25 +288,29 @@ class TestMetricsCalculatorIntegration:
         mock_model.predict.return_value = predictions
 
         calculator = AgingMetrics(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            path_manager,
         )
-        
+
         # Test ROC curve data generation
         with patch("os.makedirs"):
             with patch("builtins.open", create=True):
                 with patch("pandas.DataFrame.to_csv"):
                     calculator.compute_metrics()
-                    
+
                     # For binary classification, ROC curves could be generated
                     # This tests the workflow without crashing
                     mock_model.predict.assert_called_once_with(test_data)
 
 
-@pytest.mark.integration 
+@pytest.mark.integration
 class TestEvaluationWorkflowIntegration:
     """Test complete evaluation workflows."""
-    
+
     def test_complete_evaluation_pipeline(self, aging_config):
         """Test a complete evaluation pipeline from model to metrics."""
         # Create a complete test setup
@@ -281,11 +321,11 @@ class TestEvaluationWorkflowIntegration:
         label_encoder.inverse_transform = lambda x: x
         reference_data = np.random.rand(10, 20)
         path_manager = MagicMock()
-        
+
         # Mock path_manager methods
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
-        
+
         # Create realistic predictions
         predictions = np.random.rand(50, 3)
         predictions = predictions / predictions.sum(axis=1, keepdims=True)  # Normalize
@@ -293,16 +333,25 @@ class TestEvaluationWorkflowIntegration:
 
         # Test metrics calculation
         calculator = AgingMetrics(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            path_manager,
         )
-        
-        # Test interpreter initialization  
+
+        # Test interpreter initialization
         interpreter = Interpreter(
-            aging_config, mock_model, test_data, test_labels,
-            label_encoder, reference_data, path_manager
+            aging_config,
+            mock_model,
+            test_data,
+            test_labels,
+            label_encoder,
+            reference_data,
+            path_manager,
         )
-        
+
         # Run both evaluation components with proper mocking
         with patch("os.makedirs"):
             with patch("builtins.open", create=True):
@@ -310,13 +359,15 @@ class TestEvaluationWorkflowIntegration:
                     with patch("numpy.save"):
                         # Test metrics computation
                         calculator.compute_metrics()
-                        
+
                         # Test SHAP computation
-                        with patch.object(interpreter, "compute_shap_values") as mock_shap:
+                        with patch.object(
+                            interpreter, "compute_shap_values"
+                        ) as mock_shap:
                             mock_shap.return_value = np.random.rand(50, 20)
                             result = interpreter.compute_or_load_shap_values()
                             assert result is not None
-        
+
         # Verify both components were properly initialized
         assert calculator.model == mock_model
         assert interpreter.model == mock_model

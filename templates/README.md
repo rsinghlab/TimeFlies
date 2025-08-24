@@ -37,7 +37,7 @@ All templates must include a `run_analysis` function:
 def run_analysis(model, config, path_manager, pipeline):
     """
     Required function that TimeFlies will call.
-    
+
     Args:
         model: Trained model instance (may be None)
         config: Full configuration object
@@ -149,21 +149,21 @@ def run_analysis(model, config, path_manager, pipeline):
     experiment_dir = path_manager.get_experiment_dir()
     analysis_dir = Path(experiment_dir) / "my_analysis"
     analysis_dir.mkdir(exist_ok=True)
-    
+
     # 2. Load data
     predictions_file = Path(experiment_dir) / "evaluation" / "predictions.csv"
     predictions_df = pd.read_csv(predictions_file)
-    
+
     # 3. Run analysis
     results = my_custom_analysis(predictions_df)
-    
+
     # 4. Save results
     with open(analysis_dir / "results.json", 'w') as f:
         json.dump(results, f, indent=2)
-    
+
     # 5. Create plots
     create_custom_plots(results, analysis_dir)
-    
+
     print("✅ Custom analysis completed!")
 ```
 

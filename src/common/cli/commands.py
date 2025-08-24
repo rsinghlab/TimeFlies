@@ -1853,7 +1853,9 @@ def setup_dev_environments() -> int:
 
         subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
         # Install TimeFlies with batch-correction and dev extras
-        subprocess.run([batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True)
+        subprocess.run(
+            [batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True
+        )
         print("✅ Batch dependencies installed")
 
         # Create activation scripts
