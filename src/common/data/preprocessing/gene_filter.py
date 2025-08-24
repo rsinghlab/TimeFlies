@@ -1,6 +1,6 @@
 """Gene filtering utilities for preprocessing genomic data."""
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 from anndata import AnnData

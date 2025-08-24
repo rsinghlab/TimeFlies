@@ -100,7 +100,7 @@ class ConfigManager:
                 from .active_config import get_active_project
 
                 self.project_name = get_active_project()
-            except:
+            except (ImportError, Exception):
                 # Fallback to aging project if detection fails
                 self.project_name = "fruitfly_aging"
         # Note: User configs (config.yaml) are created during 'timeflies setup' command

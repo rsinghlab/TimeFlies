@@ -5,6 +5,7 @@ This module contains all command-line interface commands for TimeFlies.
 Each command is implemented as a separate function with proper error handling.
 """
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -50,7 +51,6 @@ def run_system_tests(args) -> int:
     print("🧪 Running TimeFlies Test Suite...")
     print("=" * 50)
 
-    import subprocess
     import sys
     from pathlib import Path
 
@@ -1789,7 +1789,6 @@ def generate_data_stats(adata, project, tissue, batch_corrected=False, tier=None
 def setup_dev_environments() -> int:
     """Set up complete development environments with all dependencies."""
     import os
-    import subprocess
     import sys
     from pathlib import Path
 
@@ -1810,7 +1809,7 @@ def setup_dev_environments() -> int:
                     python_cmd = cmd
                     print(f"✅ Found Python {version}")
                     break
-            except:
+            except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 continue
 
         if not python_cmd:
@@ -2101,14 +2100,12 @@ echo "  source .activate.sh"
         f.write(batch_script)
 
     # Make executable
-    import subprocess
 
     subprocess.run(["chmod", "+x", ".activate.sh", ".activate_batch.sh"], check=True)
 
 
 def update_command(args) -> int:
     """Update TimeFlies to the latest version from GitHub."""
-    import subprocess
     import sys
     from pathlib import Path
 

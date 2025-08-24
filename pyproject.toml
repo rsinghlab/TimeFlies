@@ -113,7 +113,7 @@ known_first_party = ["common"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py312"
 exclude = [
     ".venv",
     "__pycache__", 
@@ -134,6 +134,8 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "F401",  # imported but unused (common in __init__.py)
+    "N803",  # argument name should be lowercase (ML convention: X, y)
+    "N806",  # variable in function should be lowercase (ML convention: X_train, X_test, adata.X)
 ]
 
 [tool.mypy]
