@@ -218,8 +218,14 @@ timeflies create-test-data --tier synthetic --batch-versions # Generate on-deman
 TimeFlies/
 ├── configs/              # YAML configuration files
 ├── src/                  # Source code
-│   ├── common/          # Shared framework components
-│   └── projects/        # Project-specific implementations
+│   └── common/          # Framework components
+│       ├── analysis/    # EDA and visualization tools
+│       ├── cli/         # Command-line interface
+│       ├── core/        # Pipeline and configuration management
+│       ├── data/        # Data loading and preprocessing
+│       ├── evaluation/  # Model evaluation and metrics
+│       ├── models/      # ML model implementations
+│       └── utils/       # Utilities and helpers
 ├── tests/               # Test suite with 3-tier test data
 │   ├── fixtures/        # Test data (tiny/synthetic/real)
 │   └── outputs/         # Test outputs (temporary)
