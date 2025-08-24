@@ -19,6 +19,7 @@ def main_cli():
     success = execute_command(args)
     return 0 if success else 1
 
+
 def main():
     """Main entry point for timeflies command."""
     # For installed packages, no path manipulation needed
@@ -33,6 +34,7 @@ def main():
 
     exit_code = main_cli()
     sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()

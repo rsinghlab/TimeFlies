@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Simple CLI wrapper for TimeFlies that works with setuptools."""
 
+
 def main():
     """Entry point that works with installed packages."""
     try:
@@ -21,6 +22,7 @@ def main():
         print(f"Error importing TimeFlies modules: {e}")
         print("Make sure TimeFlies is properly installed.")
         exit(1)
+
 
 if __name__ == "__main__":
     main()

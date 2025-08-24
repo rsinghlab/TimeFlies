@@ -82,7 +82,9 @@ class Config:
 class ConfigManager:
     """Fruit Fly Aging project-specific configuration manager."""
 
-    def __init__(self, config_path: str | None = None, project_override: str | None = None):
+    def __init__(
+        self, config_path: str | None = None, project_override: str | None = None
+    ):
         """
         Initialize configuration manager for aging project.
 
@@ -96,6 +98,7 @@ class ConfigManager:
             # Auto-detect active project from config system
             try:
                 from .active_config import get_active_project
+
                 self.project_name = get_active_project()
             except:
                 # Fallback to aging project if detection fails
@@ -224,7 +227,7 @@ class ConfigManager:
         import os
 
         # Skip config creation during tests or CI
-        if os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('CI'):
+        if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"):
             return
 
         # Check if user already has config.yaml in current directory
@@ -237,37 +240,53 @@ class ConfigManager:
         if not project_config.exists():
             # Find source config from package/development
             source_configs = [
-                Path(__file__).parent.parent.parent / "configs" / "default.yaml",  # dev path
-                Path(__file__).parent / "configs" / "default.yaml",  # potential package path
+                Path(__file__).parent.parent.parent
+                / "configs"
+                / "default.yaml",  # dev path
+                Path(__file__).parent
+                / "configs"
+                / "default.yaml",  # potential package path
             ]
 
             for source_config in source_configs:
                 if source_config.exists():
                     shutil.copy2(source_config, project_config)
                     print("✅ Created config.yaml from TimeFlies defaults")
-                    print("📝 You can now edit ./config.yaml to customize your project settings")
+                    print(
+                        "📝 You can now edit ./config.yaml to customize your project settings"
+                    )
                     return  # Success - exit method
 
             # If no source config found, create from current repo's config
             try:
                 import subprocess
-                result = subprocess.run(['find', '/home/nikolaitennant/projects/TimeFlies', '-name', 'default.yaml', '-path', '*/configs/*'],
-                                      capture_output=True, text=True)
+
+                result = subprocess.run(
+                    [
+                        "find",
+                        "/home/nikolaitennant/projects/TimeFlies",
+                        "-name",
+                        "default.yaml",
+                        "-path",
+                        "*/configs/*",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
                 if result.returncode == 0 and result.stdout.strip():
-                    source_path = result.stdout.strip().split('\n')[0]
+                    source_path = result.stdout.strip().split("\n")[0]
                     shutil.copy2(source_path, project_config)
                     print(f"✅ Created config.yaml from {source_path}")
-                    print("📝 You can now edit ./config.yaml to customize your project settings")
+                    print(
+                        "📝 You can now edit ./config.yaml to customize your project settings"
+                    )
                     return
             except:
                 pass
                 # Create minimal default config if no source found
                 minimal_config = {
                     "project": "fruitfly_alzheimers",
-                    "general": {
-                        "random_seed": 42,
-                        "log_level": "INFO"
-                    },
+                    "general": {"random_seed": 42, "log_level": "INFO"},
                     "data": {
                         "tissue": "head",
                         "model": "cnn",
@@ -278,22 +297,19 @@ class ConfigManager:
                             "method": "column",
                             "column": "genotype",
                             "train": ["control"],
-                            "test": ["ab42", "htau"]
-                        }
+                            "test": ["ab42", "htau"],
+                        },
                     },
                     "model": {
-                        "cnn": {
-                            "filters": 32,
-                            "kernel_size": 48
-                        },
+                        "cnn": {"filters": 32, "kernel_size": 48},
                         "training": {
                             "epochs": 100,
                             "batch_size": 32,
-                            "validation_split": 0.2
-                        }
-                    }
+                            "validation_split": 0.2,
+                        },
+                    },
                 }
-                with open(default_config, 'w') as f:
+                with open(default_config, "w") as f:
                     yaml.dump(minimal_config, f, default_flow_style=False)
                 logger.info(f"Created minimal config at {default_config}")
 

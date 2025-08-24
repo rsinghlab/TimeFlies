@@ -632,7 +632,6 @@ class Metrics:
         """
         # Convert predictions and true labels to class indices if not already done
         if getattr(self.config.interpretation.shap, "save_predictions", False):
-
             if not hasattr(self, "y_pred_class"):
                 self.y_pred_class = np.argmax(self.y_pred, axis=1)
                 self.y_true_class = np.argmax(self.test_labels, axis=1)

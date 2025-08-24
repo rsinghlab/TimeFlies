@@ -29,17 +29,17 @@ class TestModelFactory:
         """Test getting supported model types."""
         supported = ModelFactory.get_supported_models()
         assert isinstance(supported, list)
-        assert 'cnn' in supported
-        assert 'mlp' in supported
-        assert 'logistic' in supported
-        assert 'xgboost' in supported
-        assert 'random_forest' in supported
+        assert "cnn" in supported
+        assert "mlp" in supported
+        assert "logistic" in supported
+        assert "xgboost" in supported
+        assert "random_forest" in supported
 
     def test_create_cnn_model(self):
         """Test creating CNN model."""
         config = Mock()
 
-        model = ModelFactory.create_model('cnn', config)
+        model = ModelFactory.create_model("cnn", config)
         assert isinstance(model, CNNModel)
         assert model.config == config
 
@@ -47,7 +47,7 @@ class TestModelFactory:
         """Test creating MLP model."""
         config = Mock()
 
-        model = ModelFactory.create_model('mlp', config)
+        model = ModelFactory.create_model("mlp", config)
         assert isinstance(model, MLPModel)
         assert model.config == config
 
@@ -55,7 +55,7 @@ class TestModelFactory:
         """Test creating logistic regression model."""
         config = Mock()
 
-        model = ModelFactory.create_model('logistic', config)
+        model = ModelFactory.create_model("logistic", config)
         assert isinstance(model, LogisticRegressionModel)
         assert model.config == config
 
@@ -63,7 +63,7 @@ class TestModelFactory:
         """Test creating XGBoost model."""
         config = Mock()
 
-        model = ModelFactory.create_model('xgboost', config)
+        model = ModelFactory.create_model("xgboost", config)
         assert isinstance(model, XGBoostModel)
         assert model.config == config
 
@@ -71,7 +71,7 @@ class TestModelFactory:
         """Test creating Random Forest model."""
         config = Mock()
 
-        model = ModelFactory.create_model('random_forest', config)
+        model = ModelFactory.create_model("random_forest", config)
         assert isinstance(model, RandomForestModel)
         assert model.config == config
 
@@ -80,7 +80,7 @@ class TestModelFactory:
         config = Mock()
 
         with pytest.raises(ModelError):
-            ModelFactory.create_model('unsupported_model', config)
+            ModelFactory.create_model("unsupported_model", config)
 
 
 class TestCNNModel:
@@ -93,15 +93,15 @@ class TestCNNModel:
         config.model.cnn.filters = [32, 64]
         config.model.cnn.kernel_sizes = [3, 3]
         config.model.cnn.strides = [1, 1]
-        config.model.cnn.paddings = ['same', 'same']
+        config.model.cnn.paddings = ["same", "same"]
         config.model.cnn.pool_sizes = [2, 2]
         config.model.cnn.pool_strides = [2, 2]
         config.model.cnn.dense_units = [128, 64]
         config.model.cnn.dropout_rate = 0.3
-        config.model.cnn.activation = 'relu'
+        config.model.cnn.activation = "relu"
         config.model.training.learning_rate = 0.001
-        config.model.training.custom_loss = 'categorical_crossentropy'
-        config.model.training.metrics = ['accuracy']
+        config.model.training.custom_loss = "categorical_crossentropy"
+        config.model.training.metrics = ["accuracy"]
         return config
 
     def test_cnn_initialization(self, cnn_config):
@@ -111,7 +111,7 @@ class TestCNNModel:
         assert model.model is None
         assert not model.is_trained
 
-    @patch('common.models.model_factory.Sequential')
+    @patch("common.models.model_factory.Sequential")
     def test_cnn_build(self, mock_sequential, cnn_config):
         """Test CNN model building."""
         mock_model = Mock()
@@ -125,7 +125,7 @@ class TestCNNModel:
         mock_model.add.assert_called()
         mock_model.compile.assert_called_once()
 
-    @patch('common.models.model_factory.Sequential')
+    @patch("common.models.model_factory.Sequential")
     def test_cnn_train(self, mock_sequential, cnn_config):
         """Test CNN model training."""
         mock_model = Mock()
@@ -145,7 +145,7 @@ class TestCNNModel:
         assert cnn_model.is_trained
         mock_model.fit.assert_called_once()
 
-    @patch('common.models.model_factory.Sequential')
+    @patch("common.models.model_factory.Sequential")
     def test_cnn_predict(self, mock_sequential, cnn_config):
         """Test CNN model prediction."""
         mock_model = Mock()
@@ -160,10 +160,12 @@ class TestCNNModel:
         X_test = np.random.random((1, 100, 1))
         predictions = cnn_model.predict(X_test)
 
-        np.testing.assert_array_equal(predictions, [3])  # argmax of [0.1, 0.2, 0.3, 0.4]
+        np.testing.assert_array_equal(
+            predictions, [3]
+        )  # argmax of [0.1, 0.2, 0.3, 0.4]
         mock_model.predict.assert_called_once_with(X_test)
 
-    @patch('common.models.model_factory.Sequential')
+    @patch("common.models.model_factory.Sequential")
     def test_cnn_predict_proba(self, mock_sequential, cnn_config):
         """Test CNN model prediction probabilities."""
         mock_model = Mock()
@@ -191,13 +193,13 @@ class TestMLPModel:
         config = Mock()
         config.model.mlp.hidden_layers = [128, 64, 32]
         config.model.mlp.dropout_rate = 0.3
-        config.model.mlp.activation = 'relu'
+        config.model.mlp.activation = "relu"
         config.model.training.learning_rate = 0.001
-        config.model.training.custom_loss = 'categorical_crossentropy'
-        config.model.training.metrics = ['accuracy']
+        config.model.training.custom_loss = "categorical_crossentropy"
+        config.model.training.metrics = ["accuracy"]
         return config
 
-    @patch('common.models.model_factory.Sequential')
+    @patch("common.models.model_factory.Sequential")
     def test_mlp_build(self, mock_sequential, mlp_config):
         """Test MLP model building."""
         mock_model = Mock()
@@ -223,7 +225,7 @@ class TestLogisticRegressionModel:
         config.model.logistic.random_state = 42
         return config
 
-    @patch('common.models.model_factory.LogisticRegression')
+    @patch("common.models.model_factory.LogisticRegression")
     def test_lr_build(self, mock_lr, lr_config):
         """Test Logistic Regression model building."""
         mock_model = Mock()
@@ -237,10 +239,10 @@ class TestLogisticRegressionModel:
         # The actual implementation passes more parameters than the test expected
         mock_lr.assert_called_once()
         call_args = mock_lr.call_args
-        assert 'max_iter' in call_args.kwargs
-        assert 'random_state' in call_args.kwargs
+        assert "max_iter" in call_args.kwargs
+        assert "random_state" in call_args.kwargs
 
-    @patch('common.models.model_factory.LogisticRegression')
+    @patch("common.models.model_factory.LogisticRegression")
     def test_lr_train(self, mock_lr, lr_config):
         """Test Logistic Regression training."""
         mock_model = Mock()
@@ -257,7 +259,7 @@ class TestLogisticRegressionModel:
         assert lr_model.is_trained
         mock_model.fit.assert_called_once_with(X_train, y_train)
 
-    @patch('common.models.model_factory.LogisticRegression')
+    @patch("common.models.model_factory.LogisticRegression")
     def test_lr_predict(self, mock_lr, lr_config):
         """Test Logistic Regression prediction."""
         mock_model = Mock()
@@ -288,7 +290,7 @@ class TestXGBoostModel:
         config.model.xgboost.random_state = 42
         return config
 
-    @patch('common.models.model_factory.xgb.XGBClassifier')
+    @patch("common.models.model_factory.xgb.XGBClassifier")
     def test_xgb_build(self, mock_xgb, xgb_config):
         """Test XGBoost model building."""
         mock_model = Mock()
@@ -301,9 +303,9 @@ class TestXGBoostModel:
         # Check that XGBClassifier was called with correct parameters
         mock_xgb.assert_called_once()
         call_args = mock_xgb.call_args
-        assert 'n_estimators' in call_args.kwargs
-        assert 'max_depth' in call_args.kwargs
-        assert 'learning_rate' in call_args.kwargs
+        assert "n_estimators" in call_args.kwargs
+        assert "max_depth" in call_args.kwargs
+        assert "learning_rate" in call_args.kwargs
 
 
 class TestRandomForestModel:
@@ -318,7 +320,7 @@ class TestRandomForestModel:
         config.model.random_forest.random_state = 42
         return config
 
-    @patch('common.models.model_factory.RandomForestClassifier')
+    @patch("common.models.model_factory.RandomForestClassifier")
     def test_rf_build(self, mock_rf, rf_config):
         """Test Random Forest model building."""
         mock_model = Mock()
@@ -331,11 +333,11 @@ class TestRandomForestModel:
         # Check that RandomForestClassifier was called with correct parameters
         mock_rf.assert_called_once()
         call_args = mock_rf.call_args
-        assert 'n_estimators' in call_args.kwargs
-        assert 'max_depth' in call_args.kwargs
-        assert 'random_state' in call_args.kwargs
+        assert "n_estimators" in call_args.kwargs
+        assert "max_depth" in call_args.kwargs
+        assert "random_state" in call_args.kwargs
 
-    @patch('common.models.model_factory.RandomForestClassifier')
+    @patch("common.models.model_factory.RandomForestClassifier")
     def test_rf_train(self, mock_rf, rf_config):
         """Test Random Forest training."""
         mock_model = Mock()

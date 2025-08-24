@@ -17,16 +17,17 @@ import pkg_resources
 def verify_system(dev_mode: bool = None) -> bool:
     """
     Comprehensive system verification for TimeFlies.
-    
+
     Args:
         dev_mode: If True, skip user-specific checks. If None, auto-detect.
-    
+
     Returns:
         bool: True if all checks pass, False otherwise
     """
     # Auto-detect dev mode if not specified
     if dev_mode is None:
         from pathlib import Path
+
         dev_mode = Path("tests").exists() and Path("src").exists()
 
     mode_text = "Development" if dev_mode else "System"
@@ -78,10 +79,14 @@ def check_python_version() -> bool:
     required_version = (3, 12)  # Updated to match pyproject.toml
 
     if current_version >= required_version:
-        print(f"✅ Python {current_version.major}.{current_version.minor}.{current_version.micro} (meets requirement ≥{required_version[0]}.{required_version[1]})")
+        print(
+            f"✅ Python {current_version.major}.{current_version.minor}.{current_version.micro} (meets requirement ≥{required_version[0]}.{required_version[1]})"
+        )
         return True
     else:
-        print(f"❌ Python {current_version.major}.{current_version.minor}.{current_version.micro} (requires ≥{required_version[0]}.{required_version[1]})")
+        print(
+            f"❌ Python {current_version.major}.{current_version.minor}.{current_version.micro} (requires ≥{required_version[0]}.{required_version[1]})"
+        )
         return False
 
 
@@ -111,7 +116,7 @@ def check_required_packages() -> bool:
     for package_name, min_version, import_name in required_packages:
         try:
             package = importlib.import_module(import_name)
-            installed_version = getattr(package, '__version__', 'unknown')
+            installed_version = getattr(package, "__version__", "unknown")
             print(f"✅ {package_name}: {installed_version}")
         except ImportError:
             print(f"❌ {package_name}: not installed")
@@ -167,11 +172,12 @@ def check_configuration() -> bool:
 
     try:
         import yaml
+
         with open(config_path) as f:
             config = yaml.safe_load(f)
 
         # Check required top-level keys
-        required_keys = ['project', 'data']
+        required_keys = ["project", "data"]
         for key in required_keys:
             if key not in config:
                 print(f"❌ Missing required config key: {key}")
@@ -214,7 +220,9 @@ def check_data_availability() -> bool:
         for tissue_dir in tissue_dirs:
             h5ad_files = list(tissue_dir.glob("*.h5ad"))
             if h5ad_files:
-                print(f"✅ Found {len(h5ad_files)} H5AD files in {project_dir.name}/{tissue_dir.name}")
+                print(
+                    f"✅ Found {len(h5ad_files)} H5AD files in {project_dir.name}/{tissue_dir.name}"
+                )
                 data_found = True
 
                 # Check if data has been properly split
@@ -223,16 +231,24 @@ def check_data_availability() -> bool:
                 eval_files = list(tissue_dir.glob("*_eval.h5ad"))
 
                 if original_files and train_files and eval_files:
-                    print(f"   ✅ Data splits ready (original: {len(original_files)}, train: {len(train_files)}, eval: {len(eval_files)})")
+                    print(
+                        f"   ✅ Data splits ready (original: {len(original_files)}, train: {len(train_files)}, eval: {len(eval_files)})"
+                    )
                     splits_found = True
                 elif original_files:
-                    print("   ⚠️  Data not split yet - run 'timeflies setup' or 'timeflies split'")
+                    print(
+                        "   ⚠️  Data not split yet - run 'timeflies setup' or 'timeflies split'"
+                    )
                 else:
-                    print("   ⚠️  No *_original.h5ad files found - add your source data first")
+                    print(
+                        "   ⚠️  No *_original.h5ad files found - add your source data first"
+                    )
 
     if not data_found:
         print("⚠️  No H5AD data files found")
-        print("   Add your *_original.h5ad files to data/[project]/[tissue]/ directories")
+        print(
+            "   Add your *_original.h5ad files to data/[project]/[tissue]/ directories"
+        )
     elif not splits_found:
         print("💡 Next step: Run 'timeflies setup' to split your data for training")
 
@@ -246,7 +262,8 @@ def check_gpu_availability() -> bool:
 
     try:
         import tensorflow as tf
-        gpus = tf.config.experimental.list_physical_devices('GPU')
+
+        gpus = tf.config.experimental.list_physical_devices("GPU")
         if gpus:
             print(f"✅ Found {len(gpus)} GPU(s) available")
             for i, gpu in enumerate(gpus):
@@ -283,11 +300,13 @@ def check_analysis_templates() -> bool:
     else:
         print(f"✅ Found {len(analysis_templates)} analysis templates:")
         for template in sorted(analysis_templates):
-            template_name = template.stem.replace('_analysis', '')
+            template_name = template.stem.replace("_analysis", "")
             print(f"   📄 {template.name} -> project '{template_name}'")
 
     # Find other template files
-    other_templates = [f for f in templates_dir.glob("*.py") if not f.name.endswith("_analysis.py")]
+    other_templates = [
+        f for f in templates_dir.glob("*.py") if not f.name.endswith("_analysis.py")
+    ]
     example_templates = list(templates_dir.glob("*example*.py"))
     readme_files = list(templates_dir.glob("README*"))
 

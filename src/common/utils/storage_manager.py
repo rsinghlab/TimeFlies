@@ -25,16 +25,16 @@ class StorageManager:
     def __init__(self, config: Any, path_manager):
         """
         Initialize storage manager.
-        
+
         Args:
             config: Configuration object with storage settings
             path_manager: PathManager instance
         """
         self.config = config
         self.path_manager = path_manager
-        self.storage_config = getattr(config, 'storage', {})
-        self.cleanup_policy = self.storage_config.get('cleanup_policy', {})
-        self.model_saving = self.storage_config.get('model_saving', {})
+        self.storage_config = getattr(config, "storage", {})
+        self.cleanup_policy = self.storage_config.get("cleanup_policy", {})
+        self.model_saving = self.storage_config.get("model_saving", {})
 
     def get_experiments_dir(self) -> Path:
         """Get experiments directory path."""
@@ -45,7 +45,7 @@ class StorageManager:
     def list_experiments(self) -> list[dict[str, Any]]:
         """
         List all experiments with their metadata.
-        
+
         Returns:
             List of experiment info dictionaries
         """
@@ -56,7 +56,7 @@ class StorageManager:
             return experiments
 
         for exp_dir in experiments_dir.iterdir():
-            if exp_dir.is_dir() and not exp_dir.name.startswith('.'):
+            if exp_dir.is_dir() and not exp_dir.name.startswith("."):
                 # Skip symlinks (best, latest)
                 if exp_dir.is_symlink():
                     continue
@@ -83,7 +83,7 @@ class StorageManager:
     def _calculate_dir_size(self, directory: Path) -> int:
         """Calculate total size of directory in bytes."""
         total_size = 0
-        for path in directory.rglob('*'):
+        for path in directory.rglob("*"):
             if path.is_file():
                 total_size += path.stat().st_size
         return total_size
@@ -91,7 +91,7 @@ class StorageManager:
     def get_protected_experiments(self) -> set:
         """
         Get set of experiment names that should not be deleted.
-        
+
         Returns:
             Set of protected experiment names
         """
@@ -122,10 +122,10 @@ class StorageManager:
     def should_cleanup_experiment(self, exp_info: dict[str, Any]) -> bool:
         """
         Determine if an experiment should be cleaned up based on policy.
-        
+
         Args:
             exp_info: Experiment information dictionary
-            
+
         Returns:
             bool: True if experiment should be deleted
         """
@@ -146,10 +146,10 @@ class StorageManager:
     def cleanup_experiments(self, dry_run: bool = False) -> dict[str, Any]:
         """
         Clean up experiments based on storage policy.
-        
+
         Args:
             dry_run: If True, only simulate cleanup without deleting
-            
+
         Returns:
             Dictionary with cleanup results
         """
@@ -167,7 +167,9 @@ class StorageManager:
             candidates_for_cleanup = experiments[keep_last_n:]
         else:
             # Apply age-based cleanup
-            candidates_for_cleanup = [exp for exp in experiments if self.should_cleanup_experiment(exp)]
+            candidates_for_cleanup = [
+                exp for exp in experiments if self.should_cleanup_experiment(exp)
+            ]
 
         cleaned_count = 0
         total_size_freed = 0
@@ -178,9 +180,13 @@ class StorageManager:
                 continue
 
             if dry_run:
-                logger.info(f"Would delete experiment: {exp_info['name']} ({exp_info['size_mb']:.1f} MB)")
+                logger.info(
+                    f"Would delete experiment: {exp_info['name']} ({exp_info['size_mb']:.1f} MB)"
+                )
             else:
-                logger.info(f"Deleting experiment: {exp_info['name']} ({exp_info['size_mb']:.1f} MB)")
+                logger.info(
+                    f"Deleting experiment: {exp_info['name']} ({exp_info['size_mb']:.1f} MB)"
+                )
                 shutil.rmtree(exp_info["path"])
                 cleaned_count += 1
 
@@ -194,17 +200,19 @@ class StorageManager:
         }
 
         if not dry_run and cleaned_count > 0:
-            logger.info(f"Cleaned up {cleaned_count} experiments, freed {total_size_freed:.1f} MB")
+            logger.info(
+                f"Cleaned up {cleaned_count} experiments, freed {total_size_freed:.1f} MB"
+            )
 
         return results
 
     def should_save_model(self, model_improved: bool) -> bool:
         """
         Determine if model should be saved based on policy.
-        
+
         Args:
             model_improved: Whether the model achieved better validation performance
-            
+
         Returns:
             bool: True if model should be saved
         """

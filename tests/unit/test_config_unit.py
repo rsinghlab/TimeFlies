@@ -18,7 +18,7 @@ class TestConfig:
         """Test Config initialization with nested dictionaries."""
         config_dict = {
             "general": {"project_name": "test", "version": "1.0"},
-            "data": {"tissue": "head", "model_type": "CNN"}
+            "data": {"tissue": "head", "model_type": "CNN"},
         }
         config = Config(config_dict)
 
@@ -62,45 +62,39 @@ class TestConfig:
     def test_config_nested_access(self):
         """Test nested configuration access."""
         config_dict = {
-            'general': {
-                'project_name': 'TimeFlies',
-                'version': '0.2.0'
-            },
-            'data': {
-                'tissue': 'head',
-                'model_type': 'CNN'
-            }
+            "general": {"project_name": "TimeFlies", "version": "0.2.0"},
+            "data": {"tissue": "head", "model_type": "CNN"},
         }
 
         config = Config(config_dict)
-        assert config.general.project_name == 'TimeFlies'
-        assert config.general.version == '0.2.0'
-        assert config.data.tissue == 'head'
-        assert config.data.model_type == 'CNN'
+        assert config.general.project_name == "TimeFlies"
+        assert config.general.version == "0.2.0"
+        assert config.data.tissue == "head"
+        assert config.data.model_type == "CNN"
 
     def test_config_setattr(self):
         """Test setting configuration values."""
-        config = Config({'test': 'value'})
-        config.new_value = 'new'
-        assert config.new_value == 'new'
+        config = Config({"test": "value"})
+        config.new_value = "new"
+        assert config.new_value == "new"
 
         # Test setting nested config
-        config.nested = {'key': 'value'}
+        config.nested = {"key": "value"}
         assert isinstance(config.nested, Config)
-        assert config.nested.key == 'value'
+        assert config.nested.key == "value"
 
     def test_config_get_method(self):
         """Test config get method with defaults."""
-        config = Config({'existing': 'value'})
+        config = Config({"existing": "value"})
 
-        assert config.get('existing') == 'value'
-        assert config.get('missing') is None
-        assert config.get('missing', 'default') == 'default'
+        assert config.get("existing") == "value"
+        assert config.get("missing") is None
+        assert config.get("missing", "default") == "default"
 
         # Test nested get
-        config_nested = Config({'level1': {'level2': 'value'}})
-        assert config_nested.level1.get('level2') == 'value'
-        assert config_nested.level1.get('missing', 'default') == 'default'
+        config_nested = Config({"level1": {"level2": "value"}})
+        assert config_nested.level1.get("level2") == "value"
+        assert config_nested.level1.get("missing", "default") == "default"
 
     def test_config_attribute_error(self):
         """Test AttributeError handling."""
@@ -111,9 +105,9 @@ class TestConfig:
 
     def test_config_repr(self):
         """Test config string representation."""
-        config_dict = {'key': 'value', 'nested': {'inner': 'data'}}
+        config_dict = {"key": "value", "nested": {"inner": "data"}}
         config = Config(config_dict)
 
         repr_str = repr(config)
-        assert 'Config' in repr_str
-        assert 'key' in repr_str
+        assert "Config" in repr_str
+        assert "key" in repr_str

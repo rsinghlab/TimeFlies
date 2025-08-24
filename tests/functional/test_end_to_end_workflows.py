@@ -21,7 +21,7 @@ class TestCompleteWorkflows:
     def test_complete_cli_setup_workflow(self):
         """Test complete CLI setup workflow."""
         # Test the full setup command execution
-        result = main_cli(['setup'])
+        result = main_cli(["setup"])
 
         # Should complete successfully
         assert result == 0
@@ -29,7 +29,7 @@ class TestCompleteWorkflows:
     def test_complete_verification_workflow(self):
         """Test complete verification workflow."""
         # Test the full verification process
-        result = main_cli(['verify'])
+        result = main_cli(["verify"])
 
         # Should return exit code (may be 0 or 1 depending on system state)
         assert isinstance(result, int)
@@ -41,10 +41,11 @@ class TestCompleteWorkflows:
             original_cwd = Path.cwd()
             try:
                 import os
+
                 os.chdir(temp_dir)
 
                 # Create test data
-                result = main_cli(['create-test-data'])
+                result = main_cli(["create-test-data"])
 
                 # Should complete successfully
                 assert result == 0
@@ -56,26 +57,26 @@ class TestCompleteWorkflows:
         """Test complete config loading workflow."""
         # Test actual config loading process
         project = get_active_project()
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Verify complete config structure
-        assert hasattr(config, 'general')
-        assert hasattr(config, 'data')
-        assert hasattr(config, 'model')
-        assert hasattr(config, 'hardware')
-        assert hasattr(config, 'paths')
+        assert hasattr(config, "general")
+        assert hasattr(config, "data")
+        assert hasattr(config, "model")
+        assert hasattr(config, "hardware")
+        assert hasattr(config, "paths")
 
         # Test config values are properly loaded
         assert config.general.random_state == 42
-        assert config.data.tissue in ['head', 'body', 'all']
-        assert config.hardware.processor in ['CPU', 'GPU', 'M']
+        assert config.data.tissue in ["head", "body", "all"]
+        assert config.hardware.processor in ["CPU", "GPU", "M"]
 
     def test_path_resolution_workflow(self):
         """Test complete path resolution workflow."""
         from common.utils.path_manager import PathManager
 
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         path_manager = PathManager(config)
@@ -123,12 +124,12 @@ class TestDataProcessingWorkflows:
 
         # 4. Label encoding
         encoder = LabelEncoder()
-        encoded_ages = encoder.fit_transform(adata.obs['age'])
-        adata.obs['age_encoded'] = encoded_ages
+        encoded_ages = encoder.fit_transform(adata.obs["age"])
+        adata.obs["age_encoded"] = encoded_ages
 
         # 5. Data splitting
         X = adata.X
-        y = adata.obs['age_encoded'].values
+        y = adata.obs["age_encoded"].values
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
@@ -137,7 +138,7 @@ class TestDataProcessingWorkflows:
         # Verify complete pipeline
         assert adata.shape[0] <= original_shape[0]  # May have filtered cells
         assert adata.shape[1] <= original_shape[1]  # May have filtered genes
-        assert 'age_encoded' in adata.obs.columns
+        assert "age_encoded" in adata.obs.columns
         assert len(X_train) + len(X_test) == adata.n_obs
         assert np.all(adata.X >= 0)  # Log1p ensures non-negative
 
@@ -150,7 +151,7 @@ class TestDataProcessingWorkflows:
 
         # Prepare data
         X = small_sample_anndata.X.astype(np.float32)
-        y = small_sample_anndata.obs['age'].values
+        y = small_sample_anndata.obs["age"].values
 
         # Encode labels
         encoder = LabelEncoder()
@@ -163,28 +164,26 @@ class TestDataProcessingWorkflows:
         )
 
         # Create model
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(64, activation='relu', input_shape=(X.shape[1],)),
-            tf.keras.layers.Dropout(0.3),
-            tf.keras.layers.Dense(32, activation='relu'),
-            tf.keras.layers.Dropout(0.3),
-            tf.keras.layers.Dense(num_classes, activation='softmax')
-        ])
+        model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(64, activation="relu", input_shape=(X.shape[1],)),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(32, activation="relu"),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(num_classes, activation="softmax"),
+            ]
+        )
 
         # Compile model
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
         )
 
         # Train model
         history = model.fit(
-            X_train, y_train,
-            epochs=5,
-            batch_size=32,
-            validation_split=0.2,
-            verbose=0
+            X_train, y_train, epochs=5, batch_size=32, validation_split=0.2, verbose=0
         )
 
         # Evaluate model
@@ -196,12 +195,12 @@ class TestDataProcessingWorkflows:
         report = classification_report(y_test, y_pred, output_dict=True)
 
         # Verify complete workflow
-        assert 'loss' in history.history
-        assert 'accuracy' in history.history
+        assert "loss" in history.history
+        assert "accuracy" in history.history
         assert 0 <= test_accuracy <= 1
         assert len(y_pred) == len(y_test)
         assert isinstance(report, dict)
-        assert 'accuracy' in report
+        assert "accuracy" in report
 
     def test_complete_evaluation_workflow(self, small_sample_anndata):
         """Test complete model evaluation workflow."""
@@ -221,7 +220,7 @@ class TestDataProcessingWorkflows:
 
         # Prepare data
         X = small_sample_anndata.X
-        y = small_sample_anndata.obs['age'].values
+        y = small_sample_anndata.obs["age"].values
 
         # Encode labels
         encoder = LabelEncoder()
@@ -234,8 +233,8 @@ class TestDataProcessingWorkflows:
 
         # Train multiple models for comparison
         models = {
-            'RandomForest': RandomForestClassifier(n_estimators=50, random_state=42),
-            'LogisticRegression': LogisticRegression(random_state=42, max_iter=200)
+            "RandomForest": RandomForestClassifier(n_estimators=50, random_state=42),
+            "LogisticRegression": LogisticRegression(random_state=42, max_iter=200),
         }
 
         results = {}
@@ -250,21 +249,21 @@ class TestDataProcessingWorkflows:
 
             # Calculate comprehensive metrics
             accuracy = accuracy_score(y_test, y_pred)
-            precision = precision_score(y_test, y_pred, average='weighted')
-            recall = recall_score(y_test, y_pred, average='weighted')
-            f1 = f1_score(y_test, y_pred, average='weighted')
+            precision = precision_score(y_test, y_pred, average="weighted")
+            recall = recall_score(y_test, y_pred, average="weighted")
+            f1 = f1_score(y_test, y_pred, average="weighted")
 
             # Cross-validation
             cv_scores = cross_val_score(model, X_train, y_train, cv=3)
 
             # Store results
             results[name] = {
-                'accuracy': accuracy,
-                'precision': precision,
-                'recall': recall,
-                'f1': f1,
-                'cv_mean': cv_scores.mean(),
-                'cv_std': cv_scores.std()
+                "accuracy": accuracy,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "cv_mean": cv_scores.mean(),
+                "cv_std": cv_scores.std(),
             }
 
             # Verify metrics
@@ -275,8 +274,8 @@ class TestDataProcessingWorkflows:
 
         # Compare models
         assert len(results) == 2
-        assert 'RandomForest' in results
-        assert 'LogisticRegression' in results
+        assert "RandomForest" in results
+        assert "LogisticRegression" in results
 
 
 @pytest.mark.functional
@@ -342,7 +341,7 @@ class TestFileSystemWorkflows:
 
             # Prepare data
             X = small_sample_anndata.X.astype(np.float32)
-            y = small_sample_anndata.obs['age'].values
+            y = small_sample_anndata.obs["age"].values
 
             encoder = LabelEncoder()
             y_encoded = encoder.fit_transform(y)
@@ -353,12 +352,16 @@ class TestFileSystemWorkflows:
             )
 
             # Train and save TensorFlow model
-            tf_model = tf.keras.Sequential([
-                tf.keras.layers.Dense(32, activation='relu', input_shape=(X.shape[1],)),
-                tf.keras.layers.Dense(num_classes, activation='softmax')
-            ])
+            tf_model = tf.keras.Sequential(
+                [
+                    tf.keras.layers.Dense(
+                        32, activation="relu", input_shape=(X.shape[1],)
+                    ),
+                    tf.keras.layers.Dense(num_classes, activation="softmax"),
+                ]
+            )
 
-            tf_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+            tf_model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")
             tf_model.fit(X_train, y_train, epochs=2, verbose=0)
 
             tf_model_path = models_dir / "tensorflow_model"
@@ -437,26 +440,28 @@ class TestErrorRecoveryWorkflows:
 
         # Prepare problematic data (very small dataset)
         X = small_sample_anndata.X[:10].astype(np.float32)  # Only 10 samples
-        y = small_sample_anndata.obs['age'].values[:10]
+        y = small_sample_anndata.obs["age"].values[:10]
 
         encoder = LabelEncoder()
         y_encoded = encoder.fit_transform(y)
         num_classes = len(np.unique(y_encoded))
 
         # Try to train with very small data
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(16, activation='relu', input_shape=(X.shape[1],)),
-            tf.keras.layers.Dense(num_classes, activation='softmax')
-        ])
+        model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(16, activation="relu", input_shape=(X.shape[1],)),
+                tf.keras.layers.Dense(num_classes, activation="softmax"),
+            ]
+        )
 
-        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+        model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")
 
         try:
             # This might fail or give warnings with very small dataset
             history = model.fit(X, y_encoded, epochs=1, verbose=0)
 
             # If training succeeds, verify it didn't crash
-            assert 'loss' in history.history
+            assert "loss" in history.history
         except Exception as e:
             # Small datasets might cause training issues
             assert "data" in str(e).lower() or "shape" in str(e).lower()
@@ -473,12 +478,13 @@ class TestErrorRecoveryWorkflows:
         # Test that config loading has fallbacks
         try:
             from common.core.active_config import get_config_for_active_project
-            config_manager = get_config_for_active_project('default')
+
+            config_manager = get_config_for_active_project("default")
             config = config_manager.get_config()
 
             # Should have basic required attributes
-            assert hasattr(config, 'data')
-            assert hasattr(config, 'general')
+            assert hasattr(config, "data")
+            assert hasattr(config, "general")
         except Exception as e:
             # If config loading fails, error should be informative
             assert "config" in str(e).lower() or "file" in str(e).lower()

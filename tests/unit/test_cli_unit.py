@@ -19,30 +19,28 @@ class TestCLIParser:
         """Test parser creation."""
         parser = create_main_parser()
         assert parser is not None
-        assert hasattr(parser, 'parse_args')
+        assert hasattr(parser, "parse_args")
 
     def test_parser_help(self):
         """Test parser help doesn't crash."""
         parser = create_main_parser()
         with pytest.raises(SystemExit):  # Help exits with code 0
-            parser.parse_args(['--help'])
+            parser.parse_args(["--help"])
 
     def test_parser_train_command(self):
         """Test train command parsing."""
         parser = create_main_parser()
-        args = parser.parse_args(['train'])
-        assert hasattr(args, 'command')
+        args = parser.parse_args(["train"])
+        assert hasattr(args, "command")
 
     def test_parser_evaluate_command(self):
         """Test evaluate command parsing."""
         parser = create_main_parser()
-        args = parser.parse_args(['evaluate'])
-        assert hasattr(args, 'command')
+        args = parser.parse_args(["evaluate"])
+        assert hasattr(args, "command")
 
     def test_parser_test_command(self):
         """Test test command parsing."""
         parser = create_main_parser()
-        args = parser.parse_args(['test'])
-        assert hasattr(args, 'command')
-
-
+        args = parser.parse_args(["test"])
+        assert hasattr(args, "command")

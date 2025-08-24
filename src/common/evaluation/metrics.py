@@ -27,7 +27,17 @@ class AgingMetrics:
     - Cross-tissue aging consistency
     """
 
-    def __init__(self, config=None, model=None, test_data=None, test_labels=None, label_encoder=None, path_manager=None, result_type="recent", output_dir=None):
+    def __init__(
+        self,
+        config=None,
+        model=None,
+        test_data=None,
+        test_labels=None,
+        label_encoder=None,
+        path_manager=None,
+        result_type="recent",
+        output_dir=None,
+    ):
         """
         Initialize aging metrics calculator.
 
@@ -52,7 +62,7 @@ class AgingMetrics:
     def compute_metrics(self):
         """
         Compute and save metrics using the model and test data.
-        
+
         This method is called by the pipeline to evaluate model performance.
         """
         if self.model is None or self.test_data is None or self.test_labels is None:
@@ -66,17 +76,19 @@ class AgingMetrics:
         if len(predictions.shape) > 1 and predictions.shape[1] > 1:
             predicted_classes = np.argmax(predictions, axis=1)
             if self.label_encoder:
-                predicted_classes = self.label_encoder.inverse_transform(predicted_classes)
+                predicted_classes = self.label_encoder.inverse_transform(
+                    predicted_classes
+                )
         else:
             predicted_classes = predictions.flatten()
 
         # Get true labels - extract the actual values
         true_labels = self.test_labels
-        if hasattr(self.test_labels, 'values'):
+        if hasattr(self.test_labels, "values"):
             true_labels = self.test_labels.values
-        elif hasattr(self.test_labels, 'to_numpy'):
+        elif hasattr(self.test_labels, "to_numpy"):
             true_labels = self.test_labels.to_numpy()
-        elif hasattr(self.test_labels, '__array__'):
+        elif hasattr(self.test_labels, "__array__"):
             true_labels = np.array(self.test_labels)
 
         # If true_labels is 2D (one-hot encoded), get the class indices
@@ -86,7 +98,7 @@ class AgingMetrics:
                 true_labels = self.label_encoder.inverse_transform(true_labels)
 
         # Handle categorical true labels - convert to numeric if needed
-        if hasattr(true_labels, 'dtype') and true_labels.dtype == 'object':
+        if hasattr(true_labels, "dtype") and true_labels.dtype == "object":
             # For age data, convert string ages to numeric
             try:
                 true_labels = true_labels.astype(float)
@@ -98,8 +110,12 @@ class AgingMetrics:
         predicted_classes = np.asarray(predicted_classes, dtype=float).flatten()
 
         # Debug logging
-        logger.info(f"True labels shape: {true_labels.shape}, sample: {true_labels[:5]}")
-        logger.info(f"Predicted classes shape: {predicted_classes.shape}, sample: {predicted_classes[:5]}")
+        logger.info(
+            f"True labels shape: {true_labels.shape}, sample: {true_labels[:5]}"
+        )
+        logger.info(
+            f"Predicted classes shape: {predicted_classes.shape}, sample: {predicted_classes[:5]}"
+        )
 
         # Compute age prediction metrics
         metrics = self.evaluate_age_prediction(true_labels, predicted_classes)
@@ -123,7 +139,7 @@ class AgingMetrics:
 
             # Save metrics to JSON
             metrics_file = os.path.join(metrics_dir, metrics_filename)
-            with open(metrics_file, 'w') as f:
+            with open(metrics_file, "w") as f:
                 json.dump(metrics, f, indent=2)
 
             logger.info(f"Metrics saved to {metrics_file}")
@@ -137,33 +153,37 @@ class AgingMetrics:
                 results_dir = self.output_dir
             else:
                 # Fallback to old structure
-                results_dir = self.path_manager.get_results_dir(self.result_type, "eval")
+                results_dir = self.path_manager.get_results_dir(
+                    self.result_type, "eval"
+                )
 
             os.makedirs(results_dir, exist_ok=True)
 
             # Create predictions dataframe
-            predictions_df = pd.DataFrame({
-                'actual_age': true_labels,
-                'predicted_age': predicted_classes,
-                'prediction_error': predicted_classes - true_labels
-            })
+            predictions_df = pd.DataFrame(
+                {
+                    "actual_age": true_labels,
+                    "predicted_age": predicted_classes,
+                    "prediction_error": predicted_classes - true_labels,
+                }
+            )
 
             # Add genotype information based on project and split method
-            project = getattr(self.config, 'project', 'unknown')
-            split_method = getattr(self.config.data.split, 'method', 'random')
+            project = getattr(self.config, "project", "unknown")
+            split_method = getattr(self.config.data.split, "method", "random")
 
             # Debug logging
             logger.info(f"Project: {project}, Split method: {split_method}")
 
-            if project == 'fruitfly_alzheimers' and split_method == 'genotype':
+            if project == "fruitfly_alzheimers" and split_method == "genotype":
                 # Test set is Alzheimer's flies (AB42/hTau)
                 # We don't have specific genotype per sample, but we know they're all disease flies
-                predictions_df['genotype'] = 'alzheimers'
-            elif project == 'fruitfly_alzheimers':
+                predictions_df["genotype"] = "alzheimers"
+            elif project == "fruitfly_alzheimers":
                 # For Alzheimer's project with other split methods, still mark as alzheimers
-                predictions_df['genotype'] = 'alzheimers'
+                predictions_df["genotype"] = "alzheimers"
             else:
-                predictions_df['genotype'] = 'control'
+                predictions_df["genotype"] = "control"
 
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
@@ -175,7 +195,9 @@ class AgingMetrics:
         logger.info(f"  MAE: {metrics.get('mae', 'N/A'):.4f}")
         logger.info(f"  RMSE: {metrics.get('rmse', 'N/A'):.4f}")
         logger.info(f"  R² Score: {metrics.get('r2_score', 'N/A'):.4f}")
-        logger.info(f"  Pearson Correlation: {metrics.get('pearson_correlation', 'N/A'):.4f}")
+        logger.info(
+            f"  Pearson Correlation: {metrics.get('pearson_correlation', 'N/A'):.4f}"
+        )
 
         return metrics
 

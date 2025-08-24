@@ -60,7 +60,7 @@ class EDAHandler:
             "summary": {},
             "visualizations": [],
             "statistics": {},
-            "tables": {}
+            "tables": {},
         }
 
         # Initialize VisualizationTools with config and path_manager
@@ -372,7 +372,9 @@ class EDAHandler:
         if data.n_obs < 50000:  # Only for datasets smaller than 50k cells
             self._perform_dim_reduction(data, split_desc)
         else:
-            print(f"   ⏩ Skipping dimensionality reduction for large dataset ({data.n_obs} cells)")
+            print(
+                f"   ⏩ Skipping dimensionality reduction for large dataset ({data.n_obs} cells)"
+            )
 
         # 5. Gene Expression Analysis
         self._analyze_gene_expression(data, split_desc)
@@ -408,8 +410,8 @@ class EDAHandler:
             return None
 
         # Apply split configuration
-        train_values = getattr(self.config.data.split, 'train', [])
-        if train_values and hasattr(self.config.data.split, 'column'):
+        train_values = getattr(self.config.data.split, "train", [])
+        if train_values and hasattr(self.config.data.split, "column"):
             column = self.config.data.split.column
             if column in data.obs.columns:
                 mask = data.obs[column].isin(train_values)
@@ -428,8 +430,8 @@ class EDAHandler:
             return None
 
         # Apply split configuration
-        test_values = getattr(self.config.data.split, 'test', [])
-        if test_values and hasattr(self.config.data.split, 'column'):
+        test_values = getattr(self.config.data.split, "test", [])
+        if test_values and hasattr(self.config.data.split, "column"):
             column = self.config.data.split.column
             if column in data.obs.columns:
                 mask = data.obs[column].isin(test_values)
@@ -444,13 +446,17 @@ class EDAHandler:
         stats = {
             "n_samples": data.n_obs,
             "n_genes": data.n_vars,
-            "memory_mb": data.X.nbytes / 1024 / 1024 if hasattr(data.X, 'nbytes') else 0,
-            "sparsity": 1.0 - (data.X.nnz / np.prod(data.X.shape)) if hasattr(data.X, 'nnz') else 0,
+            "memory_mb": data.X.nbytes / 1024 / 1024
+            if hasattr(data.X, "nbytes")
+            else 0,
+            "sparsity": 1.0 - (data.X.nnz / np.prod(data.X.shape))
+            if hasattr(data.X, "nnz")
+            else 0,
         }
 
         # Age statistics if available
-        if 'age' in data.obs.columns:
-            age_col = data.obs['age']
+        if "age" in data.obs.columns:
+            age_col = data.obs["age"]
             # Handle both numeric and categorical age data
             if pd.api.types.is_numeric_dtype(age_col):
                 stats["age_mean"] = float(age_col.mean())
@@ -462,7 +468,7 @@ class EDAHandler:
                 stats["age_values"] = age_col.value_counts().to_dict()
 
         # Cell type statistics
-        for col in ['cell_type', 'genotype', 'sex', 'tissue']:
+        for col in ["cell_type", "genotype", "sex", "tissue"]:
             if col in data.obs.columns:
                 value_counts = data.obs[col].value_counts()
                 stats[f"{col}_counts"] = value_counts.to_dict()
@@ -471,7 +477,7 @@ class EDAHandler:
 
         # Save to JSON
         stats_file = Path(self.output_dir) / "summary_stats.json"
-        with open(stats_file, 'w') as f:
+        with open(stats_file, "w") as f:
             json.dump(stats, f, indent=2, default=str)
 
     def _analyze_distributions(self, data, split_desc):
@@ -481,46 +487,50 @@ class EDAHandler:
         output_path = Path(self.output_dir)
 
         # Age distribution
-        if 'age' in data.obs.columns:
+        if "age" in data.obs.columns:
             fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-            age_col = data.obs['age']
+            age_col = data.obs["age"]
             if pd.api.types.is_numeric_dtype(age_col):
                 # Numeric age - histogram
-                axes[0].hist(age_col, bins=30, edgecolor='black', alpha=0.7)
-                axes[0].set_xlabel('Age (days)')
-                axes[0].set_ylabel('Count')
-                axes[0].set_title('Age Distribution')
+                axes[0].hist(age_col, bins=30, edgecolor="black", alpha=0.7)
+                axes[0].set_xlabel("Age (days)")
+                axes[0].set_ylabel("Count")
+                axes[0].set_title("Age Distribution")
 
                 # Box plot by genotype if available
-                if 'genotype' in data.obs.columns:
-                    genotypes = data.obs['genotype'].unique()
-                    age_by_genotype = [data.obs[data.obs['genotype'] == g]['age'] for g in genotypes]
+                if "genotype" in data.obs.columns:
+                    genotypes = data.obs["genotype"].unique()
+                    age_by_genotype = [
+                        data.obs[data.obs["genotype"] == g]["age"] for g in genotypes
+                    ]
                     axes[1].boxplot(age_by_genotype, labels=genotypes)
-                    axes[1].set_xlabel('Genotype')
-                    axes[1].set_ylabel('Age (days)')
-                    axes[1].set_title('Age by Genotype')
+                    axes[1].set_xlabel("Genotype")
+                    axes[1].set_ylabel("Age (days)")
+                    axes[1].set_title("Age by Genotype")
             else:
                 # Categorical age - bar plot
                 age_counts = age_col.value_counts()
                 axes[0].bar(age_counts.index, age_counts.values, alpha=0.7)
-                axes[0].set_xlabel('Age Category')
-                axes[0].set_ylabel('Count')
-                axes[0].set_title('Age Distribution')
-                axes[0].tick_params(axis='x', rotation=45)
+                axes[0].set_xlabel("Age Category")
+                axes[0].set_ylabel("Count")
+                axes[0].set_title("Age Distribution")
+                axes[0].tick_params(axis="x", rotation=45)
 
                 # Stacked bar by genotype if available
-                if 'genotype' in data.obs.columns:
-                    crosstab = pd.crosstab(age_col, data.obs['genotype'])
-                    crosstab.plot(kind='bar', ax=axes[1], stacked=True)
-                    axes[1].set_xlabel('Age Category')
-                    axes[1].set_ylabel('Count')
-                    axes[1].set_title('Age by Genotype')
-                    axes[1].tick_params(axis='x', rotation=45)
-                    axes[1].legend(title='Genotype')
+                if "genotype" in data.obs.columns:
+                    crosstab = pd.crosstab(age_col, data.obs["genotype"])
+                    crosstab.plot(kind="bar", ax=axes[1], stacked=True)
+                    axes[1].set_xlabel("Age Category")
+                    axes[1].set_ylabel("Count")
+                    axes[1].set_title("Age by Genotype")
+                    axes[1].tick_params(axis="x", rotation=45)
+                    axes[1].legend(title="Genotype")
 
             plt.tight_layout()
-            fig.savefig(output_path / "age_distribution.png", dpi=150, bbox_inches='tight')
+            fig.savefig(
+                output_path / "age_distribution.png", dpi=150, bbox_inches="tight"
+            )
             plt.close()
 
             self.eda_results["visualizations"].append("age_distribution.png")
@@ -530,7 +540,7 @@ class EDAHandler:
         print("   🔗 Analyzing correlations...")
 
         # Select top variable genes for correlation
-        if hasattr(data, 'var'):
+        if hasattr(data, "var"):
             # Calculate variance for each gene
             if scipy.sparse.issparse(data.X):
                 gene_vars = np.array(data.X.todense()).var(axis=0)
@@ -550,13 +560,16 @@ class EDAHandler:
 
             # Plot heatmap
             plt.figure(figsize=(12, 10))
-            sns.heatmap(corr_matrix, cmap='coolwarm', center=0,
-                       vmin=-1, vmax=1, square=True)
-            plt.title('Top 50 Variable Genes Correlation Matrix')
+            sns.heatmap(
+                corr_matrix, cmap="coolwarm", center=0, vmin=-1, vmax=1, square=True
+            )
+            plt.title("Top 50 Variable Genes Correlation Matrix")
             plt.tight_layout()
 
             output_path = Path(self.output_dir)
-            plt.savefig(output_path / "correlation_matrix.png", dpi=150, bbox_inches='tight')
+            plt.savefig(
+                output_path / "correlation_matrix.png", dpi=150, bbox_inches="tight"
+            )
             plt.close()
 
             self.eda_results["visualizations"].append("correlation_matrix.png")
@@ -574,12 +587,14 @@ class EDAHandler:
             # Basic preprocessing
             sc.pp.normalize_total(adata_copy, target_sum=1e4)
             sc.pp.log1p(adata_copy)
-            sc.pp.highly_variable_genes(adata_copy, min_mean=0.0125, max_mean=3, min_disp=0.5)
+            sc.pp.highly_variable_genes(
+                adata_copy, min_mean=0.0125, max_mean=3, min_disp=0.5
+            )
             adata_copy = adata_copy[:, adata_copy.var.highly_variable]
 
             # PCA
             sc.pp.scale(adata_copy, max_value=10)
-            sc.tl.pca(adata_copy, svd_solver='arpack')
+            sc.tl.pca(adata_copy, svd_solver="arpack")
 
             # UMAP
             sc.pp.neighbors(adata_copy, n_neighbors=10, n_pcs=40)
@@ -589,44 +604,48 @@ class EDAHandler:
             fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
             # PCA colored by age
-            if 'age' in adata_copy.obs.columns:
+            if "age" in adata_copy.obs.columns:
                 scatter = axes[0].scatter(
-                    adata_copy.obsm['X_pca'][:, 0],
-                    adata_copy.obsm['X_pca'][:, 1],
-                    c=adata_copy.obs['age'],
-                    cmap='viridis',
+                    adata_copy.obsm["X_pca"][:, 0],
+                    adata_copy.obsm["X_pca"][:, 1],
+                    c=adata_copy.obs["age"],
+                    cmap="viridis",
                     s=1,
-                    alpha=0.6
+                    alpha=0.6,
                 )
-                axes[0].set_xlabel('PC1')
-                axes[0].set_ylabel('PC2')
-                axes[0].set_title('PCA - Colored by Age')
-                plt.colorbar(scatter, ax=axes[0], label='Age (days)')
+                axes[0].set_xlabel("PC1")
+                axes[0].set_ylabel("PC2")
+                axes[0].set_title("PCA - Colored by Age")
+                plt.colorbar(scatter, ax=axes[0], label="Age (days)")
 
             # UMAP colored by genotype
-            if 'genotype' in adata_copy.obs.columns:
-                genotypes = adata_copy.obs['genotype'].unique()
+            if "genotype" in adata_copy.obs.columns:
+                genotypes = adata_copy.obs["genotype"].unique()
                 colors = plt.cm.Set1(np.linspace(0, 1, len(genotypes)))
 
                 for i, genotype in enumerate(genotypes):
-                    mask = adata_copy.obs['genotype'] == genotype
+                    mask = adata_copy.obs["genotype"] == genotype
                     axes[1].scatter(
-                        adata_copy.obsm['X_umap'][mask, 0],
-                        adata_copy.obsm['X_umap'][mask, 1],
+                        adata_copy.obsm["X_umap"][mask, 0],
+                        adata_copy.obsm["X_umap"][mask, 1],
                         c=[colors[i]],
                         label=genotype,
                         s=1,
-                        alpha=0.6
+                        alpha=0.6,
                     )
 
-                axes[1].set_xlabel('UMAP1')
-                axes[1].set_ylabel('UMAP2')
-                axes[1].set_title('UMAP - Colored by Genotype')
+                axes[1].set_xlabel("UMAP1")
+                axes[1].set_ylabel("UMAP2")
+                axes[1].set_title("UMAP - Colored by Genotype")
                 axes[1].legend()
 
             plt.tight_layout()
             output_path = Path(self.output_dir)
-            fig.savefig(output_path / "dimensionality_reduction.png", dpi=150, bbox_inches='tight')
+            fig.savefig(
+                output_path / "dimensionality_reduction.png",
+                dpi=150,
+                bbox_inches="tight",
+            )
             plt.close()
 
             self.eda_results["visualizations"].append("dimensionality_reduction.png")
@@ -650,7 +669,11 @@ class EDAHandler:
 
         # Find top expressed genes
         top_genes_idx = np.argsort(gene_means)[-20:]
-        top_genes = data.var_names[top_genes_idx].tolist() if hasattr(data, 'var_names') else [f"Gene_{i}" for i in top_genes_idx]
+        top_genes = (
+            data.var_names[top_genes_idx].tolist()
+            if hasattr(data, "var_names")
+            else [f"Gene_{i}" for i in top_genes_idx]
+        )
         top_expressions = gene_means[top_genes_idx]
 
         # Create bar plot of top genes
@@ -659,23 +682,29 @@ class EDAHandler:
         ax.barh(y_pos, top_expressions)
         ax.set_yticks(y_pos)
         ax.set_yticklabels(top_genes)
-        ax.set_xlabel('Mean Expression')
-        ax.set_title('Top 20 Expressed Genes')
+        ax.set_xlabel("Mean Expression")
+        ax.set_title("Top 20 Expressed Genes")
         plt.tight_layout()
 
         output_path = Path(self.output_dir)
-        fig.savefig(output_path / "top_expressed_genes.png", dpi=150, bbox_inches='tight')
+        fig.savefig(
+            output_path / "top_expressed_genes.png", dpi=150, bbox_inches="tight"
+        )
         plt.close()
 
         # Save gene statistics
-        gene_stats_df = pd.DataFrame({
-            'gene': data.var_names if hasattr(data, 'var_names') else [f"Gene_{i}" for i in range(len(gene_means))],
-            'mean_expression': gene_means,
-            'variance': gene_vars,
-            'cv': gene_vars / (gene_means + 1e-10)  # Coefficient of variation
-        })
+        gene_stats_df = pd.DataFrame(
+            {
+                "gene": data.var_names
+                if hasattr(data, "var_names")
+                else [f"Gene_{i}" for i in range(len(gene_means))],
+                "mean_expression": gene_means,
+                "variance": gene_vars,
+                "cv": gene_vars / (gene_means + 1e-10),  # Coefficient of variation
+            }
+        )
 
-        gene_stats_df = gene_stats_df.sort_values('mean_expression', ascending=False)
+        gene_stats_df = gene_stats_df.sort_values("mean_expression", ascending=False)
         gene_stats_df.head(100).to_csv(output_path / "top_genes.csv", index=False)
 
         self.eda_results["visualizations"].append("top_expressed_genes.png")
@@ -688,14 +717,14 @@ class EDAHandler:
         summary = {
             "timestamp": datetime.now().isoformat(),
             "config": {
-                "project": getattr(self.config, 'project', 'unknown'),
+                "project": getattr(self.config, "project", "unknown"),
                 "tissue": self.config.data.tissue,
                 "batch_corrected": self.config.data.batch_correction.enabled,
             },
-            "results": self.eda_results
+            "results": self.eda_results,
         }
 
-        with open(summary_file, 'w') as f:
+        with open(summary_file, "w") as f:
             json.dump(summary, f, indent=2, default=str)
 
     def generate_html_report(self, output_path=None):
@@ -712,7 +741,7 @@ class EDAHandler:
 
         html_content = self._generate_html_content()
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             f.write(html_content)
 
         print(f"   ✅ Report saved to: {output_path}")
@@ -728,7 +757,7 @@ class EDAHandler:
         for img_file in self.eda_results.get("visualizations", []):
             img_path = Path(self.output_dir) / img_file
             if img_path.exists():
-                with open(img_path, 'rb') as f:
+                with open(img_path, "rb") as f:
                     img_data = base64.b64encode(f.read()).decode()
                     embedded_images[img_file] = f"data:image/png;base64,{img_data}"
 
@@ -859,49 +888,79 @@ class EDAHandler:
         <h2>📊 Dataset Overview</h2>
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('n_samples', 0):,}</div>
+                <div class="stat-value">{
+            self.eda_results["summary"].get("n_samples", 0):,}</div>
                 <div class="stat-label">Total Samples</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('n_genes', 0):,}</div>
+                <div class="stat-value">{
+            self.eda_results["summary"].get("n_genes", 0):,}</div>
                 <div class="stat-label">Total Genes</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('memory_mb', 0):.1f} MB</div>
+                <div class="stat-value">{
+            self.eda_results["summary"].get("memory_mb", 0):.1f} MB</div>
                 <div class="stat-label">Memory Usage</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('sparsity', 0):.1%}</div>
+                <div class="stat-value">{
+            self.eda_results["summary"].get("sparsity", 0):.1%}</div>
                 <div class="stat-label">Sparsity</div>
             </div>
         </div>
 
-        {'<h3>Age Statistics</h3>' if 'age_mean' in self.eda_results['summary'] else ''}
-        {'<div class="stats-grid">' if 'age_mean' in self.eda_results['summary'] else ''}
-        {f'''
+        {"<h3>Age Statistics</h3>" if "age_mean" in self.eda_results["summary"] else ""}
+        {
+            '<div class="stats-grid">'
+            if "age_mean" in self.eda_results["summary"]
+            else ""
+        }
+        {
+            f'''
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('age_mean', 0):.1f}</div>
+                <div class="stat-value">{self.eda_results["summary"].get("age_mean", 0):.1f}</div>
                 <div class="stat-label">Mean Age (days)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('age_std', 0):.1f}</div>
+                <div class="stat-value">{self.eda_results["summary"].get("age_std", 0):.1f}</div>
                 <div class="stat-label">Std Dev</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{self.eda_results['summary'].get('age_min', 0):.0f}-{self.eda_results['summary'].get('age_max', 0):.0f}</div>
+                <div class="stat-value">{self.eda_results["summary"].get("age_min", 0):.0f}-{self.eda_results["summary"].get("age_max", 0):.0f}</div>
                 <div class="stat-label">Age Range</div>
             </div>
-        ''' if 'age_mean' in self.eda_results['summary'] else ''}
-        {'</div>' if 'age_mean' in self.eda_results['summary'] else ''}
+        '''
+            if "age_mean" in self.eda_results["summary"]
+            else ""
+        }
+        {"</div>" if "age_mean" in self.eda_results["summary"] else ""}
     </section>
 
     <section class="section">
         <h2>📈 Visualizations</h2>
 
-        {self._generate_visualization_section('age_distribution.png', 'Age Distribution', embedded_images)}
-        {self._generate_visualization_section('correlation_matrix.png', 'Gene Correlation Matrix', embedded_images)}
-        {self._generate_visualization_section('dimensionality_reduction.png', 'Dimensionality Reduction', embedded_images)}
-        {self._generate_visualization_section('top_expressed_genes.png', 'Top Expressed Genes', embedded_images)}
+        {
+            self._generate_visualization_section(
+                "age_distribution.png", "Age Distribution", embedded_images
+            )
+        }
+        {
+            self._generate_visualization_section(
+                "correlation_matrix.png", "Gene Correlation Matrix", embedded_images
+            )
+        }
+        {
+            self._generate_visualization_section(
+                "dimensionality_reduction.png",
+                "Dimensionality Reduction",
+                embedded_images,
+            )
+        }
+        {
+            self._generate_visualization_section(
+                "top_expressed_genes.png", "Top Expressed Genes", embedded_images
+            )
+        }
     </section>
 
     <section class="section">
@@ -915,7 +974,7 @@ class EDAHandler:
     </section>
 
     <div class="timestamp">
-        Report generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        Report generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
     </div>
 </body>
 </html>
@@ -931,4 +990,4 @@ class EDAHandler:
             <img src="{embedded_images[img_file]}" alt="{title}">
         </div>
             '''
-        return ''
+        return ""

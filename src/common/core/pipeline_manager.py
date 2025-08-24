@@ -56,6 +56,7 @@ class PipelineManager:
         try:
             from common.analysis import EDAHandler, Visualizer
             from common.evaluation import Interpreter, Metrics
+
             self.eda_handler_class = EDAHandler
             self.interpreter_class = Interpreter
             self.metrics_class = Metrics
@@ -195,13 +196,12 @@ class PipelineManager:
             del self.adata
             # Keep adata_eval and adata_eval_corrected for auto-evaluation
             del self.adata_original
-            if (
-                hasattr(self, "adata_corrected")
-                and self.adata_corrected is not None
-            ):
+            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
                 del self.adata_corrected
             # Keep both adata_eval and adata_eval_corrected for auto-evaluation
-            logger.info("Preserving adata_eval and adata_eval_corrected for auto-evaluation")
+            logger.info(
+                "Preserving adata_eval and adata_eval_corrected for auto-evaluation"
+            )
 
             import gc
 
@@ -242,7 +242,9 @@ class PipelineManager:
                 self.is_scaler_fit,
                 self.highly_variable_genes,
                 self.mix_included,
-                getattr(self, 'train_gene_names', None),  # Use training gene names if available
+                getattr(
+                    self, "train_gene_names", None
+                ),  # Use training gene names if available
             )
             logger.info("Final evaluation data preprocessed successfully.")
 
@@ -388,7 +390,7 @@ class PipelineManager:
             # Set num_features and gene names for auto-evaluation
             self.num_features = self.train_data.shape[1]
             # Store the exact gene names used in training for consistent evaluation
-            if hasattr(self.data_preprocessor, 'train_gene_names'):
+            if hasattr(self.data_preprocessor, "train_gene_names"):
                 self.train_gene_names = self.data_preprocessor.train_gene_names
             else:
                 self.train_gene_names = None
@@ -405,13 +407,15 @@ class PipelineManager:
     def _save_training_visuals(self, result_type="recent"):
         """
         Save training-specific visualizations (loss curves, etc.) after model training.
-        
+
         Args:
             result_type: "recent" or "best" - where to save the training visuals
         """
         try:
             if self.visualizer_class is None:
-                logger.warning("Visualizer class not available, skipping training visualizations")
+                logger.warning(
+                    "Visualizer class not available, skipping training visualizations"
+                )
                 return
 
             # Create visualizer for training plots only, set to evaluation context for proper directory
@@ -434,7 +438,9 @@ class PipelineManager:
 
             # Generate only training-specific plots (loss curves, accuracy curves)
             visualizer._visualize_training_history()
-            logger.info(f"Training visualizations saved successfully to {result_type} directory.")
+            logger.info(
+                f"Training visualizations saved successfully to {result_type} directory."
+            )
 
         except Exception as e:
             logger.warning(f"Failed to save training visualizations: {e}")
@@ -445,11 +451,15 @@ class PipelineManager:
         """
         try:
             if self.visualizer_class is None:
-                logger.warning("Visualizer class not available, skipping training visualizations")
+                logger.warning(
+                    "Visualizer class not available, skipping training visualizations"
+                )
                 return
 
             # Create training directory in experiment
-            training_dir = self.path_manager.get_experiment_training_dir(self.experiment_name)
+            training_dir = self.path_manager.get_experiment_training_dir(
+                self.experiment_name
+            )
             os.makedirs(training_dir, exist_ok=True)
 
             # Create visualizer with experiment training directory
@@ -485,23 +495,31 @@ class PipelineManager:
             # Save experiment metadata
             training_data = {
                 "training": {
-                    "epochs_run": len(self.history.history.get('loss', [])),
-                    "best_epoch": getattr(self, 'best_epoch', None),
-                    "best_val_loss": min(self.history.history.get('val_loss', [float('inf')])),
+                    "epochs_run": len(self.history.history.get("loss", [])),
+                    "best_epoch": getattr(self, "best_epoch", None),
+                    "best_val_loss": min(
+                        self.history.history.get("val_loss", [float("inf")])
+                    ),
                     "model_improved": self.model_improved,
                 },
                 "evaluation": {
-                    "mae": getattr(self, 'last_mae', None),
-                    "r2": getattr(self, 'last_r2', None),
-                    "pearson": getattr(self, 'last_pearson', None),
-                }
+                    "mae": getattr(self, "last_mae", None),
+                    "r2": getattr(self, "last_r2", None),
+                    "pearson": getattr(self, "last_pearson", None),
+                },
             }
-            self.path_manager.save_experiment_metadata(self.experiment_name, training_data)
+            self.path_manager.save_experiment_metadata(
+                self.experiment_name, training_data
+            )
 
             # Save model only if it improved and policy allows
-            should_save_model = self.storage_manager.should_save_model(self.model_improved)
+            should_save_model = self.storage_manager.should_save_model(
+                self.model_improved
+            )
             if should_save_model:
-                model_path = self.path_manager.get_experiment_model_path(self.experiment_name)
+                model_path = self.path_manager.get_experiment_model_path(
+                    self.experiment_name
+                )
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 self.model.save(model_path)
                 logger.info(f"Model saved to {model_path}")
@@ -520,7 +538,8 @@ class PipelineManager:
             experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
             config_path = Path(experiment_dir) / "config.yaml"
             import yaml
-            with open(config_path, 'w') as f:
+
+            with open(config_path, "w") as f:
                 yaml.dump(self.config_instance.to_dict(), f, default_flow_style=False)
 
         except Exception as e:
@@ -532,13 +551,16 @@ class PipelineManager:
         """
         try:
             # Create evaluation directory
-            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
+            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
+                self.experiment_name
+            )
             plots_dir = self.path_manager.get_experiment_plots_dir(self.experiment_name)
             os.makedirs(evaluation_dir, exist_ok=True)
             os.makedirs(plots_dir, exist_ok=True)
 
             # Run metrics and save to experiment directory
             from common.evaluation import Metrics
+
             metrics = Metrics(
                 self.config_instance,
                 self.model,
@@ -546,17 +568,17 @@ class PipelineManager:
                 self.test_labels,
                 self.label_encoder,
                 self.path_manager,
-                output_dir=evaluation_dir
+                output_dir=evaluation_dir,
             )
 
             # Run metrics
             metrics.run()
 
             # Store metrics for metadata
-            if hasattr(metrics, 'mae'):
+            if hasattr(metrics, "mae"):
                 self.last_mae = metrics.mae
-                self.last_r2 = getattr(metrics, 'r2_score', None)
-                self.last_pearson = getattr(metrics, 'pearson_correlation', None)
+                self.last_r2 = getattr(metrics, "r2_score", None)
+                self.last_pearson = getattr(metrics, "pearson_correlation", None)
 
             # Run visualizations if enabled
             if getattr(self.config_instance.visualizations, "enabled", False):
@@ -592,7 +614,7 @@ class PipelineManager:
         """
         try:
             # Check if we have evaluation data available
-            if not hasattr(self, 'adata_eval') or self.adata_eval is None:
+            if not hasattr(self, "adata_eval") or self.adata_eval is None:
                 logger.warning("No evaluation data available for auto-evaluation")
                 return
 
@@ -602,12 +624,13 @@ class PipelineManager:
             )
             evaluation_dataset = (
                 self.adata_eval_corrected
-                if batch_correction_enabled and hasattr(self, 'adata_eval_corrected')
+                if batch_correction_enabled and hasattr(self, "adata_eval_corrected")
                 else self.adata_eval
             )
 
             # Process EVALUATION data using fitted training components (no data leakage)
             from common.data.preprocessing import DataPreprocessor
+
             data_preprocessor = DataPreprocessor(self.config_instance, None, None)
 
             (
@@ -615,14 +638,16 @@ class PipelineManager:
                 self.test_labels,
                 self.label_encoder,
             ) = data_preprocessor.prepare_final_eval_data(
-                evaluation_dataset,     # Pass evaluation data (not training data)
-                self.label_encoder,     # Use fitted encoder from training
-                self.num_features,      # Use features from training
-                self.scaler,           # Use fitted scaler from training
+                evaluation_dataset,  # Pass evaluation data (not training data)
+                self.label_encoder,  # Use fitted encoder from training
+                self.num_features,  # Use features from training
+                self.scaler,  # Use fitted scaler from training
                 self.is_scaler_fit,
                 self.highly_variable_genes,  # Use selected genes from training
                 self.mix_included,
-                getattr(self, 'train_gene_names', None),  # Use exact gene names from training
+                getattr(
+                    self, "train_gene_names", None
+                ),  # Use exact gene names from training
             )
 
             logger.info("Final evaluation data preprocessed successfully.")
@@ -640,7 +665,9 @@ class PipelineManager:
                 self.run_visualizations()
 
             # Run project-specific analysis
-            if getattr(self.config_instance.analysis.run_analysis_script, "enabled", False):
+            if getattr(
+                self.config_instance.analysis.run_analysis_script, "enabled", False
+            ):
                 self.run_analysis_script()
 
             logger.info("Post-training evaluation completed successfully.")
@@ -648,9 +675,13 @@ class PipelineManager:
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
                 del self.adata_eval
-            if hasattr(self, "adata_eval_corrected") and self.adata_eval_corrected is not None:
+            if (
+                hasattr(self, "adata_eval_corrected")
+                and self.adata_eval_corrected is not None
+            ):
                 del self.adata_eval_corrected
             import gc
+
             gc.collect()
             logger.info("Evaluation data cleanup complete after auto-evaluation.")
 
@@ -660,17 +691,22 @@ class PipelineManager:
 
             # Cleanup old experiments if enabled
             try:
-                if getattr(self.config_instance.storage.cleanup_policy, "auto_cleanup", False):
+                if getattr(
+                    self.config_instance.storage.cleanup_policy, "auto_cleanup", False
+                ):
                     cleanup_results = self.storage_manager.cleanup_experiments()
                     if cleanup_results["cleaned"] > 0:
-                        logger.info(f"Cleaned up {cleanup_results['cleaned']} old experiments")
+                        logger.info(
+                            f"Cleaned up {cleanup_results['cleaned']} old experiments"
+                        )
             except Exception:
                 pass  # Cleanup is optional
 
         except Exception as e:
             logger.warning(f"Post-training evaluation failed: {e}")
-            logger.info("You can still run 'evaluate' command manually for full evaluation.")
-
+            logger.info(
+                "You can still run 'evaluate' command manually for full evaluation."
+            )
 
     def load_or_train_model(self):
         """
@@ -693,7 +729,9 @@ class PipelineManager:
             try:
                 logger.info("Starting SHAP interpretation...")
                 if self.interpreter_class is None:
-                    logger.warning("Interpreter class not available, skipping SHAP interpretation")
+                    logger.warning(
+                        "Interpreter class not available, skipping SHAP interpretation"
+                    )
                     return
 
                 # Initialize the Interpreter with the best model and data
@@ -746,7 +784,9 @@ class PipelineManager:
             adata_corrected = getattr(self, "adata_corrected", None)
 
             if self.visualizer_class is None:
-                logger.warning("Visualizer class not available, skipping visualizations")
+                logger.warning(
+                    "Visualizer class not available, skipping visualizations"
+                )
                 return
 
             visualizer = self.visualizer_class(
@@ -765,7 +805,7 @@ class PipelineManager:
             )
 
             # Set the evaluation context for proper directory structure
-            visualizer.set_evaluation_context(getattr(self, 'experiment_name', None))
+            visualizer.set_evaluation_context(getattr(self, "experiment_name", None))
 
             visualizer.run()
             logger.info("Visualizations completed.")
@@ -775,18 +815,22 @@ class PipelineManager:
     def run_metrics(self, result_type="recent"):
         """
         Compute and display evaluation metrics for the model.
-        
+
         Args:
             result_type: "recent" (standalone evaluation) or "best" (post-training)
         """
         try:
             logger.info("Computing evaluation metrics...")
             if self.metrics_class is None:
-                logger.warning("Metrics class not available, skipping metrics computation")
+                logger.warning(
+                    "Metrics class not available, skipping metrics computation"
+                )
                 return
 
             # Get experiment evaluation directory for this result type
-            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
+            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
+                self.experiment_name
+            )
 
             metrics = self.metrics_class(
                 self.config_instance,
@@ -796,7 +840,7 @@ class PipelineManager:
                 self.label_encoder,
                 self.path_manager,
                 result_type,
-                output_dir=evaluation_dir
+                output_dir=evaluation_dir,
             )
             metrics.compute_metrics()
             logger.info("Evaluation metrics computed successfully.")
@@ -845,8 +889,10 @@ class PipelineManager:
         """
         try:
             # Check for custom analysis script first
-            if hasattr(self.config_instance, '_custom_analysis_script'):
-                self._run_custom_analysis_script(self.config_instance._custom_analysis_script)
+            if hasattr(self.config_instance, "_custom_analysis_script"):
+                self._run_custom_analysis_script(
+                    self.config_instance._custom_analysis_script
+                )
                 return
 
             logger.info("Running project-specific analysis script...")
@@ -856,6 +902,7 @@ class PipelineManager:
 
             # Look for templates/{project}_analysis.py
             from pathlib import Path
+
             template_path = Path("templates") / f"{project_name}_analysis.py"
 
             if template_path.exists():
@@ -866,7 +913,9 @@ class PipelineManager:
                 logger.info("Available templates:")
                 templates_dir = Path("templates")
                 if templates_dir.exists():
-                    template_files = [f.name for f in templates_dir.glob("*_analysis.py")]
+                    template_files = [
+                        f.name for f in templates_dir.glob("*_analysis.py")
+                    ]
                     if template_files:
                         for template_file in template_files:
                             logger.info(f"  - {template_file}")
@@ -880,7 +929,7 @@ class PipelineManager:
     def _run_custom_analysis_script(self, script_path: str):
         """
         Run a custom analysis script provided by the user.
-        
+
         Args:
             script_path: Path to the custom analysis Python file
         """
@@ -894,29 +943,35 @@ class PipelineManager:
                 logger.error(f"Custom analysis script not found: {script_path}")
                 return
 
-            if not script_path.suffix == '.py':
-                logger.error(f"Custom analysis script must be a .py file: {script_path}")
+            if not script_path.suffix == ".py":
+                logger.error(
+                    f"Custom analysis script must be a .py file: {script_path}"
+                )
                 return
 
             logger.info(f"Running custom analysis script: {script_path}")
 
             # Import the custom script as a module
-            spec = importlib.util.spec_from_file_location("custom_analysis", script_path)
+            spec = importlib.util.spec_from_file_location(
+                "custom_analysis", script_path
+            )
             custom_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(custom_module)
 
             # Look for a run_analysis function
-            if hasattr(custom_module, 'run_analysis'):
+            if hasattr(custom_module, "run_analysis"):
                 # Call with pipeline manager context
                 custom_module.run_analysis(
-                    model=getattr(self, 'model', None),
+                    model=getattr(self, "model", None),
                     config=self.config_instance,
-                    path_manager=getattr(self, 'path_manager', None),
-                    pipeline=self
+                    path_manager=getattr(self, "path_manager", None),
+                    pipeline=self,
                 )
                 logger.info("Custom analysis script completed successfully.")
             else:
-                logger.error("Custom analysis script must define a 'run_analysis' function")
+                logger.error(
+                    "Custom analysis script must define a 'run_analysis' function"
+                )
 
         except Exception as e:
             logger.error(f"Error running custom analysis script: {e}")
@@ -925,7 +980,7 @@ class PipelineManager:
     def run_evaluation(self) -> dict[str, Any]:
         """
         Run evaluation-only pipeline that uses pre-trained model on holdout data.
-        
+
         Returns:
             Dict containing model path and results path
         """
@@ -967,7 +1022,9 @@ class PipelineManager:
             self.display_duration(start_time, end_time)
 
             # Return paths for CLI feedback
-            experiment_dir = self.path_manager.get_experiment_dir(getattr(self, 'experiment_name', None))
+            experiment_dir = self.path_manager.get_experiment_dir(
+                getattr(self, "experiment_name", None)
+            )
 
             return {
                 "model_path": experiment_dir,
@@ -1011,18 +1068,22 @@ class PipelineManager:
             self.display_duration(start_time, end_time)
 
             # Return paths for CLI feedback
-            experiment_dir = self.path_manager.get_experiment_dir(getattr(self, 'experiment_name', None))
+            experiment_dir = self.path_manager.get_experiment_dir(
+                getattr(self, "experiment_name", None)
+            )
 
             return_dict = {
                 "model_path": experiment_dir,
                 "results_path": os.path.join(experiment_dir, "evaluation"),
                 "duration": end_time - start_time,
-                "model_improved": getattr(self, 'model_improved', False),
+                "model_improved": getattr(self, "model_improved", False),
             }
 
             # Add best symlink info if model improved
-            if getattr(self, 'model_improved', False):
-                return_dict["best_results_path"] = os.path.join(experiment_dir, "evaluation")
+            if getattr(self, "model_improved", False):
+                return_dict["best_results_path"] = os.path.join(
+                    experiment_dir, "evaluation"
+                )
 
             return return_dict
 
