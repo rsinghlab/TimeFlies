@@ -23,6 +23,7 @@ source .activate.sh
 
 ### Basic Usage
 
+**Command Line Interface:**
 ```bash
 # Complete setup workflow
 timeflies setup [--batch-correct]
@@ -36,6 +37,15 @@ timeflies evaluate [--with-eda --with-analysis]
 # Run project-specific analysis
 timeflies analyze
 ```
+
+**Graphical User Interface (Alternative):**
+For users who prefer a GUI, double-click `TimeFlies_Launcher.py` to open a user-friendly graphical interface with:
+- Installation wizard with progress tracking
+- Point-and-click analysis workflow
+- Results browser and visualization tools
+- Built-in help and documentation
+
+Both interfaces provide identical functionality - choose what works best for you.
 
 ## Research Workflow
 
