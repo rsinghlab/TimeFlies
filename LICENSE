@@ -1,30 +1,41 @@
-TimeFlies Research License
+TimeFlies Academic Research License
 
-Copyright (c) 2025 Singh Lab
+Copyright (c) 2025 Singh Lab, Brown University
+Authors: Nikolai Tennant, Singh Lab
 
-ACADEMIC AND RESEARCH USE ONLY
+PRE-PUBLICATION RESTRICTED LICENSE
 
-This software is proprietary and confidential. Permission is granted solely for
-academic research and educational use by individuals or institutions engaged in
-non-commercial research activities.
+This software is currently under peer review for academic publication.
+Until publication, access is restricted to authorized research collaborators only.
 
-RESTRICTIONS:
-- Commercial use, distribution, or deployment is prohibited without explicit
-  written permission from the copyright holder
-- Redistribution in any form is prohibited without explicit written permission
-- Modification and derivative works are permitted only for academic research
-- All derivative works must retain this license and copyright notice
+CURRENT RESTRICTIONS (Pre-Publication):
+- Distribution outside authorized collaborators is strictly prohibited
+- Commercial use, deployment, or redistribution is strictly prohibited
+- Fork, copy, or derivative distribution is strictly prohibited
+- Access is granted only for peer review and research collaboration
+
+POST-PUBLICATION TERMS (Will apply after paper publication):
+- Academic and non-commercial research use permitted
+- Commercial use requires separate licensing agreement
+- Modifications permitted for academic research only
+- All derivative works must retain this copyright and license notice
 
 CITATION REQUIREMENT:
-If you use this software in academic work, you must cite the original publication
-when it becomes available. Contact authors for pre-publication citation guidelines.
+Any academic use must cite the original TimeFlies publication. For pre-publication
+citations, contact: nikolai_tennant@alumni.brown.edu
+
+TRANSITION NOTICE:
+Upon publication of the associated research paper, this license will automatically
+transition to permit broader academic use while maintaining commercial restrictions.
+
+CONTACT:
+- Academic collaboration: nikolai_tennant@alumni.brown.edu
+- Commercial licensing: nikolai_tennant@alumni.brown.edu
+- Singh Lab inquiries: [lab contact if different]
 
 DISCLAIMER:
-This software is provided "as is" without warranty of any kind, express or
-implied. The authors are not liable for any claim, damages, or other liability
-arising from the use of this software.
+This software is provided "as is" without warranty of any kind. The authors are
+not liable for any claim, damages, or liability arising from the use of this software.
 
-For commercial licensing or other permissions, contact: [your-email@institution.edu]
-
-THE SOFTWARE IS CURRENTLY UNDER REVIEW FOR PUBLICATION. DISTRIBUTION OR USE
-OUTSIDE OF AUTHORIZED RESEARCH COLLABORATIONS IS STRICTLY PROHIBITED.
+VERSION: Pre-Publication Restricted (v1.0-restricted)
+LAST UPDATED: January 2025
