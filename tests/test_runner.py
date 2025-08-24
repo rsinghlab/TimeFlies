@@ -30,7 +30,7 @@ def get_batch_correction_tests():
                         or "batchcorrector" in content
                     ):
                         batch_tests.append(str(test_file))
-                except:
+                except (OSError, UnicodeDecodeError):
                     continue
 
     return list(set(batch_tests))  # Remove duplicates

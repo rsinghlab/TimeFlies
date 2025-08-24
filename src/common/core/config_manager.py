@@ -280,7 +280,7 @@ class ConfigManager:
                         "📝 You can now edit ./config.yaml to customize your project settings"
                     )
                     return
-            except:
+            except (OSError, yaml.YAMLError):
                 pass
                 # Create minimal default config if no source found
                 default_config = project_config
