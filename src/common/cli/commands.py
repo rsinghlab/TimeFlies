@@ -485,6 +485,14 @@ def new_setup_command(args) -> int:
     print("=" * 50)
     print("Setting up your TimeFlies environment...")
 
+    # 0. Create user configuration and templates
+    print("\n0️⃣ Setting up configuration and templates...")
+    setup_result = setup_user_environment()
+    if setup_result != 0:
+        print("❌ User environment setup failed.")
+        return setup_result
+    print("✅ Configuration and templates ready")
+
     # 1. Create data splits
     print("\n1️⃣ Creating data splits...")
     split_result = split_command(args)
@@ -1844,6 +1852,67 @@ def create_project_directories():
 
     for dir_path in directories:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
+
+
+def setup_user_environment():
+    """Create user configuration and templates."""
+    import shutil
+    from pathlib import Path
+    
+    try:
+        # Create config.yaml if it doesn't exist
+        config_file = Path("config.yaml")
+        if not config_file.exists():
+            print("   📋 Creating config.yaml...")
+            # Find source config from TimeFlies installation
+            source_configs = [
+                Path(__file__).parent.parent.parent.parent / "configs" / "default.yaml",  # repo structure
+                Path(__file__).parent.parent.parent / "configs" / "default.yaml",         # installed structure
+            ]
+            
+            for source_config in source_configs:
+                if source_config.exists():
+                    shutil.copy2(source_config, config_file)
+                    print("      ✅ Created config.yaml from TimeFlies defaults")
+                    break
+            else:
+                print("      ❌ Could not find default config template")
+                return 1
+        else:
+            print("   📋 config.yaml already exists")
+
+        # Create templates directory if it doesn't exist
+        templates_dir = Path("templates")
+        if not templates_dir.exists():
+            print("   📄 Creating templates directory...")
+            templates_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Find source templates from TimeFlies installation
+            source_templates_dirs = [
+                Path(__file__).parent.parent.parent.parent / "templates",  # repo structure
+                Path(__file__).parent.parent.parent / "templates",         # installed structure
+            ]
+            
+            for source_templates_dir in source_templates_dirs:
+                if source_templates_dir.exists():
+                    print("      📂 Copying analysis templates...")
+                    # Copy all template files
+                    for template_file in source_templates_dir.glob("*"):
+                        if template_file.is_file():
+                            shutil.copy2(template_file, templates_dir / template_file.name)
+                            print(f"         ✅ {template_file.name}")
+                    break
+            else:
+                print("      ⚠️  Could not find templates directory")
+                print("      ℹ️  You can create custom analysis scripts in templates/ manually")
+        else:
+            print("   📄 templates/ directory already exists")
+
+        return 0
+        
+    except Exception as e:
+        print(f"   ❌ Setup failed: {e}")
+        return 1
 
 
 def create_activation_scripts():
