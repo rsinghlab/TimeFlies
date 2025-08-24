@@ -36,7 +36,7 @@ class TimeFliesLauncher:
 
         title_label = tk.Label(
             title_frame,
-            text="🧬 TimeFlies - Machine Learning for Aging Analysis",
+            text="TimeFlies - Machine Learning for Aging Analysis",
             font=("Arial", 16, "bold"),
             fg="white",
             bg="#2c3e50",
@@ -49,22 +49,22 @@ class TimeFliesLauncher:
 
         # Installation tab
         install_frame = ttk.Frame(notebook)
-        notebook.add(install_frame, text="📥 Installation")
+        notebook.add(install_frame, text="Installation")
         self.setup_install_tab(install_frame)
 
         # Analysis tab
         analysis_frame = ttk.Frame(notebook)
-        notebook.add(analysis_frame, text="🔬 Run Analysis")
+        notebook.add(analysis_frame, text="Run Analysis")
         self.setup_analysis_tab(analysis_frame)
 
         # Results tab
         results_frame = ttk.Frame(notebook)
-        notebook.add(results_frame, text="📊 View Results")
+        notebook.add(results_frame, text="View Results")
         self.setup_results_tab(results_frame)
 
         # Help tab
         help_frame = ttk.Frame(notebook)
-        notebook.add(help_frame, text="❓ Help")
+        notebook.add(help_frame, text="Help")
         self.setup_help_tab(help_frame)
 
     def setup_install_tab(self, parent):
@@ -87,21 +87,21 @@ class TimeFliesLauncher:
 
         ttk.Button(
             options_frame,
-            text="🚀 Quick Install (Recommended)",
+            text="Quick Install (Recommended)",
             command=self.quick_install,
             width=30,
         ).pack(pady=5)
 
         ttk.Button(
             options_frame,
-            text="📁 Choose Installation Directory",
+            text="Choose Installation Directory",
             command=self.custom_install,
             width=30,
         ).pack(pady=5)
 
         ttk.Button(
             options_frame,
-            text="✅ Verify Existing Installation",
+            text="Verify Existing Installation",
             command=self.verify_install,
             width=30,
         ).pack(pady=5)
@@ -145,33 +145,80 @@ class TimeFliesLauncher:
             side="right", padx=(10, 0)
         )
 
+        # Analysis options
+        options_frame = ttk.LabelFrame(parent, text="Analysis Options", padding=10)
+        options_frame.pack(fill="x", padx=10, pady=10)
+
+        # Option checkboxes
+        self.with_eda = tk.BooleanVar(value=True)
+        self.with_analysis = tk.BooleanVar(value=True)
+        self.interpret = tk.BooleanVar(value=False)
+        self.visualize = tk.BooleanVar(value=True)
+        self.save_report = tk.BooleanVar(value=True)
+
+        options_left = tk.Frame(options_frame)
+        options_left.pack(side="left", fill="x", expand=True)
+
+        ttk.Checkbutton(
+            options_left, text="Include EDA analysis", variable=self.with_eda
+        ).pack(anchor="w")
+        ttk.Checkbutton(
+            options_left, text="Include post-analysis", variable=self.with_analysis
+        ).pack(anchor="w")
+        ttk.Checkbutton(
+            options_left, text="Save EDA report", variable=self.save_report
+        ).pack(anchor="w")
+
+        options_right = tk.Frame(options_frame)
+        options_right.pack(side="right", fill="x", expand=True)
+
+        ttk.Checkbutton(
+            options_right, text="Enable SHAP interpretation", variable=self.interpret
+        ).pack(anchor="w")
+        ttk.Checkbutton(
+            options_right, text="Enable visualizations", variable=self.visualize
+        ).pack(anchor="w")
+
         # Analysis actions
         actions_frame = ttk.LabelFrame(parent, text="Analysis Actions", padding=10)
         actions_frame.pack(fill="x", padx=10, pady=10)
 
-        button_frame = tk.Frame(actions_frame)
-        button_frame.pack()
+        # Basic actions row
+        button_frame1 = tk.Frame(actions_frame)
+        button_frame1.pack(pady=5)
 
-        ttk.Button(button_frame, text="🔍 Verify Setup", command=self.run_verify).pack(
+        ttk.Button(button_frame1, text="Verify Setup", command=self.run_verify).pack(
             side="left", padx=5
         )
 
-        ttk.Button(button_frame, text="✂️ Split Data", command=self.run_split).pack(
+        ttk.Button(button_frame1, text="Split Data", command=self.run_split).pack(
             side="left", padx=5
         )
 
-        ttk.Button(button_frame, text="🧠 Train Model", command=self.run_train).pack(
+        ttk.Button(button_frame1, text="EDA Only", command=self.run_eda_only).pack(
             side="left", padx=5
         )
 
-        ttk.Button(button_frame, text="📊 Evaluate", command=self.run_evaluate).pack(
+        # Training and evaluation row
+        button_frame2 = tk.Frame(actions_frame)
+        button_frame2.pack(pady=5)
+
+        ttk.Button(button_frame2, text="Train Model", command=self.run_train).pack(
+            side="left", padx=5
+        )
+
+        ttk.Button(
+            button_frame2, text="Evaluate Model", command=self.run_evaluate
+        ).pack(side="left", padx=5)
+
+        ttk.Button(button_frame2, text="Run Analysis", command=self.run_analyze).pack(
             side="left", padx=5
         )
 
         # One-click analysis
         ttk.Button(
             actions_frame,
-            text="🚀 Run Complete Analysis (One-Click)",
+            text="Run Complete Workflow (One-Click)",
             command=self.run_complete_analysis,
             width=40,
         ).pack(pady=(10, 0))
@@ -183,28 +230,28 @@ class TimeFliesLauncher:
 
         ttk.Button(
             results_frame,
-            text="📁 Open Results Folder",
+            text="Open Results Folder",
             command=self.open_results_folder,
         ).pack(pady=5)
 
         ttk.Button(
             results_frame,
-            text="📓 Launch Jupyter Notebook",
+            text="Launch Jupyter Notebook",
             command=self.launch_jupyter,
         ).pack(pady=5)
 
         ttk.Button(
-            results_frame, text="📈 View SHAP Analysis", command=self.view_shap
+            results_frame, text="View SHAP Analysis", command=self.view_shap
         ).pack(pady=5)
 
         ttk.Button(
-            results_frame, text="📋 Generate Report", command=self.generate_report
+            results_frame, text="Generate Report", command=self.generate_report
         ).pack(pady=5)
 
     def setup_help_tab(self, parent):
         """Setup help and documentation tab."""
         help_text = """
-🧬 TimeFlies - Machine Learning for Aging Analysis
+TimeFlies - Machine Learning for Aging Analysis
 
 QUICK START:
 1. Click "Quick Install" in the Installation tab
@@ -294,7 +341,9 @@ TROUBLESHOOTING:
 
     def verify_install(self):
         """Verify existing installation."""
-        self.run_command(["timeflies", "verify"], "Installation verified!")
+        self.run_command(
+            ["python", "run_timeflies.py", "verify"], "Installation verified!"
+        )
 
     def browse_data_dir(self):
         """Browse for data directory."""
@@ -302,26 +351,64 @@ TROUBLESHOOTING:
         if directory:
             self.data_path.set(directory)
 
+    def build_command_flags(self):
+        """Build command flags based on checkbox selections."""
+        flags = []
+        if self.with_eda.get():
+            flags.append("--with-eda")
+        if self.with_analysis.get():
+            flags.append("--with-analysis")
+        if self.interpret.get():
+            flags.append("--interpret")
+        if self.visualize.get():
+            flags.append("--visualize")
+        return flags
+
     def run_verify(self):
-        self.run_command(["timeflies", "verify"], "Setup verification complete!")
+        self.run_command(
+            ["python", "run_timeflies.py", "verify"], "Setup verification complete!"
+        )
 
     def run_split(self):
-        self.run_command(["timeflies", "split"], "Data splitting complete!")
+        self.run_command(
+            ["python", "run_timeflies.py", "split"], "Data splitting complete!"
+        )
+
+    def run_eda_only(self):
+        cmd = ["python", "run_timeflies.py", "eda"]
+        if self.save_report.get():
+            cmd.append("--save-report")
+        self.run_command(cmd, "EDA analysis complete!")
 
     def run_train(self):
-        self.run_command(["timeflies", "train"], "Model training complete!")
+        cmd = ["python", "run_timeflies.py", "train"] + self.build_command_flags()
+        self.run_command(cmd, "Model training complete!")
 
     def run_evaluate(self):
-        self.run_command(["timeflies", "evaluate"], "Model evaluation complete!")
+        cmd = ["python", "run_timeflies.py", "evaluate"] + self.build_command_flags()
+        self.run_command(cmd, "Model evaluation complete!")
+
+    def run_analyze(self):
+        cmd = ["python", "run_timeflies.py", "analyze"] + self.build_command_flags()
+        self.run_command(cmd, "Analysis complete!")
 
     def run_complete_analysis(self):
-        """Run complete analysis workflow."""
+        """Run complete analysis workflow with selected options."""
         self.log_message("Starting complete analysis workflow...")
+
+        # Build commands with user-selected options
+        train_cmd = ["python", "run_timeflies.py", "train"] + self.build_command_flags()
+        evaluate_cmd = [
+            "python",
+            "run_timeflies.py",
+            "evaluate",
+        ] + self.build_command_flags()
+
         commands = [
-            (["timeflies", "verify"], "Setup verified"),
-            (["timeflies", "split"], "Data split complete"),
-            (["timeflies", "train"], "Training complete"),
-            (["timeflies", "evaluate"], "Evaluation complete"),
+            (["python", "run_timeflies.py", "verify"], "Setup verified"),
+            (["python", "run_timeflies.py", "split"], "Data split complete"),
+            (train_cmd, "Training complete"),
+            (evaluate_cmd, "Evaluation complete"),
         ]
 
         def run_sequence():
@@ -330,15 +417,15 @@ TROUBLESHOOTING:
                 try:
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
-                        self.log_message(f"✅ {msg}")
+                        self.log_message(f"[OK] {msg}")
                     else:
-                        self.log_message(f"❌ Failed: {msg} - {result.stderr}")
+                        self.log_message(f"[ERROR] Failed: {msg} - {result.stderr}")
                         break
                 except Exception as e:
-                    self.log_message(f"❌ Error: {e}")
+                    self.log_message(f"[ERROR] Error: {e}")
                     break
             else:
-                self.log_message("🎉 Complete analysis finished successfully!")
+                self.log_message("SUCCESS: Complete analysis finished successfully!")
             self.progress_bar.stop()
 
         threading.Thread(target=run_sequence, daemon=True).start()
