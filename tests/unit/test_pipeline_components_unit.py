@@ -33,7 +33,7 @@ class TestPathManager:
 
         # Test tissue directory path
         tissue_dir = path_manager.get_tissue_directory()
-        assert isinstance(tissue_dir, (str, Path))
+        assert isinstance(tissue_dir, str | Path)
         assert "head" in str(tissue_dir)  # Based on config
 
     def test_get_file_path_train(self, aging_config):
@@ -68,14 +68,14 @@ class TestPathManager:
         path_manager = PathManager(aging_config)
 
         viz_dir = path_manager.get_visualization_directory()
-        assert isinstance(viz_dir, (str, Path))
+        assert isinstance(viz_dir, str | Path)
 
     def test_get_log_directory(self, aging_config):
         """Test log directory generation."""
         path_manager = PathManager(aging_config)
 
         log_dir = path_manager.get_log_directory()
-        assert isinstance(log_dir, (str, Path))
+        assert isinstance(log_dir, str | Path)
 
 
 @pytest.mark.unit
@@ -100,9 +100,7 @@ class TestGPUHandler:
         aging_config.hardware.processor = "GPU"
 
         with patch("tensorflow.config.list_physical_devices") as mock_tf:
-            with patch(
-                "tensorflow.config.experimental.set_memory_growth"
-            ) as mock_memory:
+            with patch("tensorflow.config.experimental.set_memory_growth"):
                 mock_tf.return_value = [Mock()]  # Mock GPU device
 
                 gpu_handler = GPUHandler(aging_config)
@@ -283,7 +281,7 @@ class TestPipelineManagerCore:
                     pipeline.adata = small_sample_anndata
                     pipeline.adata_corrected = small_sample_anndata.copy()
 
-                    result = pipeline.preprocess_data_for_training()
+                    pipeline.preprocess_data_for_training()
 
                     # Should process the data
                     mock_processor.assert_called_once()
@@ -460,7 +458,6 @@ class TestDataProcessingCore:
 
     def test_data_filtering_operations(self, large_sample_anndata):
         """Test data filtering operations."""
-        original_n_obs = large_sample_anndata.n_obs
 
         # Test cell filtering by sex
         male_cells = large_sample_anndata.obs["sex"] == "male"

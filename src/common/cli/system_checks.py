@@ -9,7 +9,6 @@ import importlib
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import pkg_resources
 
@@ -307,7 +306,7 @@ def check_analysis_templates() -> bool:
     other_templates = [
         f for f in templates_dir.glob("*.py") if not f.name.endswith("_analysis.py")
     ]
-    example_templates = list(templates_dir.glob("*example*.py"))
+    list(templates_dir.glob("*example*.py"))
     readme_files = list(templates_dir.glob("README*"))
 
     if other_templates or readme_files:

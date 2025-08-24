@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import yaml
 
@@ -224,7 +224,6 @@ class ConfigManager:
     def _ensure_user_configs(self) -> None:
         """Ensure user has a config.yaml in their project directory."""
         import shutil
-        import os
 
         # Skip config creation during tests or CI
         if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"):
@@ -284,6 +283,7 @@ class ConfigManager:
             except:
                 pass
                 # Create minimal default config if no source found
+                default_config = project_config
                 minimal_config = {
                     "project": "fruitfly_alzheimers",
                     "general": {"random_seed": 42, "log_level": "INFO"},

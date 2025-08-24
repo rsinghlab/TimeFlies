@@ -5,7 +5,7 @@ Specialized plotting and visualization methods for aging research in Drosophila.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np

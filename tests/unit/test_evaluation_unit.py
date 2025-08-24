@@ -9,7 +9,6 @@ import pandas as pd
 import pytest
 
 from common.analysis.eda import EDAHandler
-
 from common.evaluation.interpreter import Interpreter
 from common.evaluation.metrics import AgingMetrics
 
@@ -186,9 +185,9 @@ class TestAnalysisIntegration:
         # interpreter = Interpreter(aging_config)
 
         # Create mock model results
-        y_true = np.array([0, 1, 1, 0, 1])
-        y_pred = np.array([0, 1, 0, 0, 1])
-        y_proba = np.random.random((5, 2))
+        np.array([0, 1, 1, 0, 1])
+        np.array([0, 1, 0, 0, 1])
+        np.random.random((5, 2))
 
         try:
             # Test that calculator can be initialized
@@ -217,9 +216,7 @@ class TestAnalysisIntegration:
             y_pred = np.random.randint(0, 2, 20)
             y_proba = np.random.random((20, 2))
 
-            metrics = calculator.calculate_classification_metrics(
-                y_true, y_pred, y_proba
-            )
+            calculator.calculate_classification_metrics(y_true, y_pred, y_proba)
 
             # Should complete workflow
             assert True
@@ -247,7 +244,7 @@ class TestAnalysisIntegration:
         # Test workflow coordination
         try:
             # Simulate complete evaluation workflow
-            mock_results = {
+            {
                 "y_true": np.array([0, 1, 1, 0]),
                 "y_pred": np.array([0, 1, 0, 0]),
                 "y_proba": np.random.random((4, 2)),

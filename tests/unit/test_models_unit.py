@@ -580,7 +580,7 @@ class TestCustomModelCheckpoint:
         assert checkpoint.best_val_loss == float("inf")
         assert checkpoint.best_val_loss_path == self.best_val_loss_path
         assert checkpoint.label_encoder == self.label_encoder
-        assert checkpoint.model_improved == False
+        assert not checkpoint.model_improved
 
     def test_set_best_val_loss(self):
         """Test setting best validation loss."""

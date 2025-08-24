@@ -94,7 +94,7 @@ class TestCLICommandExecution:
 
         with patch("common.cli.commands.get_active_project") as mock_get_project:
             with patch("common.cli.commands.PipelineManager") as mock_pipeline:
-                with patch("common.cli.commands.print") as mock_print:
+                with patch("common.cli.commands.print"):
                     mock_get_project.return_value = "fruitfly_aging"
                     mock_pipeline_instance = Mock()
                     mock_pipeline.return_value = mock_pipeline_instance
@@ -119,7 +119,7 @@ class TestCLICommandExecution:
 
         with patch("common.cli.commands.get_active_project") as mock_get_project:
             with patch("common.cli.commands.PipelineManager") as mock_pipeline:
-                with patch("common.cli.commands.print") as mock_print:
+                with patch("common.cli.commands.print"):
                     mock_get_project.return_value = "fruitfly_aging"
                     mock_pipeline_instance = Mock()
                     mock_pipeline.return_value = mock_pipeline_instance
@@ -160,7 +160,7 @@ class TestCLIArgumentHandling:
         """Test parsing commands with various flags."""
         # Test verbose flag
         args = parse_arguments(["--verbose", "train"])
-        assert args.verbose == True
+        assert args.verbose
         assert args.command == "train"
 
         # Test project flags
@@ -182,7 +182,7 @@ class TestCLIArgumentHandling:
 
         # Test train with flags
         args = parser.parse_args(["--verbose", "train"])
-        assert args.verbose == True
+        assert args.verbose
         assert args.command == "train"
 
     def test_evaluate_command_arguments(self):
@@ -196,8 +196,8 @@ class TestCLIArgumentHandling:
         # Test evaluate with interpretation flags
         args = parser.parse_args(["evaluate", "--interpret", "--visualize"])
         assert args.command == "evaluate"
-        assert args.interpret == True
-        assert args.visualize == True
+        assert args.interpret
+        assert args.visualize
 
     def test_test_command_arguments(self):
         """Test test command specific arguments."""
@@ -425,7 +425,7 @@ class TestCommandValidation:
         for command in commands:
             # Test verbose flag with each command
             args = parse_arguments(["--verbose", command])
-            assert args.verbose == True
+            assert args.verbose
             assert args.command == command
 
     def test_help_flags(self):

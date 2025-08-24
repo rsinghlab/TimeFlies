@@ -430,7 +430,7 @@ class TestErrorHandlingIntegration:
         # Test with invalid config name
         try:
             config_manager = get_config_for_active_project("non_existent_config")
-            config = config_manager.get_config()
+            config_manager.get_config()
         except Exception as e:
             # Should raise appropriate error
             assert "not found" in str(e).lower() or "config" in str(e).lower()
@@ -439,7 +439,7 @@ class TestErrorHandlingIntegration:
         """Test CLI error handling."""
         # Test with invalid command (should exit gracefully)
         try:
-            result = main_cli(["invalid_command"])
+            main_cli(["invalid_command"])
         except SystemExit as e:
             # Should exit with error code
             assert e.code != 0

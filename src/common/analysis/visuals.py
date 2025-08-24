@@ -1,11 +1,8 @@
 import os
 import sys
 import warnings
-from common.utils.logging_config import get_logger
 
 import matplotlib.pyplot as plt
-
-logger = get_logger(__name__)
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -19,6 +16,10 @@ from sklearn.metrics import (
     roc_curve,
 )
 from sklearn.preprocessing import label_binarize
+
+from common.utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
@@ -455,7 +456,7 @@ class VisualizationTools:
         plt.plot(
             fpr["macro"],
             tpr["macro"],
-            label="macro-average ROC curve (area = {0:0.2f})".format(roc_auc["macro"]),
+            label="macro-average ROC curve (area = {:0.2f})".format(roc_auc["macro"]),
         )
         for i in range(n_classes):
             plt.plot(

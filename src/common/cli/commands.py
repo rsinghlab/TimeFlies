@@ -124,8 +124,12 @@ def execute_command(args) -> bool:
     except Exception as e:
         print(f"Command execution failed: {e}")
         return False
-    import os
+
+
+def verify_workflow_command(args) -> int:
+    """Verify the complete workflow setup and data integrity."""
     import logging
+    import os
     import warnings
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow logs
@@ -1020,7 +1024,7 @@ def evaluate_command(args, config) -> int:
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
         pipeline = PipelineManager(config)
-        results = pipeline.run_evaluation()
+        pipeline.run_evaluation()
 
         # Restore original config settings if overridden
         if original_shap is not None:
@@ -1145,7 +1149,7 @@ def analyze_command(args, config) -> int:
 
             # Initialize pipeline and run evaluation with analysis
             pipeline = PipelineManager(config)
-            results = pipeline.run_evaluation()
+            pipeline.run_evaluation()
 
             print("\n✅ Analysis completed successfully!")
             return 0
@@ -1825,7 +1829,6 @@ def setup_dev_environments() -> int:
 
         # Install main dependencies
         print("📦 Installing main dependencies...")
-        venv_python = ".venv/bin/python"
         venv_pip = ".venv/bin/pip"
 
         subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
@@ -1858,7 +1861,6 @@ def setup_dev_environments() -> int:
 
         # Install batch dependencies
         print("🧪 Installing batch correction dependencies...")
-        batch_python = ".venv_batch/bin/python"
         batch_pip = ".venv_batch/bin/pip"
 
         subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)

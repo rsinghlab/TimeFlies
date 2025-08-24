@@ -4,7 +4,7 @@ Aging-Specific Metrics Module
 Specialized evaluation metrics for aging research in Drosophila.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -311,7 +311,7 @@ class AgingMetrics:
         if method == "linear":
             # Linear trajectory metrics
             correlations = [t["correlation"] for t in all_trajectories.values()]
-            p_values = [t["p_value"] for t in all_trajectories.values()]
+            [t["p_value"] for t in all_trajectories.values()]
 
             metrics["mean_absolute_correlation"] = np.mean(np.abs(correlations))
             metrics["median_absolute_correlation"] = np.median(np.abs(correlations))
