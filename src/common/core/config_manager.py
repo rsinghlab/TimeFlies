@@ -1,6 +1,7 @@
 """Fruit Fly Aging project-specific configuration management."""
 
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Optional
 
@@ -223,7 +224,6 @@ class ConfigManager:
 
     def _ensure_user_configs(self) -> None:
         """Ensure user has a config.yaml in their project directory."""
-        import shutil
 
         # Skip config creation during tests or CI
         if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"):
@@ -260,10 +260,37 @@ class ConfigManager:
             try:
                 import subprocess
 
+                # Try to find TimeFlies installation directory dynamically
+                timeflies_root = None
+                try:
+                    import common
+
+                    timeflies_root = Path(common.__file__).parent.parent.parent
+                except (ImportError, AttributeError):
+                    # Fallback to searching from current directory upwards
+                    current = Path.cwd()
+                    for parent in [current] + list(current.parents):
+                        if (parent / "src" / "common").exists() and (
+                            parent / "configs"
+                        ).exists():
+                            timeflies_root = parent
+                            break
+
+                if timeflies_root:
+                    source_config = timeflies_root / "configs" / "default.yaml"
+                    if source_config.exists():
+                        shutil.copy2(source_config, project_config)
+                        print(f"✅ Created config.yaml from {source_config}")
+                        print(
+                            "CREATE: You can now edit ./config.yaml to customize your project settings"
+                        )
+                        return
+
+                # Final fallback: use find command with current directory
                 result = subprocess.run(
                     [
                         "find",
-                        "/home/nikolaitennant/projects/TimeFlies",
+                        ".",
                         "-name",
                         "default.yaml",
                         "-path",

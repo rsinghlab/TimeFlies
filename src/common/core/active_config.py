@@ -63,9 +63,10 @@ def get_active_project() -> str:
                 "No active_project.yaml found and no 'project' in default.yaml! "
                 "Please create configs/active_project.yaml or set 'project' in configs/default.yaml"
             )
-        except Exception:
+        except (FileNotFoundError, yaml.YAMLError, KeyError) as e:
             raise ConfigurationError(
-                "No active_project.yaml found! Please create configs/active_project.yaml "
+                f"Error reading configuration: {e}. "
+                "Please create configs/active_project.yaml "
                 "and set 'active_project' to either 'fruitfly_aging' or 'fruitfly_alzheimers'"
             )
 

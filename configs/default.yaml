@@ -11,7 +11,7 @@ project: fruitfly_alzheimers  # Options: fruitfly_aging, fruitfly_alzheimers
 
 general:
   project_name: TimeFlies
-  version: "0.2.0"
+  version: "1.0.0"
   random_state: 42
 
 # =============================================================================
