@@ -24,8 +24,6 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Configuration - Update these URLs for your repository
 REPO_URL="git@github.com:rsinghlab/TimeFlies.git"  # Main repository
-WHEEL_BRANCH="research"  # Branch containing the wheel file
-WHEEL_PATH="dist/timeflies-0.2.0-py3-none-any.whl"  # Path to wheel in repo
 MAIN_BRANCH="main"  # Main development branch
 
 # Detect OS
