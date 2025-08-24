@@ -1,23 +1,24 @@
 # interpreter.py
 
-import os
-import numpy as np
-from sklearn.dummy import DummyClassifier
-import shap
-import pickle
-import logging
 import hashlib
-from sklearn.preprocessing import label_binarize
-import pandas as pd
 import json
+import logging
+import os
+import pickle
+
+import numpy as np
+import pandas as pd
+import shap
+from sklearn.dummy import DummyClassifier
 from sklearn.metrics import (
-    classification_report,
     accuracy_score,
+    classification_report,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
 )
+from sklearn.preprocessing import label_binarize
 
 logger = logging.getLogger(__name__)
 

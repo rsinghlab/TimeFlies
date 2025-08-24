@@ -4,11 +4,13 @@ Aging-Specific Metrics Module
 Specialized evaluation metrics for aging research in Drosophila.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple, Any
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import scipy.stats as stats
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 from common.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -56,10 +58,10 @@ class AgingMetrics:
         if self.model is None or self.test_data is None or self.test_labels is None:
             logger.warning("Missing model or test data, skipping metrics computation")
             return
-            
+
         # Make predictions
         predictions = self.model.predict(self.test_data)
-        
+
         # For classification, get predicted classes
         if len(predictions.shape) > 1 and predictions.shape[1] > 1:
             predicted_classes = np.argmax(predictions, axis=1)
@@ -67,7 +69,7 @@ class AgingMetrics:
                 predicted_classes = self.label_encoder.inverse_transform(predicted_classes)
         else:
             predicted_classes = predictions.flatten()
-            
+
         # Get true labels - extract the actual values
         true_labels = self.test_labels
         if hasattr(self.test_labels, 'values'):
@@ -76,37 +78,37 @@ class AgingMetrics:
             true_labels = self.test_labels.to_numpy()
         elif hasattr(self.test_labels, '__array__'):
             true_labels = np.array(self.test_labels)
-            
+
         # If true_labels is 2D (one-hot encoded), get the class indices
         if len(true_labels.shape) > 1 and true_labels.shape[1] > 1:
             true_labels = np.argmax(true_labels, axis=1)
             if self.label_encoder:
                 true_labels = self.label_encoder.inverse_transform(true_labels)
-                
-        # Handle categorical true labels - convert to numeric if needed  
+
+        # Handle categorical true labels - convert to numeric if needed
         if hasattr(true_labels, 'dtype') and true_labels.dtype == 'object':
             # For age data, convert string ages to numeric
             try:
                 true_labels = true_labels.astype(float)
             except:
                 pass
-                    
+
         # Ensure both arrays are numeric and same type
         true_labels = np.asarray(true_labels, dtype=float).flatten()
         predicted_classes = np.asarray(predicted_classes, dtype=float).flatten()
-        
+
         # Debug logging
         logger.info(f"True labels shape: {true_labels.shape}, sample: {true_labels[:5]}")
         logger.info(f"Predicted classes shape: {predicted_classes.shape}, sample: {predicted_classes[:5]}")
-            
+
         # Compute age prediction metrics
         metrics = self.evaluate_age_prediction(true_labels, predicted_classes)
-        
+
         # Save metrics if path manager is available
         if self.path_manager:
             import json
             import os
-            
+
             # Use experiment-specific directory or fallback to global
             if self.output_dir:
                 metrics_dir = self.output_dir
@@ -116,70 +118,70 @@ class AgingMetrics:
                 output_root = self.path_manager.get_outputs_directory()
                 metrics_dir = os.path.join(output_root, "metrics")
                 metrics_filename = "evaluation_metrics.json"
-                
+
             os.makedirs(metrics_dir, exist_ok=True)
-            
+
             # Save metrics to JSON
             metrics_file = os.path.join(metrics_dir, metrics_filename)
             with open(metrics_file, 'w') as f:
                 json.dump(metrics, f, indent=2)
-                
+
             logger.info(f"Metrics saved to {metrics_file}")
-            
+
         # Save predictions to CSV for analysis scripts
         if self.path_manager:
             import pandas as pd
-            
+
             # Save predictions to experiment directory or fallback to old structure
             if self.output_dir:
                 results_dir = self.output_dir
             else:
                 # Fallback to old structure
                 results_dir = self.path_manager.get_results_dir(self.result_type, "eval")
-                
+
             os.makedirs(results_dir, exist_ok=True)
-            
+
             # Create predictions dataframe
             predictions_df = pd.DataFrame({
                 'actual_age': true_labels,
                 'predicted_age': predicted_classes,
                 'prediction_error': predicted_classes - true_labels
             })
-            
+
             # Add genotype information based on project and split method
             project = getattr(self.config, 'project', 'unknown')
             split_method = getattr(self.config.data.split, 'method', 'random')
-            
+
             # Debug logging
             logger.info(f"Project: {project}, Split method: {split_method}")
-            
+
             if project == 'fruitfly_alzheimers' and split_method == 'genotype':
                 # Test set is Alzheimer's flies (AB42/hTau)
                 # We don't have specific genotype per sample, but we know they're all disease flies
                 predictions_df['genotype'] = 'alzheimers'
             elif project == 'fruitfly_alzheimers':
                 # For Alzheimer's project with other split methods, still mark as alzheimers
-                predictions_df['genotype'] = 'alzheimers'  
+                predictions_df['genotype'] = 'alzheimers'
             else:
                 predictions_df['genotype'] = 'control'
-            
+
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
             predictions_df.to_csv(predictions_file, index=False)
             logger.info(f"Predictions saved to {predictions_file}")
-        
+
         # Log key metrics
-        logger.info(f"Model Evaluation Results:")
+        logger.info("Model Evaluation Results:")
         logger.info(f"  MAE: {metrics.get('mae', 'N/A'):.4f}")
         logger.info(f"  RMSE: {metrics.get('rmse', 'N/A'):.4f}")
         logger.info(f"  R² Score: {metrics.get('r2_score', 'N/A'):.4f}")
         logger.info(f"  Pearson Correlation: {metrics.get('pearson_correlation', 'N/A'):.4f}")
-        
+
         return metrics
 
     def evaluate_age_prediction(
         self, y_true: np.ndarray, y_pred: np.ndarray
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Evaluate age prediction performance with aging-specific metrics.
 
@@ -223,7 +225,7 @@ class AgingMetrics:
 
     def evaluate_sex_specific_performance(
         self, y_true: np.ndarray, y_pred: np.ndarray, sex_labels: np.ndarray
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate performance separately for males and females.
 
@@ -261,7 +263,7 @@ class AgingMetrics:
 
         return results
 
-    def evaluate_trajectory_quality(self, trajectory_results: Dict) -> Dict[str, float]:
+    def evaluate_trajectory_quality(self, trajectory_results: dict) -> dict[str, float]:
         """
         Evaluate quality of aging trajectory analysis.
 
@@ -339,8 +341,8 @@ class AgingMetrics:
         return metrics
 
     def evaluate_aging_marker_performance(
-        self, adata, aging_markers: List[str], age_column: str = "age"
-    ) -> Dict[str, Any]:
+        self, adata, aging_markers: list[str], age_column: str = "age"
+    ) -> dict[str, Any]:
         """
         Evaluate how well known aging markers behave in the data.
 
@@ -418,7 +420,7 @@ class AgingMetrics:
 
     def _evaluate_age_group_consistency(
         self, y_true: np.ndarray, y_pred: np.ndarray
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Evaluate consistency within age groups.
 
@@ -451,7 +453,7 @@ class AgingMetrics:
         return metrics
 
     def calculate_aging_score(
-        self, adata, aging_markers: List[str], age_column: str = "age"
+        self, adata, aging_markers: list[str], age_column: str = "age"
     ) -> np.ndarray:
         """
         Calculate a composite aging score based on marker expression.

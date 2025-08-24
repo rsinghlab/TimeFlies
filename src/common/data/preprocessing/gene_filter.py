@@ -1,7 +1,8 @@
 """Gene filtering utilities for preprocessing genomic data."""
 
+from typing import Any, List, Optional, Tuple
+
 import numpy as np
-from typing import List, Optional, Tuple, Any
 from anndata import AnnData
 
 
@@ -19,8 +20,8 @@ class GeneFilter:
         adata: AnnData,
         adata_eval: AnnData,
         adata_original: AnnData,
-        autosomal_genes: List[str],
-        sex_genes: List[str],
+        autosomal_genes: list[str],
+        sex_genes: list[str],
     ):
         """
         Initializes the GeneFilter with the given configuration and datasets.
@@ -41,8 +42,8 @@ class GeneFilter:
         self.sex_genes = sex_genes
 
     def balance_genes(
-        self, gene_type_1: List[str], gene_type_2: List[str]
-    ) -> List[str]:
+        self, gene_type_1: list[str], gene_type_2: list[str]
+    ) -> list[str]:
         """
         Balance the number of genes in gene_type_1 to match the number of genes in gene_type_2.
 
@@ -71,10 +72,10 @@ class GeneFilter:
     def create_and_apply_mask(
         self,
         data: AnnData,
-        sex_genes: List[str],
-        autosomal_genes: List[str],
-        original_autosomal_genes: List[str],
-        balanced_non_lnc_genes: Optional[List[str]] = None,
+        sex_genes: list[str],
+        autosomal_genes: list[str],
+        original_autosomal_genes: list[str],
+        balanced_non_lnc_genes: list[str] | None = None,
     ) -> AnnData:
         """
         Create and apply masks to filter genes in the dataset based on configuration.
@@ -187,9 +188,9 @@ class GeneFilter:
         adata: AnnData,
         adata_eval: AnnData,
         adata_original: AnnData,
-        sex_genes: List[str],
-        autosomal_genes: List[str],
-    ) -> Tuple[AnnData, AnnData, AnnData]:
+        sex_genes: list[str],
+        autosomal_genes: list[str],
+    ) -> tuple[AnnData, AnnData, AnnData]:
         """
         Filter genes in multiple datasets based on provided configurations.
 
@@ -258,7 +259,7 @@ class GeneFilter:
 
         return adata, adata_eval, adata_original
 
-    def apply_filter(self) -> Tuple[AnnData, AnnData, AnnData]:
+    def apply_filter(self) -> tuple[AnnData, AnnData, AnnData]:
         """
         Applies gene filters based on the configuration settings.
 

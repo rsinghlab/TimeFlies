@@ -1,11 +1,13 @@
 # Inital setup for stratified splitting of AnnData objects and verification of the splits. Needs to be run before training the models.
 
-import numpy as np
-from pathlib import Path
-import anndata
 import logging
+from pathlib import Path
 from typing import List
+
+import anndata
+import numpy as np
 import pandas as pd
+
 from common.core import ConfigManager
 
 # Configure logging for better control over output

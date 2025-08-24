@@ -13,11 +13,11 @@ Naming Rules:
 Example: data/processed/uncorrected/head_cnn_age/all-genes_all-cells_all-sexes/
 """
 
-import os
 import json
+import os
 from datetime import datetime, timedelta
-from typing import Any, Optional, Dict, List
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 class PathManager:
@@ -109,12 +109,12 @@ class PathManager:
         # This allows users to run TimeFlies from their own project directories
         if (current_working_dir / "data").exists():
             return current_working_dir
-            
+
         # For deployment: Use current working directory if we're not in development
-        # In development, we have the src/shared/utils structure
-        is_development = (Path(__file__).parent.parent.name == "shared" and 
+        # In development, we have the src/common/utils structure
+        is_development = (Path(__file__).parent.parent.name == "common" and
                          Path(__file__).parent.parent.parent.name == "src")
-        
+
         if not is_development:
             return current_working_dir
 
@@ -181,10 +181,10 @@ class PathManager:
                 "train": getattr(self.config.data.split, "train", []),
                 "test": getattr(self.config.data.split, "test", []),
             })
-            
+
             # Add split suffix to config details for unique model paths per split
             self.config_details = f"{self.config_details}_{split_name}"
-            
+
         except (AttributeError, ImportError):
             # Fallback if split configuration is not available
             pass
@@ -230,7 +230,7 @@ class PathManager:
         """
         return self.get_experiment_dir()
 
-    def get_visualization_directory(self, subfolder: Optional[str] = None) -> str:
+    def get_visualization_directory(self, subfolder: str | None = None) -> str:
         """
         Get the evaluation directory path for visualizations.
         
@@ -242,10 +242,10 @@ class PathManager:
         """
         experiment_dir = self.get_experiment_dir()
         eval_dir = os.path.join(experiment_dir, "evaluation")
-        
+
         if subfolder:
             eval_dir = os.path.join(eval_dir, subfolder)
-            
+
         os.makedirs(eval_dir, exist_ok=True)
         return eval_dir
 
@@ -276,7 +276,7 @@ class PathManager:
 
         return str(processed_data_dir)
 
-    def get_raw_data_dir(self, tissue_override: Optional[str] = None) -> str:
+    def get_raw_data_dir(self, tissue_override: str | None = None) -> str:
         """
         Constructs the directory path for raw h5ad data files using new project structure.
 
@@ -375,37 +375,37 @@ class PathManager:
             "head_xgboost_age_m-vs-f"
         """
         from .split_naming import SplitNamingUtils
-        
+
         # Build key parts
         parts = []
-        
+
         # Tissue (if not default head)
         if self.tissue != "head":
             parts.append(self.tissue)
         else:
             parts.append("head")  # Always include tissue for clarity
-            
+
         # Model type
         parts.append(self.model_type)
-        
+
         # Target variable (if not default age)
         if self.target_variable != "age":
             parts.append(self.target_variable)
         else:
             parts.append("age")  # Always include for clarity
-            
+
         # Split configuration
         experiment_suffix = SplitNamingUtils.generate_experiment_suffix(self.config)
         parts.append(experiment_suffix)
-        
+
         # Optional: Add gene filtering if special
         if getattr(self.config.preprocessing.genes, "highly_variable_genes", False):
             parts.append("hvg")
         elif getattr(self.config.preprocessing.balancing, "balance_genes", False):
             parts.append("balanced")
-            
+
         return "_".join(parts)
-        
+
     def get_experiment_dir(self, experiment_name: str = None) -> str:
         """
         Get experiment directory path within config-specific folder.
@@ -421,17 +421,17 @@ class PathManager:
         """
         if experiment_name is None:
             experiment_name = self.generate_experiment_name()
-            
+
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
-        
+
         # Add batch correction directory level
         batch_correction_enabled = getattr(self.config.data.batch_correction, "enabled", False)
         correction_dir = "batch_corrected" if batch_correction_enabled else "uncorrected"
-        
+
         # Group by config key (e.g., cnn_ctrl-vs-alz)
         config_key = self.get_config_key()
-        
+
         # Store all real experiments in all_runs directory
         experiment_dir = project_root / "outputs" / project_name / "experiments" / correction_dir / "all_runs" / config_key / experiment_name
         return str(experiment_dir)
@@ -456,7 +456,7 @@ class PathManager:
         evaluation_dir = self.get_experiment_evaluation_dir(experiment_name)
         return str(Path(evaluation_dir) / "plots")
 
-    def create_experiment_metadata(self, experiment_name: str = None) -> Dict:
+    def create_experiment_metadata(self, experiment_name: str = None) -> dict:
         """
         Create metadata dictionary for experiment.
         
@@ -464,10 +464,10 @@ class PathManager:
             dict: Experiment metadata
         """
         from .split_naming import SplitNamingUtils
-        
+
         if experiment_name is None:
             experiment_name = self.generate_experiment_name()
-            
+
         return {
             "experiment_name": experiment_name,
             "timestamp": datetime.now().isoformat(),
@@ -485,7 +485,7 @@ class PathManager:
             "split_config": SplitNamingUtils.extract_split_details_for_metadata(self.config),
         }
 
-    def save_experiment_metadata(self, experiment_name: str = None, additional_data: Dict = None):
+    def save_experiment_metadata(self, experiment_name: str = None, additional_data: dict = None):
         """
         Save metadata.json for experiment.
         
@@ -495,14 +495,14 @@ class PathManager:
         """
         if experiment_name is None:
             experiment_name = self.generate_experiment_name()
-            
+
         metadata = self.create_experiment_metadata(experiment_name)
         if additional_data:
             metadata.update(additional_data)
-            
+
         experiment_dir = Path(self.get_experiment_dir(experiment_name))
         experiment_dir.mkdir(parents=True, exist_ok=True)
-        
+
         metadata_path = experiment_dir / "metadata.json"
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
@@ -511,25 +511,25 @@ class PathManager:
         """Get best symlink path within config directory."""
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
-        
+
         # Add batch correction directory level
         batch_correction_enabled = getattr(self.config.data.batch_correction, "enabled", False)
         correction_dir = "batch_corrected" if batch_correction_enabled else "uncorrected"
-        
+
         # Best symlink is inside the config directory
         config_key = self.get_config_key()
-        
+
         return str(project_root / "outputs" / project_name / "experiments" / correction_dir / config_key / "best")
 
     def get_latest_symlink_path(self) -> str:
         """Get latest symlink path within correction directory."""
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
-        
+
         # Add batch correction directory level
         batch_correction_enabled = getattr(self.config.data.batch_correction, "enabled", False)
         correction_dir = "batch_corrected" if batch_correction_enabled else "uncorrected"
-        
+
         return str(project_root / "outputs" / project_name / "experiments" / correction_dir / "latest")
 
     def update_latest_symlink(self, experiment_name: str):
@@ -541,11 +541,11 @@ class PathManager:
         """
         latest_path = Path(self.get_latest_symlink_path())
         experiment_dir = self.get_experiment_dir(experiment_name)
-        
+
         # Remove existing symlink
         if latest_path.exists() or latest_path.is_symlink():
             latest_path.unlink()
-            
+
         # Create new symlink pointing to all_runs/config_key/experiment_name
         config_key = self.get_config_key()
         relative_path = Path("all_runs") / config_key / experiment_name
@@ -563,24 +563,24 @@ class PathManager:
         project_name = getattr(self.config, "project", "fruitfly_aging")
         correction_dir = "batch_corrected" if self.batch_correction_enabled else "uncorrected"
         config_key = self.get_config_key()
-        
+
         # Create best/ directory at correction level
         best_dir = project_root / "outputs" / project_name / "experiments" / correction_dir / "best"
         best_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Path to symlink for this config within best/
         best_config_link = best_dir / config_key
-        
+
         # Remove existing symlink for this config
         if best_config_link.exists() or best_config_link.is_symlink():
             best_config_link.unlink()
-            
+
         # Create new symlink: best/{config_key} -> ../all_runs/{config_key}/{experiment_name}
         relative_path = Path("../all_runs") / config_key / experiment_name
         best_config_link.symlink_to(relative_path)
-        
+
         print(f"✓ Updated best model collection: best/{config_key} → {config_key}/{experiment_name}")
-    
+
     def get_best_model_dir_for_config(self) -> str:
         """
         Get the best model directory for the current configuration from best/ collection.
@@ -593,10 +593,10 @@ class PathManager:
         project_name = getattr(self.config, "project", "fruitfly_aging")
         correction_dir = "batch_corrected" if self.batch_correction_enabled else "uncorrected"
         config_key = self.get_config_key()
-        
+
         # Look for symlink in best/ directory
         best_config_link = project_root / "outputs" / project_name / "experiments" / correction_dir / "best" / config_key
-        
+
         if best_config_link.exists() and best_config_link.is_symlink():
             # Follow symlink to get experiment directory
             # The symlink points to: ../all_runs/{config_key}/{experiment_name}

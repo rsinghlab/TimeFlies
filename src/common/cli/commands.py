@@ -8,8 +8,8 @@ Each command is implemented as a separate function with proper error handling.
 import sys
 from pathlib import Path
 
-from ..core.active_config import get_config_for_active_project, get_active_project
 from ..analysis.eda import EDAHandler
+from ..core.active_config import get_active_project, get_config_for_active_project
 
 # Optional import for batch correction
 try:
@@ -24,7 +24,7 @@ except ImportError:
 def run_system_tests(args) -> int:
     """Run test suite or provide helpful guidance for users."""
     from pathlib import Path
-    
+
     # Check if tests directory exists (developer installation)
     tests_dir = Path("tests")
     if not tests_dir.exists():
@@ -34,7 +34,7 @@ def run_system_tests(args) -> int:
         print("")
         print("✅ To verify your installation works:")
         print("   timeflies verify")
-        print("")  
+        print("")
         print("🛠️  For full development testing:")
         print("   git clone https://github.com/rsinghlab/TimeFlies.git")
         print("   cd TimeFlies")
@@ -45,36 +45,36 @@ def run_system_tests(args) -> int:
         print("   • timeflies setup completes successfully")
         print("   • Your research workflow runs without errors")
         return 0
-    
+
     # Developer path - run actual tests
     print("🧪 Running TimeFlies Test Suite...")
     print("=" * 50)
-    
+
     import subprocess
     import sys
     from pathlib import Path
-    
+
     # Build test command
     cmd = [sys.executable, "-m", "pytest", "tests/"]
-    
+
     # Add test type filter
     test_type = getattr(args, 'test_type', 'all')
     if test_type != 'all':
         cmd.extend(["-m", test_type])
-    
+
     # Add options
     if getattr(args, 'coverage', False):
         cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term"])
-    
+
     if getattr(args, 'fast', False):
         cmd.extend(["-m", "not functional and not system"])
-    
+
     if getattr(args, 'debug', False):
         cmd.extend(["-x", "-v", "-s"])
-    
+
     if getattr(args, 'rerun', False):
         cmd.append("--lf")  # last failed
-    
+
     try:
         result = subprocess.run(cmd, cwd=Path.cwd())
         return result.returncode
@@ -90,7 +90,7 @@ def execute_command(args) -> bool:
             config = get_config_for_active_project()
             return train_command(args, config) == 0
         elif args.command == "evaluate":
-            config = get_config_for_active_project() 
+            config = get_config_for_active_project()
             return evaluate_command(args, config) == 0
         elif args.command == "eda":
             config = get_config_for_active_project()
@@ -128,13 +128,13 @@ def execute_command(args) -> bool:
 
     # Temporarily reduce logging level and suppress warnings
     original_level = logging.getLogger().level
-    active_config_level = logging.getLogger("timeflies.shared.core.active_config").level
+    active_config_level = logging.getLogger("timeflies.common.core.active_config").level
     config_manager_level = logging.getLogger(
         "timeflies.projects.fruitfly_aging.core.config_manager"
     ).level
 
     logging.getLogger().setLevel(logging.ERROR)  # Only show errors
-    logging.getLogger("timeflies.shared.core.active_config").setLevel(logging.ERROR)
+    logging.getLogger("timeflies.common.core.active_config").setLevel(logging.ERROR)
     logging.getLogger("timeflies.projects.fruitfly_aging.core.config_manager").setLevel(
         logging.ERROR
     )
@@ -146,11 +146,15 @@ def execute_command(args) -> bool:
     # 1. Test Python environment and imports
     print("1. Testing Python environment...")
     try:
-        import numpy, pandas, scanpy, anndata
+        import anndata
+        import numpy
+        import pandas
+        import scanpy
 
         print("   ✅ Scientific packages (numpy, pandas, scanpy, anndata)")
 
-        import tensorflow, sklearn
+        import sklearn
+        import tensorflow
 
         print("   ✅ Machine learning packages (tensorflow, sklearn)")
 
@@ -182,15 +186,15 @@ def execute_command(args) -> bool:
             active_project = get_active_project()
             print(f"   ✅ Active project detected: {active_project}")
             config_manager = get_config_for_active_project("default")
-        
+
         config = config_manager.get_config()
-        print(f"   ✅ Project config loaded successfully")
+        print("   ✅ Project config loaded successfully")
         print(f"   ✅ Target variable: {config.data.target_variable}")
         print(f"   ✅ Model type: {config.data.model}")
 
     except Exception as e:
         print(f"   ❌ Project config not set up: {e}")
-        print(f"   💡 Check your configs/default.yaml file")
+        print("   💡 Check your configs/default.yaml file")
         all_passed = False
 
     # 3. Test original data files (workflow step 2)
@@ -221,7 +225,7 @@ def execute_command(args) -> bool:
                                 )
 
             if original_files_found:
-                print(f"   ✅ Original data files found:")
+                print("   ✅ Original data files found:")
                 for file in original_files_found:
                     print(f"      {file}")
             else:
@@ -403,7 +407,7 @@ def execute_command(args) -> bool:
 
     # Restore original logging level and warnings
     logging.getLogger().setLevel(original_level)
-    logging.getLogger("timeflies.shared.core.active_config").setLevel(
+    logging.getLogger("timeflies.common.core.active_config").setLevel(
         active_config_level
     )
     logging.getLogger("timeflies.projects.fruitfly_aging.core.config_manager").setLevel(
@@ -473,21 +477,21 @@ def new_setup_command(args) -> int:
         print("🛠️ TimeFlies Developer Setup")
         print("=" * 50)
         print("Setting up development environments...")
-        
+
         # For devs: just create the environments
         return setup_dev_environments()
-    
+
     print("🚀 TimeFlies Complete Setup")
     print("=" * 50)
     print("Setting up your TimeFlies environment...")
-    
+
     # 1. Create data splits
     print("\n1️⃣ Creating data splits...")
     split_result = split_command(args)
     if split_result != 0:
         print("❌ Data split creation failed.")
         return split_result
-    
+
     # 2. Optional batch correction
     if hasattr(args, 'batch_correct') and args.batch_correct:
         print("\n2️⃣ Running batch correction...")
@@ -498,28 +502,28 @@ def new_setup_command(args) -> int:
         print("✅ Batch correction completed")
     else:
         print("\n2️⃣ Skipping batch correction")
-    
+
     # 3. Create output directories
     print("\n3️⃣ Creating output directories...")
     from pathlib import Path
-    
+
     output_dirs = [
         "outputs/fruitfly_aging/experiments/uncorrected",
-        "outputs/fruitfly_aging/experiments/batch_corrected", 
+        "outputs/fruitfly_aging/experiments/batch_corrected",
         "outputs/fruitfly_aging/eda/uncorrected",
         "outputs/fruitfly_aging/eda/batch_corrected",
         "outputs/fruitfly_alzheimers/experiments/uncorrected",
         "outputs/fruitfly_alzheimers/experiments/batch_corrected",
-        "outputs/fruitfly_alzheimers/eda/uncorrected", 
+        "outputs/fruitfly_alzheimers/eda/uncorrected",
         "outputs/fruitfly_alzheimers/eda/batch_corrected",
         "logs"
     ]
-    
+
     for dir_path in output_dirs:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
-    
+
     print("✅ Output directories created")
-    
+
     # 4. System verification (always runs last)
     print("\n4️⃣ Verifying system setup...")
     from common.cli.system_checks import verify_system
@@ -528,18 +532,18 @@ def new_setup_command(args) -> int:
     if verify_result != 0:
         print("❌ System verification failed. Please fix issues above.")
         return verify_result
-    
+
     print("\n🎉 SETUP COMPLETE!")
     print("=" * 50)
     print("Your TimeFlies environment is ready!")
     print("\nNext steps:")
     print("  📊 Run EDA:        timeflies eda --save-report")
     print("  🚂 Train models:   timeflies train")
-    print("  📊 Evaluate:       timeflies evaluate") 
+    print("  📊 Evaluate:       timeflies evaluate")
     print("  🧠 Analyze:        timeflies analyze")
     print("  📈 Full pipeline:  timeflies train --with-eda --with-analysis")
     print("\nAll results will be saved to organized directories in outputs/")
-    
+
     return 0
 
 
@@ -549,21 +553,21 @@ def split_command(args) -> int:
     """Create train/eval data splits from original data."""
     try:
         from common.data.setup import DataSetupManager
-        
+
         print("🔄 Creating train/eval data splits...")
         print("============================================================")
-        
+
         # Use the existing setup manager to create splits
         setup_manager = DataSetupManager()
         success = setup_manager.setup_all_projects()
-        
+
         if success:
             print("✅ Data splits created successfully!")
             return 0
         else:
             print("❌ Failed to create data splits")
             return 1
-            
+
     except Exception as e:
         print(f"Error creating data splits: {e}")
         return 1
@@ -579,8 +583,8 @@ def process_data_splits(
     random_state: int,
 ) -> bool:
     """Process data splits for a single file with enhanced stratification."""
-    import numpy as np
     import anndata
+    import numpy as np
     from sklearn.model_selection import train_test_split
 
     try:
@@ -654,7 +658,7 @@ def process_data_splits(
                 break
 
         if not stratify_cols:
-            print(f"   ⚠️  No stratification columns found, using random split")
+            print("   ⚠️  No stratification columns found, using random split")
             stratify_labels = None
         else:
             # Create combined stratification labels
@@ -707,7 +711,7 @@ def process_data_splits(
         print(f"   💾 Saving: {eval_file.name} ({len(adata_eval)} cells)")
         adata_eval.write_h5ad(eval_file)
 
-        print(f"   ✅ Split completed successfully")
+        print("   ✅ Split completed successfully")
         return True
 
     except Exception as e:
@@ -720,47 +724,47 @@ def eda_command(args, config) -> int:
     import os
     from datetime import datetime
     from pathlib import Path
-    
+
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
-    
+
     try:
-        print(f"📊 Starting EDA with project settings:")
+        print("📊 Starting EDA with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Batch corrected: {getattr(args, 'batch_corrected', False)}")
         print(f"   Split: {getattr(args, 'split', 'all')}")
-        
+
         # Apply CLI overrides to config
         if hasattr(args, 'batch_corrected') and args.batch_corrected:
             config.data.batch_correction.enabled = True
         if hasattr(args, 'tissue') and args.tissue:
             config.data.tissue = args.tissue
-            
+
         # Create EDA output directory structure
         project = getattr(config, 'project', 'fruitfly_alzheimers')
         tissue = config.data.tissue
         correction = "batch_corrected" if config.data.batch_correction.enabled else "uncorrected"
-        
+
         # EDA analyzes full dataset - simple path structure
         eda_dir = Path(f"outputs/{project}/eda/{correction}/{tissue}")
         eda_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Initialize EDA handler with output directory
         eda_handler = EDAHandler(config, output_dir=str(eda_dir))
-        
+
         # Run comprehensive EDA on full dataset
         eda_handler.run_comprehensive_eda()
-            
+
         # Generate HTML report if requested
         if hasattr(args, 'save_report') and args.save_report:
             report_path = eda_dir / "eda_report.html"
             eda_handler.generate_html_report(report_path)
             print(f"   📄 HTML report saved to: {report_path}")
-        
+
         print("\n✅ EDA completed successfully!")
         print(f"   Results saved to: {eda_dir}")
         return 0
-        
+
     except Exception as e:
         print(f"❌ EDA failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
@@ -778,35 +782,35 @@ def train_command(args, config) -> int:
             if result != 0:
                 print("❌ EDA failed, stopping pipeline")
                 return result
-                
-        print(f"Starting training with project settings:")
+
+        print("Starting training with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.target_variable}")
         print(f"   Batch correction: {config.data.batch_correction.enabled}")
 
-        # Use shared PipelineManager for all projects
+        # Use common PipelineManager for all projects
         from common.core import PipelineManager
-        
+
         # Initialize and run pipeline
         pipeline = PipelineManager(config)
         results = pipeline.run()
 
-        print(f"\n✅ Training completed successfully!")
-        
+        print("\n✅ Training completed successfully!")
+
         # Run analysis after training if requested
         if hasattr(args, 'with_analysis') and args.with_analysis:
             print("\n🔬 Running analysis after training...")
             result = analyze_command(args, config)
             if result != 0:
                 print("⚠️  Analysis failed but training was successful")
-        
+
         # Check if model was actually saved (based on validation loss improvement)
         model_path = results.get('model_path', 'outputs/models/')
         import os
         model_file = os.path.join(model_path, 'best_model.h5')
-        
+
         # Check if model was updated by comparing file modification time with start time
         if os.path.exists(model_file):
             import time
@@ -815,17 +819,17 @@ def train_command(args, config) -> int:
             if time.time() - file_mod_time < 300:
                 print(f"   ✅ Model saved (validation loss improved): {model_path}")
             else:
-                print(f"   ⏭️  Model not saved (validation loss did not improve)")
+                print("   ⏭️  Model not saved (validation loss did not improve)")
                 print(f"   📁 Existing model location: {model_path}")
         else:
             print(f"   ✅ New model saved: {model_path}")
-            
+
         print(f"   📊 Results saved to: {results.get('results_path', 'outputs/results/')}")
-        
+
         # Show best results path only if model improved
         if results.get('model_improved', False) and 'best_results_path' in results:
             print(f"   🏆 Best results also saved to: {results['best_results_path']}")
-            
+
         if "duration" in results:
             print(f"   ⏱️  Training duration: {results['duration']:.1f} seconds")
 
@@ -899,7 +903,7 @@ def batch_command(args) -> int:
             print("\nGenerating UMAP visualizations...")
             batch_corrector.umap_visualization()
 
-        print(f"\n" + "=" * 60)
+        print("\n" + "=" * 60)
         print("✓ BATCH CORRECTION COMPLETED SUCCESSFULLY!")
         print("=" * 60)
 
@@ -909,14 +913,14 @@ def batch_command(args) -> int:
         print(f"✓ Model applied to: drosophila_{tissue}_aging_eval.h5ad (query mode)")
         print(f"✓ Created: drosophila_{tissue}_aging_train_batch.h5ad")
         print(f"✓ Created: drosophila_{tissue}_aging_eval_batch.h5ad")
-        print(f"✓ Original file untouched (prevents data leakage)")
+        print("✓ Original file untouched (prevents data leakage)")
 
-        print(f"\nNext steps:")
-        print(f"1. Return to main environment: source activate.sh")
-        print(f"2. Train with batch data:     python run_timeflies.py train")
-        print(f"   (Will automatically use batch-corrected files)")
+        print("\nNext steps:")
+        print("1. Return to main environment: source activate.sh")
+        print("2. Train with batch data:     python run_timeflies.py train")
+        print("   (Will automatically use batch-corrected files)")
         print(
-            f"\nNote: No additional setup needed - batch correction used existing splits!"
+            "\nNote: No additional setup needed - batch correction used existing splits!"
         )
 
         return 0
@@ -935,7 +939,7 @@ def evaluate_command(args, config) -> int:
     # Suppress TensorFlow warnings for cleaner output
     import os
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
-    
+
     try:
         # Run EDA first if requested
         if hasattr(args, 'with_eda') and args.with_eda:
@@ -944,13 +948,13 @@ def evaluate_command(args, config) -> int:
             if result != 0:
                 print("❌ EDA failed, stopping pipeline")
                 return result
-                
-        print(f"Starting evaluation with project settings:")
+
+        print("Starting evaluation with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.target_variable}")
-        
+
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, 'interpret') and args.interpret:
             print("   📊 SHAP interpretation: ENABLED (via --interpret flag)")
@@ -968,7 +972,7 @@ def evaluate_command(args, config) -> int:
                 original_shap = False
         else:
             original_shap = None
-            
+
         if hasattr(args, 'visualize') and args.visualize:
             print("   📈 Visualizations: ENABLED (via --visualize flag)")
             # Temporarily override config
@@ -983,14 +987,14 @@ def evaluate_command(args, config) -> int:
         else:
             original_viz = None
 
-        # Use shared PipelineManager for all projects
+        # Use common PipelineManager for all projects
         from common.core import PipelineManager
 
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
         pipeline = PipelineManager(config)
         results = pipeline.run_evaluation()
-        
+
         # Restore original config settings if overridden
         if original_shap is not None:
             config.interpretation.shap.enabled = original_shap
@@ -998,14 +1002,14 @@ def evaluate_command(args, config) -> int:
             config.visualizations.enabled = original_viz
 
         print("\n✅ Evaluation completed successfully!")
-        
+
         # Run analysis after evaluation if requested
         if hasattr(args, 'with_analysis') and args.with_analysis:
             print("\n🔬 Running analysis after evaluation...")
             result = analyze_command(args, config)
             if result != 0:
                 print("⚠️  Analysis failed but evaluation was successful")
-                
+
         return 0
 
     except Exception as e:
@@ -1023,19 +1027,19 @@ def analyze_command(args, config) -> int:
     import os
     from pathlib import Path
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING
-    
+
     try:
-        print(f"🔬 Starting analysis with project settings:")
+        print("🔬 Starting analysis with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
         print(f"   Target: {config.data.target_variable}")
-        
+
         # Store custom analysis script path in config for pipeline manager
         if hasattr(args, 'analysis_script') and args.analysis_script:
             config._custom_analysis_script = args.analysis_script
             print(f"   Custom script: {args.analysis_script}")
-        
+
         # Check for CLI-provided predictions path first
         predictions_path = None
         if hasattr(args, 'predictions_path') and args.predictions_path:
@@ -1045,7 +1049,7 @@ def analyze_command(args, config) -> int:
             # Auto-detect predictions in new experiment structure
             from common.utils.path_manager import PathManager
             path_manager = PathManager(config)
-            
+
             # Try to find best model for current config
             try:
                 best_model_dir = path_manager.get_best_model_dir_for_config()
@@ -1056,64 +1060,64 @@ def analyze_command(args, config) -> int:
                     predictions_path = None
             except:
                 predictions_path = None
-        
+
         if predictions_path and predictions_path.exists():
             print(f"✅ Found existing predictions at {predictions_path}")
             print("📊 Running analysis on existing predictions...")
-            
+
             # Just run the analysis script without reloading everything
             from common.core import PipelineManager
             pipeline = PipelineManager(config)
-            
+
             # Only run the analysis script part
             if hasattr(pipeline, 'run_analysis_script'):
                 pipeline.run_analysis_script()
-            
+
             print("\n✅ Analysis completed successfully!")
             return 0
-        
+
         print("⚠️  No predictions found, need to generate them...")
-        
+
         # Check if model exists
         from common.utils.path_manager import PathManager
         path_manager = PathManager(config)
         model_dir = path_manager.construct_model_directory()
         model_path = Path(model_dir) / "model.h5"
-        
+
         if not model_path.exists():
             print(f"⚠️  No trained model found at {model_path}")
             print("📦 Training model first...")
-            
+
             # Run training
             from common.core import PipelineManager
             pipeline = PipelineManager(config)
             pipeline.load_or_train_model()
             print("✅ Model training complete!")
-        
+
         # Enable analysis script execution in config
         if not hasattr(config.analysis, 'run_analysis_script'):
             print("❌ Analysis script configuration not found in config")
             return 1
-            
+
         # Temporarily enable analysis script for this command
         original_enabled = getattr(config.analysis.run_analysis_script, 'enabled', False)
         config.analysis.run_analysis_script.enabled = True
-        
+
         try:
-            # Use shared PipelineManager to load model and run analysis
+            # Use common PipelineManager to load model and run analysis
             from common.core import PipelineManager
-            
+
             # Initialize pipeline and run evaluation with analysis
             pipeline = PipelineManager(config)
             results = pipeline.run_evaluation()
-            
+
             print("\n✅ Analysis completed successfully!")
             return 0
-            
+
         finally:
             # Restore original setting
             config.analysis.run_analysis_script.enabled = original_enabled
-            
+
     except Exception as e:
         print(f"❌ Analysis failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
@@ -1125,18 +1129,19 @@ def analyze_command(args, config) -> int:
 def create_test_data_command(args) -> int:
     """Create test data fixtures using 3-tier strategy: tiny real + synthetic + dev real data."""
     try:
+        import json
+        from pathlib import Path
+
         import numpy as np
         import pandas as pd
         import scanpy as sc
-        import json
-        from pathlib import Path
 
         tier = getattr(args, 'tier', 'all')
         print(f"🧪 Creating Test Data Fixtures - Tier: {tier}")
         print("=" * 60)
         print("3-Tier Strategy:")
         print("  📦 Tiny: Small real samples (committed to git)")
-        print("  🤖 Synthetic: Generated from metadata")  
+        print("  🤖 Synthetic: Generated from metadata")
         print("  🔬 Real: Full developer samples (gitignored)")
         print("")
 
@@ -1144,7 +1149,7 @@ def create_test_data_command(args) -> int:
         if tier in ['synthetic', 'tiny']:
             print("🔍 Looking for existing metadata...")
             return create_from_metadata(tier, args)
-        
+
         # For real tier, we need actual data files
         data_root = Path("data")
         if not data_root.exists():
@@ -1171,7 +1176,7 @@ def create_test_data_command(args) -> int:
                 # Find best source file
                 original_files = [f for f in h5ad_files if "original" in f.name]
                 train_files = [f for f in h5ad_files if "train" in f.name and "batch" not in f.name]
-                
+
                 if original_files:
                     data_file = original_files[0]
                 elif train_files:
@@ -1186,11 +1191,11 @@ def create_test_data_command(args) -> int:
                 if tier in ['tiny', 'all']:
                     result = create_tiny_fixtures(project_dir.name, tissue_dir.name, data_file)
                     if result: results.append(result)
-                
+
                 if tier in ['synthetic', 'all']:
                     result = create_synthetic_fixtures(project_dir.name, tissue_dir.name, data_file)
                     if result: results.append(result)
-                
+
                 if tier in ['real', 'all']:
                     result = create_real_fixtures(project_dir.name, tissue_dir.name, data_file)
                     if result: results.append(result)
@@ -1217,7 +1222,7 @@ def create_test_data_command(args) -> int:
 
         print(f"\n🎉 Test data created for {len(projects_found)} project(s)")
         print(f"📄 Summary saved to: {summary_path}")
-        
+
         return 0
 
     except ImportError as e:
@@ -1230,44 +1235,44 @@ def create_test_data_command(args) -> int:
 
 def create_from_metadata(tier, args) -> int:
     """Create test data from existing metadata files."""
-    from pathlib import Path
     import json
-    
+    from pathlib import Path
+
     fixtures_root = Path("tests/fixtures")
     if not fixtures_root.exists():
         print("❌ No test fixtures directory found")
         return 1
-    
+
     results = []
-    
+
     # Scan for existing metadata
     for project_dir in fixtures_root.iterdir():
         if not project_dir.is_dir() or project_dir.name.startswith("."):
             continue
-            
+
         print(f"\n📁 Processing project: {project_dir.name}")
-        
+
         # Look for existing metadata files
         metadata_files = list(project_dir.glob("*_stats.json"))
         for metadata_file in metadata_files:
             # Extract tissue name from filename
             # test_data_head_stats.json -> head
             tissue = metadata_file.stem.replace("test_data_", "").replace("_stats", "")
-            
+
             print(f"📊 Found metadata: {metadata_file.name} -> tissue: {tissue}")
-            
+
             if tier == 'tiny':
                 result = create_tiny_from_metadata(project_dir.name, tissue, metadata_file, args)
                 if result: results.append(result)
-                
+
             elif tier == 'synthetic':
                 result = create_synthetic_from_metadata(project_dir.name, tissue, metadata_file, args)
                 if result: results.append(result)
-    
+
     if not results:
         print(f"❌ No metadata found for {tier} data creation")
         return 1
-        
+
     print(f"\n🎉 Created {len(results)} {tier} fixtures!")
     return 0
 
@@ -1275,22 +1280,23 @@ def create_from_metadata(tier, args) -> int:
 def load_test_data_config():
     """Load test data defaults from config (dev-only, not shipped to users)."""
     from pathlib import Path
+
     import yaml
-    
+
     config_path = Path("configs/test_data_defaults.yaml")
     if config_path.exists():
         try:
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 return yaml.safe_load(f)
         except Exception:
             pass
-    
+
     # Fallback defaults if config not found
     return {
         "test_data": {
             "defaults": {
                 "tiny": {"cells": 50, "genes": 100},
-                "synthetic": {"cells": 500, "genes": 1000}, 
+                "synthetic": {"cells": 500, "genes": 1000},
                 "real": {"cells": 5000, "genes": 2000}
             },
             "batch_correction": {"noise_std": 0.1},
@@ -1301,30 +1307,31 @@ def load_test_data_config():
 
 def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
     """Create tiny fixtures from metadata."""
-    import numpy as np
-    import pandas as pd
     import json
     from pathlib import Path
-    
+
+    import numpy as np
+    import pandas as pd
+
     # Load config defaults
     config = load_test_data_config()
     defaults = config["test_data"]["defaults"]["tiny"]
     if seed is None:
         seed = config["test_data"]["random_seed"]
-    
+
     np.random.seed(seed)
-    
+
     try:
-        print(f"  📦 Creating tiny fixture from metadata...")
-        
-        with open(metadata_file, "r") as f:
+        print("  📦 Creating tiny fixture from metadata...")
+
+        with open(metadata_file) as f:
             metadata = json.load(f)
-        
+
         # Get size parameters (allow override, fallback to config)
-        n_cells = getattr(args, 'cells', None) or defaults["cells"]  
+        n_cells = getattr(args, 'cells', None) or defaults["cells"]
         n_genes = getattr(args, 'genes', None) or defaults["genes"]
         batch_versions = getattr(args, 'batch_versions', False)
-        
+
         # Generate expression data matching real patterns
         expr_stats = metadata.get("expression_stats", {})
         synthetic_data = np.random.lognormal(
@@ -1332,25 +1339,25 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
             sigma=1.0,
             size=(n_cells, n_genes)
         )
-        
+
         # Apply sparsity
         sparsity = expr_stats.get("sparsity", 0.8)
         mask = np.random.random((n_cells, n_genes)) < sparsity
         synthetic_data[mask] = 0
-        
+
         # Create synthetic metadata matching real patterns
         obs_data = {}
         if "age_distribution" in metadata:
             ages = list(metadata["age_distribution"].keys())
             obs_data["age"] = np.random.choice(ages, n_cells)
-        
+
         if "sex_distribution" in metadata:
-            sexes = list(metadata["sex_distribution"].keys()) 
+            sexes = list(metadata["sex_distribution"].keys())
             obs_data["sex"] = np.random.choice(sexes, n_cells)
-        
+
         obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
         var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
-        
+
         # Create AnnData
         import anndata
         adata_tiny = anndata.AnnData(
@@ -1358,33 +1365,33 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
             obs=obs_df,
             var=var_df
         )
-        
+
         # Save fixtures
         output_dir = Path("tests/fixtures") / project
-        
+
         # Regular version
         tiny_path = output_dir / f"tiny_{tissue}.h5ad"
         adata_tiny.write_h5ad(tiny_path)
         files_created = [f"tiny_{tissue}.h5ad"]
-        
+
         # Batch corrected version (if requested)
         if batch_versions:
             # Simulate batch correction using config parameters
             noise_std = config["test_data"]["batch_correction"]["noise_std"]
             batch_data = synthetic_data.copy()
-            batch_noise = np.random.normal(0, noise_std, batch_data.shape) 
+            batch_noise = np.random.normal(0, noise_std, batch_data.shape)
             batch_data[batch_data > 0] += batch_noise[batch_data > 0]
             batch_data = np.maximum(batch_data, 0)  # Keep non-negative
-            
+
             adata_batch = anndata.AnnData(X=batch_data, obs=obs_df, var=var_df)
-            
+
             batch_path = output_dir / f"tiny_{tissue}_batch.h5ad"
             adata_batch.write_h5ad(batch_path)
             files_created.append(f"tiny_{tissue}_batch.h5ad")
-        
+
         print(f"    ✅ Tiny: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)")
         return {"tier": "tiny", "project": project, "tissue": tissue}
-        
+
     except Exception as e:
         print(f"    ❌ Tiny creation failed: {e}")
         return None
@@ -1392,56 +1399,57 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
 
 def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=None):
     """Create synthetic fixtures from metadata."""
-    import numpy as np
-    import pandas as pd
     import json
     from pathlib import Path
-    
+
+    import numpy as np
+    import pandas as pd
+
     # Load config defaults
     config = load_test_data_config()
     defaults = config["test_data"]["defaults"]["synthetic"]
     if seed is None:
         seed = config["test_data"]["random_seed"]
-    
+
     np.random.seed(seed)
-    
+
     try:
-        print(f"  🤖 Creating synthetic fixture from metadata...")
-        
-        with open(metadata_file, "r") as f:
+        print("  🤖 Creating synthetic fixture from metadata...")
+
+        with open(metadata_file) as f:
             metadata = json.load(f)
-        
+
         # Get size parameters (allow override, fallback to config)
-        n_cells = getattr(args, 'cells', None) or defaults["cells"]  
+        n_cells = getattr(args, 'cells', None) or defaults["cells"]
         n_genes = getattr(args, 'genes', None) or defaults["genes"]
         batch_versions = getattr(args, 'batch_versions', False)
-        
-        # Generate expression data matching real patterns  
+
+        # Generate expression data matching real patterns
         expr_stats = metadata.get("expression_stats", {})
         synthetic_data = np.random.lognormal(
             mean=np.log(expr_stats.get("non_zero_mean", 1.0)),
             sigma=1.0,
             size=(n_cells, n_genes)
         )
-        
+
         # Apply sparsity
         sparsity = expr_stats.get("sparsity", 0.8)
         mask = np.random.random((n_cells, n_genes)) < sparsity
         synthetic_data[mask] = 0
-        
+
         # Create synthetic metadata
         obs_data = {}
         if "age_distribution" in metadata:
             ages = list(metadata["age_distribution"].keys())
             obs_data["age"] = np.random.choice(ages, n_cells)
-        
+
         if "sex_distribution" in metadata:
             sexes = list(metadata["sex_distribution"].keys())
             obs_data["sex"] = np.random.choice(sexes, n_cells)
-        
+
         obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
         var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
-        
+
         # Create AnnData
         import anndata
         adata_synthetic = anndata.AnnData(
@@ -1449,33 +1457,33 @@ def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=No
             obs=obs_df,
             var=var_df
         )
-        
+
         # Save fixtures
         output_dir = Path("tests/fixtures") / project
-        
+
         # Regular version
         synthetic_path = output_dir / f"synthetic_{tissue}.h5ad"
         adata_synthetic.write_h5ad(synthetic_path)
         files_created = [f"synthetic_{tissue}.h5ad"]
-        
+
         # Batch corrected version (if requested)
         if batch_versions:
             # Simulate batch correction using config parameters
             noise_std = config["test_data"]["batch_correction"]["noise_std"]
             batch_data = synthetic_data.copy()
             batch_noise = np.random.normal(0, noise_std, batch_data.shape)
-            batch_data[batch_data > 0] += batch_noise[batch_data > 0] 
+            batch_data[batch_data > 0] += batch_noise[batch_data > 0]
             batch_data = np.maximum(batch_data, 0)
-            
+
             adata_batch = anndata.AnnData(X=batch_data, obs=obs_df, var=var_df)
-            
+
             batch_path = output_dir / f"synthetic_{tissue}_batch.h5ad"
             adata_batch.write_h5ad(batch_path)
             files_created.append(f"synthetic_{tissue}_batch.h5ad")
-        
+
         print(f"    ✅ Synthetic: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)")
         return {"tier": "synthetic", "project": project, "tissue": tissue}
-        
+
     except Exception as e:
         print(f"    ❌ Synthetic creation failed: {e}")
         return None
@@ -1483,44 +1491,45 @@ def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=No
 
 def create_tiny_fixtures(project, tissue, data_file, seed=42):
     """Create tiny real data fixtures (committed to git) - Tier 1."""
-    import numpy as np
-    import scanpy as sc
     import json
     from pathlib import Path
-    
+
+    import numpy as np
+    import scanpy as sc
+
     np.random.seed(seed)
-    
+
     try:
-        print(f"  📦 Creating tiny fixtures...")
+        print("  📦 Creating tiny fixtures...")
         adata = sc.read_h5ad(data_file)
-        
+
         # Very small samples - suitable for git
         n_cells = min(50, adata.n_obs)
         n_genes = min(100, adata.n_vars)
-        
+
         cell_indices = np.random.choice(adata.n_obs, n_cells, replace=False)
         gene_indices = np.random.choice(adata.n_vars, n_genes, replace=False)
-        
+
         adata_tiny = adata[cell_indices, gene_indices].copy()
-        
+
         # Save to fixtures directory
         output_dir = Path("tests/fixtures") / project
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         tiny_path = output_dir / f"tiny_{tissue}.h5ad"
         adata_tiny.write_h5ad(tiny_path)
-        
+
         # Generate and save metadata
         stats = generate_data_stats(adata_tiny, project, tissue, tier="tiny")
         metadata_path = output_dir / f"tiny_{tissue}_metadata.json"
-        
+
         with open(metadata_path, "w") as f:
             json.dump(stats, f, indent=2, default=str)
-        
+
         print(f"    ✅ Tiny: {tiny_path} ({n_cells} cells, {n_genes} genes)")
-        
+
         return {"tier": "tiny", "project": project, "tissue": tissue, "stats": stats}
-        
+
     except Exception as e:
         print(f"    ❌ Tiny fixtures failed: {e}")
         return None
@@ -1528,60 +1537,61 @@ def create_tiny_fixtures(project, tissue, data_file, seed=42):
 
 def create_synthetic_fixtures(project, tissue, data_file, seed=42):
     """Create synthetic data from metadata - Tier 2."""
-    import numpy as np
-    import scanpy as sc
     import json
     from pathlib import Path
-    
+
+    import numpy as np
+    import scanpy as sc
+
     np.random.seed(seed)
-    
+
     try:
-        print(f"  🤖 Creating synthetic fixtures...")
-        
+        print("  🤖 Creating synthetic fixtures...")
+
         # First check if we have existing metadata to use
         output_dir = Path("tests/fixtures") / project
         metadata_path = output_dir / f"tiny_{tissue}_metadata.json"
-        
+
         if metadata_path.exists():
             # Use existing metadata to generate synthetic data
-            with open(metadata_path, "r") as f:
+            with open(metadata_path) as f:
                 metadata = json.load(f)
-            
+
             # Generate synthetic data matching the patterns
             n_cells = 500  # Medium size
             n_genes = 1000
-            
+
             # Create synthetic expression matrix based on real stats
             expr_stats = metadata.get("expression_stats", {})
-            
+
             # Generate data matching real distributions
             synthetic_data = np.random.lognormal(
                 mean=np.log(expr_stats.get("non_zero_mean", 1.0)),
                 sigma=1.0,
                 size=(n_cells, n_genes)
             )
-            
+
             # Apply sparsity pattern
             sparsity = expr_stats.get("sparsity", 0.8)
             mask = np.random.random((n_cells, n_genes)) < sparsity
             synthetic_data[mask] = 0
-            
+
             # Create synthetic AnnData object
             import pandas as pd
-            
+
             # Create synthetic metadata matching real patterns
             obs_data = {}
             if "age_distribution" in metadata:
                 ages = list(metadata["age_distribution"].keys())
                 obs_data["age"] = np.random.choice(ages, n_cells)
-            
+
             if "sex_distribution" in metadata:
-                sexes = list(metadata["sex_distribution"].keys()) 
+                sexes = list(metadata["sex_distribution"].keys())
                 obs_data["sex"] = np.random.choice(sexes, n_cells)
-            
+
             obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
             var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
-            
+
             # Create AnnData
             import anndata
             adata_synthetic = anndata.AnnData(
@@ -1589,19 +1599,19 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
                 obs=obs_df,
                 var=var_df
             )
-            
+
             # Save synthetic data
             synthetic_path = output_dir / f"synthetic_{tissue}.h5ad"
             adata_synthetic.write_h5ad(synthetic_path)
-            
+
             print(f"    ✅ Synthetic: {synthetic_path} ({n_cells} cells, {n_genes} genes)")
-            
+
             return {"tier": "synthetic", "project": project, "tissue": tissue, "size": (n_cells, n_genes)}
-        
+
         else:
-            print(f"    ⚠️  No metadata found for synthetic generation")
+            print("    ⚠️  No metadata found for synthetic generation")
             return None
-        
+
     except Exception as e:
         print(f"    ❌ Synthetic fixtures failed: {e}")
         return None
@@ -1609,37 +1619,38 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
 
 def create_real_fixtures(project, tissue, data_file, seed=42):
     """Create full-scale real data fixtures (gitignored) - Tier 3."""
-    import numpy as np
-    import scanpy as sc
     import json
     from pathlib import Path
-    
+
+    import numpy as np
+    import scanpy as sc
+
     np.random.seed(seed)
-    
+
     try:
-        print(f"  🔬 Creating real fixtures...")
+        print("  🔬 Creating real fixtures...")
         adata = sc.read_h5ad(data_file)
-        
+
         # Larger realistic samples for thorough testing
         n_cells = min(5000, adata.n_obs)
         n_genes = min(2000, adata.n_vars)
-        
+
         cell_indices = np.random.choice(adata.n_obs, n_cells, replace=False)
         gene_indices = np.random.choice(adata.n_vars, n_genes, replace=False)
-        
+
         adata_real = adata[cell_indices, gene_indices].copy()
-        
+
         # Save to fixtures directory (will be gitignored)
         output_dir = Path("tests/fixtures") / project
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         real_path = output_dir / f"real_{tissue}.h5ad"
         adata_real.write_h5ad(real_path)
-        
+
         print(f"    ✅ Real: {real_path} ({n_cells} cells, {n_genes} genes)")
-        
+
         return {"tier": "real", "project": project, "tissue": tissue, "size": (n_cells, n_genes)}
-        
+
     except Exception as e:
         print(f"    ❌ Real fixtures failed: {e}")
         return None
@@ -1708,15 +1719,15 @@ def generate_data_stats(adata, project, tissue, batch_corrected=False, tier=None
 
 def setup_dev_environments() -> int:
     """Set up complete development environments with all dependencies."""
+    import os
     import subprocess
     import sys
-    import os
     from pathlib import Path
-    
+
     try:
         print("🛠️  Setting up TimeFlies development environments...")
         print("=" * 60)
-        
+
         # Check Python version (same requirement as user install)
         python_cmd = None
         for cmd in ["python3.12", "python3", "python"]:
@@ -1730,34 +1741,34 @@ def setup_dev_environments() -> int:
                     break
             except:
                 continue
-        
+
         if not python_cmd:
             print("❌ Python 3.12+ required but not found")
             print("Install: sudo apt install python3.12 python3.12-venv")
             return 1
-        
+
         # Create main environment
         print("\n🐍 Setting up main environment (.venv)...")
         if Path(".venv").exists():
             print("⏭️  Removing existing main environment...")
             subprocess.run(["rm", "-rf", ".venv"], check=True)
-            
+
         subprocess.run([python_cmd, "-m", "venv", ".venv"], check=True)
         print("✅ Main environment created")
-        
+
         # Install main dependencies
         print("📦 Installing main dependencies...")
         venv_python = ".venv/bin/python"
         venv_pip = ".venv/bin/pip"
-        
+
         subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
         subprocess.run([venv_pip, "install", "-e", "."], check=True)
-        
+
         # Install development dependencies
         print("🛠️  Installing development dependencies...")
         dev_deps = [
             "pytest>=7.0.0",
-            "pytest-cov>=4.0.0", 
+            "pytest-cov>=4.0.0",
             "pytest-mock>=3.8.0",
             "pytest-xdist>=3.0.0",
             "black>=23.0.0",
@@ -1768,44 +1779,66 @@ def setup_dev_environments() -> int:
         ]
         subprocess.run([venv_pip, "install"] + dev_deps, check=True)
         print("✅ Main and development dependencies installed")
-        
-        # Create batch environment  
+
+        # Create batch environment
         print("\n🔬 Setting up batch correction environment (.venv_batch)...")
         if Path(".venv_batch").exists():
             print("⏭️  Removing existing batch environment...")
             subprocess.run(["rm", "-rf", ".venv_batch"], check=True)
-            
+
         subprocess.run([python_cmd, "-m", "venv", ".venv_batch"], check=True)
         print("✅ Batch environment created")
-        
+
         # Install batch dependencies
         print("🧪 Installing batch correction dependencies...")
         batch_python = ".venv_batch/bin/python"
         batch_pip = ".venv_batch/bin/pip"
-        
+
         subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
         subprocess.run([batch_pip, "install", "torch", "torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cpu"], check=True)
         subprocess.run([batch_pip, "install", "scvi-tools", "scanpy", "pandas", "numpy", "matplotlib", "seaborn"], check=True)
         print("✅ Batch dependencies installed")
-        
+
         # Create activation scripts
         print("\n📝 Creating activation scripts...")
         create_activation_scripts()
         print("✅ Activation scripts created")
-        
+
+        # Create directory structure
+        print("\n📁 Creating directory structure...")
+        create_project_directories()
+        print("✅ Project directories created")
+
         print("\n🎉 Development setup complete!")
         print("=" * 60)
         print("Next steps:")
-        print("  source .activate.sh         # Activate main environment") 
+        print("  source .activate.sh         # Activate main environment")
         print("  source .activate_batch.sh   # Switch to batch environment")
         print("  timeflies verify            # Verify setup")
         print("  timeflies test              # Run full test suite")
-        
+
         return 0
-        
+
     except Exception as e:
         print(f"❌ Development setup failed: {e}")
         return 1
+
+
+def create_project_directories():
+    """Create necessary project directories for development."""
+    from pathlib import Path
+
+    directories = [
+        "data/fruitfly_aging/head",
+        "data/fruitfly_alzheimers/head",
+        "outputs/fruitfly_aging",
+        "outputs/fruitfly_alzheimers",
+        "models",
+        "coverage"
+    ]
+
+    for dir_path in directories:
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
 def create_activation_scripts():
@@ -1893,12 +1926,12 @@ echo "To return to main environment:"
 echo "  deactivate"
 echo "  source .activate.sh"
 '''
-    
+
     with open('.activate.sh', 'w') as f:
         f.write(main_script)
     with open('.activate_batch.sh', 'w') as f:
         f.write(batch_script)
-    
+
     # Make executable
     import subprocess
     subprocess.run(['chmod', '+x', '.activate.sh', '.activate_batch.sh'], check=True)
@@ -1909,10 +1942,10 @@ def update_command(args) -> int:
     import subprocess
     import sys
     from pathlib import Path
-    
+
     print("🔄 Updating TimeFlies to latest version...")
     print("=" * 50)
-    
+
     try:
         # Check if git is available
         try:
@@ -1920,57 +1953,57 @@ def update_command(args) -> int:
         except (subprocess.CalledProcessError, FileNotFoundError):
             print("❌ Git not found. Please install git to use the update command.")
             return 1
-        
+
         # Create temporary directory for update
-        import tempfile
         import shutil
-        
+        import tempfile
+
         with tempfile.TemporaryDirectory(prefix="timeflies_update_") as temp_dir:
             temp_path = Path(temp_dir)
-            
+
             print("📥 Downloading latest version...")
-            
+
             # Clone the latest version
             repo_url = "git@github.com:rsinghlab/TimeFlies.git"
             clone_result = subprocess.run([
-                "git", "clone", "--depth", "1", "-b", "main", 
+                "git", "clone", "--depth", "1", "-b", "main",
                 repo_url, str(temp_path / "timeflies_update")
             ], capture_output=True, text=True)
-            
+
             if clone_result.returncode != 0:
                 print(f"❌ Failed to download update: {clone_result.stderr}")
                 print("💡 Please check your GitHub access and try again")
                 return 1
-            
+
             print("📦 Installing updated version...")
-            
+
             # Install the updated version
             update_path = temp_path / "timeflies_update"
             install_result = subprocess.run([
                 sys.executable, "-m", "pip", "install", "--upgrade", str(update_path)
             ], capture_output=True, text=True)
-            
+
             if install_result.returncode != 0:
                 print(f"❌ Installation failed: {install_result.stderr}")
                 return 1
-            
+
             print("✅ TimeFlies updated successfully!")
-            
+
             # Test the updated installation
             print("🧪 Testing updated installation...")
             test_result = subprocess.run([
                 "timeflies", "--help"
             ], capture_output=True, text=True)
-            
+
             if test_result.returncode == 0:
                 print("✅ Update completed successfully!")
                 print("\n🎉 TimeFlies is now up to date!")
             else:
                 print("⚠️  Update installed but CLI test failed")
                 print("💡 You may need to restart your terminal or reactivate your environment")
-            
+
             return 0
-            
+
     except Exception as e:
         print(f"❌ Update failed: {e}")
         return 1

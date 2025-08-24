@@ -1,9 +1,11 @@
 """Fruit Fly Aging project-specific configuration management."""
 
 import os
-import yaml
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+import yaml
+
 from common.utils.exceptions import ConfigurationError
 from common.utils.logging_config import get_logger
 
@@ -16,7 +18,7 @@ _config_manager: Optional["ConfigManager"] = None
 class Config:
     """Configuration class with nested attribute access for aging project."""
 
-    def __init__(self, config_dict: Dict[str, Any]):
+    def __init__(self, config_dict: dict[str, Any]):
         """Initialize config from dictionary."""
         self._data = {}
         for key, value in config_dict.items():
@@ -45,7 +47,7 @@ class Config:
                     value = Config(value)
                 self._data[name] = value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert config back to dictionary."""
         result = {}
         for key, value in self._data.items():
@@ -59,7 +61,7 @@ class Config:
         """Get configuration value with default."""
         return self._data.get(key, default)
 
-    def update(self, other: Dict[str, Any]) -> None:
+    def update(self, other: dict[str, Any]) -> None:
         """Update configuration with new values."""
         for key, value in other.items():
             if (
@@ -80,7 +82,7 @@ class Config:
 class ConfigManager:
     """Fruit Fly Aging project-specific configuration manager."""
 
-    def __init__(self, config_path: Optional[str] = None, project_override: Optional[str] = None):
+    def __init__(self, config_path: str | None = None, project_override: str | None = None):
         """
         Initialize configuration manager for aging project.
 
@@ -100,14 +102,14 @@ class ConfigManager:
                 self.project_name = "fruitfly_aging"
         # Ensure user configs are installed to ~/.timeflies/
         self._ensure_user_configs()
-        
+
         self.config_path = self._find_config_path(config_path)
         self._config = None
         self._load_config()
         self.validate_config()
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> "Config":
+    def from_dict(cls, config_dict: dict[str, Any]) -> "Config":
         """
         Create a Config object directly from a dictionary.
 
@@ -119,7 +121,7 @@ class ConfigManager:
         """
         return Config(config_dict)
 
-    def _find_config_path(self, config_path: Optional[str]) -> str:
+    def _find_config_path(self, config_path: str | None) -> str:
         """Find configuration file path for aging project."""
         if config_path:
             if os.path.exists(config_path):
@@ -134,7 +136,7 @@ class ConfigManager:
             str(user_config_dir / "default.yaml"),  # User's installed config
             "configs/default.yaml",  # Dev config (development only)
             "../configs/default.yaml",
-            "../../configs/default.yaml", 
+            "../../configs/default.yaml",
             os.path.join(
                 os.path.dirname(__file__),
                 "../../../configs/default.yaml",
@@ -152,7 +154,7 @@ class ConfigManager:
     def _load_config(self) -> None:
         """Load configuration from YAML file with base config support."""
         try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 config_dict = yaml.safe_load(f)
 
             # Check if there's a base config to inherit from
@@ -164,7 +166,7 @@ class ConfigManager:
 
                 if os.path.exists(base_config_full_path):
                     # Load base config
-                    with open(base_config_full_path, "r", encoding="utf-8") as bf:
+                    with open(base_config_full_path, encoding="utf-8") as bf:
                         base_config_dict = yaml.safe_load(bf)
 
                     # Merge base config with project config (project config overrides base)
@@ -183,7 +185,7 @@ class ConfigManager:
             if "data" not in config_dict:
                 config_dict["data"] = {}
             config_dict["data"]["project"] = self.project_name
-            
+
             # Note: Project-specific splitting configurations are now in project config files
 
             # Create Config object
@@ -198,8 +200,8 @@ class ConfigManager:
             )
 
     def _merge_configs(
-        self, base_dict: Dict[str, Any], override_dict: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, base_dict: dict[str, Any], override_dict: dict[str, Any]
+    ) -> dict[str, Any]:
         """Recursively merge two configuration dictionaries."""
         result = base_dict.copy()
 
@@ -220,12 +222,12 @@ class ConfigManager:
     def _ensure_user_configs(self) -> None:
         """Ensure user has a config.yaml in their project directory."""
         import shutil
-        
+
         # Check if user already has config.yaml in current directory
         project_config = Path("./config.yaml")
         if project_config.exists():
             return  # User already has their config
-        
+
         # Copy default config to user's project directory
         print("📋 Creating config.yaml in your project directory...")
         if not project_config.exists():
@@ -234,24 +236,24 @@ class ConfigManager:
                 Path(__file__).parent.parent.parent / "configs" / "default.yaml",  # dev path
                 Path(__file__).parent / "configs" / "default.yaml",  # potential package path
             ]
-            
+
             for source_config in source_configs:
                 if source_config.exists():
                     shutil.copy2(source_config, project_config)
-                    print(f"✅ Created config.yaml from TimeFlies defaults")
-                    print(f"📝 You can now edit ./config.yaml to customize your project settings")
+                    print("✅ Created config.yaml from TimeFlies defaults")
+                    print("📝 You can now edit ./config.yaml to customize your project settings")
                     return  # Success - exit method
-            
+
             # If no source config found, create from current repo's config
             try:
                 import subprocess
-                result = subprocess.run(['find', '/home/nikolaitennant/projects/TimeFlies', '-name', 'default.yaml', '-path', '*/configs/*'], 
+                result = subprocess.run(['find', '/home/nikolaitennant/projects/TimeFlies', '-name', 'default.yaml', '-path', '*/configs/*'],
                                       capture_output=True, text=True)
                 if result.returncode == 0 and result.stdout.strip():
                     source_path = result.stdout.strip().split('\n')[0]
                     shutil.copy2(source_path, project_config)
                     print(f"✅ Created config.yaml from {source_path}")
-                    print(f"📝 You can now edit ./config.yaml to customize your project settings")
+                    print("📝 You can now edit ./config.yaml to customize your project settings")
                     return
             except:
                 pass
@@ -270,7 +272,7 @@ class ConfigManager:
                         "sampling": {"samples": 10000, "variables": None},
                         "split": {
                             "method": "column",
-                            "column": "genotype", 
+                            "column": "genotype",
                             "train": ["control"],
                             "test": ["ab42", "htau"]
                         }
@@ -330,7 +332,7 @@ class ConfigManager:
             )
 
 
-def get_config(config_path: Optional[str] = None) -> Config:
+def get_config(config_path: str | None = None) -> Config:
     """
     Get global configuration instance for aging project (singleton pattern).
 
@@ -348,7 +350,7 @@ def get_config(config_path: Optional[str] = None) -> Config:
     return _config_manager.get_config()
 
 
-def get_config_manager(config_path: Optional[str] = None) -> ConfigManager:
+def get_config_manager(config_path: str | None = None) -> ConfigManager:
     """Get the global ConfigManager instance."""
     global _config_manager
 

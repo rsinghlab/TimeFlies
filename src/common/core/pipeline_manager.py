@@ -1,19 +1,20 @@
 import logging
 import os
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from .config_manager import Config
+from common.data.loaders import DataLoader
 from common.data.preprocessing.data_processor import DataPreprocessor
 from common.data.preprocessing.gene_filter import GeneFilter
 from common.models.model import ModelBuilder, ModelLoader
 from common.utils.gpu_handler import GPUHandler
 from common.utils.path_manager import PathManager
 from common.utils.storage_manager import StorageManager
-from common.data.loaders import DataLoader
+
+from .config_manager import Config
 
 # Optional project-specific components (injected at runtime)
 EDAHandler = None
-Interpreter = None  
+Interpreter = None
 Metrics = None
 Visualizer = None
 
@@ -44,13 +45,13 @@ class PipelineManager:
         self.data_loader = DataLoader(self.config_instance)
         self.path_manager = PathManager(self.config_instance)
         self.storage_manager = StorageManager(self.config_instance, self.path_manager)
-        
+
         # Generate experiment name for this run
         self.experiment_name = self.path_manager.generate_experiment_name()
         self.config_key = self.path_manager.get_config_key()
         logger.info(f"Config: {self.config_key}")
         logger.info(f"Experiment: {self.experiment_name}")
-        
+
         # Auto-inject shared analysis components
         try:
             from common.analysis import EDAHandler, Visualizer
@@ -64,7 +65,7 @@ class PipelineManager:
             self.interpreter_class = None
             self.metrics_class = None
             self.visualizer_class = None
-        
+
         logger.info("Initializing TimeFlies pipeline...")
 
     def setup_gpu(self):
@@ -383,7 +384,7 @@ class PipelineManager:
             self.model, self.history, self.model_improved = self.model_builder.run()
             print("History keys:", self.history.history.keys())
             print(f"Model improved during training: {self.model_improved}")
-            
+
             # Set num_features and gene names for auto-evaluation
             self.num_features = self.train_data.shape[1]
             # Store the exact gene names used in training for consistent evaluation
@@ -391,7 +392,7 @@ class PipelineManager:
                 self.train_gene_names = self.data_preprocessor.train_gene_names
             else:
                 self.train_gene_names = None
-            
+
             # Save training visuals to experiment directory
             if getattr(self.config_instance.visualizations, "enabled", False):
                 logger.info("Generating training visualizations...")
@@ -412,7 +413,7 @@ class PipelineManager:
             if self.visualizer_class is None:
                 logger.warning("Visualizer class not available, skipping training visualizations")
                 return
-                
+
             # Create visualizer for training plots only, set to evaluation context for proper directory
             visualizer = self.visualizer_class(
                 self.config_instance,
@@ -427,14 +428,14 @@ class PipelineManager:
                 None,  # No adata_corrected for training visuals
                 self.path_manager,
             )
-            
+
             # Set evaluation context to save to results directory
             visualizer.set_evaluation_context(result_type)
-            
+
             # Generate only training-specific plots (loss curves, accuracy curves)
             visualizer._visualize_training_history()
             logger.info(f"Training visualizations saved successfully to {result_type} directory.")
-            
+
         except Exception as e:
             logger.warning(f"Failed to save training visualizations: {e}")
 
@@ -446,11 +447,11 @@ class PipelineManager:
             if self.visualizer_class is None:
                 logger.warning("Visualizer class not available, skipping training visualizations")
                 return
-                
+
             # Create training directory in experiment
             training_dir = self.path_manager.get_experiment_training_dir(self.experiment_name)
             os.makedirs(training_dir, exist_ok=True)
-            
+
             # Create visualizer with experiment training directory
             visualizer = self.visualizer_class(
                 self.config_instance,
@@ -465,14 +466,14 @@ class PipelineManager:
                 None,  # No adata_corrected for training visuals
                 self.path_manager,
             )
-            
+
             # Set output directory to training directory
             visualizer.training_visual_tools.output_dir = training_dir
-            
+
             # Generate training plots
             visualizer._visualize_training_history()
-            logger.info(f"Training visualizations saved to experiment directory")
-            
+            logger.info("Training visualizations saved to experiment directory")
+
         except Exception as e:
             logger.warning(f"Failed to save experiment training visualizations: {e}")
 
@@ -496,7 +497,7 @@ class PipelineManager:
                 }
             }
             self.path_manager.save_experiment_metadata(self.experiment_name, training_data)
-            
+
             # Save model only if it improved and policy allows
             should_save_model = self.storage_manager.should_save_model(self.model_improved)
             if should_save_model:
@@ -504,24 +505,24 @@ class PipelineManager:
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 self.model.save(model_path)
                 logger.info(f"Model saved to {model_path}")
-                
+
                 # Update best symlink if this is a new best model
                 if self.model_improved:
                     self.path_manager.update_best_symlink(self.experiment_name)
                     logger.info("Updated best model symlink")
             else:
                 logger.info("Model not saved (did not improve)")
-                
+
             # Always update latest symlink
             self.path_manager.update_latest_symlink(self.experiment_name)
-            
+
             # Save config snapshot
             experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
             config_path = Path(experiment_dir) / "config.yaml"
             import yaml
             with open(config_path, 'w') as f:
                 yaml.dump(self.config_instance.to_dict(), f, default_flow_style=False)
-                
+
         except Exception as e:
             logger.error(f"Failed to save experiment outputs: {e}")
 
@@ -535,7 +536,7 @@ class PipelineManager:
             plots_dir = self.path_manager.get_experiment_plots_dir(self.experiment_name)
             os.makedirs(evaluation_dir, exist_ok=True)
             os.makedirs(plots_dir, exist_ok=True)
-            
+
             # Run metrics and save to experiment directory
             from common.evaluation import Metrics
             metrics = Metrics(
@@ -547,16 +548,16 @@ class PipelineManager:
                 self.path_manager,
                 output_dir=evaluation_dir
             )
-            
+
             # Run metrics
             metrics.run()
-            
+
             # Store metrics for metadata
             if hasattr(metrics, 'mae'):
                 self.last_mae = metrics.mae
                 self.last_r2 = getattr(metrics, 'r2_score', None)
                 self.last_pearson = getattr(metrics, 'pearson_correlation', None)
-            
+
             # Run visualizations if enabled
             if getattr(self.config_instance.visualizations, "enabled", False):
                 visualizer = self.visualizer_class(
@@ -572,15 +573,15 @@ class PipelineManager:
                     None,  # No adata_corrected
                     self.path_manager,
                 )
-                
+
                 # Set output directory to plots directory
                 visualizer.visual_tools.output_dir = plots_dir
-                
+
                 # Run evaluation visualizations (not training plots)
                 visualizer.run()
-                
+
             logger.info("Evaluation results saved to experiment directory")
-            
+
         except Exception as e:
             logger.warning(f"Failed to save experiment evaluation: {e}")
 
@@ -594,7 +595,7 @@ class PipelineManager:
             if not hasattr(self, 'adata_eval') or self.adata_eval is None:
                 logger.warning("No evaluation data available for auto-evaluation")
                 return
-                
+
             # Select evaluation dataset (corrected vs uncorrected)
             batch_correction_enabled = getattr(
                 self.config_instance.data.batch_correction, "enabled", False
@@ -604,11 +605,11 @@ class PipelineManager:
                 if batch_correction_enabled and hasattr(self, 'adata_eval_corrected')
                 else self.adata_eval
             )
-            
+
             # Process EVALUATION data using fitted training components (no data leakage)
             from common.data.preprocessing import DataPreprocessor
             data_preprocessor = DataPreprocessor(self.config_instance, None, None)
-            
+
             (
                 self.test_data,
                 self.test_labels,
@@ -623,9 +624,9 @@ class PipelineManager:
                 self.mix_included,
                 getattr(self, 'train_gene_names', None),  # Use exact gene names from training
             )
-            
+
             logger.info("Final evaluation data preprocessed successfully.")
-            
+
             # Run evaluation metrics (post-training: save to recent always, best only if improved)
             self.run_metrics("recent")
             if self.model_improved:
@@ -633,17 +634,17 @@ class PipelineManager:
                 self.run_metrics("best")
             else:
                 logger.info("Model did not improve - skipping best directory update")
-            
+
             # Run visualizations for experiment
             if getattr(self.config_instance.visualizations, "enabled", False):
                 self.run_visualizations()
-            
+
             # Run project-specific analysis
             if getattr(self.config_instance.analysis.run_analysis_script, "enabled", False):
                 self.run_analysis_script()
-                
+
             logger.info("Post-training evaluation completed successfully.")
-            
+
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
                 del self.adata_eval
@@ -652,11 +653,11 @@ class PipelineManager:
             import gc
             gc.collect()
             logger.info("Evaluation data cleanup complete after auto-evaluation.")
-            
+
             # Save all results to new experiment structure
             self._save_experiment_evaluation()
             self.save_experiment_outputs()
-            
+
             # Cleanup old experiments if enabled
             try:
                 if getattr(self.config_instance.storage.cleanup_policy, "auto_cleanup", False):
@@ -665,7 +666,7 @@ class PipelineManager:
                         logger.info(f"Cleaned up {cleanup_results['cleaned']} old experiments")
             except Exception:
                 pass  # Cleanup is optional
-                        
+
         except Exception as e:
             logger.warning(f"Post-training evaluation failed: {e}")
             logger.info("You can still run 'evaluate' command manually for full evaluation.")
@@ -747,7 +748,7 @@ class PipelineManager:
             if self.visualizer_class is None:
                 logger.warning("Visualizer class not available, skipping visualizations")
                 return
-                
+
             visualizer = self.visualizer_class(
                 self.config_instance,
                 self.model,
@@ -762,10 +763,10 @@ class PipelineManager:
                 self.path_manager,
                 preserved_var_names=getattr(self, "preserved_var_names", None),
             )
-            
+
             # Set the evaluation context for proper directory structure
             visualizer.set_evaluation_context(getattr(self, 'experiment_name', None))
-            
+
             visualizer.run()
             logger.info("Visualizations completed.")
         else:
@@ -783,10 +784,10 @@ class PipelineManager:
             if self.metrics_class is None:
                 logger.warning("Metrics class not available, skipping metrics computation")
                 return
-                
+
             # Get experiment evaluation directory for this result type
             evaluation_dir = self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
-            
+
             metrics = self.metrics_class(
                 self.config_instance,
                 self.model,
@@ -847,16 +848,16 @@ class PipelineManager:
             if hasattr(self.config_instance, '_custom_analysis_script'):
                 self._run_custom_analysis_script(self.config_instance._custom_analysis_script)
                 return
-                
+
             logger.info("Running project-specific analysis script...")
-            
+
             # Auto-detect analysis script in templates folder
             project_name = getattr(self.config_instance, "project", "fruitfly_aging")
-            
+
             # Look for templates/{project}_analysis.py
             from pathlib import Path
             template_path = Path("templates") / f"{project_name}_analysis.py"
-            
+
             if template_path.exists():
                 logger.info(f"Found project analysis script: {template_path}")
                 self._run_custom_analysis_script(str(template_path))
@@ -871,7 +872,7 @@ class PipelineManager:
                             logger.info(f"  - {template_file}")
                     else:
                         logger.info("  - No analysis templates found")
-                
+
         except Exception as e:
             logger.error(f"Error running analysis script: {e}")
             # Don't raise - analysis scripts are optional
@@ -884,26 +885,26 @@ class PipelineManager:
             script_path: Path to the custom analysis Python file
         """
         try:
-            from pathlib import Path
             import importlib.util
             import sys
-            
+            from pathlib import Path
+
             script_path = Path(script_path)
             if not script_path.exists():
                 logger.error(f"Custom analysis script not found: {script_path}")
                 return
-                
+
             if not script_path.suffix == '.py':
                 logger.error(f"Custom analysis script must be a .py file: {script_path}")
                 return
-                
+
             logger.info(f"Running custom analysis script: {script_path}")
-            
+
             # Import the custom script as a module
             spec = importlib.util.spec_from_file_location("custom_analysis", script_path)
             custom_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(custom_module)
-            
+
             # Look for a run_analysis function
             if hasattr(custom_module, 'run_analysis'):
                 # Call with pipeline manager context
@@ -915,13 +916,13 @@ class PipelineManager:
                 )
                 logger.info("Custom analysis script completed successfully.")
             else:
-                logger.error(f"Custom analysis script must define a 'run_analysis' function")
-                
+                logger.error("Custom analysis script must define a 'run_analysis' function")
+
         except Exception as e:
             logger.error(f"Error running custom analysis script: {e}")
             # Don't raise - analysis scripts are optional
 
-    def run_evaluation(self) -> Dict[str, Any]:
+    def run_evaluation(self) -> dict[str, Any]:
         """
         Run evaluation-only pipeline that uses pre-trained model on holdout data.
         
@@ -929,56 +930,56 @@ class PipelineManager:
             Dict containing model path and results path
         """
         import time
-        
+
         start_time = time.time()
-        
+
         try:
             # Setup phases
             self.setup_gpu()
             self.load_data()
             self.setup_gene_filtering()
-            
+
             # Load model components and preprocess only eval data
             self.load_model_components()
             self.preprocess_final_eval_data()
-            
+
             # Load pre-trained model
             self.load_model()
-            
+
             # Run evaluation metrics (standalone evaluation: save to both since using best model)
             self.run_metrics("recent")
             self.run_metrics("best")
-            
+
             # Analysis (conditional based on config)
             if getattr(self.config_instance.interpretation.shap, "enabled", False):
                 self.run_interpretation()
-                
+
             if getattr(self.config_instance.visualizations, "enabled", False):
                 self.run_visualizations()
-            
+
             # Run project-specific analysis script if enabled
             if getattr(
                 self.config_instance.analysis.run_analysis_script, "enabled", False
             ):
                 self.run_analysis_script()
-            
+
             end_time = time.time()
             self.display_duration(start_time, end_time)
-            
+
             # Return paths for CLI feedback
             experiment_dir = self.path_manager.get_experiment_dir(getattr(self, 'experiment_name', None))
-            
+
             return {
                 "model_path": experiment_dir,
                 "results_path": os.path.join(experiment_dir, "evaluation"),
                 "duration": end_time - start_time,
             }
-            
+
         except Exception as e:
             logger.error(f"Evaluation pipeline execution failed: {e}")
             raise
 
-    def run(self) -> Dict[str, Any]:
+    def run(self) -> dict[str, Any]:
         """
         Run the complete pipeline and return results.
 
@@ -1011,18 +1012,18 @@ class PipelineManager:
 
             # Return paths for CLI feedback
             experiment_dir = self.path_manager.get_experiment_dir(getattr(self, 'experiment_name', None))
-            
+
             return_dict = {
                 "model_path": experiment_dir,
                 "results_path": os.path.join(experiment_dir, "evaluation"),
                 "duration": end_time - start_time,
                 "model_improved": getattr(self, 'model_improved', False),
             }
-            
+
             # Add best symlink info if model improved
             if getattr(self, 'model_improved', False):
                 return_dict["best_results_path"] = os.path.join(experiment_dir, "evaluation")
-                
+
             return return_dict
 
         except Exception as e:

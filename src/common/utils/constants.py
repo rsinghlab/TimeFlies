@@ -1,6 +1,6 @@
 """Constants and configuration values for TimeFlies project."""
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # Model constants
 DEFAULT_TARGET_SUM = 1e4
