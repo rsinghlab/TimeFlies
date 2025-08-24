@@ -6,14 +6,18 @@ import sys
 from pathlib import Path
 
 
-def main_cli():
-    """Main entry point for CLI - returns exit code."""
+def main_cli(argv=None):
+    """Main entry point for CLI - returns exit code.
+    
+    Args:
+        argv: Optional list of arguments. If None, uses sys.argv
+    """
     # Import and run the CLI
     from common.cli.commands import execute_command
     from common.cli.parser import create_main_parser
 
     parser = create_main_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Execute the command
     success = execute_command(args)

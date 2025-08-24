@@ -30,6 +30,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.8.0",
     "pytest-xdist>=3.0.0",  # Parallel test execution
+    "pytest-benchmark>=5.0.0",  # Performance benchmarking
     "ruff>=0.1.0",          # Fast linter and formatter (replaces black, isort, flake8)
     "mypy>=1.5.0",          # Type checking
     "types-PyYAML",         # Type stubs for PyYAML
