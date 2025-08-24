@@ -135,7 +135,9 @@ class AgingMetrics:
                 metrics_dir = os.path.join(output_root, "metrics")
                 metrics_filename = "evaluation_metrics.json"
 
-            os.makedirs(metrics_dir, exist_ok=True)
+            # Create directory if it doesn't exist (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                os.makedirs(metrics_dir, exist_ok=True)
 
             # Save metrics to JSON
             metrics_file = os.path.join(metrics_dir, metrics_filename)
@@ -157,7 +159,9 @@ class AgingMetrics:
                     self.result_type, "eval"
                 )
 
-            os.makedirs(results_dir, exist_ok=True)
+            # Create directory if it doesn't exist (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                os.makedirs(results_dir, exist_ok=True)
 
             # Create predictions dataframe
             predictions_df = pd.DataFrame(

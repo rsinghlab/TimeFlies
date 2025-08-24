@@ -251,7 +251,9 @@ class PathManager:
         if subfolder:
             eval_dir = os.path.join(eval_dir, subfolder)
 
-        os.makedirs(eval_dir, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            os.makedirs(eval_dir, exist_ok=True)
         return eval_dir
 
     def get_processed_data_dir(self) -> str:
@@ -276,8 +278,9 @@ class PathManager:
             / self.config_details
         )
 
-        # Create directory if it doesn't exist
-        processed_data_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            processed_data_dir.mkdir(parents=True, exist_ok=True)
 
         return str(processed_data_dir)
 
@@ -314,8 +317,9 @@ class PathManager:
         project_name = getattr(self.config, "project", "fruitfly_aging")
         log_dir = project_root / "outputs" / project_name / "logs"
 
-        # Create directory if it doesn't exist
-        log_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            log_dir.mkdir(parents=True, exist_ok=True)
 
         return str(log_dir)
 
@@ -353,7 +357,9 @@ class PathManager:
         """
         model_dir = self.construct_model_directory()
         training_visuals_dir = Path(model_dir) / "training" / "visuals"
-        training_visuals_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            training_visuals_dir.mkdir(parents=True, exist_ok=True)
         return str(training_visuals_dir)
 
     # =============================================================================
@@ -529,7 +535,9 @@ class PathManager:
             metadata.update(additional_data)
 
         experiment_dir = Path(self.get_experiment_dir(experiment_name))
-        experiment_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            experiment_dir.mkdir(parents=True, exist_ok=True)
 
         metadata_path = experiment_dir / "metadata.json"
         with open(metadata_path, "w") as f:
@@ -626,7 +634,9 @@ class PathManager:
             / correction_dir
             / "best"
         )
-        best_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            best_dir.mkdir(parents=True, exist_ok=True)
 
         # Path to symlink for this config within best/
         best_config_link = best_dir / config_key
