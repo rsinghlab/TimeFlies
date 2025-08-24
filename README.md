@@ -91,7 +91,7 @@ timeflies verify                              # System verification
 
 ### Development Commands
 ```bash
-timeflies test [unit|integration|functional|system|all] [--coverage] [--fast] [--debug] [--rerun]
+timeflies test [unit|integration|functional|system|all] [--coverage] [--verbose] [--fast] [--debug] [--rerun]
 timeflies create-test-data [--tier tiny|synthetic|real|all] [--cells N] [--genes N] [--batch-versions]
 timeflies update                              # Update to latest version
 ```

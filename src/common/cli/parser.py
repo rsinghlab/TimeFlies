@@ -149,6 +149,9 @@ User Workflow:
         "--coverage", action="store_true", help="Generate HTML coverage report"
     )
     test_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Show detailed test output"
+    )
+    test_parser.add_argument(
         "--fast",
         action="store_true",
         help="Run unit + integration only (skip slow tests)",

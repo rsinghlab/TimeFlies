@@ -90,7 +90,7 @@ tests/
 
 ```bash
 # Run tests (see main README for all CLI commands)
-timeflies test [unit|integration|functional|system|all] [--coverage] [--fast] [--debug] [--rerun]
+timeflies test [unit|integration|functional|system|all] [--coverage] [--verbose] [--fast] [--debug] [--rerun]
 
 # Generate test data for testing
 timeflies create-test-data --tier tiny --batch-versions      # (optional - already committed)
