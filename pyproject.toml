@@ -30,9 +30,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.8.0",
     "pytest-xdist>=3.0.0",  # Parallel test execution
-    "black>=23.0.0",
-    "isort>=5.12.0",        # Import sorting
-    "ruff>=0.1.0",          # Fast linter (replaces flake8)
+    "ruff>=0.1.0",          # Fast linter and formatter (replaces black, isort, flake8)
     "mypy>=1.5.0",          # Type checking
     "pre-commit>=3.0.0",    # Git hooks
 ]
@@ -44,19 +42,6 @@ batch-correction = [
 [project.scripts]
 timeflies = "common.timeflies_cli:main"
 
-[tool.black]
-line-length = 88
-target-version = ['py310']
-exclude = '''
-/(
-    \.git
-    | \.venv
-    | __pycache__
-    | build
-    | dist
-    | legacy
-)/
-'''
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -105,11 +90,6 @@ directory = "coverage/html"
 [tool.coverage.xml]
 output = "coverage/coverage.xml"
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 88
-known_first_party = ["common"]
 
 [tool.ruff]
 line-length = 88
@@ -132,11 +112,17 @@ select = [
     "UP",   # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long (handled by black)
+    "E501",  # line too long (handled by ruff formatter)
     "F401",  # imported but unused (common in __init__.py)
     "N803",  # argument name should be lowercase (ML convention: X, y)
     "N806",  # variable in function should be lowercase (ML convention: X_train, X_test, adata.X)
 ]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.10"
