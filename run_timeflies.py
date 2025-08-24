@@ -2,8 +2,8 @@
 """
 TimeFlies v1.0 - Machine Learning for Aging Analysis
 
-A comprehensive machine learning framework for analyzing aging patterns in 
-Drosophila single-cell RNA sequencing data with deep learning models, 
+A comprehensive machine learning framework for analyzing aging patterns in
+Drosophila single-cell RNA sequencing data with deep learning models,
 SHAP interpretability, and batch correction.
 
 Core Commands:
@@ -14,7 +14,7 @@ Core Commands:
   batch-correct     - Apply batch correction to data splits
 
 Individual Commands:
-  split             - Create train/eval data splits only  
+  split             - Create train/eval data splits only
   verify            - Verify installation and system
   evaluate          - Evaluate trained models
   test              - Run comprehensive test suite
@@ -49,6 +49,7 @@ TimeFlies v1.0 | Singh Lab | https://github.com/rsinghlab/TimeFlies
 
 import os
 import sys
+import warnings
 from pathlib import Path
 
 # Suppress TensorFlow and CUDA warnings for cleaner output
@@ -66,7 +67,6 @@ logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Additional suppression for CUDA/cuDNN warnings
-import warnings
 
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', category=FutureWarning)

@@ -114,6 +114,15 @@ known_first_party = ["common"]
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = [
+    ".venv",
+    "__pycache__", 
+    "legacy",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings  
@@ -125,13 +134,6 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "F401",  # imported but unused (common in __init__.py)
-]
-exclude = [
-    ".venv",
-    "__pycache__", 
-    "legacy",
-    "build",
-    "dist",
 ]
 
 [tool.mypy]

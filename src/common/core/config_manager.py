@@ -222,6 +222,11 @@ class ConfigManager:
     def _ensure_user_configs(self) -> None:
         """Ensure user has a config.yaml in their project directory."""
         import shutil
+        import os
+
+        # Skip config creation during tests or CI
+        if os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('CI'):
+            return
 
         # Check if user already has config.yaml in current directory
         project_config = Path("./config.yaml")

@@ -220,11 +220,13 @@ TimeFlies/
    data/                 # Input datasets (user-provided)
       fruitfly_aging/
       fruitfly_alzheimers/
-   outputs/              # Results, models, plots
+   outputs/              # Results, models, plots (see Output Structure above)
    src/
       common/           # Shared framework components
-      analysis/         # Project-specific analysis
+      projects/         # Project-specific implementations
    tests/                # Comprehensive test suite
+      fixtures/         # Test data (tiny/synthetic/real)
+      outputs/          # Test-specific outputs (temporary)
    install_timeflies.sh  # One-click installer
 ```
 
@@ -244,12 +246,74 @@ TimeFlies is designed for researchers studying:
 - Cross-tissue aging comparisons
 - Batch effect correction in sc-RNA-seq
 
-## Output Examples
+## Output Structure
 
-- **Model Performance**: Accuracy, precision, recall metrics
-- **Model Interpretability**: Gene importance rankings and analysis visualizations
-- **Visualizations**: t-SNE/UMAP plots, expression heatmaps
-- **Reports**: Comprehensive HTML analysis reports
+TimeFlies organizes all outputs in a structured hierarchy for easy navigation and analysis:
+
+```
+outputs/
+├── fruitfly_aging/                    # Project-specific outputs
+│   ├── experiments/                   # All experimental results
+│   │   ├── uncorrected/              # Original data experiments  
+│   │   │   ├── all_runs/             # Complete experiment history
+│   │   │   │   └── head_cnn_age/     # Config-specific experiments
+│   │   │   │       ├── 2025-01-22_14-30-15/  # Timestamped experiment
+│   │   │   │       │   ├── model.h5           # Trained model
+│   │   │   │       │   ├── training/          # Training artifacts
+│   │   │   │       │   │   ├── history.json   # Training metrics
+│   │   │   │       │   │   ├── logs/          # Training logs
+│   │   │   │       │   │   └── plots/         # Training visualizations
+│   │   │   │       │   ├── evaluation/        # Test results
+│   │   │   │       │   │   ├── metrics.json   # Performance metrics
+│   │   │   │       │   │   ├── predictions.csv # Model predictions
+│   │   │   │       │   │   ├── shap_values.csv # SHAP interpretability
+│   │   │   │       │   │   └── plots/         # Result visualizations
+│   │   │   │       │   │       ├── confusion_matrix.png
+│   │   │   │       │   │       ├── roc_curve.png
+│   │   │   │       │   │       ├── shap_summary.png
+│   │   │   │       │   │       ├── feature_importance.png
+│   │   │   │       │   │       └── expression_heatmap.png
+│   │   │   │       │   └── metadata.json      # Experiment configuration
+│   │   │   │       └── 2025-01-22_15-45-30/  # Another experiment
+│   │   │   └── best/                 # Symlinks to best experiments
+│   │   │       └── head_cnn_age -> ../all_runs/head_cnn_age/2025-01-22_14-30-15/
+│   │   └── batch_corrected/          # Batch-corrected data experiments
+│   │       ├── all_runs/             # Same structure as uncorrected
+│   │       └── best/                 # Best batch-corrected models
+│   ├── data/                         # Processed datasets
+│   │   ├── splits/                   # Train/eval data splits
+│   │   └── batch_corrected/          # scVI-corrected data files
+│   ├── analysis/                     # Project-specific analysis
+│   │   ├── reports/                  # HTML/PDF reports
+│   │   └── custom/                   # User analysis results
+│   └── logs/                         # System logs
+└── fruitfly_alzheimers/              # Same structure for other projects
+    ├── experiments/
+    ├── data/
+    ├── analysis/
+    └── logs/
+```
+
+### Key Output Components
+
+**Model Artifacts:**
+- `model.h5` - Trained TensorFlow/Keras models ready for deployment
+- `training/history.json` - Complete training metrics and loss curves
+- `evaluation/metrics.json` - Test performance (accuracy, precision, recall, F1)
+
+**Interpretability Results:**
+- `evaluation/shap_values.csv` - Feature importance values for each prediction
+- `plots/shap_summary.png` - Gene importance visualization 
+- `plots/feature_importance.png` - Top contributing features
+- `plots/expression_heatmap.png` - Gene expression patterns
+
+**Model Performance:**
+- `plots/confusion_matrix.png` - Classification accuracy breakdown
+- `plots/roc_curve.png` - ROC analysis for binary classification
+- `evaluation/predictions.csv` - Model predictions with confidence scores
+
+**Best Model Collection:**
+The `best/` directory contains symlinks to the highest-performing experiment for each configuration, making it easy to access optimal models without searching through all experiments.
 
 ## Contributing
 
