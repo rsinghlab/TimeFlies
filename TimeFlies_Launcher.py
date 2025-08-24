@@ -230,7 +230,7 @@ QUICK START:
 
 WORKFLOW:
 • Verify: Check that data and environment are ready
-• Split: Create training and evaluation datasets  
+• Split: Create training and evaluation datasets
 • Train: Build machine learning models
 • Evaluate: Generate SHAP analysis and visualizations
 
@@ -371,7 +371,7 @@ TROUBLESHOOTING:
                 subprocess.run(["explorer", "outputs"])
             else:  # Linux
                 subprocess.run(["xdg-open", "outputs"])
-        except:
+        except Exception:
             messagebox.showinfo("Info", "Please manually open the 'outputs' folder")
 
     def launch_jupyter(self):

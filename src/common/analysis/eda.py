@@ -333,7 +333,7 @@ class EDAHandler:
     def run_comprehensive_eda(self, split="all"):
         """
         Run comprehensive EDA on specified data split and save results.
-        
+
         Args:
             split: "all", "train", or "test" - which data to analyze
         """
@@ -701,7 +701,7 @@ class EDAHandler:
     def generate_html_report(self, output_path=None):
         """
         Generate comprehensive HTML report with all EDA results.
-        
+
         Args:
             output_path: Path to save HTML report
         """
@@ -750,7 +750,7 @@ class EDAHandler:
             padding: 20px;
             background: #f5f5f5;
         }}
-        
+
         header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -758,17 +758,17 @@ class EDAHandler:
             border-radius: 10px;
             margin-bottom: 2rem;
         }}
-        
+
         h1 {{
             margin: 0;
             font-size: 2.5rem;
         }}
-        
+
         .subtitle {{
             opacity: 0.9;
             margin-top: 0.5rem;
         }}
-        
+
         .section {{
             background: white;
             padding: 2rem;
@@ -776,71 +776,71 @@ class EDAHandler:
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        
+
         h2 {{
             color: #667eea;
             border-bottom: 2px solid #667eea;
             padding-bottom: 0.5rem;
         }}
-        
+
         .stats-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             margin: 1rem 0;
         }}
-        
+
         .stat-card {{
             background: #f8f9fa;
             padding: 1rem;
             border-radius: 5px;
             border-left: 4px solid #667eea;
         }}
-        
+
         .stat-value {{
             font-size: 1.8rem;
             font-weight: bold;
             color: #667eea;
         }}
-        
+
         .stat-label {{
             font-size: 0.9rem;
             color: #666;
             text-transform: uppercase;
         }}
-        
+
         .visualization {{
             margin: 2rem 0;
             text-align: center;
         }}
-        
+
         .visualization img {{
             max-width: 100%;
             border-radius: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }}
-        
+
         table {{
             width: 100%;
             border-collapse: collapse;
             margin: 1rem 0;
         }}
-        
+
         th, td {{
             padding: 0.75rem;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }}
-        
+
         th {{
             background: #667eea;
             color: white;
         }}
-        
+
         tr:hover {{
             background: #f8f9fa;
         }}
-        
+
         .timestamp {{
             text-align: right;
             color: #666;
@@ -854,7 +854,7 @@ class EDAHandler:
         <h1>🔬 TimeFlies EDA Report</h1>
         <div class="subtitle">Comprehensive Exploratory Data Analysis</div>
     </header>
-    
+
     <section class="section">
         <h2>📊 Dataset Overview</h2>
         <div class="stats-grid">
@@ -875,7 +875,7 @@ class EDAHandler:
                 <div class="stat-label">Sparsity</div>
             </div>
         </div>
-        
+
         {'<h3>Age Statistics</h3>' if 'age_mean' in self.eda_results['summary'] else ''}
         {'<div class="stats-grid">' if 'age_mean' in self.eda_results['summary'] else ''}
         {f'''
@@ -894,16 +894,16 @@ class EDAHandler:
         ''' if 'age_mean' in self.eda_results['summary'] else ''}
         {'</div>' if 'age_mean' in self.eda_results['summary'] else ''}
     </section>
-    
+
     <section class="section">
         <h2>📈 Visualizations</h2>
-        
+
         {self._generate_visualization_section('age_distribution.png', 'Age Distribution', embedded_images)}
         {self._generate_visualization_section('correlation_matrix.png', 'Gene Correlation Matrix', embedded_images)}
         {self._generate_visualization_section('dimensionality_reduction.png', 'Dimensionality Reduction', embedded_images)}
         {self._generate_visualization_section('top_expressed_genes.png', 'Top Expressed Genes', embedded_images)}
     </section>
-    
+
     <section class="section">
         <h2>📋 Data Tables</h2>
         <p>The following data files have been generated:</p>
@@ -913,7 +913,7 @@ class EDAHandler:
             <li><strong>eda_summary.json</strong> - Full EDA results in JSON format</li>
         </ul>
     </section>
-    
+
     <div class="timestamp">
         Report generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     </div>

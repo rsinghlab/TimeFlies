@@ -1826,7 +1826,12 @@ def setup_dev_environments() -> int:
 
 def create_project_directories():
     """Create necessary project directories for development."""
+    import os
     from pathlib import Path
+
+    # Skip directory creation during tests or CI
+    if os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('CI'):
+        return
 
     directories = [
         "data/fruitfly_aging/head",

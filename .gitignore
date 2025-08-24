@@ -24,6 +24,7 @@ dist/
 
 # Results and models
 outputs/
+tests/outputs/      # Test-specific outputs (temporary)
 *.pkl
 .coverage
 coverage/

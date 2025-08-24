@@ -328,8 +328,10 @@ class PathManager:
         project_name = getattr(self.config, "project", "fruitfly_aging")
         outputs_dir = project_root / "outputs" / project_name
 
-        # Create directory if it doesn't exist
-        outputs_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        import os
+        if not (os.environ.get('PYTEST_CURRENT_TEST') or os.environ.get('CI')):
+            outputs_dir.mkdir(parents=True, exist_ok=True)
 
         return outputs_dir
 
