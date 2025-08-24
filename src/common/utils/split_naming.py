@@ -5,7 +5,7 @@ This module handles the logic for creating compact, meaningful names
 from column-based split configurations.
 """
 
-from typing import Any, Dict, List, Union
+from typing import Any, Union
 
 
 class SplitNamingUtils:

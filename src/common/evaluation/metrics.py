@@ -102,7 +102,7 @@ class AgingMetrics:
             # For age data, convert string ages to numeric
             try:
                 true_labels = true_labels.astype(float)
-            except:
+            except (ValueError, TypeError):
                 pass
 
         # Ensure both arrays are numeric and same type
