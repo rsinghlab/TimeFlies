@@ -23,9 +23,6 @@ source .activate.sh
 
 ### Basic Usage
 
-After installation, TimeFlies provides two equivalent ways to run commands:
-
-**Option 1: TimeFlies Launcher (recommended)**
 ```bash
 # Complete setup workflow
 timeflies setup [--batch-correct]
@@ -39,23 +36,6 @@ timeflies evaluate [--with-eda --with-analysis]
 # Run project-specific analysis
 timeflies analyze
 ```
-
-**Option 2: Direct Python**
-```bash
-# Complete setup workflow
-python run_timeflies.py setup [--batch-correct]
-
-# Train models with evaluation
-python run_timeflies.py train [--with-eda --with-analysis]
-
-# Evaluate trained models
-python run_timeflies.py evaluate [--with-eda --with-analysis]
-
-# Run project-specific analysis
-python run_timeflies.py analyze
-```
-
-Both methods are functionally identical - the `timeflies` launcher provides cleaner syntax.
 
 ## Research Workflow
 
