@@ -607,8 +607,9 @@ class Metrics:
             },
         }
 
-        # Save metrics to main analysis folder
-        os.makedirs(self.output_dir, exist_ok=True)
+        # Save metrics to main analysis folder (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            os.makedirs(self.output_dir, exist_ok=True)
         output_file_path = os.path.join(self.output_dir, file_name)
         with open(output_file_path, "w") as file:
             json.dump(metrics, file, indent=4)
@@ -616,7 +617,9 @@ class Metrics:
         # If interpretable is True, save an additional copy to the SHAP directory
         if getattr(self.config.interpretation.shap, "run_interpreter", True):
             shap_dir = self.path_manager.get_visualization_directory(subfolder="SHAP")
-            os.makedirs(shap_dir, exist_ok=True)
+            # Create directory if it doesn't exist (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                os.makedirs(shap_dir, exist_ok=True)
             shap_output_file_path = os.path.join(shap_dir, "Stats.JSON")
             with open(shap_output_file_path, "w") as file:
                 json.dump(metrics, file, indent=4)

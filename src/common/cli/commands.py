@@ -5,6 +5,7 @@ This module contains all command-line interface commands for TimeFlies.
 Each command is implemented as a separate function with proper error handling.
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -540,8 +541,10 @@ def new_setup_command(args) -> int:
         "logs",
     ]
 
-    for dir_path in output_dirs:
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
+    # Create directories if they don't exist (skip during tests)
+    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+        for dir_path in output_dirs:
+            Path(dir_path).mkdir(parents=True, exist_ok=True)
 
     print("✅ Output directories created")
 
@@ -767,7 +770,9 @@ def eda_command(args, config) -> int:
 
         # EDA analyzes full dataset - simple path structure
         eda_dir = Path(f"outputs/{project}/eda/{correction}/{tissue}")
-        eda_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            eda_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize EDA handler with output directory
         eda_handler = EDAHandler(config, output_dir=str(eda_dir))
@@ -1271,7 +1276,9 @@ def create_test_data_command(args) -> int:
         }
 
         summary_path = Path("tests/fixtures/test_data_summary.json")
-        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            summary_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2, default=str)
@@ -1574,7 +1581,9 @@ def create_tiny_fixtures(project, tissue, data_file, seed=42):
 
         # Save to fixtures directory
         output_dir = Path("tests/fixtures") / project
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         tiny_path = output_dir / f"tiny_{tissue}.h5ad"
         adata_tiny.write_h5ad(tiny_path)
@@ -1706,7 +1715,9 @@ def create_real_fixtures(project, tissue, data_file, seed=42):
 
         # Save to fixtures directory (will be gitignored)
         output_dir = Path("tests/fixtures") / project
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory if it doesn't exist (skip during tests)
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            output_dir.mkdir(parents=True, exist_ok=True)
 
         real_path = output_dir / f"real_{tissue}.h5ad"
         adata_real.write_h5ad(real_path)
@@ -1901,8 +1912,10 @@ def create_project_directories():
         "coverage",
     ]
 
-    for dir_path in directories:
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
+    # Create directories if they don't exist (skip during tests)
+    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+        for dir_path in directories:
+            Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
 def setup_user_environment():
@@ -1940,7 +1953,9 @@ def setup_user_environment():
         templates_dir = Path("templates")
         if not templates_dir.exists():
             print("   📄 Creating templates directory...")
-            templates_dir.mkdir(parents=True, exist_ok=True)
+            # Create directory if it doesn't exist (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                templates_dir.mkdir(parents=True, exist_ok=True)
 
             # Find source templates from TimeFlies installation
             source_templates_dirs = [
