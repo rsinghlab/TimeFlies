@@ -39,9 +39,10 @@ timeflies analyze
 ```
 
 **Graphical User Interface (Alternative):**
-For users who prefer a GUI, double-click `TimeFlies_Launcher.py` to open a user-friendly graphical interface with:
+For users who prefer a GUI, run `python TimeFlies_Launcher.py` to open a user-friendly graphical interface with:
 - Installation wizard with progress tracking
 - Point-and-click analysis workflow
+- Configuration editing (project, tissue, model settings)
 - Results browser and visualization tools
 - Built-in help and documentation
 
@@ -60,6 +61,7 @@ Both interfaces provide identical functionality - choose what works best for you
 
 - **Fruitfly Aging**: Healthy aging analysis in Drosophila head tissue
 - **Fruitfly Alzheimer's**: Disease model analysis with neurodegeneration patterns
+- **Custom Projects**: Any single-cell transcriptomics data in AnnData format
 
 ## Key Features
 
@@ -270,10 +272,10 @@ your_project/
 
 ### Getting Started
 1. **Install TimeFlies**: `curl -O https://raw.githubusercontent.com/.../install_timeflies.sh && chmod +x install_timeflies.sh && ./install_timeflies.sh`
-2. **Activate**: `source .activate.sh`
+2. **Activate**: `source .activate.sh` (installs timeflies command to system)
 3. **Add your data**: Place `*_original.h5ad` files in `data/[project]/[tissue]/`
 4. **Setup**: `timeflies setup` (creates config.yaml, templates/, splits data, verifies system)
-5. **Configure**: Edit `config.yaml` for your project settings (optional customization)
+5. **Configure**: Edit `config.yaml` for your project settings (or use GUI: `python TimeFlies_Launcher.py`)
 6. **Run workflow**: `timeflies train && timeflies evaluate`
 
 ## System Requirements

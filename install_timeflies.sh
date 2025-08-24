@@ -101,7 +101,7 @@ if command -v git >/dev/null 2>&1; then
     # Clone to hidden temporary directory for user install
     if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_install_tmp >/dev/null 2>&1; then
         print_status "Installing dependencies (this may take a few minutes)..."
-        if cd .timeflies_install_tmp && pip install . >/dev/null 2>&1; then
+        if cd .timeflies_install_tmp && pip install -e . >/dev/null 2>&1; then
             print_success "Installed TimeFlies successfully"
             cd ..
             # Remove the temporary directory after successful install

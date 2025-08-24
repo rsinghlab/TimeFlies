@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "tomli>=1.0.0;python_version<'3.11'"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Machine Learning for Aging Analysis in Drosophila Single-Cell Data with Deep Learning and Batch Correction"
 authors = [{name = "Singh Lab"}]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "tensorflow>=2.13.0",
     "scikit-learn>=1.3.0",
