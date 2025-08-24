@@ -6,7 +6,6 @@ to manage storage efficiently while preserving important experiments.
 """
 
 import json
-import os
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path

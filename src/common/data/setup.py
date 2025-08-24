@@ -5,7 +5,6 @@ from pathlib import Path
 
 import anndata
 import numpy as np
-import pandas as pd
 
 from common.core import ConfigManager
 

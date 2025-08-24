@@ -1,18 +1,17 @@
 """Model factory for creating different types of models."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import tensorflow as tf
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from tensorflow.keras.layers import Conv1D, Dense, Dropout, Flatten, GlobalMaxPooling1D
+from tensorflow.keras.layers import Conv1D, Dense, Dropout, GlobalMaxPooling1D
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 
-from ..utils.constants import SUPPORTED_MODEL_TYPES
 from ..utils.exceptions import ModelError
 from ..utils.logging_config import get_logger
 

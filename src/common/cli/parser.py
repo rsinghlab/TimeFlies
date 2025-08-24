@@ -5,7 +5,6 @@ Modern subcommand-based CLI parser for TimeFlies.
 """
 
 import argparse
-from typing import Optional
 
 
 def create_main_parser() -> argparse.ArgumentParser:
