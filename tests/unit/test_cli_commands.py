@@ -61,9 +61,9 @@ class TestCLICommandExecution:
         mock_args.verbose = False
         mock_args.project = None
 
-        with patch("common.cli.commands.get_active_project") as mock_get_project:
+        with patch("common.core.active_config.get_active_project") as mock_get_project:
             with patch(
-                "common.cli.commands.get_config_for_active_project"
+                "common.core.active_config.get_config_for_active_project"
             ) as mock_get_config:
                 with patch("common.cli.commands.print") as mock_print:
                     mock_get_project.return_value = "fruitfly_aging"
