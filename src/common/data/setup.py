@@ -34,7 +34,7 @@ class DataSetupManager:
                 minimal_config = {
                     "general": {
                         "project_name": "TimeFlies",
-                        "version": "0.2.0",
+                        "version": "1.0.0",
                         "random_state": 42,
                     },
                     "data": {

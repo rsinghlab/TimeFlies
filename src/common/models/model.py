@@ -1,4 +1,5 @@
 import os
+import sys
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Suppress TensorFlow logging
 import json
@@ -301,9 +302,7 @@ class ModelLoader:
         self._verify_split_compatibility()
 
         # Load the model
-        print(f"DEBUG: Attempting to load model from: {self.model_path}")
         if os.path.exists(self.model_path):
-            print("DEBUG: Model file exists, loading...")
             if self.model_type in ["cnn", "mlp"]:
                 # Suppress the compile warning for loaded models
                 import logging
@@ -314,16 +313,14 @@ class ModelLoader:
                 absl_logger.setLevel(logging.ERROR)
 
                 model = tf.keras.models.load_model(self.model_path)
-                print(f"DEBUG: Model loaded successfully from {self.model_path}")
 
                 # Restore logging level
                 absl_logger.setLevel(old_level)
             else:
                 model = self._load_pickle(self.model_path)
-                print(f"DEBUG: Pickle model loaded successfully from {self.model_path}")
         else:
             print(f"ERROR: Model file not found: {self.model_path}")
-            exit()
+            sys.exit(1)
 
         # Return all loaded components
         return model
@@ -401,7 +398,7 @@ class ModelLoader:
         else:
             # Print error if the file does not exist and exit the program
             print(f"Error: {file_name} not found in {file_path}")
-            exit()
+            sys.exit(1)
 
     def _load_component_file(self, file_name, file_type="pickle"):
         """
@@ -434,7 +431,7 @@ class ModelLoader:
 
         # File not found in either location
         print(f"Error: {file_name} not found in {new_path} or {old_path}")
-        exit()
+        sys.exit(1)
 
     def _load_training_file(self, file_name, file_type="pickle"):
         """
@@ -467,7 +464,7 @@ class ModelLoader:
 
         # File not found in either location
         print(f"Error: {file_name} not found in {new_path} or {old_path}")
-        exit()
+        sys.exit(1)
 
 
 class ModelBuilder:
