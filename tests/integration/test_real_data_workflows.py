@@ -29,21 +29,23 @@ class TestCLIWorkflowIntegration:
     def test_cli_setup_real_execution(self):
         """Test CLI setup command workflow with mocked data operations."""
         from unittest.mock import patch
-        
+
         # Mock the data operations but test the CLI workflow
         with patch("common.cli.commands.setup_user_environment", return_value=0):
             with patch("common.cli.commands.split_command", return_value=0):
                 with patch("common.cli.system_checks.verify_system", return_value=0):
-                    with patch("builtins.input", return_value="n"):  # Skip batch correction
+                    with patch(
+                        "builtins.input", return_value="n"
+                    ):  # Skip batch correction
                         result = main_cli(["setup"])
 
-                        # Should return success code  
+                        # Should return success code
                         assert result == 0
 
     def test_cli_create_test_data_execution(self):
         """Test CLI create test data with mocked file operations."""
         from unittest.mock import patch
-        
+
         # Mock the test data creation to avoid file system operations
         with patch("common.cli.commands.create_test_data_command", return_value=0):
             result = main_cli(["create-test-data"])
@@ -103,28 +105,31 @@ class TestDataWorkflowIntegration:
 
     def test_timeflies_dataprocessor_workflow(self, large_sample_anndata):
         """Test TimeFlies DataPreprocessor workflow (not just scanpy)."""
-        from common.data.preprocessing.data_processor import DataPreprocessor
-        from common.core.active_config import get_config_for_active_project
         from unittest.mock import patch
-        
+
+        from common.core.active_config import get_config_for_active_project
+        from common.data.preprocessing.data_processor import DataPreprocessor
+
         # Add genotype column that TimeFlies expects
-        genotype_values = ['ctrl', 'alz'] * (large_sample_anndata.n_obs // 2)
+        genotype_values = ["ctrl", "alz"] * (large_sample_anndata.n_obs // 2)
         if large_sample_anndata.n_obs % 2 == 1:
-            genotype_values.append('ctrl')
-        large_sample_anndata.obs['genotype'] = genotype_values
-        
+            genotype_values.append("ctrl")
+        large_sample_anndata.obs["genotype"] = genotype_values
+
         config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
-        
+
         # Test actual TimeFlies DataPreprocessor
         with patch("common.utils.path_manager.PathManager"):
-            preprocessor = DataPreprocessor(config, large_sample_anndata, large_sample_anndata.copy())
-            
+            preprocessor = DataPreprocessor(
+                config, large_sample_anndata, large_sample_anndata.copy()
+            )
+
             # Test actual TimeFlies processing method
             processed = preprocessor.process_adata(large_sample_anndata.copy())
             assert processed.n_obs > 0
             assert processed.n_vars > 0
-            assert 'age' in processed.obs.columns
+            assert "age" in processed.obs.columns
 
     def test_data_splitting_workflow(self, large_sample_anndata):
         """Test real data splitting workflow."""

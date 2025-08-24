@@ -16,9 +16,9 @@ class TestInstallation:
         """Test that we're running on supported Python version."""
         version = sys.version_info
         assert version.major == 3
-        assert version.minor >= 10, (
-            f"Python 3.10+ required, got {version.major}.{version.minor}"
-        )
+        assert (
+            version.minor >= 10
+        ), f"Python 3.10+ required, got {version.major}.{version.minor}"
 
     def test_core_dependencies_available(self):
         """Test that core dependencies are importable."""
@@ -114,7 +114,7 @@ class TestSystemSetup:
         from common.utils.path_manager import PathManager
 
         # Create a minimal config for testing
-        config_dict = {
+        _ = {
             "general": {"project_name": "test_project"},
             "data": {"tissue": "head", "target_variable": "age"},
             "paths": {
@@ -126,7 +126,7 @@ class TestSystemSetup:
             # Test classes exist and can be instantiated (without calling real methods)
             assert ConfigManager is not None
             assert PathManager is not None
-            
+
         except ImportError as e:
             pytest.fail(f"Required classes not available: {e}")
 
@@ -135,7 +135,7 @@ class TestSystemSetup:
         from common.core.config_manager import ConfigManager
         from common.models.model_factory import ModelFactory
 
-        config_dict = {
+        _ = {
             "general": {"project_name": "test"},
             "data": {"target_variable": "age"},
             "model": {"training": {"epochs": 1, "batch_size": 32}},
@@ -145,7 +145,7 @@ class TestSystemSetup:
             # Test classes exist and can be imported
             assert ConfigManager is not None
             assert ModelFactory is not None
-            
+
         except ImportError as e:
             pytest.fail(f"Required classes not available: {e}")
 
@@ -230,9 +230,9 @@ class TestEnvironmentValidation:
 
         # Require at least 1GB available memory
         available_gb = memory.available / (1024**3)
-        assert available_gb >= 1.0, (
-            f"Insufficient memory: {available_gb:.1f}GB available"
-        )
+        assert (
+            available_gb >= 1.0
+        ), f"Insufficient memory: {available_gb:.1f}GB available"
 
     def test_disk_space(self):
         """Test disk space availability."""
@@ -254,7 +254,7 @@ class TestIntegrationReadiness:
         """Test that basic workflow components are available."""
         from sklearn.model_selection import train_test_split
         from sklearn.preprocessing import LabelEncoder
-        
+
         try:
             from common.core.config_manager import ConfigManager
             from common.models.model_factory import ModelFactory
@@ -266,7 +266,7 @@ class TestIntegrationReadiness:
             assert create_sample_anndata is not None
             assert train_test_split is not None
             assert LabelEncoder is not None
-            
+
         except ImportError as e:
             pytest.fail(f"Required workflow components not available: {e}")
 
@@ -281,6 +281,6 @@ class TestIntegrationReadiness:
             assert ConfigManager is not None
             assert DataPreprocessor is not None
             assert create_sample_anndata is not None
-            
+
         except ImportError as e:
             pytest.fail(f"Required data pipeline components not available: {e}")

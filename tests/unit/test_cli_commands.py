@@ -31,7 +31,9 @@ class TestCLICommandExecution:
         mock_args.dev = False
 
         # Mock the entire setup command function instead of its internals
-        with patch("common.cli.commands.new_setup_command", return_value=0) as mock_setup:
+        with patch(
+            "common.cli.commands.new_setup_command", return_value=0
+        ) as mock_setup:
             result = mock_setup(mock_args)
 
             # Should return success code
@@ -231,7 +233,9 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_with_project_override(self):
         """Test main CLI with project override."""
-        with patch("common.cli.commands.get_config_for_active_project") as mock_get_config:
+        with patch(
+            "common.cli.commands.get_config_for_active_project"
+        ) as mock_get_config:
             with patch("common.cli.commands.train_command") as mock_train:
                 mock_config = Mock()
                 mock_get_config.return_value.get_config.return_value = mock_config
@@ -245,7 +249,7 @@ class TestCLIMainEntryPoint:
         # Test with invalid command - should raise SystemExit
         with pytest.raises(SystemExit) as exc_info:
             main_cli(["invalid_command"])
-        
+
         # Should exit with error code 2 (argument error)
         assert exc_info.value.code == 2
 
@@ -311,9 +315,9 @@ class TestCLIUtilities:
         help_text = parser.format_help()
         assert isinstance(help_text, str)
         assert len(help_text) > 0
-        
+
         # Test that expected commands are mentioned in help
-        expected_commands = ['train', 'setup', 'verify', 'evaluate']
+        expected_commands = ["train", "setup", "verify", "evaluate"]
         for cmd in expected_commands:
             assert cmd in help_text
 

@@ -5,7 +5,7 @@ Comprehensive test suite with performance benchmarking, system validation, and p
 ## Recent Improvements ✨
 
 - **Performance Benchmarks**: 7 benchmarks covering data, models, CLI, and memory usage
-- **System Tests**: 15+ tests for installation validation and environment checking  
+- **System Tests**: 15+ tests for installation validation and environment checking
 - **Improved Organization**: Renamed files for clarity and better structure
 - **Real Data Testing**: Minimal mocking, maximum real functionality testing
 - **Production Ready**: Complete CI/CD integration with automated performance monitoring
@@ -15,7 +15,7 @@ Comprehensive test suite with performance benchmarking, system validation, and p
 ### 📁 Unit Tests (`tests/unit/`) - Component-level testing
 - `test_eda_analysis.py` - EDA and analysis functionality
 - `test_cli_commands.py` - CLI command execution
-- `test_cli_parser.py` - CLI argument parsing  
+- `test_cli_parser.py` - CLI argument parsing
 - `test_configuration.py` - Configuration management
 - `test_data_processing.py` - Data preprocessing pipelines
 - `test_evaluation_metrics.py` - Metrics and evaluation
@@ -35,19 +35,19 @@ Comprehensive test suite with performance benchmarking, system validation, and p
 ### 📁 Integration Tests (`tests/integration/`) - Cross-component testing
 - `test_real_data_workflows.py` - Real data processing workflows
 
-### 📁 Functional Tests (`tests/functional/`) - End-to-end workflows  
+### 📁 Functional Tests (`tests/functional/`) - End-to-end workflows
 - `test_workflows.py` - Complete user workflows
 
 ## Performance Benchmarking 🚀
 
 New performance test suite with 7 benchmarks:
 ```bash
-# Run performance benchmarks  
+# Run performance benchmarks
 pytest tests/test_performance.py --benchmark-only -v
 
 # Example results:
 # AnnData creation: ~37ms for 1000x500 matrix
-# Data loading: ~4.5ms for 500x200 dataset  
+# Data loading: ~4.5ms for 500x200 dataset
 # sklearn training: ~36ms for RandomForest
 # Prediction: ~179µs for 100 samples
 # CLI help: ~1.8ms (fast help system)
@@ -81,7 +81,7 @@ tests/
     │   ├── tiny_head.h5ad              # Tier 1: 50 cells, 100 genes (committed)
     │   ├── tiny_head_batch.h5ad        # Batch-corrected version
     │   ├── synthetic_head.h5ad         # Tier 2: 500 cells, 1000 genes (generated)
-    │   ├── synthetic_head_batch.h5ad   # Batch-corrected version  
+    │   ├── synthetic_head_batch.h5ad   # Batch-corrected version
     │   └── test_data_head_stats.json   # Metadata for generation
     └── fruitfly_alzheimers/           # Same structure for disease models
 ```
@@ -94,7 +94,7 @@ timeflies test [unit|integration|functional|system|all] [--coverage] [--fast] [-
 
 # Generate test data for testing
 timeflies create-test-data --tier tiny --batch-versions      # (optional - already committed)
-timeflies create-test-data --tier synthetic --batch-versions # Generated on demand  
+timeflies create-test-data --tier synthetic --batch-versions # Generated on demand
 timeflies create-test-data --tier real --batch-versions      # Local performance testing
 ```
 
@@ -104,7 +104,7 @@ timeflies create-test-data --tier real --batch-versions      # Local performance
 - Use for: Unit tests, fast feedback, continuous integration
 - Files: `tiny_*.h5ad` (always available)
 
-**Tier 2 - Synthetic** (500 cells, 1000 genes): Generated from metadata  
+**Tier 2 - Synthetic** (500 cells, 1000 genes): Generated from metadata
 - Use for: Integration tests, realistic biological patterns
 - Files: `synthetic_*.h5ad` (generated on demand)
 
@@ -114,7 +114,7 @@ timeflies create-test-data --tier real --batch-versions      # Local performance
 
 ## What Each Type Tests
 
-**Unit**: Individual functions with mocks and tiny fixtures - no training  
+**Unit**: Individual functions with mocks and tiny fixtures - no training
 **Integration**: Components working together with synthetic data
 - Real biological patterns but manageable size
 - Data loading, preprocessing, model creation
@@ -129,7 +129,7 @@ timeflies create-test-data --tier real --batch-versions      # Local performance
 # Quick development feedback
 timeflies test --fast         # Unit + integration only (auto-handles environments)
 
-# Full test suite before commit  
+# Full test suite before commit
 timeflies test --coverage     # All tests + coverage report (auto-switches environments)
 
 # Debug specific failures
@@ -143,22 +143,22 @@ The test runner automatically handles batch correction tests:
 
 **What happens when you run `timeflies test --coverage`:**
 1. 🧪 **Regular tests** run in main `.venv` environment
-2. 🔄 **Auto-detects** batch correction tests  
+2. 🔄 **Auto-detects** batch correction tests
 3. 🧬 **Switches** to `.venv_batch` environment for batch correction tests
-4. 🔄 **Returns** to main `.venv` environment  
+4. 🔄 **Returns** to main `.venv` environment
 5. 📊 **Combines** coverage reports from both environments
 
 **Developer Experience:**
 - ✅ **One command**: `timeflies test` - everything works automatically
-- ✅ **No manual switching**: Test runner handles environments  
+- ✅ **No manual switching**: Test runner handles environments
 - ✅ **Always ends in main env**: Never left in wrong environment
 - ✅ **Comprehensive testing**: Real batch correction testing, not just mocks
 
 ## Test Data Tiers
 
-**Tiny** (50 cells, 100 genes): Committed to git, always available  
-**Synthetic** (500 cells, 1000 genes): Generated from metadata, realistic patterns  
-**Real** (5000 cells, 2000 genes): Gitignored, full complexity testing  
+**Tiny** (50 cells, 100 genes): Committed to git, always available
+**Synthetic** (500 cells, 1000 genes): Generated from metadata, realistic patterns
+**Real** (5000 cells, 2000 genes): Gitignored, full complexity testing
 
 ```bash
 # Check existing fixtures: ls tests/fixtures/*/

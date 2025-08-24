@@ -220,7 +220,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "gpu: mark test as requiring GPU")
     config.addinivalue_line("markers", "data: mark test as requiring real data files")
     config.addinivalue_line("markers", "cli: mark test as testing CLI functionality")
-    config.addinivalue_line("markers", "performance: mark test as a performance benchmark")
+    config.addinivalue_line(
+        "markers", "performance: mark test as a performance benchmark"
+    )
 
 
 def pytest_collection_modifyitems(config, items):

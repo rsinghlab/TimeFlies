@@ -76,12 +76,12 @@ timeflies analyze
 ### Core Research Commands
 ```bash
 timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
-timeflies train [--with-eda] [--with-analysis] # Train models  
+timeflies train [--with-eda] [--with-analysis] # Train models
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
 ```
 
-### Data & Analysis Commands  
+### Data & Analysis Commands
 ```bash
 timeflies split                               # Create train/eval splits
 timeflies eda [--save-report]                 # Exploratory data analysis
@@ -99,7 +99,7 @@ timeflies update                              # Update to latest version
 ### Global Options (work with any command)
 ```bash
 --verbose                 # Detailed logging
---batch-corrected         # Use existing batch-corrected data (any command)  
+--batch-corrected         # Use existing batch-corrected data (any command)
 --tissue head|body        # Override tissue type
 --model CNN|MLP|xgboost|random_forest|logistic   # Override model type
 --target age              # Override target variable
@@ -137,7 +137,7 @@ analysis:
   # Exploratory data analysis
   eda:
     enabled: false
-    
+
   # Run project-specific analysis scripts
   run_analysis_script:
     enabled: false  # Set to true to run project-specific analysis after training
@@ -150,7 +150,7 @@ Override configuration settings using command-line flags:
 # Force SHAP interpretation (overrides config)
 timeflies evaluate --interpret
 
-# Force visualizations (overrides config)  
+# Force visualizations (overrides config)
 timeflies evaluate --visualize
 
 # Use custom analysis script
@@ -260,7 +260,7 @@ your_project/
 
 ### Getting Started
 1. **Install TimeFlies**: `curl -O https://raw.githubusercontent.com/.../install_timeflies.sh && chmod +x install_timeflies.sh && ./install_timeflies.sh`
-2. **Activate**: `source .activate.sh` 
+2. **Activate**: `source .activate.sh`
 3. **Add your data**: Place `*_original.h5ad` files in `data/[project]/[tissue]/`
 4. **Setup**: `timeflies setup` (creates config.yaml, templates/, splits data, verifies system)
 5. **Configure**: Edit `config.yaml` for your project settings (optional customization)
@@ -290,7 +290,7 @@ TimeFlies organizes all outputs in a structured hierarchy for easy navigation an
 outputs/
 ├── fruitfly_aging/                    # Project-specific outputs
 │   ├── experiments/                   # Machine learning experiments
-│   │   ├── uncorrected/              # Original data experiments  
+│   │   ├── uncorrected/              # Original data experiments
 │   │   │   ├── all_runs/             # Complete experiment history
 │   │   │   │   └── head_cnn_age/     # Config-specific experiments (tissue_model_target)
 │   │   │   │       ├── 2025-01-22_14-30-15/  # Timestamped experiment
@@ -330,7 +330,7 @@ outputs/
 │   │   └── batch_corrected/          # EDA for batch-corrected data
 │   │       └── head/
 │   ├── analysis/                     # Project-specific analysis
-│   │   ├── reports/                  # Custom analysis HTML/PDF reports  
+│   │   ├── reports/                  # Custom analysis HTML/PDF reports
 │   │   └── custom/                   # User analysis script results
 │   └── logs/                         # System logs
 └── fruitfly_alzheimers/              # Same structure for other projects
@@ -350,7 +350,7 @@ outputs/
 
 **Interpretability Results:**
 - `evaluation/shap_values.csv` - Feature importance values for each prediction
-- `plots/shap_summary.png` - Gene importance visualization 
+- `plots/shap_summary.png` - Gene importance visualization
 - `plots/feature_importance.png` - Top contributing features
 - `plots/expression_heatmap.png` - Gene expression patterns
 

@@ -65,7 +65,7 @@ addopts = [
 ]
 markers = [
     "unit: Unit tests",
-    "integration: Integration tests", 
+    "integration: Integration tests",
     "functional: Functional tests",
     "system: System tests",
     "performance: Performance benchmark tests",
@@ -101,7 +101,7 @@ line-length = 88
 target-version = "py312"
 exclude = [
     ".venv",
-    "__pycache__", 
+    "__pycache__",
     "legacy",
     "build",
     "dist",
@@ -110,7 +110,7 @@ exclude = [
 [tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings  
+    "W",    # pycodestyle warnings
     "F",    # pyflakes
     "I",    # isort
     "N",    # pep8-naming
