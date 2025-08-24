@@ -1,8 +1,11 @@
 import os
 import sys
 import warnings
+from common.utils.logging_config import get_logger
 
 import matplotlib.pyplot as plt
+
+logger = get_logger(__name__)
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -597,12 +600,14 @@ class Visualizer:
 
         # Separate tool for training visuals
         training_visuals_dir = self.path_manager.get_training_visuals_dir()
-        self.training_visual_tools = VisualizationTools(self.config, self.path_manager, training_visuals_dir)
+        self.training_visual_tools = VisualizationTools(
+            self.config, self.path_manager, training_visuals_dir
+        )
 
     def set_evaluation_context(self, experiment_name=None):
         """
         Set the context for evaluation visuals using experiment structure.
-        
+
         Args:
             experiment_name: Specific experiment name to use
         """
@@ -613,7 +618,9 @@ class Visualizer:
 
         eval_visuals_dir = os.path.join(experiment_dir, "evaluation", "plots")
         os.makedirs(eval_visuals_dir, exist_ok=True)
-        self.visual_tools = VisualizationTools(self.config, self.path_manager, eval_visuals_dir)
+        self.visual_tools = VisualizationTools(
+            self.config, self.path_manager, eval_visuals_dir
+        )
 
     def import_metrics(self):
         """
@@ -636,9 +643,13 @@ class Visualizer:
         """
         model_type = getattr(self.config.data, "model", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
-            self.training_visual_tools.plot_history(self.history, "training_metrics.png")
+            self.training_visual_tools.plot_history(
+                self.history, "training_metrics.png"
+            )
         elif model_type == "xgboost":
-            self.training_visual_tools.plot_xgboost_history(self.history, "training_metrics.png")
+            self.training_visual_tools.plot_xgboost_history(
+                self.history, "training_metrics.png"
+            )
 
     def _visualize_confusion_matrix(self):
         """
