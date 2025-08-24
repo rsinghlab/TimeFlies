@@ -53,23 +53,24 @@ import warnings
 from pathlib import Path
 
 # Suppress TensorFlow and CUDA warnings for cleaner output
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Only show errors
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'  # Disable oneDNN custom ops message
-os.environ['GRPC_VERBOSITY'] = 'ERROR'
-os.environ['AUTOGRAPH_VERBOSITY'] = '0'
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-os.environ['CUDA_VISIBLE_DEVICES'] = ''  # Disable GPU for cleaner output
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Only show errors
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN custom ops message
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["AUTOGRAPH_VERBOSITY"] = "0"
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # Disable GPU for cleaner output
 
 # Suppress ABSL and other warnings
 import logging
 
-logging.getLogger('absl').setLevel(logging.ERROR)
-logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger("absl").setLevel(logging.ERROR)
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 # Additional suppression for CUDA/cuDNN warnings
 
-warnings.filterwarnings('ignore', category=UserWarning)
-warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 
 def show_banner():
     """Show TimeFlies v1.0 banner and basic info."""
@@ -81,6 +82,7 @@ def show_banner():
     print("Batch correction and comprehensive evaluation tools")
     print("3-tier test data system for reliable development")
     print("=" * 70)
+
 
 def main():
     """Enhanced main function with better user experience."""
@@ -105,14 +107,14 @@ def main():
         sys.exit(1)
 
     # Show banner for help or no arguments
-    if len(sys.argv) == 1 or '--help' in sys.argv or '-h' in sys.argv:
+    if len(sys.argv) == 1 or "--help" in sys.argv or "-h" in sys.argv:
         show_banner()
         print()
 
     # Run the CLI and pipeline
     try:
         # Only show "Starting" message for specific setup commands
-        if len(sys.argv) > 1 and sys.argv[1] in ['setup', 'create-test-data']:
+        if len(sys.argv) > 1 and sys.argv[1] in ["setup", "create-test-data"]:
             print("Starting TimeFlies pipeline...")
         exit_code = main_cli()
 

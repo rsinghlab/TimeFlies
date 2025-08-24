@@ -25,7 +25,7 @@ class TestPathManager:
         """Test PathManager initialization."""
         path_manager = PathManager(aging_config)
         assert path_manager.config == aging_config
-        assert hasattr(path_manager, 'config')
+        assert hasattr(path_manager, "config")
 
     def test_get_tissue_directory(self, aging_config):
         """Test tissue directory generation."""
@@ -86,7 +86,7 @@ class TestGPUHandler:
         """Test GPU handler with CPU configuration."""
         aging_config.hardware.processor = "CPU"
 
-        with patch('tensorflow.config.list_physical_devices') as mock_tf:
+        with patch("tensorflow.config.list_physical_devices") as mock_tf:
             mock_tf.return_value = []  # No GPUs
 
             gpu_handler = GPUHandler(aging_config)
@@ -99,8 +99,10 @@ class TestGPUHandler:
         """Test GPU handler with GPU configuration."""
         aging_config.hardware.processor = "GPU"
 
-        with patch('tensorflow.config.list_physical_devices') as mock_tf:
-            with patch('tensorflow.config.experimental.set_memory_growth') as mock_memory:
+        with patch("tensorflow.config.list_physical_devices") as mock_tf:
+            with patch(
+                "tensorflow.config.experimental.set_memory_growth"
+            ) as mock_memory:
                 mock_tf.return_value = [Mock()]  # Mock GPU device
 
                 gpu_handler = GPUHandler(aging_config)
@@ -120,7 +122,7 @@ class TestGPUHandler:
 
     def test_gpu_detection(self):
         """Test GPU detection functionality."""
-        with patch('tensorflow.config.list_physical_devices') as mock_tf:
+        with patch("tensorflow.config.list_physical_devices") as mock_tf:
             mock_tf.return_value = [Mock(), Mock()]  # Mock 2 GPUs
 
             gpus = GPUHandler.detect_gpus()
@@ -128,7 +130,7 @@ class TestGPUHandler:
 
     def test_configure_static_method(self, aging_config):
         """Test static configure method."""
-        with patch('tensorflow.config.list_physical_devices') as mock_tf:
+        with patch("tensorflow.config.list_physical_devices") as mock_tf:
             mock_tf.return_value = []
 
             result = GPUHandler.configure_gpu(aging_config)
@@ -141,7 +143,7 @@ class TestDataLoaderFunctionality:
 
     def test_data_loader_prepare_paths(self, aging_config):
         """Test path preparation functionality."""
-        with patch('common.data.loaders.PathManager') as mock_path_manager:
+        with patch("common.data.loaders.PathManager") as mock_path_manager:
             mock_path_manager.return_value.get_file_path.return_value = "test_path.h5ad"
 
             loader = DataLoader(aging_config)
@@ -152,10 +154,10 @@ class TestDataLoaderFunctionality:
             # Verify path manager was called
             mock_path_manager.assert_called_once_with(aging_config)
 
-    @patch('scanpy.read_h5ad')
+    @patch("scanpy.read_h5ad")
     def test_load_single_file(self, mock_read, aging_config, small_sample_anndata):
         """Test loading a single file."""
-        with patch('common.data.loaders.PathManager') as mock_path_manager:
+        with patch("common.data.loaders.PathManager") as mock_path_manager:
             mock_path_manager.return_value.get_file_path.return_value = "test.h5ad"
             mock_read.return_value = small_sample_anndata
 
@@ -166,10 +168,12 @@ class TestDataLoaderFunctionality:
             assert result is not None
             assert result.n_obs == small_sample_anndata.n_obs
 
-    @patch('scanpy.read_h5ad')
-    def test_load_data_complete_workflow(self, mock_read, aging_config, small_sample_anndata):
+    @patch("scanpy.read_h5ad")
+    def test_load_data_complete_workflow(
+        self, mock_read, aging_config, small_sample_anndata
+    ):
         """Test complete data loading workflow."""
-        with patch('common.data.loaders.PathManager') as mock_path_manager:
+        with patch("common.data.loaders.PathManager") as mock_path_manager:
             mock_path_manager.return_value.get_file_path.return_value = "test.h5ad"
             mock_read.return_value = small_sample_anndata
 
@@ -186,9 +190,11 @@ class TestDataLoaderFunctionality:
 
     def test_data_loader_error_handling(self, aging_config):
         """Test data loader error handling."""
-        with patch('common.data.loaders.PathManager') as mock_path_manager:
-            with patch('scanpy.read_h5ad') as mock_read:
-                mock_path_manager.return_value.get_file_path.return_value = "missing.h5ad"
+        with patch("common.data.loaders.PathManager") as mock_path_manager:
+            with patch("scanpy.read_h5ad") as mock_read:
+                mock_path_manager.return_value.get_file_path.return_value = (
+                    "missing.h5ad"
+                )
                 mock_read.side_effect = FileNotFoundError("File not found")
 
                 loader = DataLoader(aging_config)
@@ -203,22 +209,22 @@ class TestPipelineManagerCore:
 
     def test_pipeline_manager_initialization(self, aging_config):
         """Test PipelineManager initialization."""
-        with patch('common.core.pipeline_manager.GPUHandler'):
-            with patch('common.core.pipeline_manager.PathManager'):
+        with patch("common.core.pipeline_manager.GPUHandler"):
+            with patch("common.core.pipeline_manager.PathManager"):
                 pipeline = PipelineManager(aging_config)
 
                 # Test basic initialization
-                assert hasattr(pipeline, 'cfg')
+                assert hasattr(pipeline, "cfg")
                 assert pipeline.cfg == aging_config
 
     def test_setup_gpu_functionality(self, aging_config):
         """Test GPU setup functionality."""
-        with patch('common.core.pipeline_manager.GPUHandler') as mock_gpu:
+        with patch("common.core.pipeline_manager.GPUHandler") as mock_gpu:
             mock_gpu_instance = Mock()
             mock_gpu_instance.configure.return_value = True
             mock_gpu.return_value = mock_gpu_instance
 
-            with patch('common.core.pipeline_manager.PathManager'):
+            with patch("common.core.pipeline_manager.PathManager"):
                 pipeline = PipelineManager(aging_config)
                 result = pipeline.setup_gpu()
 
@@ -227,14 +233,14 @@ class TestPipelineManagerCore:
 
     def test_load_data_workflow(self, aging_config, small_sample_anndata):
         """Test data loading workflow."""
-        with patch('common.core.pipeline_manager.GPUHandler'):
-            with patch('common.core.pipeline_manager.PathManager'):
-                with patch('common.core.pipeline_manager.DataLoader') as mock_loader:
+        with patch("common.core.pipeline_manager.GPUHandler"):
+            with patch("common.core.pipeline_manager.PathManager"):
+                with patch("common.core.pipeline_manager.DataLoader") as mock_loader:
                     mock_loader_instance = Mock()
                     mock_loader_instance.load_data.return_value = (
                         small_sample_anndata,
                         small_sample_anndata.copy(),
-                        small_sample_anndata.copy()
+                        small_sample_anndata.copy(),
                     )
                     mock_loader.return_value = mock_loader_instance
 
@@ -246,9 +252,9 @@ class TestPipelineManagerCore:
 
     def test_setup_gene_filtering(self, aging_config):
         """Test gene filtering setup."""
-        with patch('common.core.pipeline_manager.GPUHandler'):
-            with patch('common.core.pipeline_manager.PathManager'):
-                with patch('common.core.pipeline_manager.GeneFilter') as mock_filter:
+        with patch("common.core.pipeline_manager.GPUHandler"):
+            with patch("common.core.pipeline_manager.PathManager"):
+                with patch("common.core.pipeline_manager.GeneFilter") as mock_filter:
                     mock_filter_instance = Mock()
                     mock_filter.return_value = mock_filter_instance
 
@@ -260,11 +266,15 @@ class TestPipelineManagerCore:
 
     def test_preprocess_data_workflow(self, aging_config, small_sample_anndata):
         """Test data preprocessing workflow."""
-        with patch('common.core.pipeline_manager.GPUHandler'):
-            with patch('common.core.pipeline_manager.PathManager'):
-                with patch('common.core.pipeline_manager.DataPreprocessor') as mock_processor:
+        with patch("common.core.pipeline_manager.GPUHandler"):
+            with patch("common.core.pipeline_manager.PathManager"):
+                with patch(
+                    "common.core.pipeline_manager.DataPreprocessor"
+                ) as mock_processor:
                     mock_processor_instance = Mock()
-                    mock_processor_instance.process_adata.return_value = small_sample_anndata
+                    mock_processor_instance.process_adata.return_value = (
+                        small_sample_anndata
+                    )
                     mock_processor.return_value = mock_processor_instance
 
                     pipeline = PipelineManager(aging_config)
@@ -280,9 +290,9 @@ class TestPipelineManagerCore:
 
     def test_memory_cleanup(self, aging_config):
         """Test memory cleanup functionality."""
-        with patch('common.core.pipeline_manager.GPUHandler'):
-            with patch('common.core.pipeline_manager.PathManager'):
-                with patch('gc.collect') as mock_gc:
+        with patch("common.core.pipeline_manager.GPUHandler"):
+            with patch("common.core.pipeline_manager.PathManager"):
+                with patch("gc.collect") as mock_gc:
                     pipeline = PipelineManager(aging_config)
 
                     # Set some attributes to clean up
@@ -328,7 +338,7 @@ class TestUtilityFunctions:
 
         # Test that we can import constants without errors
         # This exercises the constants module
-        assert hasattr(common.utils.constants, '__name__')
+        assert hasattr(common.utils.constants, "__name__")
 
     def test_logging_config_functionality(self):
         """Test logging configuration."""
@@ -368,34 +378,42 @@ class TestCoreConfig:
         from common.core.active_config import get_active_project
 
         project = get_active_project()
-        assert project in ['fruitfly_aging', 'fruitfly_alzheimers']
+        assert project in ["fruitfly_aging", "fruitfly_alzheimers"]
 
     def test_config_loading_workflow(self):
         """Test complete config loading workflow."""
         from common.core.active_config import get_config_for_active_project
 
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test config attributes are accessible
-        assert hasattr(config, 'data')
-        assert hasattr(config, 'general')
-        assert hasattr(config, 'model')
+        assert hasattr(config, "data")
+        assert hasattr(config, "general")
+        assert hasattr(config, "model")
 
         # Test config values
-        assert config.data.tissue in ['head', 'body', 'all']
-        assert config.data.model in ['CNN', 'MLP', 'logistic', 'xgboost', 'random_forest']
+        assert config.data.tissue in ["head", "body", "all"]
+        assert config.data.model in [
+            "CNN",
+            "MLP",
+            "logistic",
+            "xgboost",
+            "random_forest",
+        ]
 
     def test_config_project_switching(self):
         """Test configuration project switching."""
         from common.core.active_config import get_config_for_active_project
 
         # Test that both projects can load configs
-        for project in ['fruitfly_aging', 'fruitfly_alzheimers']:
+        for project in ["fruitfly_aging", "fruitfly_alzheimers"]:
             try:
                 # Temporarily override project
-                with patch('common.core.active_config.get_active_project', return_value=project):
-                    config_manager = get_config_for_active_project('default')
+                with patch(
+                    "common.core.active_config.get_active_project", return_value=project
+                ):
+                    config_manager = get_config_for_active_project("default")
                     config = config_manager.get_config()
                     assert config is not None
             except Exception as e:
@@ -414,16 +432,16 @@ class TestDataProcessingCore:
         assert small_sample_anndata.n_vars > 0
 
         # Test observation data
-        assert 'age' in small_sample_anndata.obs.columns
-        assert 'sex' in small_sample_anndata.obs.columns
-        assert 'tissue' in small_sample_anndata.obs.columns
+        assert "age" in small_sample_anndata.obs.columns
+        assert "sex" in small_sample_anndata.obs.columns
+        assert "tissue" in small_sample_anndata.obs.columns
 
         # Test variable data
-        assert 'gene_type' in small_sample_anndata.var.columns
+        assert "gene_type" in small_sample_anndata.var.columns
 
         # Test layers
-        assert 'counts' in small_sample_anndata.layers.keys()
-        assert 'logcounts' in small_sample_anndata.layers.keys()
+        assert "counts" in small_sample_anndata.layers.keys()
+        assert "logcounts" in small_sample_anndata.layers.keys()
 
     def test_scanpy_basic_operations(self, small_sample_anndata):
         """Test basic scanpy operations on test data."""
@@ -445,17 +463,17 @@ class TestDataProcessingCore:
         original_n_obs = large_sample_anndata.n_obs
 
         # Test cell filtering by sex
-        male_cells = large_sample_anndata.obs['sex'] == 'male'
+        male_cells = large_sample_anndata.obs["sex"] == "male"
         n_male = male_cells.sum()
 
         if n_male > 0:
             filtered_data = large_sample_anndata[male_cells, :].copy()
             assert filtered_data.n_obs == n_male
-            assert all(filtered_data.obs['sex'] == 'male')
+            assert all(filtered_data.obs["sex"] == "male")
 
         # Test gene filtering by type
-        if 'gene_type' in large_sample_anndata.var.columns:
-            protein_genes = large_sample_anndata.var['gene_type'] == 'protein_coding'
+        if "gene_type" in large_sample_anndata.var.columns:
+            protein_genes = large_sample_anndata.var["gene_type"] == "protein_coding"
             n_protein = protein_genes.sum()
 
             if n_protein > 0:

@@ -42,8 +42,8 @@ class TestInterpreter:
         X_test = np.random.rand(5, 100)
 
         # Mock the interpretation process
-        with patch.object(interpreter, 'run_interpretation') as mock_run:
-            mock_run.return_value = {'feature_importance': np.random.rand(100)}
+        with patch.object(interpreter, "run_interpretation") as mock_run:
+            mock_run.return_value = {"feature_importance": np.random.rand(100)}
 
             result = interpreter.run_interpretation(mock_model, X_test)
             assert result is not None
@@ -80,7 +80,7 @@ class TestAgingMetrics:
         age_pred = np.array([1, 2, 2, 1, 3, 3])
 
         # Mock aging-specific metric calculation
-        with patch.object(metrics, 'calculate_age_correlation') as mock_corr:
+        with patch.object(metrics, "calculate_age_correlation") as mock_corr:
             mock_corr.return_value = 0.75
 
             correlation = metrics.calculate_age_correlation(age_true, age_pred)

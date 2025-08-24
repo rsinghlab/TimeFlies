@@ -70,9 +70,7 @@ class DataPreprocessor:
             adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
 
         # Shuffle genes if required
-        shuffle_genes = getattr(
-            config.preprocessing.shuffling, "shuffle_genes", False
-        )
+        shuffle_genes = getattr(config.preprocessing.shuffling, "shuffle_genes", False)
         global_random_state = getattr(config.general, "random_state", 42)
         if shuffle_genes:
             # Use global random state for consistency
@@ -98,10 +96,12 @@ class DataPreprocessor:
 
         return adata
 
-    def split_data(self, dataset: AnnData, evaluation_mode: bool = False) -> tuple[AnnData, AnnData]:
+    def split_data(
+        self, dataset: AnnData, evaluation_mode: bool = False
+    ) -> tuple[AnnData, AnnData]:
         """
         Filter/split the dataset based on the configuration using generic column-based approach.
-        
+
         For training: Returns filtered training data + empty test set
         For evaluation: Returns empty train set + filtered test data
 
@@ -123,7 +123,9 @@ class DataPreprocessor:
             test_values = getattr(config.data.split, "test", [])
 
             if not column:
-                raise ValueError("Column name must be specified for column-based splits")
+                raise ValueError(
+                    "Column name must be specified for column-based splits"
+                )
 
             if column not in dataset.obs.columns:
                 raise ValueError(f"Column '{column}' not found in dataset observations")
@@ -139,22 +141,25 @@ class DataPreprocessor:
                 test_subset = dataset[
                     dataset.obs[column].str.lower().isin(test_values_norm)
                 ].copy()
-                print(f"Evaluation mode: Using {test_subset.n_obs} cells with {column} in {test_values}")
+                print(
+                    f"Evaluation mode: Using {test_subset.n_obs} cells with {column} in {test_values}"
+                )
             else:
                 # For training: return training data only
                 train_subset = dataset[
                     dataset.obs[column].str.lower().isin(train_values_norm)
                 ].copy()
                 test_subset = dataset[:0].copy()  # Empty subset
-                print(f"Training mode: Using {train_subset.n_obs} cells with {column} in {train_values}")
+                print(
+                    f"Training mode: Using {train_subset.n_obs} cells with {column} in {train_values}"
+                )
 
             # Apply sampling (only to training data during training)
             num_samples = getattr(config.data.sampling, "samples", None)
             if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
                 random_state = getattr(config.general, "random_state", 42)
                 train_sample_indices = train_subset.obs.sample(
-                    n=min(num_samples, train_subset.n_obs),
-                    random_state=random_state
+                    n=min(num_samples, train_subset.n_obs), random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
                 print(f"Applied sampling: Using {train_subset.n_obs} training cells")
@@ -165,7 +170,9 @@ class DataPreprocessor:
                 # For evaluation: return empty train, full dataset as test
                 train_subset = dataset[:0].copy()  # Empty subset
                 test_subset = dataset.copy()
-                print(f"Evaluation mode: Using full dataset ({test_subset.n_obs} cells)")
+                print(
+                    f"Evaluation mode: Using full dataset ({test_subset.n_obs} cells)"
+                )
             else:
                 # For training: return full dataset for training
                 # Keras will handle train/validation split internally
@@ -178,8 +185,7 @@ class DataPreprocessor:
             if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
                 random_state = getattr(config.general, "random_state", 42)
                 train_sample_indices = train_subset.obs.sample(
-                    n=min(num_samples, train_subset.n_obs),
-                    random_state=random_state
+                    n=min(num_samples, train_subset.n_obs), random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
                 print(f"Applied sampling: Using {train_subset.n_obs} training cells")
@@ -205,9 +211,7 @@ class DataPreprocessor:
         config = self.config
         highly_variable_genes = None
 
-        if getattr(
-            config.preprocessing.genes, "highly_variable_genes", False
-        ):
+        if getattr(config.preprocessing.genes, "highly_variable_genes", False):
             normal = train_subset.copy()
             sc.pp.normalize_total(normal, target_sum=1e4)
             sc.pp.log1p(normal)
@@ -512,7 +516,9 @@ class DataPreprocessor:
                 adata = adata[
                     adata.obs[column].str.lower().isin(test_values_norm)
                 ].copy()
-                print(f"Evaluation: Filtered to {adata.n_obs} cells with {column} in {test_values}")
+                print(
+                    f"Evaluation: Filtered to {adata.n_obs} cells with {column} in {test_values}"
+                )
 
         # Apply gene selection from corrected data if specified and not already using corrected data
         select_batch_genes = getattr(

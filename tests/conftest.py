@@ -52,7 +52,7 @@ def temp_project():
     try:
         temp_dir = manager.create_temp_dir()
         project_files = create_test_project_structure(temp_dir)
-        project_files['base_dir'] = temp_dir
+        project_files["base_dir"] = temp_dir
         yield project_files
     finally:
         manager.cleanup()
@@ -73,8 +73,9 @@ def temp_dir():
 def config_file(temp_dir, minimal_config):
     """Create temporary config file."""
     import yaml
+
     config_path = Path(temp_dir) / "test_config.yaml"
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         yaml.dump(minimal_config, f)
     return str(config_path)
 
@@ -103,7 +104,7 @@ def mock_args():
     args = Mock()
     args.verbose = False
     args.project = None
-    args.command = 'test'
+    args.command = "test"
     return args
 
 
@@ -111,6 +112,7 @@ def mock_args():
 def sample_data_files(temp_dir):
     """Create sample data files for testing."""
     from tests.fixtures.unit_test_data import create_sample_h5ad_files
+
     return create_sample_h5ad_files(temp_dir)
 
 
@@ -130,54 +132,72 @@ def small_sample_anndata():
 def aging_config():
     """Create aging project config."""
     config_dict = {
-        'general': {'project_name': 'TimeFlies', 'version': '0.2.0', 'random_state': 42},
-        'data': {
-            'tissue': 'head',
-            'target_variable': 'age',
-            'model': 'CNN',
-            'species': 'drosophila',
-            'cell_type': 'all',
-            'sex': 'all',
-            'batch_correction': {'enabled': False},
-            'filtering': {'include_mixed_sex': False},
-            'sampling': {'samples': 1000, 'variables': None},
-            'split': {
-                'method': 'random',
-                'test_ratio': 0.1,
-                'sex': {'train': 'male', 'test': 'female', 'test_ratio': 0.3},
-                'tissue': {'train': 'head', 'test': 'body', 'test_ratio': 0.3}
-            }
+        "general": {
+            "project_name": "TimeFlies",
+            "version": "0.2.0",
+            "random_state": 42,
         },
-        'paths': {
-            'data': {
-                'train': 'data/{project}/{tissue}/{species}_{tissue}_{project}_train.h5ad',
-                'eval': 'data/{project}/{tissue}/{species}_{tissue}_{project}_eval.h5ad',
-                'original': 'data/{project}/{tissue}/{species}_{tissue}_{project}_original.h5ad'
+        "data": {
+            "tissue": "head",
+            "target_variable": "age",
+            "model": "CNN",
+            "species": "drosophila",
+            "cell_type": "all",
+            "sex": "all",
+            "batch_correction": {"enabled": False},
+            "filtering": {"include_mixed_sex": False},
+            "sampling": {"samples": 1000, "variables": None},
+            "split": {
+                "method": "random",
+                "test_ratio": 0.1,
+                "sex": {"train": "male", "test": "female", "test_ratio": 0.3},
+                "tissue": {"train": "head", "test": "body", "test_ratio": 0.3},
             },
-            'batch_data': {
-                'train': 'data/{project}/{tissue}/{species}_{tissue}_{project}_train_batch.h5ad',
-                'eval': 'data/{project}/{tissue}/{species}_{tissue}_{project}_eval_batch.h5ad'
+        },
+        "paths": {
+            "data": {
+                "train": "data/{project}/{tissue}/{species}_{tissue}_{project}_train.h5ad",
+                "eval": "data/{project}/{tissue}/{species}_{tissue}_{project}_eval.h5ad",
+                "original": "data/{project}/{tissue}/{species}_{tissue}_{project}_original.h5ad",
+            },
+            "batch_data": {
+                "train": "data/{project}/{tissue}/{species}_{tissue}_{project}_train_batch.h5ad",
+                "eval": "data/{project}/{tissue}/{species}_{tissue}_{project}_eval_batch.h5ad",
+            },
+        },
+        "model": {
+            "training": {
+                "epochs": 10,
+                "batch_size": 32,
+                "validation_split": 0.2,
+                "early_stopping_patience": 8,
+                "learning_rate": 0.001,
             }
         },
-        'model': {
-            'training': {'epochs': 10, 'batch_size': 32, 'validation_split': 0.2, 'early_stopping_patience': 8, 'learning_rate': 0.001}
+        "preprocessing": {
+            "genes": {"remove_sex_genes": False, "highly_variable_genes": False},
+            "balancing": {"balance_genes": False},
+            "shuffling": {"shuffle_genes": False},
         },
-        'preprocessing': {
-            'genes': {'remove_sex_genes': False, 'highly_variable_genes': False},
-            'balancing': {'balance_genes': False},
-            'shuffling': {'shuffle_genes': False}
+        "gene_preprocessing": {
+            "gene_filtering": {
+                "remove_sex_genes": False,
+                "highly_variable_genes": False,
+            },
+            "gene_balancing": {"balance_genes": False},
+            "gene_shuffle": {"shuffle_genes": False, "shuffle_random_state": 42},
         },
-        'gene_preprocessing': {
-            'gene_filtering': {'remove_sex_genes': False, 'highly_variable_genes': False},
-            'gene_balancing': {'balance_genes': False},
-            'gene_shuffle': {'shuffle_genes': False, 'shuffle_random_state': 42}
+        "analysis": {"normalization": {"enabled": False}, "eda": {"enabled": False}},
+        "data_processing": {
+            "normalization": {"enabled": False},
+            "exploratory_data_analysis": {"enabled": False},
         },
-        'analysis': {'normalization': {'enabled': False}, 'eda': {'enabled': False}},
-        'data_processing': {'normalization': {'enabled': False}, 'exploratory_data_analysis': {'enabled': False}},
-        'interpretation': {'shap': {'enabled': False, 'load_existing': False, 'reference_size': 100}},
-        'visualizations': {'enabled': True},
-        'hardware': {'processor': 'GPU', 'memory_growth': True},
-        'logging': {'level': 'INFO', 'format': 'detailed', 'to_file': False}
+        "interpretation": {
+            "shap": {"enabled": False, "load_existing": False, "reference_size": 100}
+        },
+        "visualizations": {"enabled": True},
+        "hardware": {"processor": "GPU", "memory_growth": True},
+        "logging": {"level": "INFO", "format": "detailed", "to_file": False},
     }
     return Config(config_dict)
 
@@ -194,24 +214,12 @@ def reset_global_state():
 
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
-    config.addinivalue_line(
-        "markers", "gpu: mark test as requiring GPU"
-    )
-    config.addinivalue_line(
-        "markers", "data: mark test as requiring real data files"
-    )
-    config.addinivalue_line(
-        "markers", "cli: mark test as testing CLI functionality"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "gpu: mark test as requiring GPU")
+    config.addinivalue_line("markers", "data: mark test as requiring real data files")
+    config.addinivalue_line("markers", "cli: mark test as testing CLI functionality")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -255,7 +263,8 @@ def pytest_runtest_setup(item):
     if "gpu" in item.keywords:
         try:
             import tensorflow as tf
-            if not tf.config.list_physical_devices('GPU'):
+
+            if not tf.config.list_physical_devices("GPU"):
                 pytest.skip("GPU not available")
         except ImportError:
             pytest.skip("TensorFlow not available")
@@ -264,10 +273,10 @@ def pytest_runtest_setup(item):
 # Custom test result reporting
 def pytest_terminal_summary(terminalreporter, exitstatus=None, config=None):
     """Add custom terminal summary."""
-    if hasattr(terminalreporter, 'stats'):
-        passed = len(terminalreporter.stats.get('passed', []))
-        failed = len(terminalreporter.stats.get('failed', []))
-        skipped = len(terminalreporter.stats.get('skipped', []))
+    if hasattr(terminalreporter, "stats"):
+        passed = len(terminalreporter.stats.get("passed", []))
+        failed = len(terminalreporter.stats.get("failed", []))
+        skipped = len(terminalreporter.stats.get("skipped", []))
 
         terminalreporter.write_sep("=", "TimeFlies Test Summary")
         terminalreporter.write_line(f"Tests passed: {passed}")

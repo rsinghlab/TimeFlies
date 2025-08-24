@@ -80,9 +80,11 @@ class TestDataPreprocessor:
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
         # Mock scanpy highly variable genes
-        with patch('scanpy.pp.highly_variable_genes'):
-            with patch('scanpy.pp.filter_genes'):
-                hvg_data = processor.select_highly_variable_genes(small_sample_anndata.copy())
+        with patch("scanpy.pp.highly_variable_genes"):
+            with patch("scanpy.pp.filter_genes"):
+                hvg_data = processor.select_highly_variable_genes(
+                    small_sample_anndata.copy()
+                )
                 assert hvg_data is not None
 
     def test_prepare_labels(self, small_sample_anndata):
@@ -105,8 +107,8 @@ class TestDataPreprocessor:
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
         # Mock scanpy normalization
-        with patch('scanpy.pp.normalize_total'):
-            with patch('scanpy.pp.log1p'):
+        with patch("scanpy.pp.normalize_total"):
+            with patch("scanpy.pp.log1p"):
                 normalized = processor.normalize_data(small_sample_anndata.copy())
                 assert normalized is not None
 
@@ -116,7 +118,11 @@ class TestDataPreprocessor:
 
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
-        X = small_sample_anndata.X.toarray() if hasattr(small_sample_anndata.X, 'toarray') else small_sample_anndata.X
+        X = (
+            small_sample_anndata.X.toarray()
+            if hasattr(small_sample_anndata.X, "toarray")
+            else small_sample_anndata.X
+        )
         reshaped = processor.reshape_for_cnn(X)
 
         assert reshaped is not None
@@ -128,7 +134,11 @@ class TestDataPreprocessor:
 
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
-        X = small_sample_anndata.X.toarray() if hasattr(small_sample_anndata.X, 'toarray') else small_sample_anndata.X
+        X = (
+            small_sample_anndata.X.toarray()
+            if hasattr(small_sample_anndata.X, "toarray")
+            else small_sample_anndata.X
+        )
         reference = processor.create_reference_data(X)
 
         assert reference is not None
@@ -146,17 +156,26 @@ class TestDataPreprocessor:
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
         # Mock the complex preparation pipeline
-        with patch.object(processor, 'process_adata', return_value=small_sample_anndata):
-            with patch.object(processor, 'split_data', return_value=(small_sample_anndata[:8], small_sample_anndata[8:])):
-                with patch.object(processor, 'prepare_labels', return_value=(np.array([0, 1, 2] * 3)[:8], MagicMock())):
-
+        with patch.object(
+            processor, "process_adata", return_value=small_sample_anndata
+        ):
+            with patch.object(
+                processor,
+                "split_data",
+                return_value=(small_sample_anndata[:8], small_sample_anndata[8:]),
+            ):
+                with patch.object(
+                    processor,
+                    "prepare_labels",
+                    return_value=(np.array([0, 1, 2] * 3)[:8], MagicMock()),
+                ):
                     result = processor.prepare_data()
 
                     assert result is not None
-                    assert 'X_train' in result
-                    assert 'X_test' in result
-                    assert 'y_train' in result
-                    assert 'y_test' in result
+                    assert "X_train" in result
+                    assert "X_test" in result
+                    assert "y_train" in result
+                    assert "y_test" in result
 
     def test_prepare_final_eval_data(self, small_sample_anndata):
         """Test final evaluation data preparation."""
@@ -166,11 +185,16 @@ class TestDataPreprocessor:
         processor = DataPreprocessor(config, small_sample_anndata, small_sample_anndata)
 
         # Mock evaluation data preparation
-        with patch.object(processor, 'process_adata', return_value=small_sample_anndata):
-            with patch.object(processor, 'prepare_labels', return_value=(np.array([0, 1, 2] * 4)[:10], MagicMock())):
-
+        with patch.object(
+            processor, "process_adata", return_value=small_sample_anndata
+        ):
+            with patch.object(
+                processor,
+                "prepare_labels",
+                return_value=(np.array([0, 1, 2] * 4)[:10], MagicMock()),
+            ):
                 result = processor.prepare_final_eval_data(small_sample_anndata)
 
                 assert result is not None
-                assert 'X_eval' in result
-                assert 'y_eval' in result
+                assert "X_eval" in result
+                assert "y_eval" in result

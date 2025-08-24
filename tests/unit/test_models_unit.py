@@ -21,7 +21,7 @@ class TestModelBuilder:
         self.reference_data = np.random.randn(50, 100)
         self.scaler = Mock()
         self.is_scaler_fit = True
-        self.highly_variable_genes = ['gene1', 'gene2', 'gene3']
+        self.highly_variable_genes = ["gene1", "gene2", "gene3"]
         self.mix_included = False
 
     def create_mock_config(self):
@@ -30,11 +30,11 @@ class TestModelBuilder:
 
         # Data configuration
         config.data = Mock()
-        config.data.model_type = 'CNN'
+        config.data.model_type = "CNN"
 
         # Device configuration
         config.device = Mock()
-        config.device.processor = 'GPU'
+        config.device.processor = "GPU"
 
         # Model configuration
         config.model = Mock()
@@ -44,25 +44,25 @@ class TestModelBuilder:
         config.model.cnn.filters = [64, 128, 256]
         config.model.cnn.kernel_sizes = [3, 3, 3]
         config.model.cnn.strides = [1, 1, 1]
-        config.model.cnn.paddings = ['same', 'same', 'same']
+        config.model.cnn.paddings = ["same", "same", "same"]
         config.model.cnn.pool_sizes = [2, 2, None]
         config.model.cnn.pool_strides = [2, 2, 1]
         config.model.cnn.dense_units = [128, 64]
-        config.model.cnn.activation_function = 'relu'
+        config.model.cnn.activation_function = "relu"
         config.model.cnn.dropout_rate = 0.3
         config.model.cnn.learning_rate = 0.001
 
         # MLP configuration
         config.model.mlp = Mock()
         config.model.mlp.units = [128, 64, 32]
-        config.model.mlp.activation_function = 'relu'
+        config.model.mlp.activation_function = "relu"
         config.model.mlp.dropout_rate = 0.3
         config.model.mlp.learning_rate = 0.001
 
         # Logistic Regression configuration
         config.model.logistic_regression = Mock()
-        config.model.logistic_regression.penalty = 'l2'
-        config.model.logistic_regression.solver = 'lbfgs'
+        config.model.logistic_regression.penalty = "l2"
+        config.model.logistic_regression.solver = "lbfgs"
         config.model.logistic_regression.l1_ratio = None
         config.model.logistic_regression.random_state = 42
         config.model.logistic_regression.max_iter = 1000
@@ -70,11 +70,11 @@ class TestModelBuilder:
         # Random Forest configuration
         config.model.random_forest = Mock()
         config.model.random_forest.n_estimators = 100
-        config.model.random_forest.criterion = 'gini'
+        config.model.random_forest.criterion = "gini"
         config.model.random_forest.max_depth = None
         config.model.random_forest.min_samples_split = 2
         config.model.random_forest.min_samples_leaf = 1
-        config.model.random_forest.max_features = 'sqrt'
+        config.model.random_forest.max_features = "sqrt"
         config.model.random_forest.bootstrap = True
         config.model.random_forest.oob_score = False
         config.model.random_forest.n_jobs = -1
@@ -89,14 +89,14 @@ class TestModelBuilder:
         config.model.xgboost.subsample = 0.8
         config.model.xgboost.colsample_bytree = 0.8
         config.model.xgboost.random_state = 42
-        config.model.xgboost.tree_method = 'auto'
-        config.model.xgboost.predictor = 'auto'
+        config.model.xgboost.tree_method = "auto"
+        config.model.xgboost.predictor = "auto"
         config.model.xgboost.early_stopping_rounds = 10
 
         # Training configuration
         config.model.training = Mock()
-        config.model.training.custom_loss = 'sparse_categorical_crossentropy'
-        config.model.training.metrics = ['accuracy']
+        config.model.training.custom_loss = "sparse_categorical_crossentropy"
+        config.model.training.metrics = ["accuracy"]
         config.model.training.early_stopping_patience = 10
         config.model.training.epochs = 100
         config.model.training.batch_size = 32
@@ -123,31 +123,43 @@ class TestModelBuilder:
     def create_label_encoder(self):
         """Create a fitted label encoder."""
         encoder = LabelEncoder()
-        encoder.fit(['class_0', 'class_1', 'class_2'])
+        encoder.fit(["class_0", "class_1", "class_2"])
         return encoder
 
     def test_model_builder_initialization(self):
         """Test ModelBuilder initialization."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         assert builder.config == self.mock_config
         assert np.array_equal(builder.train_data, train_data)
         assert np.array_equal(builder.train_labels, self.train_labels)
         assert builder.label_encoder == self.label_encoder
-        assert builder.model_type == 'cnn'  # Should be lowercased
+        assert builder.model_type == "cnn"  # Should be lowercased
 
     def test_create_cnn_model(self):
         """Test CNN model creation."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.create_cnn_model(num_output_units=3)
@@ -155,74 +167,101 @@ class TestModelBuilder:
         assert isinstance(model, tf.keras.Sequential)
         assert len(model.layers) > 0
         assert model.layers[-1].units == 3  # Output layer should have 3 units
-        assert model.layers[-1].activation.__name__ == 'softmax'
+        assert model.layers[-1].activation.__name__ == "softmax"
 
     def test_create_mlp_model(self):
         """Test MLP model creation."""
         _, train_data = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
-        builder.model_type = 'mlp'
+        builder.model_type = "mlp"
 
         model = builder.create_mlp_model(num_output_units=3)
 
         assert isinstance(model, tf.keras.Sequential)
         assert len(model.layers) > 0
         assert model.layers[-1].units == 3
-        assert model.layers[-1].activation.__name__ == 'softmax'
+        assert model.layers[-1].activation.__name__ == "softmax"
 
     def test_create_logistic_regression(self):
         """Test Logistic Regression model creation."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.create_logistic_regression()
 
         # Check that it's a LogisticRegression instance
         from sklearn.linear_model import LogisticRegression
+
         assert isinstance(model, LogisticRegression)
-        assert model.penalty == 'l2'
-        assert model.solver == 'lbfgs'
+        assert model.penalty == "l2"
+        assert model.solver == "lbfgs"
         assert model.random_state == 42
 
     def test_create_random_forest(self):
         """Test Random Forest model creation."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.create_random_forest()
 
         # Check that it's a RandomForestClassifier instance
         from sklearn.ensemble import RandomForestClassifier
+
         assert isinstance(model, RandomForestClassifier)
         assert model.n_estimators == 100
-        assert model.criterion == 'gini'
+        assert model.criterion == "gini"
         assert model.random_state == 42
 
     def test_create_xgboost_model(self):
         """Test XGBoost model creation."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.create_xgboost_model()
 
         # Check that it's an XGBClassifier instance
         import xgboost as xgb
+
         assert isinstance(model, xgb.XGBClassifier)
         assert model.learning_rate == 0.1
         assert model.n_estimators == 100
@@ -231,11 +270,17 @@ class TestModelBuilder:
     def test_build_model_cnn(self):
         """Test building CNN model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = 'CNN'
+        self.mock_config.data.model_type = "CNN"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.build_model()
@@ -244,11 +289,17 @@ class TestModelBuilder:
     def test_build_model_mlp(self):
         """Test building MLP model through build_model method."""
         _, train_data = self.train_data
-        self.mock_config.data.model_type = 'MLP'
+        self.mock_config.data.model_type = "MLP"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.build_model()
@@ -257,98 +308,145 @@ class TestModelBuilder:
     def test_build_model_logistic_regression(self):
         """Test building Logistic Regression model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = 'LogisticRegression'
+        self.mock_config.data.model_type = "LogisticRegression"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.build_model()
         from sklearn.linear_model import LogisticRegression
+
         assert isinstance(model, LogisticRegression)
 
     def test_build_model_random_forest(self):
         """Test building Random Forest model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = 'RandomForest'
+        self.mock_config.data.model_type = "RandomForest"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.build_model()
         from sklearn.ensemble import RandomForestClassifier
+
         assert isinstance(model, RandomForestClassifier)
 
     def test_build_model_xgboost(self):
         """Test building XGBoost model through build_model method."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = 'XGBoost'
+        self.mock_config.data.model_type = "XGBoost"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         model = builder.build_model()
         import xgboost as xgb
+
         assert isinstance(model, xgb.XGBClassifier)
 
     def test_build_model_unsupported_type(self):
         """Test building model with unsupported type raises ValueError."""
         train_data, _ = self.train_data
-        self.mock_config.data.model_type = 'UnsupportedModel'
+        self.mock_config.data.model_type = "UnsupportedModel"
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
         with pytest.raises(ValueError, match="Unsupported model type provided"):
             builder.build_model()
 
-    @patch('common.models.model.PathManager')
+    @patch("common.models.model.PathManager")
     def test_prepare_directories(self, mock_path_manager):
         """Test directory preparation for model saving."""
         train_data, _ = self.train_data
-        mock_path_manager.return_value.construct_model_directory.return_value = '/tmp/test_model'
-
-        builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+        mock_path_manager.return_value.construct_model_directory.return_value = (
+            "/tmp/test_model"
         )
 
-        with patch('os.makedirs') as mock_makedirs:
+        builder = ModelBuilder(
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
+        )
+
+        with patch("os.makedirs") as mock_makedirs:
             model_dir = builder._prepare_directories()
-            assert model_dir == '/tmp/test_model'
-            mock_makedirs.assert_called_once_with('/tmp/test_model', exist_ok=True)
+            assert model_dir == "/tmp/test_model"
+            mock_makedirs.assert_called_once_with("/tmp/test_model", exist_ok=True)
 
     def test_define_paths(self):
         """Test path definition for model artifacts."""
         train_data, _ = self.train_data
         builder = ModelBuilder(
-            self.mock_config, train_data, self.train_labels,
-            self.label_encoder, self.reference_data, self.scaler,
-            self.is_scaler_fit, self.highly_variable_genes, self.mix_included
+            self.mock_config,
+            train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
         )
 
-        paths = builder._define_paths('/tmp/test_model')
+        paths = builder._define_paths("/tmp/test_model")
 
         expected_paths = [
-            'label_path', 'reference_path', 'scaler_path', 'is_scaler_fit_path',
-            'num_features_path', 'highly_variable_genes_path', 'mix_included_path',
-            'history_path', 'model_dir'
+            "label_path",
+            "reference_path",
+            "scaler_path",
+            "is_scaler_fit_path",
+            "num_features_path",
+            "highly_variable_genes_path",
+            "mix_included_path",
+            "history_path",
+            "model_dir",
         ]
 
         for path_key in expected_paths:
             assert path_key in paths
-            if path_key == 'model_dir':
-                assert paths[path_key] == '/tmp/test_model'
+            if path_key == "model_dir":
+                assert paths[path_key] == "/tmp/test_model"
             else:
-                assert paths[path_key].startswith('/tmp/test_model/')
+                assert paths[path_key].startswith("/tmp/test_model/")
 
 
 class TestModelLoader:
@@ -362,76 +460,78 @@ class TestModelLoader:
         """Create mock configuration object."""
         config = Mock()
         config.data = Mock()
-        config.data.model_type = 'CNN'
+        config.data.model_type = "CNN"
         return config
 
-    @patch('common.models.model.PathManager')
+    @patch("common.models.model.PathManager")
     def test_model_loader_initialization(self, mock_path_manager):
         """Test ModelLoader initialization."""
-        mock_path_manager.return_value.construct_model_directory.return_value = '/tmp/test_model'
+        mock_path_manager.return_value.construct_model_directory.return_value = (
+            "/tmp/test_model"
+        )
 
         loader = ModelLoader(self.mock_config)
 
         assert loader.config == self.mock_config
-        assert loader.model_type == 'cnn'
-        assert loader.model_dir == '/tmp/test_model'
+        assert loader.model_type == "cnn"
+        assert loader.model_dir == "/tmp/test_model"
 
     def test_get_model_path_neural_network(self):
         """Test model path generation for neural networks."""
-        with patch('common.models.model.PathManager'):
+        with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = 'cnn'
-            loader.model_dir = '/tmp/test_model'
+            loader.model_type = "cnn"
+            loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == '/tmp/test_model/best_model.h5'
+            assert path == "/tmp/test_model/best_model.h5"
 
     def test_get_model_path_sklearn_model(self):
         """Test model path generation for sklearn models."""
-        self.mock_config.data.model_type = 'LogisticRegression'
-        with patch('common.models.model.PathManager'):
+        self.mock_config.data.model_type = "LogisticRegression"
+        with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = 'logisticregression'
-            loader.model_dir = '/tmp/test_model'
+            loader.model_type = "logisticregression"
+            loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == '/tmp/test_model/best_model.pkl'
+            assert path == "/tmp/test_model/best_model.pkl"
 
-    @patch('os.path.exists')
-    @patch('tensorflow.keras.models.load_model')
+    @patch("os.path.exists")
+    @patch("tensorflow.keras.models.load_model")
     def test_load_model_neural_network(self, mock_load_model, mock_exists):
         """Test loading neural network model."""
         mock_exists.return_value = True
         mock_model = Mock()
         mock_load_model.return_value = mock_model
 
-        with patch('common.models.model.PathManager'):
+        with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = 'cnn'
-            loader.model_path = '/tmp/test_model/best_model.h5'
+            loader.model_type = "cnn"
+            loader.model_path = "/tmp/test_model/best_model.h5"
 
             model = loader.load_model()
             assert model == mock_model
-            mock_load_model.assert_called_once_with('/tmp/test_model/best_model.h5')
+            mock_load_model.assert_called_once_with("/tmp/test_model/best_model.h5")
 
-    @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('dill.load')
+    @patch("os.path.exists")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("dill.load")
     def test_load_model_sklearn(self, mock_pickle_load, mock_file, mock_exists):
         """Test loading sklearn model."""
         mock_exists.return_value = True
         mock_model = Mock()
         mock_pickle_load.return_value = mock_model
 
-        self.mock_config.data.model_type = 'LogisticRegression'
-        with patch('common.models.model.PathManager'):
+        self.mock_config.data.model_type = "LogisticRegression"
+        with patch("common.models.model.PathManager"):
             loader = ModelLoader(self.mock_config)
-            loader.model_type = 'logisticregression'
-            loader.model_path = '/tmp/test_model/best_model.pkl'
+            loader.model_type = "logisticregression"
+            loader.model_path = "/tmp/test_model/best_model.pkl"
 
             model = loader.load_model()
             assert model == mock_model
-            mock_file.assert_called_once_with('/tmp/test_model/best_model.pkl', 'rb')
+            mock_file.assert_called_once_with("/tmp/test_model/best_model.pkl", "rb")
 
 
 class TestCustomModelCheckpoint:
@@ -449,7 +549,7 @@ class TestCustomModelCheckpoint:
         self.scaler_path = "/tmp/scaler.pkl"
         self.is_scaler_fit = True
         self.is_scaler_fit_path = "/tmp/is_scaler_fit.pkl"
-        self.highly_variable_genes = ['gene1', 'gene2']
+        self.highly_variable_genes = ["gene1", "gene2"]
         self.highly_variable_genes_path = "/tmp/hvg.pkl"
         self.mix_included = False
         self.mix_included_path = "/tmp/mix_included.pkl"
@@ -459,12 +559,22 @@ class TestCustomModelCheckpoint:
     def test_custom_model_checkpoint_initialization(self):
         """Test CustomModelCheckpoint initialization."""
         checkpoint = CustomModelCheckpoint(
-            self.filepath, self.best_val_loss_path, self.label_path,
-            self.label_encoder, self.reference_path, self.reference,
-            self.scaler, self.scaler_path, self.is_scaler_fit,
-            self.is_scaler_fit_path, self.highly_variable_genes,
-            self.highly_variable_genes_path, self.mix_included,
-            self.mix_included_path, self.num_features, self.num_features_path
+            self.filepath,
+            self.best_val_loss_path,
+            self.label_path,
+            self.label_encoder,
+            self.reference_path,
+            self.reference,
+            self.scaler,
+            self.scaler_path,
+            self.is_scaler_fit,
+            self.is_scaler_fit_path,
+            self.highly_variable_genes,
+            self.highly_variable_genes_path,
+            self.mix_included,
+            self.mix_included_path,
+            self.num_features,
+            self.num_features_path,
         )
 
         assert checkpoint.best_val_loss == float("inf")
@@ -475,12 +585,22 @@ class TestCustomModelCheckpoint:
     def test_set_best_val_loss(self):
         """Test setting best validation loss."""
         checkpoint = CustomModelCheckpoint(
-            self.filepath, self.best_val_loss_path, self.label_path,
-            self.label_encoder, self.reference_path, self.reference,
-            self.scaler, self.scaler_path, self.is_scaler_fit,
-            self.is_scaler_fit_path, self.highly_variable_genes,
-            self.highly_variable_genes_path, self.mix_included,
-            self.mix_included_path, self.num_features, self.num_features_path
+            self.filepath,
+            self.best_val_loss_path,
+            self.label_path,
+            self.label_encoder,
+            self.reference_path,
+            self.reference,
+            self.scaler,
+            self.scaler_path,
+            self.is_scaler_fit,
+            self.is_scaler_fit_path,
+            self.highly_variable_genes,
+            self.highly_variable_genes_path,
+            self.mix_included,
+            self.mix_included_path,
+            self.num_features,
+            self.num_features_path,
         )
 
         checkpoint.set_best_val_loss(0.5)

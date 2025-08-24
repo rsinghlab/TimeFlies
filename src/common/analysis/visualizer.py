@@ -377,14 +377,14 @@ class AgingVisualizer:
                 p = np.poly1d(z)
                 axes[i].plot(ages, p(ages), "r--", linewidth=2)
 
-                title = f'{gene}\n(r={trajectory_data["correlation"]:.3f}, p={trajectory_data["p_value"]:.2e})'
+                title = f"{gene}\n(r={trajectory_data['correlation']:.3f}, p={trajectory_data['p_value']:.2e})"
             else:
                 coeffs = trajectory_data["coefficients"]
                 p = np.poly1d(coeffs)
                 age_range = np.linspace(min(ages), max(ages), 100)
                 axes[i].plot(age_range, p(age_range), "r--", linewidth=2)
 
-                title = f'{gene}\n(R²={trajectory_data["r_squared"]:.3f}, {trajectory_data["trajectory_type"]})'
+                title = f"{gene}\n(R²={trajectory_data['r_squared']:.3f}, {trajectory_data['trajectory_type']})"
 
             axes[i].set_title(title, fontsize=10)
             axes[i].set_xlabel("Age (days)")

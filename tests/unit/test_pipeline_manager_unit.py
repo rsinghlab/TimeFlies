@@ -44,7 +44,9 @@ class TestPipelineManager:
 
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline.data_processor, 'load_data', return_value=small_sample_anndata):
+        with patch.object(
+            pipeline.data_processor, "load_data", return_value=small_sample_anndata
+        ):
             adata = pipeline.load_data()
             assert adata is not None
             assert adata.n_obs > 0
@@ -58,8 +60,16 @@ class TestPipelineManager:
 
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline.data_processor, 'preprocess_data', return_value=small_sample_anndata):
-            with patch.object(pipeline.gene_filter, 'apply_gene_filtering', return_value=small_sample_anndata):
+        with patch.object(
+            pipeline.data_processor,
+            "preprocess_data",
+            return_value=small_sample_anndata,
+        ):
+            with patch.object(
+                pipeline.gene_filter,
+                "apply_gene_filtering",
+                return_value=small_sample_anndata,
+            ):
                 processed = pipeline.preprocess_data(small_sample_anndata.copy())
                 assert processed is not None
 
@@ -71,9 +81,21 @@ class TestPipelineManager:
 
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline.data_processor, 'preprocess_data', return_value=small_sample_anndata):
-            with patch.object(pipeline.gene_filter, 'apply_gene_filtering', return_value=small_sample_anndata):
-                with patch.object(pipeline.batch_corrector, 'apply_batch_correction', return_value=small_sample_anndata):
+        with patch.object(
+            pipeline.data_processor,
+            "preprocess_data",
+            return_value=small_sample_anndata,
+        ):
+            with patch.object(
+                pipeline.gene_filter,
+                "apply_gene_filtering",
+                return_value=small_sample_anndata,
+            ):
+                with patch.object(
+                    pipeline.batch_corrector,
+                    "apply_batch_correction",
+                    return_value=small_sample_anndata,
+                ):
                     processed = pipeline.preprocess_data(small_sample_anndata.copy())
                     assert processed is not None
 
@@ -88,7 +110,9 @@ class TestPipelineManager:
         train_data = small_sample_anndata[:8].copy()
         test_data = small_sample_anndata[8:].copy()
 
-        with patch.object(pipeline.data_processor, 'split_data', return_value=(train_data, test_data)):
+        with patch.object(
+            pipeline.data_processor, "split_data", return_value=(train_data, test_data)
+        ):
             train, test = pipeline.split_data(small_sample_anndata)
             assert train is not None
             assert test is not None
@@ -117,7 +141,7 @@ class TestPipelineManager:
 
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline.model_factory, 'create_model') as mock_create:
+        with patch.object(pipeline.model_factory, "create_model") as mock_create:
             mock_model = MagicMock()
             mock_create.return_value = mock_model
 
@@ -163,8 +187,8 @@ class TestPipelineManager:
         metrics = pipeline.evaluate_model(mock_model, X_test, y_test)
 
         assert metrics is not None
-        assert 'loss' in metrics
-        assert 'accuracy' in metrics
+        assert "loss" in metrics
+        assert "accuracy" in metrics
         mock_model.evaluate.assert_called_once()
         mock_model.predict.assert_called_once()
 
@@ -178,7 +202,7 @@ class TestPipelineManager:
         with tempfile.TemporaryDirectory() as temp_dir:
             model_path = os.path.join(temp_dir, "test_model")
 
-            with patch.object(mock_model, 'save') as mock_save:
+            with patch.object(mock_model, "save") as mock_save:
                 pipeline.save_model(mock_model, model_path)
                 mock_save.assert_called_once_with(model_path)
 
@@ -193,7 +217,7 @@ class TestPipelineManager:
             # Create a mock saved model directory
             os.makedirs(model_path)
 
-            with patch('tensorflow.keras.models.load_model') as mock_load:
+            with patch("tensorflow.keras.models.load_model") as mock_load:
                 mock_model = MagicMock()
                 mock_load.return_value = mock_model
 
@@ -213,19 +237,39 @@ class TestPipelineManager:
         pipeline = PipelineManager(config)
 
         # Mock all the components
-        with patch.object(pipeline, 'load_data', return_value=small_sample_anndata):
-            with patch.object(pipeline, 'preprocess_data', return_value=small_sample_anndata):
-                with patch.object(pipeline, 'split_data', return_value=(small_sample_anndata[:8], small_sample_anndata[8:])):
-                    with patch.object(pipeline, 'prepare_model_data', return_value=(np.random.rand(8, 100), np.random.randint(0, 3, 8))):
-                        with patch.object(pipeline, 'create_model', return_value=MagicMock()):
-                            with patch.object(pipeline, 'train_model', return_value=MagicMock()):
-                                with patch.object(pipeline, 'evaluate_model', return_value={'accuracy': 0.8}):
-
+        with patch.object(pipeline, "load_data", return_value=small_sample_anndata):
+            with patch.object(
+                pipeline, "preprocess_data", return_value=small_sample_anndata
+            ):
+                with patch.object(
+                    pipeline,
+                    "split_data",
+                    return_value=(small_sample_anndata[:8], small_sample_anndata[8:]),
+                ):
+                    with patch.object(
+                        pipeline,
+                        "prepare_model_data",
+                        return_value=(
+                            np.random.rand(8, 100),
+                            np.random.randint(0, 3, 8),
+                        ),
+                    ):
+                        with patch.object(
+                            pipeline, "create_model", return_value=MagicMock()
+                        ):
+                            with patch.object(
+                                pipeline, "train_model", return_value=MagicMock()
+                            ):
+                                with patch.object(
+                                    pipeline,
+                                    "evaluate_model",
+                                    return_value={"accuracy": 0.8},
+                                ):
                                     result = pipeline.run_full_pipeline()
 
                                     assert result is not None
-                                    assert 'model' in result
-                                    assert 'metrics' in result
+                                    assert "model" in result
+                                    assert "metrics" in result
 
     def test_get_pipeline_status(self):
         """Test pipeline status reporting."""
@@ -235,9 +279,9 @@ class TestPipelineManager:
         status = pipeline.get_pipeline_status()
 
         assert isinstance(status, dict)
-        assert 'data_loaded' in status
-        assert 'model_trained' in status
-        assert 'preprocessing_complete' in status
+        assert "data_loaded" in status
+        assert "model_trained" in status
+        assert "preprocessing_complete" in status
 
     def test_reset_pipeline(self):
         """Test pipeline reset functionality."""
@@ -284,8 +328,8 @@ class TestPipelineManager:
 
         pipeline = PipelineManager(config)
 
-        with patch('numpy.random.seed') as mock_np_seed:
-            with patch('tensorflow.random.set_seed') as mock_tf_seed:
+        with patch("numpy.random.seed") as mock_np_seed:
+            with patch("tensorflow.random.set_seed") as mock_tf_seed:
                 pipeline.set_random_seed()
 
                 mock_np_seed.assert_called_with(123)
@@ -296,7 +340,7 @@ class TestPipelineManager:
         config = MagicMock()
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline, 'logger') as mock_logger:
+        with patch.object(pipeline, "logger") as mock_logger:
             pipeline.log_pipeline_step("test_step", "completed")
             mock_logger.info.assert_called()
 
@@ -305,7 +349,7 @@ class TestPipelineManager:
         config = MagicMock()
         pipeline = PipelineManager(config)
 
-        with patch.object(pipeline, 'logger') as mock_logger:
+        with patch.object(pipeline, "logger") as mock_logger:
             test_error = ValueError("Test error")
             pipeline.handle_pipeline_error("test_step", test_error)
             mock_logger.error.assert_called()
@@ -321,7 +365,7 @@ class TestPipelineManager:
         pipeline.cleanup_pipeline()
 
         # Should reset temporary state
-        assert not hasattr(pipeline, 'temp_data')
+        assert not hasattr(pipeline, "temp_data")
 
     def test_get_pipeline_config_summary(self):
         """Test pipeline configuration summary."""
@@ -335,6 +379,6 @@ class TestPipelineManager:
         summary = pipeline.get_config_summary()
 
         assert isinstance(summary, dict)
-        assert 'tissue' in summary
-        assert 'target_variable' in summary
-        assert 'model_type' in summary
+        assert "tissue" in summary
+        assert "target_variable" in summary
+        assert "model_type" in summary

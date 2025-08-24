@@ -33,7 +33,7 @@ class TestEDAHandler:
 
         # Data configuration
         config.data = Mock()
-        config.data.target_variable = 'age'
+        config.data.target_variable = "age"
 
         # Batch correction configuration
         config.data.batch_correction = Mock()
@@ -49,20 +49,28 @@ class TestEDAHandler:
         X = np.random.negative_binomial(5, 0.3, size=(n_obs, n_vars)).astype(np.float32)
 
         # Create observations (cells)
-        obs = pd.DataFrame({
-            'age': np.random.choice([1, 5, 10, 20], n_obs),
-            'sex': np.random.choice(['male', 'female'], n_obs),
-            'tissue': np.random.choice(['head', 'body'], n_obs),
-            'afca_annotation_broad': np.random.choice([
-                'CNS neuron', 'muscle cell', 'epithelial cell'
-            ], n_obs)
-        }, index=[f'cell_{i}' for i in range(n_obs)])
+        obs = pd.DataFrame(
+            {
+                "age": np.random.choice([1, 5, 10, 20], n_obs),
+                "sex": np.random.choice(["male", "female"], n_obs),
+                "tissue": np.random.choice(["head", "body"], n_obs),
+                "afca_annotation_broad": np.random.choice(
+                    ["CNS neuron", "muscle cell", "epithelial cell"], n_obs
+                ),
+            },
+            index=[f"cell_{i}" for i in range(n_obs)],
+        )
 
         # Create variables (genes)
-        var = pd.DataFrame({
-            'gene_type': np.random.choice(['protein_coding', 'lncRNA'], n_vars),
-            'highly_variable': np.random.choice([True, False], n_vars, p=[0.2, 0.8])
-        }, index=[f'gene_{i}' for i in range(n_vars)])
+        var = pd.DataFrame(
+            {
+                "gene_type": np.random.choice(["protein_coding", "lncRNA"], n_vars),
+                "highly_variable": np.random.choice(
+                    [True, False], n_vars, p=[0.2, 0.8]
+                ),
+            },
+            index=[f"gene_{i}" for i in range(n_vars)],
+        )
 
         adata = AnnData(X=X, obs=obs, var=var)
         adata_eval = adata[::2].copy()  # Every other cell for eval
@@ -76,18 +84,26 @@ class TestEDAHandler:
         adata_eval_corrected = self.adata_eval.copy()
 
         # Add some variation to simulate batch correction
-        adata_corrected.X = adata_corrected.X + np.random.normal(0, 0.1, adata_corrected.X.shape)
-        adata_eval_corrected.X = adata_eval_corrected.X + np.random.normal(0, 0.1, adata_eval_corrected.X.shape)
+        adata_corrected.X = adata_corrected.X + np.random.normal(
+            0, 0.1, adata_corrected.X.shape
+        )
+        adata_eval_corrected.X = adata_eval_corrected.X + np.random.normal(
+            0, 0.1, adata_eval_corrected.X.shape
+        )
 
         return adata_corrected, adata_eval_corrected
 
-    @patch('common.analysis.eda.VisualizationTools')
+    @patch("common.analysis.eda.VisualizationTools")
     def test_eda_handler_initialization(self, mock_vis_tools):
         """Test EDAHandler initialization."""
         handler = EDAHandler(
-            self.mock_config, self.mock_path_manager,
-            self.adata, self.adata_eval, self.adata_original,
-            self.adata_corrected, self.adata_eval_corrected
+            self.mock_config,
+            self.mock_path_manager,
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.adata_corrected,
+            self.adata_eval_corrected,
         )
 
         assert handler.config == self.mock_config
@@ -103,19 +119,23 @@ class TestEDAHandler:
             config=self.mock_config, path_manager=self.mock_path_manager
         )
 
-    @patch('common.analysis.eda.VisualizationTools')
+    @patch("common.analysis.eda.VisualizationTools")
     def test_run_eda_uncorrected_data(self, mock_vis_tools):
         """Test running EDA on uncorrected data."""
         mock_visual_tools = Mock()
         mock_vis_tools.return_value = mock_visual_tools
 
         handler = EDAHandler(
-            self.mock_config, self.mock_path_manager,
-            self.adata, self.adata_eval, self.adata_original,
-            self.adata_corrected, self.adata_eval_corrected
+            self.mock_config,
+            self.mock_path_manager,
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.adata_corrected,
+            self.adata_eval_corrected,
         )
 
-        with patch.object(handler, 'eda') as mock_eda:
+        with patch.object(handler, "eda") as mock_eda:
             handler.run_eda()
 
             # Should call eda 3 times for uncorrected data (train, eval, original)
@@ -125,19 +145,19 @@ class TestEDAHandler:
             calls = mock_eda.call_args_list
 
             # First call: training data
-            assert calls[0][1]['dataset_name'] == 'train'
-            assert calls[0][1]['folder_name'] == 'Training Data'
-            assert calls[0][1]['encoding_column'] == 'age'
+            assert calls[0][1]["dataset_name"] == "train"
+            assert calls[0][1]["folder_name"] == "Training Data"
+            assert calls[0][1]["encoding_column"] == "age"
 
             # Second call: evaluation data
-            assert calls[1][1]['dataset_name'] == 'evaluation'
-            assert calls[1][1]['folder_name'] == 'Evaluation Data'
+            assert calls[1][1]["dataset_name"] == "evaluation"
+            assert calls[1][1]["folder_name"] == "Evaluation Data"
 
             # Third call: original data
-            assert calls[2][1]['dataset_name'] == 'original'
-            assert calls[2][1]['folder_name'] == 'Original Data'
+            assert calls[2][1]["dataset_name"] == "original"
+            assert calls[2][1]["folder_name"] == "Original Data"
 
-    @patch('common.analysis.eda.VisualizationTools')
+    @patch("common.analysis.eda.VisualizationTools")
     def test_run_eda_batch_corrected_data(self, mock_vis_tools):
         """Test running EDA on batch-corrected data."""
         # Enable batch correction
@@ -147,12 +167,16 @@ class TestEDAHandler:
         mock_vis_tools.return_value = mock_visual_tools
 
         handler = EDAHandler(
-            self.mock_config, self.mock_path_manager,
-            self.adata, self.adata_eval, self.adata_original,
-            self.adata_corrected, self.adata_eval_corrected
+            self.mock_config,
+            self.mock_path_manager,
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.adata_corrected,
+            self.adata_eval_corrected,
         )
 
-        with patch.object(handler, 'eda') as mock_eda:
+        with patch.object(handler, "eda") as mock_eda:
             handler.run_eda()
 
             # Should call eda 2 times for batch-corrected data (train, eval)
@@ -162,14 +186,12 @@ class TestEDAHandler:
             calls = mock_eda.call_args_list
 
             # First call: batch training data
-            assert calls[0][1]['dataset_name'] == 'batch_train'
-            assert calls[0][1]['folder_name'] == 'Batch Training Data'
+            assert calls[0][1]["dataset_name"] == "batch_train"
+            assert calls[0][1]["folder_name"] == "Batch Training Data"
 
             # Second call: batch evaluation data
-            assert calls[1][1]['dataset_name'] == 'batch_evaluation'
-            assert calls[1][1]['folder_name'] == 'Batch Evaluation Data'
-
-
+            assert calls[1][1]["dataset_name"] == "batch_evaluation"
+            assert calls[1][1]["folder_name"] == "Batch Evaluation Data"
 
 
 if __name__ == "__main__":

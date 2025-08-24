@@ -21,31 +21,39 @@ class TestSHAPInterpreter:
     def test_shap_config_validation(self, aging_config):
         """Test SHAP configuration validation."""
         # Test that SHAP config is accessible
-        assert hasattr(aging_config.interpretation, 'shap')
-        assert hasattr(aging_config.interpretation.shap, 'enabled')
-        assert hasattr(aging_config.interpretation.shap, 'reference_size')
+        assert hasattr(aging_config.interpretation, "shap")
+        assert hasattr(aging_config.interpretation.shap, "enabled")
+        assert hasattr(aging_config.interpretation.shap, "reference_size")
 
         # Test config values
         assert isinstance(aging_config.interpretation.shap.enabled, bool)
         assert isinstance(aging_config.interpretation.shap.reference_size, int)
         assert aging_config.interpretation.shap.reference_size > 0
 
-    @pytest.mark.skip(reason="Interpreter requires actual model and data - test in integration suite")
+    @pytest.mark.skip(
+        reason="Interpreter requires actual model and data - test in integration suite"
+    )
     def test_shap_interpreter_initialization(self, aging_config):
         """Test SHAP interpreter initialization."""
         pass
 
-    @pytest.mark.skip(reason="Explainer creation requires actual model - test in integration suite")
+    @pytest.mark.skip(
+        reason="Explainer creation requires actual model - test in integration suite"
+    )
     def test_shap_explainer_creation(self, aging_config):
         """Test SHAP explainer creation."""
         pass
 
-    @pytest.mark.skip(reason="SHAP value calculation requires actual model - test in integration suite")
+    @pytest.mark.skip(
+        reason="SHAP value calculation requires actual model - test in integration suite"
+    )
     def test_shap_value_calculation(self, aging_config):
         """Test SHAP value calculation."""
         pass
 
-    @pytest.mark.skip(reason="File operations require initialized interpreter - test in integration suite")
+    @pytest.mark.skip(
+        reason="File operations require initialized interpreter - test in integration suite"
+    )
     def test_shap_file_operations(self, aging_config, temp_dir):
         """Test SHAP file save/load operations."""
         pass
@@ -59,24 +67,32 @@ class TestMetricsCalculator:
         """Test metrics calculator initialization."""
         calculator = AgingMetrics(aging_config)
         assert calculator.config == aging_config
-        assert hasattr(calculator, 'config')
+        assert hasattr(calculator, "config")
 
-    @pytest.mark.skip(reason="Classification metrics methods not implemented in AgingMetrics - test in integration suite")
+    @pytest.mark.skip(
+        reason="Classification metrics methods not implemented in AgingMetrics - test in integration suite"
+    )
     def test_classification_metrics(self, aging_config):
         """Test classification metrics calculation."""
         pass
 
-    @pytest.mark.skip(reason="Regression metrics methods not implemented in AgingMetrics - test in integration suite")
+    @pytest.mark.skip(
+        reason="Regression metrics methods not implemented in AgingMetrics - test in integration suite"
+    )
     def test_regression_metrics(self, aging_config):
         """Test regression metrics calculation."""
         pass
 
-    @pytest.mark.skip(reason="Confusion matrix methods not implemented in AgingMetrics - test in integration suite")
+    @pytest.mark.skip(
+        reason="Confusion matrix methods not implemented in AgingMetrics - test in integration suite"
+    )
     def test_confusion_matrix_generation(self, aging_config):
         """Test confusion matrix generation."""
         pass
 
-    @pytest.mark.skip(reason="ROC curve methods not implemented in AgingMetrics - test in integration suite")
+    @pytest.mark.skip(
+        reason="ROC curve methods not implemented in AgingMetrics - test in integration suite"
+    )
     def test_roc_curve_generation(self, aging_config):
         """Test ROC curve generation."""
         pass
@@ -99,7 +115,10 @@ class TestEDAHandlerExpanded:
 
         except Exception as e:
             # May fail due to implementation or dependencies
-            assert any(word in str(e).lower() for word in ['stat', 'calculate', 'eda', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["stat", "calculate", "eda", "not available"]
+            )
 
     def test_eda_data_quality_checks(self, aging_config, small_sample_anndata):
         """Test EDA data quality checks."""
@@ -114,7 +133,10 @@ class TestEDAHandlerExpanded:
 
         except Exception as e:
             # May fail due to implementation
-            assert any(word in str(e).lower() for word in ['quality', 'assess', 'eda', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["quality", "assess", "eda", "not available"]
+            )
 
     def test_eda_visualization_preparation(self, aging_config, small_sample_anndata):
         """Test EDA visualization preparation."""
@@ -129,7 +151,10 @@ class TestEDAHandlerExpanded:
 
         except Exception as e:
             # May fail due to implementation or visualization dependencies
-            assert any(word in str(e).lower() for word in ['viz', 'visual', 'plot', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["viz", "visual", "plot", "not available"]
+            )
 
     def test_eda_batch_effect_analysis(self, aging_config, small_sample_anndata):
         """Test EDA batch effect analysis."""
@@ -144,7 +169,10 @@ class TestEDAHandlerExpanded:
 
         except Exception as e:
             # May fail due to implementation
-            assert any(word in str(e).lower() for word in ['batch', 'effect', 'analyze', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["batch", "effect", "analyze", "not available"]
+            )
 
 
 @pytest.mark.unit
@@ -171,7 +199,9 @@ class TestAnalysisIntegration:
 
         except Exception as e:
             # Expected for missing dependencies
-            assert any(word in str(e).lower() for word in ['sklearn', 'shap', 'not available'])
+            assert any(
+                word in str(e).lower() for word in ["sklearn", "shap", "not available"]
+            )
 
     def test_eda_and_metrics_workflow(self, aging_config, small_sample_anndata):
         """Test workflow from EDA to metrics."""
@@ -187,14 +217,19 @@ class TestAnalysisIntegration:
             y_pred = np.random.randint(0, 2, 20)
             y_proba = np.random.random((20, 2))
 
-            metrics = calculator.calculate_classification_metrics(y_true, y_pred, y_proba)
+            metrics = calculator.calculate_classification_metrics(
+                y_true, y_pred, y_proba
+            )
 
             # Should complete workflow
             assert True
 
         except Exception as e:
             # Expected for missing dependencies or implementation
-            assert any(word in str(e).lower() for word in ['eda', 'metric', 'sklearn', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["eda", "metric", "sklearn", "not available"]
+            )
 
     def test_complete_evaluation_pipeline(self, aging_config):
         """Test complete evaluation pipeline components."""
@@ -204,18 +239,18 @@ class TestAnalysisIntegration:
 
         # Test that all components are properly initialized
         assert calculator.config == aging_config
-        
+
         # Test that configuration is consistent across components
-        assert hasattr(aging_config.interpretation, 'shap')
-        assert hasattr(aging_config, 'visualizations')
+        assert hasattr(aging_config.interpretation, "shap")
+        assert hasattr(aging_config, "visualizations")
 
         # Test workflow coordination
         try:
             # Simulate complete evaluation workflow
             mock_results = {
-                'y_true': np.array([0, 1, 1, 0]),
-                'y_pred': np.array([0, 1, 0, 0]),
-                'y_proba': np.random.random((4, 2))
+                "y_true": np.array([0, 1, 1, 0]),
+                "y_pred": np.array([0, 1, 0, 0]),
+                "y_proba": np.random.random((4, 2)),
             }
 
             # Test that calculator is properly initialized
@@ -227,4 +262,7 @@ class TestAnalysisIntegration:
 
         except Exception as e:
             # Expected for missing dependencies
-            assert any(word in str(e).lower() for word in ['sklearn', 'metric', 'analyze', 'not available'])
+            assert any(
+                word in str(e).lower()
+                for word in ["sklearn", "metric", "analyze", "not available"]
+            )

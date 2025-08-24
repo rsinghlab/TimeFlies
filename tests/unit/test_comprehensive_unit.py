@@ -49,29 +49,29 @@ class TestCLICommands:
         parser = create_main_parser()
 
         # Test basic commands
-        args = parser.parse_args(['verify'])
-        assert args.command == 'verify'
+        args = parser.parse_args(["verify"])
+        assert args.command == "verify"
 
-        args = parser.parse_args(['train'])
-        assert args.command == 'train'
+        args = parser.parse_args(["train"])
+        assert args.command == "train"
 
-        args = parser.parse_args(['evaluate'])
-        assert args.command == 'evaluate'
+        args = parser.parse_args(["evaluate"])
+        assert args.command == "evaluate"
 
     def test_cli_project_flags(self):
         """Test project switching flags."""
         parser = create_main_parser()
 
         # Test aging flag
-        args = parser.parse_args(['--aging', 'train'])
-        assert args.project == 'fruitfly_aging'
+        args = parser.parse_args(["--aging", "train"])
+        assert args.project == "fruitfly_aging"
 
         # Test alzheimers flag
-        args = parser.parse_args(['--alzheimers', 'evaluate'])
-        assert args.project == 'fruitfly_alzheimers'
+        args = parser.parse_args(["--alzheimers", "evaluate"])
+        assert args.project == "fruitfly_alzheimers"
 
         # Test no flag (should be None)
-        args = parser.parse_args(['train'])
+        args = parser.parse_args(["train"])
         assert args.project is None
 
     def test_all_cli_commands_parseable(self):
@@ -80,13 +80,13 @@ class TestCLICommands:
 
         # Test all basic commands
         commands_to_test = [
-            ['verify'],
-            ['setup'],
-            ['train'],
-            ['evaluate'],
-            ['test', 'unit'],
-            ['batch-correct'],
-            ['create-test-data']
+            ["verify"],
+            ["setup"],
+            ["train"],
+            ["evaluate"],
+            ["test", "unit"],
+            ["batch-correct"],
+            ["create-test-data"],
         ]
 
         for cmd_args in commands_to_test:
@@ -103,15 +103,15 @@ class TestCLICommands:
 
         # Test main help
         try:
-            parser.parse_args(['--help'])
+            parser.parse_args(["--help"])
         except SystemExit:
             pass  # Help exits with 0, which is expected
 
         # Test command-specific help
         help_commands = [
-            ['train', '--help'],
-            ['evaluate', '--help'],
-            ['verify', '--help']
+            ["train", "--help"],
+            ["evaluate", "--help"],
+            ["verify", "--help"],
         ]
 
         for cmd_args in help_commands:
@@ -127,31 +127,31 @@ class TestConfigSystem:
     def test_active_project_detection(self):
         """Test active project detection from config."""
         project = get_active_project()
-        assert project in ['fruitfly_aging', 'fruitfly_alzheimers']
+        assert project in ["fruitfly_aging", "fruitfly_alzheimers"]
 
     def test_config_loading(self):
         """Test config loading for both projects."""
         # Test aging project
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
-        assert hasattr(config, 'data')
-        assert hasattr(config, 'general')
-        assert hasattr(config.data, 'tissue')
-        assert hasattr(config.data, 'model')
-        assert hasattr(config.data, 'target_variable')
+        assert hasattr(config, "data")
+        assert hasattr(config, "general")
+        assert hasattr(config.data, "tissue")
+        assert hasattr(config.data, "model")
+        assert hasattr(config.data, "target_variable")
 
     def test_config_structure(self):
         """Test modern config structure."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test modern structure (not legacy)
-        assert hasattr(config.data, 'split')  # New structure
-        assert hasattr(config.data.split, 'method')
-        assert hasattr(config.data.split, 'test_ratio')
-        assert hasattr(config, 'hardware')  # Not 'device'
-        assert hasattr(config.hardware, 'processor')
+        assert hasattr(config.data, "split")  # New structure
+        assert hasattr(config.data.split, "method")
+        assert hasattr(config.data.split, "test_ratio")
+        assert hasattr(config, "hardware")  # Not 'device'
+        assert hasattr(config.hardware, "processor")
 
 
 class TestDataSampling:
@@ -159,12 +159,12 @@ class TestDataSampling:
 
     def test_sampling_config_structure(self):
         """Test sampling configuration structure."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
-        assert hasattr(config.data, 'sampling')
-        assert hasattr(config.data.sampling, 'samples')  # Not 'num_samples'
-        assert hasattr(config.data.sampling, 'variables')  # Not 'num_variables'
+        assert hasattr(config.data, "sampling")
+        assert hasattr(config.data.sampling, "samples")  # Not 'num_samples'
+        assert hasattr(config.data.sampling, "variables")  # Not 'num_variables'
 
 
 class TestSplitMethods:
@@ -172,25 +172,25 @@ class TestSplitMethods:
 
     def test_split_config_options(self):
         """Test split method configuration options."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test split methods exist
-        assert hasattr(config.data.split, 'method')
+        assert hasattr(config.data.split, "method")
         method = config.data.split.method
-        assert method in ['random', 'sex', 'tissue']
+        assert method in ["random", "sex", "tissue"]
 
         # Test sex split options
-        if hasattr(config.data.split, 'sex'):
-            assert hasattr(config.data.split.sex, 'train')
-            assert hasattr(config.data.split.sex, 'test')
-            assert hasattr(config.data.split.sex, 'test_ratio')
+        if hasattr(config.data.split, "sex"):
+            assert hasattr(config.data.split.sex, "train")
+            assert hasattr(config.data.split.sex, "test")
+            assert hasattr(config.data.split.sex, "test_ratio")
 
         # Test tissue split options
-        if hasattr(config.data.split, 'tissue'):
-            assert hasattr(config.data.split.tissue, 'train')
-            assert hasattr(config.data.split.tissue, 'test')
-            assert hasattr(config.data.split.tissue, 'test_ratio')
+        if hasattr(config.data.split, "tissue"):
+            assert hasattr(config.data.split.tissue, "train")
+            assert hasattr(config.data.split.tissue, "test")
+            assert hasattr(config.data.split.tissue, "test_ratio")
 
 
 class TestModelTypes:
@@ -198,12 +198,12 @@ class TestModelTypes:
 
     def test_model_config(self):
         """Test model configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
-        assert hasattr(config.data, 'model')
+        assert hasattr(config.data, "model")
         model_type = config.data.model.lower()
-        assert model_type in ['cnn', 'mlp']
+        assert model_type in ["cnn", "mlp"]
 
 
 class TestOptionalFeatures:
@@ -211,31 +211,31 @@ class TestOptionalFeatures:
 
     def test_eda_config(self):
         """Test EDA configuration structure."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # EDA can be in analysis section
-        if hasattr(config, 'analysis') and hasattr(config.analysis, 'eda'):
-            assert hasattr(config.analysis.eda, 'enabled')
+        if hasattr(config, "analysis") and hasattr(config.analysis, "eda"):
+            assert hasattr(config.analysis.eda, "enabled")
 
     def test_shap_config(self):
         """Test SHAP configuration structure."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # SHAP should be in interpretation.shap (modern structure)
-        assert hasattr(config, 'interpretation')
-        assert hasattr(config.interpretation, 'shap')
-        assert hasattr(config.interpretation.shap, 'enabled')
-        assert hasattr(config.interpretation.shap, 'reference_size')
+        assert hasattr(config, "interpretation")
+        assert hasattr(config.interpretation, "shap")
+        assert hasattr(config.interpretation.shap, "enabled")
+        assert hasattr(config.interpretation.shap, "reference_size")
 
     def test_visualization_config(self):
         """Test visualization configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
-        assert hasattr(config, 'visualizations')
-        assert hasattr(config.visualizations, 'enabled')
+        assert hasattr(config, "visualizations")
+        assert hasattr(config.visualizations, "enabled")
 
 
 class TestEDAAndInterpretation:
@@ -243,27 +243,27 @@ class TestEDAAndInterpretation:
 
     def test_eda_functionality_config(self):
         """Test EDA can be enabled and configured."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test EDA config structure
-        assert hasattr(config, 'analysis')
-        assert hasattr(config.analysis, 'eda')
-        assert hasattr(config.analysis.eda, 'enabled')
+        assert hasattr(config, "analysis")
+        assert hasattr(config.analysis, "eda")
+        assert hasattr(config.analysis.eda, "enabled")
 
         # Test legacy structure also exists
-        assert hasattr(config, 'data_processing')
-        assert hasattr(config.data_processing, 'exploratory_data_analysis')
+        assert hasattr(config, "data_processing")
+        assert hasattr(config.data_processing, "exploratory_data_analysis")
 
     def test_shap_functionality_config(self):
         """Test SHAP can be enabled and configured."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test SHAP config structure
-        assert hasattr(config.interpretation.shap, 'enabled')
-        assert hasattr(config.interpretation.shap, 'reference_size')
-        assert hasattr(config.interpretation.shap, 'load_existing')
+        assert hasattr(config.interpretation.shap, "enabled")
+        assert hasattr(config.interpretation.shap, "reference_size")
+        assert hasattr(config.interpretation.shap, "load_existing")
 
         # Test values are sensible
         assert isinstance(config.interpretation.shap.enabled, bool)
@@ -276,44 +276,44 @@ class TestAdvancedSplitMethods:
 
     def test_random_split_config(self):
         """Test random split configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # When method is random, should use test_ratio
-        if config.data.split.method == 'random':
-            assert hasattr(config.data.split, 'test_ratio')
+        if config.data.split.method == "random":
+            assert hasattr(config.data.split, "test_ratio")
             assert 0 < config.data.split.test_ratio < 1
 
     def test_sex_split_config(self):
         """Test sex-based split configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test sex split has required attributes
-        assert hasattr(config.data.split, 'sex')
-        assert hasattr(config.data.split.sex, 'train')
-        assert hasattr(config.data.split.sex, 'test')
-        assert hasattr(config.data.split.sex, 'test_ratio')
+        assert hasattr(config.data.split, "sex")
+        assert hasattr(config.data.split.sex, "train")
+        assert hasattr(config.data.split.sex, "test")
+        assert hasattr(config.data.split.sex, "test_ratio")
 
         # Test values are valid
-        valid_sexes = ['male', 'female', 'all']
+        valid_sexes = ["male", "female", "all"]
         assert config.data.split.sex.train in valid_sexes
         assert config.data.split.sex.test in valid_sexes
         assert 0 < config.data.split.sex.test_ratio < 1
 
     def test_tissue_split_config(self):
         """Test tissue-based split configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test tissue split has required attributes
-        assert hasattr(config.data.split, 'tissue')
-        assert hasattr(config.data.split.tissue, 'train')
-        assert hasattr(config.data.split.tissue, 'test')
-        assert hasattr(config.data.split.tissue, 'test_ratio')
+        assert hasattr(config.data.split, "tissue")
+        assert hasattr(config.data.split.tissue, "train")
+        assert hasattr(config.data.split.tissue, "test")
+        assert hasattr(config.data.split.tissue, "test_ratio")
 
         # Test values are valid
-        valid_tissues = ['head', 'body', 'all']
+        valid_tissues = ["head", "body", "all"]
         assert config.data.split.tissue.train in valid_tissues
         assert config.data.split.tissue.test in valid_tissues
         assert 0 < config.data.split.tissue.test_ratio < 1
@@ -324,28 +324,28 @@ class TestBatchCorrection:
 
     def test_batch_correction_config(self):
         """Test batch correction configuration."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
-        assert hasattr(config.data, 'batch_correction')
-        assert hasattr(config.data.batch_correction, 'enabled')
+        assert hasattr(config.data, "batch_correction")
+        assert hasattr(config.data.batch_correction, "enabled")
         assert isinstance(config.data.batch_correction.enabled, bool)
 
     def test_batch_file_paths(self):
         """Test batch-corrected file paths exist in config."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Check batch file paths are defined
-        assert hasattr(config, 'paths')
-        assert hasattr(config.paths, 'batch_data')
-        assert hasattr(config.paths.batch_data, 'train')
-        assert hasattr(config.paths.batch_data, 'eval')
+        assert hasattr(config, "paths")
+        assert hasattr(config.paths, "batch_data")
+        assert hasattr(config.paths.batch_data, "train")
+        assert hasattr(config.paths.batch_data, "eval")
 
         # Paths should contain expected tokens
-        assert '{project}' in config.paths.batch_data.train
-        assert '{tissue}' in config.paths.batch_data.train
-        assert 'batch' in config.paths.batch_data.train
+        assert "{project}" in config.paths.batch_data.train
+        assert "{tissue}" in config.paths.batch_data.train
+        assert "batch" in config.paths.batch_data.train
 
 
 class TestErrorHandling:
@@ -353,14 +353,14 @@ class TestErrorHandling:
 
     def test_missing_config_graceful(self):
         """Test graceful handling of missing config sections."""
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Should not crash when accessing optional sections
-        batch_enabled = getattr(config.data.batch_correction, 'enabled', False)
+        batch_enabled = getattr(config.data.batch_correction, "enabled", False)
         assert isinstance(batch_enabled, bool)
 
-        random_state = getattr(config.general, 'random_state', 42)
+        random_state = getattr(config.general, "random_state", 42)
         assert isinstance(random_state, int)
 
 

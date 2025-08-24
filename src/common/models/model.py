@@ -238,7 +238,9 @@ class ModelLoader:
         metadata_path = os.path.join(self.model_dir, "metadata.json")
 
         if not os.path.exists(metadata_path):
-            print("WARNING: No metadata found for saved model, cannot verify split compatibility")
+            print(
+                "WARNING: No metadata found for saved model, cannot verify split compatibility"
+            )
             return
 
         try:
@@ -246,26 +248,40 @@ class ModelLoader:
                 saved_metadata = json.load(f)
 
             # Extract current split configuration
-            current_split = SplitNamingUtils.extract_split_details_for_metadata(self.config)
+            current_split = SplitNamingUtils.extract_split_details_for_metadata(
+                self.config
+            )
 
             # Get saved split details if they exist
-            saved_split = saved_metadata.get('split_details', {})
+            saved_split = saved_metadata.get("split_details", {})
 
             if not saved_split:
-                print("WARNING: No split details in saved model metadata, cannot verify compatibility")
+                print(
+                    "WARNING: No split details in saved model metadata, cannot verify compatibility"
+                )
                 return
 
             # Compare key split parameters
-            method_match = current_split.get('method') == saved_split.get('method')
-            split_name_match = current_split.get('split_name') == saved_split.get('split_name')
+            method_match = current_split.get("method") == saved_split.get("method")
+            split_name_match = current_split.get("split_name") == saved_split.get(
+                "split_name"
+            )
 
             if not method_match or not split_name_match:
                 print("WARNING: Split configuration mismatch!")
-                print(f"  Current: {current_split.get('split_name')} ({current_split.get('method')})")
-                print(f"  Saved model: {saved_split.get('split_name')} ({saved_split.get('method')})")
-                print("  This may cause evaluation issues if train/test data differs from model training")
+                print(
+                    f"  Current: {current_split.get('split_name')} ({current_split.get('method')})"
+                )
+                print(
+                    f"  Saved model: {saved_split.get('split_name')} ({saved_split.get('method')})"
+                )
+                print(
+                    "  This may cause evaluation issues if train/test data differs from model training"
+                )
             else:
-                print(f"✓ Split configuration matches saved model: {current_split.get('split_name')}")
+                print(
+                    f"✓ Split configuration matches saved model: {current_split.get('split_name')}"
+                )
 
         except Exception as e:
             print(f"WARNING: Could not verify split compatibility: {e}")
@@ -292,8 +308,9 @@ class ModelLoader:
                 # Suppress the compile warning for loaded models
                 import logging
                 import warnings
+
                 # Temporarily suppress absl warnings
-                absl_logger = logging.getLogger('absl')
+                absl_logger = logging.getLogger("absl")
                 old_level = absl_logger.level
                 absl_logger.setLevel(logging.ERROR)
 
@@ -332,7 +349,9 @@ class ModelLoader:
         num_features = self._load_component_file("num_features.pkl")
         mix_included = self._load_component_file("mix_included.pkl")
 
-        reference_data = self._load_component_file("reference_data.npy", file_type="numpy")
+        reference_data = self._load_component_file(
+            "reference_data.npy", file_type="numpy"
+        )
 
         # History is in training subdirectory
         history = self._load_training_file("history.pkl")
@@ -388,11 +407,11 @@ class ModelLoader:
     def _load_component_file(self, file_name, file_type="pickle"):
         """
         Loads a component file, checking both new model_components/ and old root directory.
-        
+
         Parameters:
         - file_name (str): The name of the file to be loaded.
         - file_type (str): The type of the file to be loaded, either 'pickle' or 'numpy'.
-        
+
         Returns:
         - object: The object loaded from the file.
         """
@@ -421,11 +440,11 @@ class ModelLoader:
     def _load_training_file(self, file_name, file_type="pickle"):
         """
         Loads a training file from training/ subdirectory or fallback to root.
-        
+
         Parameters:
         - file_name (str): The name of the file to be loaded.
         - file_type (str): The type of the file to be loaded.
-        
+
         Returns:
         - object: The object loaded from the file.
         """
@@ -796,7 +815,9 @@ class ModelBuilder:
             "scaler_path": os.path.join(components_dir, "scaler.pkl"),
             "is_scaler_fit_path": os.path.join(components_dir, "is_scaler_fit.pkl"),
             "num_features_path": os.path.join(components_dir, "num_features.pkl"),
-            "highly_variable_genes_path": os.path.join(components_dir, "highly_variable_genes.pkl"),
+            "highly_variable_genes_path": os.path.join(
+                components_dir, "highly_variable_genes.pkl"
+            ),
             "mix_included_path": os.path.join(components_dir, "mix_included.pkl"),
             "history_path": os.path.join(training_dir, "history.pkl"),
             "experiment_dir": experiment_dir,

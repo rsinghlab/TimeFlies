@@ -106,9 +106,7 @@ class GeneFilter:
             balanced_non_lnc_mask = data.var.index.isin(balanced_non_lnc_genes)
 
         # Remove unaccounted genes based on the original set of autosomal and sex genes
-        if getattr(
-            config.preprocessing.genes, "remove_unaccounted_genes", False
-        ):
+        if getattr(config.preprocessing.genes, "remove_unaccounted_genes", False):
             accounted_mask = original_autosomal_mask | sex_mask
             data = data[:, accounted_mask]
             # Recompute the masks since data has changed
@@ -127,12 +125,8 @@ class GeneFilter:
         final_mask = np.ones(data.shape[1], dtype=bool)
 
         # Apply various filters based on configuration settings
-        remove_sex = getattr(
-            config.preprocessing.genes, "remove_sex_genes", False
-        )
-        balance_genes = getattr(
-            config.preprocessing.balancing, "balance_genes", False
-        )
+        remove_sex = getattr(config.preprocessing.genes, "remove_sex_genes", False)
+        balance_genes = getattr(config.preprocessing.balancing, "balance_genes", False)
         balance_lnc_genes = getattr(
             config.preprocessing.balancing, "balance_lnc_genes", False
         )
@@ -142,9 +136,7 @@ class GeneFilter:
         remove_autosomal = getattr(
             config.preprocessing.genes, "remove_autosomal_genes", False
         )
-        remove_lnc = getattr(
-            config.preprocessing.genes, "remove_lnc_genes", False
-        )
+        remove_lnc = getattr(config.preprocessing.genes, "remove_lnc_genes", False)
         remove_unaccounted = getattr(
             config.preprocessing.genes, "remove_unaccounted_genes", False
         )
@@ -214,9 +206,7 @@ class GeneFilter:
         original_autosomal_genes = autosomal_genes.copy()
 
         # Balance the number of autosomal genes with the number of X genes if required
-        balance_genes = getattr(
-            config.preprocessing.balancing, "balance_genes", False
-        )
+        balance_genes = getattr(config.preprocessing.balancing, "balance_genes", False)
         if balance_genes:
             autosomal_genes = self.balance_genes(autosomal_genes, sex_genes)
 

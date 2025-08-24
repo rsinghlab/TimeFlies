@@ -43,10 +43,10 @@ class SplitNamingUtils:
     def abbreviate_values(cls, values: list[str | int]) -> str:
         """
         Create abbreviated name for a list of values.
-        
+
         Args:
             values: List of values to abbreviate
-            
+
         Returns:
             Abbreviated string representation
         """
@@ -83,10 +83,10 @@ class SplitNamingUtils:
     def generate_split_name(cls, split_config: dict[str, Any]) -> str:
         """
         Generate a compact split name from configuration.
-        
+
         Args:
             split_config: Split configuration dictionary
-            
+
         Returns:
             Compact name like "ctrl-vs-alz" or "m-vs-f"
         """
@@ -112,10 +112,10 @@ class SplitNamingUtils:
     def generate_experiment_suffix(cls, config) -> str:
         """
         Generate experiment suffix from full config.
-        
+
         Args:
             config: Configuration object
-            
+
         Returns:
             Suffix string for experiment naming
         """
@@ -162,10 +162,10 @@ class SplitNamingUtils:
     def extract_split_details_for_metadata(cls, config) -> dict[str, Any]:
         """
         Extract detailed split information for metadata storage.
-        
+
         Args:
             config: Configuration object
-            
+
         Returns:
             Dictionary with split details for metadata
         """
@@ -173,23 +173,27 @@ class SplitNamingUtils:
 
         split_details = {
             "method": method,
-            "split_name": cls.generate_split_name({
-                "method": method,
-                "test_ratio": getattr(config.data.split, "test_ratio", 0.2),
-                "train": getattr(config.data.split, "train", []),
-                "test": getattr(config.data.split, "test", []),
-            })
+            "split_name": cls.generate_split_name(
+                {
+                    "method": method,
+                    "test_ratio": getattr(config.data.split, "test_ratio", 0.2),
+                    "train": getattr(config.data.split, "train", []),
+                    "test": getattr(config.data.split, "test", []),
+                }
+            ),
         }
 
         if method == "column":
-            split_details.update({
-                "column": getattr(config.data.split, "column", None),
-                "train_values": getattr(config.data.split, "train", []),
-                "test_values": getattr(config.data.split, "test", []),
-            })
+            split_details.update(
+                {
+                    "column": getattr(config.data.split, "column", None),
+                    "train_values": getattr(config.data.split, "train", []),
+                    "test_values": getattr(config.data.split, "test", []),
+                }
+            )
         else:
-            split_details.update({
-                "test_ratio": getattr(config.data.split, "test_ratio", 0.2)
-            })
+            split_details.update(
+                {"test_ratio": getattr(config.data.split, "test_ratio", 0.2)}
+            )
 
         return split_details

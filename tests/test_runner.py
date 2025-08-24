@@ -13,19 +13,22 @@ def get_batch_correction_tests():
     batch_tests = []
 
     # Look for batch correction specific tests
-    test_dirs = ['tests/unit/', 'tests/integration/']
+    test_dirs = ["tests/unit/", "tests/integration/"]
 
     for test_dir in test_dirs:
         test_path = Path(test_dir)
         if test_path.exists():
             # Find test files that mention batch correction
-            for test_file in test_path.glob('test_*batch*.py'):
+            for test_file in test_path.glob("test_*batch*.py"):
                 batch_tests.append(str(test_file))
             # Also check for batch correction in file content
-            for test_file in test_path.glob('test_*.py'):
+            for test_file in test_path.glob("test_*.py"):
                 try:
                     content = test_file.read_text()
-                    if 'batch_correction' in content.lower() or 'batchcorrector' in content:
+                    if (
+                        "batch_correction" in content.lower()
+                        or "batchcorrector" in content
+                    ):
                         batch_tests.append(str(test_file))
                 except:
                     continue
@@ -35,7 +38,7 @@ def get_batch_correction_tests():
 
 def has_batch_environment():
     """Check if .venv_batch environment exists."""
-    return Path('.venv_batch').exists()
+    return Path(".venv_batch").exists()
 
 
 def run_in_batch_environment(test_files, cmd_options):
@@ -49,10 +52,16 @@ def run_in_batch_environment(test_files, cmd_options):
         print("   Run 'python3 run_timeflies.py setup --dev' to create it")
         return 0
 
-    print(f"\n🔄 Switching to batch correction environment for {len(test_files)} test(s)...")
+    print(
+        f"\n🔄 Switching to batch correction environment for {len(test_files)} test(s)..."
+    )
 
     # Build command to run in batch environment
-    batch_python = ".venv_batch/bin/python" if Path(".venv_batch/bin/python").exists() else ".venv_batch/Scripts/python.exe"
+    batch_python = (
+        ".venv_batch/bin/python"
+        if Path(".venv_batch/bin/python").exists()
+        else ".venv_batch/Scripts/python.exe"
+    )
 
     cmd = [batch_python, "-m", "pytest"] + test_files + cmd_options
 
@@ -60,8 +69,8 @@ def run_in_batch_environment(test_files, cmd_options):
 
     # Temporarily set batch environment variables
     env = os.environ.copy()
-    env['VIRTUAL_ENV'] = str(Path('.venv_batch').resolve())
-    env['PATH'] = f"{Path('.venv_batch/bin').resolve()}:{env.get('PATH', '')}"
+    env["VIRTUAL_ENV"] = str(Path(".venv_batch").resolve())
+    env["PATH"] = f"{Path('.venv_batch/bin').resolve()}:{env.get('PATH', '')}"
 
     result = subprocess.run(cmd, env=env)
 
@@ -70,22 +79,29 @@ def run_in_batch_environment(test_files, cmd_options):
     return result.returncode
 
 
-def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=False, rerun_failures=False):
+def run_tests(
+    test_type="all",
+    verbose=False,
+    coverage=False,
+    fast=False,
+    debug=False,
+    rerun_failures=False,
+):
     """
     Run tests with automatic environment switching for batch correction tests.
-    
+
     Args:
         test_type: Type of tests to run (unit, integration, functional, system, all)
         verbose: Show detailed output
         coverage: Generate HTML coverage report
-        fast: Skip slow tests  
+        fast: Skip slow tests
         debug: Stop on first failure with detailed output
         rerun_failures: Only re-run tests that failed last time
     """
     # Set environment variables to suppress TensorFlow warnings
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-    os.environ['PYTHONWARNINGS'] = 'ignore'
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+    os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    os.environ["PYTHONWARNINGS"] = "ignore"
 
     # Get all test files to run
     all_test_files = []
@@ -126,12 +142,14 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
         pytest_options.append("-q")
 
     if coverage:
-        pytest_options.extend([
-            "--cov=src",
-            "--cov-report=html:coverage/html",
-            "--cov-report=term",
-            "--cov-append"  # Append coverage from multiple runs
-        ])
+        pytest_options.extend(
+            [
+                "--cov=src",
+                "--cov-report=html:coverage/html",
+                "--cov-report=term",
+                "--cov-append",  # Append coverage from multiple runs
+            ]
+        )
 
     if rerun_failures:
         pytest_options.extend(["--lf", "-v"])
@@ -141,9 +159,15 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
 
     # 1. Run regular tests in main environment
     if regular_test_files:
-        print(f"🧪 Running {len(regular_test_files)} regular tests in main environment...")
+        print(
+            f"🧪 Running {len(regular_test_files)} regular tests in main environment..."
+        )
 
-        cmd = ["python3", "-m", "pytest"] + [str(f) for f in regular_test_files] + pytest_options
+        cmd = (
+            ["python3", "-m", "pytest"]
+            + [str(f) for f in regular_test_files]
+            + pytest_options
+        )
         print(f"Running: {' '.join(cmd)}")
 
         result = subprocess.run(cmd, cwd=Path(__file__).parent.parent)
@@ -153,8 +177,7 @@ def run_tests(test_type="all", verbose=False, coverage=False, fast=False, debug=
     # 2. Run batch correction tests in batch environment
     if batch_test_files:
         batch_result = run_in_batch_environment(
-            [str(f) for f in batch_test_files],
-            pytest_options
+            [str(f) for f in batch_test_files], pytest_options
         )
         if batch_result != 0:
             overall_success = False
@@ -182,7 +205,7 @@ Examples:
   python test_runner.py --debug            # Stop on first failure
   python test_runner.py --rerun            # Re-run failed tests only
         """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
@@ -190,38 +213,27 @@ Examples:
         nargs="?",
         default="all",
         choices=["unit", "integration", "functional", "system", "all"],
-        help="Type of tests to run (default: all)"
+        help="Type of tests to run (default: all)",
     )
 
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Show detailed test output"
-    )
-
-
-    parser.add_argument(
-        "-c", "--coverage",
-        action="store_true",
-        help="Generate HTML coverage report"
+        "-v", "--verbose", action="store_true", help="Show detailed test output"
     )
 
     parser.add_argument(
-        "--fast",
-        action="store_true",
-        help="Skip slow tests (quick feedback)"
+        "-c", "--coverage", action="store_true", help="Generate HTML coverage report"
     )
 
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Stop on first failure with full details"
+        "--fast", action="store_true", help="Skip slow tests (quick feedback)"
     )
 
     parser.add_argument(
-        "--rerun",
-        action="store_true",
-        help="Only re-run tests that failed last time"
+        "--debug", action="store_true", help="Stop on first failure with full details"
+    )
+
+    parser.add_argument(
+        "--rerun", action="store_true", help="Only re-run tests that failed last time"
     )
 
     args = parser.parse_args()
@@ -233,7 +245,7 @@ Examples:
         coverage=args.coverage,
         fast=args.fast,
         debug=args.debug,
-        rerun_failures=args.rerun
+        rerun_failures=args.rerun,
     )
 
     return exit_code

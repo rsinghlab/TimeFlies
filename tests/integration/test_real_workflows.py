@@ -21,7 +21,7 @@ class TestCLIWorkflowIntegration:
     def test_cli_verify_real_execution(self):
         """Test CLI verify command with real execution."""
         # This exercises the actual verify command path
-        result = main_cli(['verify'])
+        result = main_cli(["verify"])
 
         # Should return an integer exit code (may be 0 or 1)
         assert isinstance(result, int)
@@ -29,7 +29,7 @@ class TestCLIWorkflowIntegration:
     def test_cli_setup_real_execution(self):
         """Test CLI setup command with real execution."""
         # This exercises the actual setup command path
-        result = main_cli(['setup'])
+        result = main_cli(["setup"])
 
         # Should return success code
         assert result == 0
@@ -38,8 +38,8 @@ class TestCLIWorkflowIntegration:
         """Test CLI create test data with real execution."""
         # This exercises actual create test data functionality
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch('os.getcwd', return_value=temp_dir):
-                result = main_cli(['create-test-data'])
+            with patch("os.getcwd", return_value=temp_dir):
+                result = main_cli(["create-test-data"])
 
                 # Should return success code
                 assert result == 0
@@ -48,29 +48,41 @@ class TestCLIWorkflowIntegration:
         """Test real config loading workflow."""
         # This exercises actual config loading code
         project = get_active_project()
-        assert project in ['fruitfly_aging', 'fruitfly_alzheimers']
+        assert project in ["fruitfly_aging", "fruitfly_alzheimers"]
 
-        config_manager = get_config_for_active_project('default')
+        config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
         # Test that config is actually loaded and accessible
-        assert hasattr(config, 'data')
-        assert hasattr(config, 'general')
-        assert config.data.tissue in ['head', 'body', 'all']
-        assert config.data.model in ['CNN', 'MLP', 'logistic', 'xgboost', 'random_forest']
+        assert hasattr(config, "data")
+        assert hasattr(config, "general")
+        assert config.data.tissue in ["head", "body", "all"]
+        assert config.data.model in [
+            "CNN",
+            "MLP",
+            "logistic",
+            "xgboost",
+            "random_forest",
+        ]
 
     def test_project_switching_real_workflow(self):
         """Test project switching with real workflow."""
         # Test aging project
-        with patch('common.core.active_config.get_active_project', return_value='fruitfly_aging'):
-            config_manager = get_config_for_active_project('default')
+        with patch(
+            "common.core.active_config.get_active_project",
+            return_value="fruitfly_aging",
+        ):
+            config_manager = get_config_for_active_project("default")
             config = config_manager.get_config()
             assert config is not None
 
         # Test alzheimers project (if available)
         try:
-            with patch('common.core.active_config.get_active_project', return_value='fruitfly_alzheimers'):
-                config_manager = get_config_for_active_project('default')
+            with patch(
+                "common.core.active_config.get_active_project",
+                return_value="fruitfly_alzheimers",
+            ):
+                config_manager = get_config_for_active_project("default")
                 config = config_manager.get_config()
                 assert config is not None
         except Exception as e:
@@ -108,7 +120,7 @@ class TestDataWorkflowIntegration:
 
         # Test actual train/test splitting
         X = large_sample_anndata.X
-        y = large_sample_anndata.obs['age'].values
+        y = large_sample_anndata.obs["age"].values
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
@@ -125,7 +137,7 @@ class TestDataWorkflowIntegration:
 
         # Test actual label encoding
         encoder = LabelEncoder()
-        ages = large_sample_anndata.obs['age'].values
+        ages = large_sample_anndata.obs["age"].values
         encoded_ages = encoder.fit_transform(ages)
 
         # Verify encoding worked
@@ -144,7 +156,7 @@ class TestDataWorkflowIntegration:
         sc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)
 
         # Filter to highly variable genes
-        if 'highly_variable' in adata.var.columns:
+        if "highly_variable" in adata.var.columns:
             adata_hvg = adata[:, adata.var.highly_variable].copy()
 
             # Verify filtering worked
@@ -165,7 +177,7 @@ class TestModelWorkflowIntegration:
 
         # Prepare real data
         X = small_sample_anndata.X
-        y = small_sample_anndata.obs['age'].values
+        y = small_sample_anndata.obs["age"].values
 
         # Encode labels
         encoder = LabelEncoder()
@@ -197,7 +209,7 @@ class TestModelWorkflowIntegration:
 
         # Prepare real data
         X = small_sample_anndata.X.astype(np.float32)
-        y = small_sample_anndata.obs['age'].values
+        y = small_sample_anndata.obs["age"].values
 
         # Encode labels
         encoder = LabelEncoder()
@@ -210,16 +222,18 @@ class TestModelWorkflowIntegration:
         )
 
         # Create simple model
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(32, activation='relu', input_shape=(X.shape[1],)),
-            tf.keras.layers.Dense(16, activation='relu'),
-            tf.keras.layers.Dense(num_classes, activation='softmax')
-        ])
+        model = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(32, activation="relu", input_shape=(X.shape[1],)),
+                tf.keras.layers.Dense(16, activation="relu"),
+                tf.keras.layers.Dense(num_classes, activation="softmax"),
+            ]
+        )
 
         model.compile(
-            optimizer='adam',
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
+            optimizer="adam",
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
         )
 
         # Train model (1 epoch for speed)
@@ -232,8 +246,8 @@ class TestModelWorkflowIntegration:
         # Verify workflow
         assert len(y_pred) == len(y_test)
         assert predictions.shape == (len(y_test), num_classes)
-        assert 'loss' in history.history
-        assert 'accuracy' in history.history
+        assert "loss" in history.history
+        assert "accuracy" in history.history
 
     def test_model_evaluation_workflow(self, small_sample_anndata):
         """Test real model evaluation workflow."""
@@ -248,7 +262,7 @@ class TestModelWorkflowIntegration:
 
         # Prepare data
         X = small_sample_anndata.X
-        y = small_sample_anndata.obs['age'].values
+        y = small_sample_anndata.obs["age"].values
 
         # Encode labels
         encoder = LabelEncoder()
@@ -278,7 +292,7 @@ class TestModelWorkflowIntegration:
 
         # Verify evaluation
         assert isinstance(report, dict)
-        assert 'accuracy' in report
+        assert "accuracy" in report
         assert cm.shape == (len(np.unique(y_test)), len(np.unique(y_test)))
 
 
@@ -316,7 +330,7 @@ class TestFileIOWorkflowIntegration:
 
             # Prepare data
             X = small_sample_anndata.X.astype(np.float32)
-            y = small_sample_anndata.obs['age'].values
+            y = small_sample_anndata.obs["age"].values
 
             encoder = LabelEncoder()
             y_encoded = encoder.fit_transform(y)
@@ -327,12 +341,16 @@ class TestFileIOWorkflowIntegration:
             )
 
             # Create and train model
-            model = tf.keras.Sequential([
-                tf.keras.layers.Dense(16, activation='relu', input_shape=(X.shape[1],)),
-                tf.keras.layers.Dense(num_classes, activation='softmax')
-            ])
+            model = tf.keras.Sequential(
+                [
+                    tf.keras.layers.Dense(
+                        16, activation="relu", input_shape=(X.shape[1],)
+                    ),
+                    tf.keras.layers.Dense(num_classes, activation="softmax"),
+                ]
+            )
 
-            model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+            model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")
             model.fit(X_train, y_train, epochs=1, verbose=0)
 
             # Save model
@@ -353,15 +371,15 @@ class TestFileIOWorkflowIntegration:
         import yaml
 
         config_data = {
-            'general': {'project_name': 'test', 'random_state': 42},
-            'data': {'tissue': 'head', 'model': 'CNN'},
-            'model': {'training': {'epochs': 10}}
+            "general": {"project_name": "test", "random_state": 42},
+            "data": {"tissue": "head", "model": "CNN"},
+            "model": {"training": {"epochs": 10}},
         }
 
         config_file = Path(temp_dir) / "test_config.yaml"
 
         # Write config
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             yaml.dump(config_data, f)
 
         assert config_file.exists()
@@ -372,8 +390,8 @@ class TestFileIOWorkflowIntegration:
 
         # Verify roundtrip
         assert loaded_config == config_data
-        assert loaded_config['general']['project_name'] == 'test'
-        assert loaded_config['data']['tissue'] == 'head'
+        assert loaded_config["general"]["project_name"] == "test"
+        assert loaded_config["data"]["tissue"] == "head"
 
 
 @pytest.mark.integration
@@ -393,12 +411,11 @@ class TestErrorHandlingIntegration:
         import tensorflow as tf
 
         # Create model
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(10, input_shape=(5,)),
-            tf.keras.layers.Dense(1)
-        ])
+        model = tf.keras.Sequential(
+            [tf.keras.layers.Dense(10, input_shape=(5,)), tf.keras.layers.Dense(1)]
+        )
 
-        model.compile(optimizer='adam', loss='mse')
+        model.compile(optimizer="adam", loss="mse")
 
         # Test with wrong input shape
         wrong_input = np.random.random((10, 3))  # Should be (10, 5)
@@ -412,7 +429,7 @@ class TestErrorHandlingIntegration:
 
         # Test with invalid config name
         try:
-            config_manager = get_config_for_active_project('non_existent_config')
+            config_manager = get_config_for_active_project("non_existent_config")
             config = config_manager.get_config()
         except Exception as e:
             # Should raise appropriate error
@@ -422,7 +439,7 @@ class TestErrorHandlingIntegration:
         """Test CLI error handling."""
         # Test with invalid command (should exit gracefully)
         try:
-            result = main_cli(['invalid_command'])
+            result = main_cli(["invalid_command"])
         except SystemExit as e:
             # Should exit with error code
             assert e.code != 0

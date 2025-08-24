@@ -20,32 +20,32 @@ class TimeFliesLauncher:
         self.root = tk.Tk()
         self.root.title("TimeFlies - ML for Aging Analysis")
         self.root.geometry("800x600")
-        self.root.configure(bg='#f0f0f0')
+        self.root.configure(bg="#f0f0f0")
 
         # Style
         style = ttk.Style()
-        style.theme_use('clam')
+        style.theme_use("clam")
 
         self.setup_ui()
 
     def setup_ui(self):
         # Main title
-        title_frame = tk.Frame(self.root, bg='#2c3e50', height=80)
-        title_frame.pack(fill='x', pady=(0, 20))
+        title_frame = tk.Frame(self.root, bg="#2c3e50", height=80)
+        title_frame.pack(fill="x", pady=(0, 20))
         title_frame.pack_propagate(False)
 
         title_label = tk.Label(
             title_frame,
             text="🧬 TimeFlies - Machine Learning for Aging Analysis",
-            font=('Arial', 16, 'bold'),
-            fg='white',
-            bg='#2c3e50'
+            font=("Arial", 16, "bold"),
+            fg="white",
+            bg="#2c3e50",
         )
         title_label.pack(expand=True)
 
         # Notebook for tabs
         notebook = ttk.Notebook(self.root)
-        notebook.pack(fill='both', expand=True, padx=20, pady=10)
+        notebook.pack(fill="both", expand=True, padx=20, pady=10)
 
         # Installation tab
         install_frame = ttk.Frame(notebook)
@@ -71,151 +71,134 @@ class TimeFliesLauncher:
         """Setup installation tab with user-friendly options."""
         # Status
         status_frame = ttk.LabelFrame(parent, text="Installation Status", padding=10)
-        status_frame.pack(fill='x', padx=10, pady=10)
+        status_frame.pack(fill="x", padx=10, pady=10)
 
         self.status_label = tk.Label(
             status_frame,
             text="Ready to install TimeFlies",
-            font=('Arial', 11),
-            fg='#27ae60'
+            font=("Arial", 11),
+            fg="#27ae60",
         )
         self.status_label.pack()
 
         # Installation options
         options_frame = ttk.LabelFrame(parent, text="Installation Options", padding=10)
-        options_frame.pack(fill='x', padx=10, pady=10)
+        options_frame.pack(fill="x", padx=10, pady=10)
 
         ttk.Button(
             options_frame,
             text="🚀 Quick Install (Recommended)",
             command=self.quick_install,
-            width=30
+            width=30,
         ).pack(pady=5)
 
         ttk.Button(
             options_frame,
             text="📁 Choose Installation Directory",
             command=self.custom_install,
-            width=30
+            width=30,
         ).pack(pady=5)
 
         ttk.Button(
             options_frame,
             text="✅ Verify Existing Installation",
             command=self.verify_install,
-            width=30
+            width=30,
         ).pack(pady=5)
 
         # Progress
         self.progress_var = tk.StringVar(value="Ready")
         progress_frame = ttk.LabelFrame(parent, text="Progress", padding=10)
-        progress_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        progress_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.progress_bar = ttk.Progressbar(progress_frame, mode='indeterminate')
-        self.progress_bar.pack(fill='x', pady=(0, 10))
+        self.progress_bar = ttk.Progressbar(progress_frame, mode="indeterminate")
+        self.progress_bar.pack(fill="x", pady=(0, 10))
 
         self.log_text = scrolledtext.ScrolledText(
-            progress_frame,
-            height=10,
-            wrap=tk.WORD,
-            state='disabled'
+            progress_frame, height=10, wrap=tk.WORD, state="disabled"
         )
-        self.log_text.pack(fill='both', expand=True)
+        self.log_text.pack(fill="both", expand=True)
 
     def setup_analysis_tab(self, parent):
         """Setup analysis tab for running ML workflows."""
         # Project selection
         project_frame = ttk.LabelFrame(parent, text="Project Configuration", padding=10)
-        project_frame.pack(fill='x', padx=10, pady=10)
+        project_frame.pack(fill="x", padx=10, pady=10)
 
-        tk.Label(project_frame, text="Select Project:").pack(anchor='w')
+        tk.Label(project_frame, text="Select Project:").pack(anchor="w")
         self.project_var = tk.StringVar(value="fruitfly_aging")
         ttk.Combobox(
             project_frame,
             textvariable=self.project_var,
             values=["fruitfly_aging", "fruitfly_alzheimers"],
-            state='readonly',
-            width=20
-        ).pack(anchor='w', pady=(0, 10))
+            state="readonly",
+            width=20,
+        ).pack(anchor="w", pady=(0, 10))
 
-        tk.Label(project_frame, text="Data Directory:").pack(anchor='w')
+        tk.Label(project_frame, text="Data Directory:").pack(anchor="w")
         data_frame = tk.Frame(project_frame)
-        data_frame.pack(fill='x')
+        data_frame.pack(fill="x")
 
         self.data_path = tk.StringVar(value="./data")
-        tk.Entry(data_frame, textvariable=self.data_path, width=50).pack(side='left')
-        ttk.Button(
-            data_frame,
-            text="Browse",
-            command=self.browse_data_dir
-        ).pack(side='right', padx=(10, 0))
+        tk.Entry(data_frame, textvariable=self.data_path, width=50).pack(side="left")
+        ttk.Button(data_frame, text="Browse", command=self.browse_data_dir).pack(
+            side="right", padx=(10, 0)
+        )
 
         # Analysis actions
         actions_frame = ttk.LabelFrame(parent, text="Analysis Actions", padding=10)
-        actions_frame.pack(fill='x', padx=10, pady=10)
+        actions_frame.pack(fill="x", padx=10, pady=10)
 
         button_frame = tk.Frame(actions_frame)
         button_frame.pack()
 
-        ttk.Button(
-            button_frame,
-            text="🔍 Verify Setup",
-            command=self.run_verify
-        ).pack(side='left', padx=5)
+        ttk.Button(button_frame, text="🔍 Verify Setup", command=self.run_verify).pack(
+            side="left", padx=5
+        )
 
-        ttk.Button(
-            button_frame,
-            text="✂️ Split Data",
-            command=self.run_split
-        ).pack(side='left', padx=5)
+        ttk.Button(button_frame, text="✂️ Split Data", command=self.run_split).pack(
+            side="left", padx=5
+        )
 
-        ttk.Button(
-            button_frame,
-            text="🧠 Train Model",
-            command=self.run_train
-        ).pack(side='left', padx=5)
+        ttk.Button(button_frame, text="🧠 Train Model", command=self.run_train).pack(
+            side="left", padx=5
+        )
 
-        ttk.Button(
-            button_frame,
-            text="📊 Evaluate",
-            command=self.run_evaluate
-        ).pack(side='left', padx=5)
+        ttk.Button(button_frame, text="📊 Evaluate", command=self.run_evaluate).pack(
+            side="left", padx=5
+        )
 
         # One-click analysis
         ttk.Button(
             actions_frame,
             text="🚀 Run Complete Analysis (One-Click)",
             command=self.run_complete_analysis,
-            width=40
+            width=40,
         ).pack(pady=(10, 0))
 
     def setup_results_tab(self, parent):
         """Setup results viewing tab."""
         results_frame = ttk.LabelFrame(parent, text="Results Browser", padding=10)
-        results_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        results_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         ttk.Button(
             results_frame,
             text="📁 Open Results Folder",
-            command=self.open_results_folder
+            command=self.open_results_folder,
         ).pack(pady=5)
 
         ttk.Button(
             results_frame,
             text="📓 Launch Jupyter Notebook",
-            command=self.launch_jupyter
+            command=self.launch_jupyter,
         ).pack(pady=5)
 
         ttk.Button(
-            results_frame,
-            text="📈 View SHAP Analysis",
-            command=self.view_shap
+            results_frame, text="📈 View SHAP Analysis", command=self.view_shap
         ).pack(pady=5)
 
         ttk.Button(
-            results_frame,
-            text="📋 Generate Report",
-            command=self.generate_report
+            results_frame, text="📋 Generate Report", command=self.generate_report
         ).pack(pady=5)
 
     def setup_help_tab(self, parent):
@@ -251,35 +234,30 @@ TROUBLESHOOTING:
         """
 
         help_display = scrolledtext.ScrolledText(
-            parent,
-            wrap=tk.WORD,
-            font=('Consolas', 10),
-            state='normal'
+            parent, wrap=tk.WORD, font=("Consolas", 10), state="normal"
         )
-        help_display.pack(fill='both', expand=True, padx=10, pady=10)
-        help_display.insert('1.0', help_text)
-        help_display.configure(state='disabled')
+        help_display.pack(fill="both", expand=True, padx=10, pady=10)
+        help_display.insert("1.0", help_text)
+        help_display.configure(state="disabled")
 
     def log_message(self, message):
         """Add message to log display."""
-        self.log_text.configure(state='normal')
-        self.log_text.insert('end', f"{message}\n")
-        self.log_text.see('end')
-        self.log_text.configure(state='disabled')
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", f"{message}\n")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
         self.root.update()
 
     def run_command(self, cmd, success_msg="Command completed successfully"):
         """Run command in separate thread with progress indication."""
+
         def run():
             try:
                 self.progress_bar.start()
                 self.log_message(f"Running: {' '.join(cmd)}")
 
                 result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=Path.cwd()
+                    cmd, capture_output=True, text=True, cwd=Path.cwd()
                 )
 
                 if result.returncode == 0:
@@ -300,8 +278,11 @@ TROUBLESHOOTING:
         """Run quick installation."""
         self.log_message("Starting TimeFlies installation...")
         # Download and run installer
-        install_cmd = ["bash", "-c",
-                      "curl -O https://raw.githubusercontent.com/rsinghlab/TimeFlies/main/install_timeflies.sh && bash install_timeflies.sh"]
+        install_cmd = [
+            "bash",
+            "-c",
+            "curl -O https://raw.githubusercontent.com/rsinghlab/TimeFlies/main/install_timeflies.sh && bash install_timeflies.sh",
+        ]
         self.run_command(install_cmd, "TimeFlies installed successfully!")
 
     def custom_install(self):
@@ -340,7 +321,7 @@ TROUBLESHOOTING:
             (["timeflies", "verify"], "Setup verified"),
             (["timeflies", "split"], "Data split complete"),
             (["timeflies", "train"], "Training complete"),
-            (["timeflies", "evaluate"], "Evaluation complete")
+            (["timeflies", "evaluate"], "Evaluation complete"),
         ]
 
         def run_sequence():
@@ -376,8 +357,10 @@ TROUBLESHOOTING:
 
     def launch_jupyter(self):
         """Launch Jupyter notebook."""
-        self.run_command(["jupyter", "notebook", "docs/notebooks/analysis.ipynb"],
-                        "Jupyter notebook launched!")
+        self.run_command(
+            ["jupyter", "notebook", "docs/notebooks/analysis.ipynb"],
+            "Jupyter notebook launched!",
+        )
 
     def view_shap(self):
         """View SHAP analysis results."""

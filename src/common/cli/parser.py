@@ -53,8 +53,9 @@ User Workflow:
 
     # Batch correction flag (global)
     parser.add_argument(
-        "--batch-corrected", action="store_true",
-        help="Use batch-corrected data for all operations"
+        "--batch-corrected",
+        action="store_true",
+        help="Use batch-corrected data for all operations",
     )
 
     # Common overrides
@@ -71,12 +72,19 @@ User Workflow:
     # Project selection (mutually exclusive)
     project_group = parser.add_mutually_exclusive_group()
     project_group.add_argument(
-        "--aging", action="store_const", const="fruitfly_aging", dest="project",
-        help="Use fruitfly_aging project (healthy flies)"
+        "--aging",
+        action="store_const",
+        const="fruitfly_aging",
+        dest="project",
+        help="Use fruitfly_aging project (healthy flies)",
     )
     project_group.add_argument(
-        "--alzheimers", "--alz", action="store_const", const="fruitfly_alzheimers", dest="project",
-        help="Use fruitfly_alzheimers project (disease models)"
+        "--alzheimers",
+        "--alz",
+        action="store_const",
+        const="fruitfly_alzheimers",
+        dest="project",
+        help="Use fruitfly_alzheimers project (disease models)",
     )
 
     # Create subparsers
@@ -85,7 +93,8 @@ User Workflow:
 
     # Train command
     train_parser = subparsers.add_parser(
-        "train", help="Train a model using project config settings (includes auto-evaluation)"
+        "train",
+        help="Train a model using project config settings (includes auto-evaluation)",
     )
     train_parser.add_argument(
         "--with-eda", action="store_true", help="Run EDA before training"
@@ -99,8 +108,7 @@ User Workflow:
         "eda", help="Run exploratory data analysis on the full dataset"
     )
     eda_parser.add_argument(
-        "--save-report", action="store_true",
-        help="Generate HTML report of EDA results"
+        "--save-report", action="store_true", help="Generate HTML report of EDA results"
     )
 
     # Setup command (main user workflow)
@@ -108,16 +116,20 @@ User Workflow:
         "setup", help="Complete setup: split data + verify system + create directories"
     )
     setup_parser.add_argument(
-        "--batch-correct", action="store_true",
-        help="Include batch correction in setup workflow"
+        "--batch-correct",
+        action="store_true",
+        help="Include batch correction in setup workflow",
     )
     setup_parser.add_argument(
-        "--dev", action="store_true",
-        help="Developer setup: only create environments (.venv and .venv_batch)"
+        "--dev",
+        action="store_true",
+        help="Developer setup: only create environments (.venv and .venv_batch)",
     )
 
     # Split command (create train/eval data splits)
-    split_parser = subparsers.add_parser("split", help="Create train/eval data splits from your original data")
+    split_parser = subparsers.add_parser(
+        "split", help="Create train/eval data splits from your original data"
+    )
 
     # Verify command (system setup verification)
     verify_parser = subparsers.add_parser(
@@ -163,12 +175,14 @@ User Workflow:
         "--with-analysis", action="store_true", help="Run analysis after evaluation"
     )
     eval_parser.add_argument(
-        "--interpret", action="store_true",
-        help="Enable SHAP interpretation (overrides config setting)"
+        "--interpret",
+        action="store_true",
+        help="Enable SHAP interpretation (overrides config setting)",
     )
     eval_parser.add_argument(
-        "--visualize", action="store_true",
-        help="Enable visualizations (overrides config setting)"
+        "--visualize",
+        action="store_true",
+        help="Enable visualizations (overrides config setting)",
     )
 
     # Analyze command
@@ -176,16 +190,17 @@ User Workflow:
         "analyze", help="Run project-specific analysis on trained model"
     )
     analyze_parser.add_argument(
-        "--predictions-path", type=str,
-        help="Path to existing predictions CSV (skip model loading)"
+        "--predictions-path",
+        type=str,
+        help="Path to existing predictions CSV (skip model loading)",
     )
     analyze_parser.add_argument(
-        "--with-eda", action="store_true",
-        help="Run EDA before analysis"
+        "--with-eda", action="store_true", help="Run EDA before analysis"
     )
     analyze_parser.add_argument(
-        "--analysis-script", type=str,
-        help="Path to custom analysis script (Python file with run_analysis function)"
+        "--analysis-script",
+        type=str,
+        help="Path to custom analysis script (Python file with run_analysis function)",
     )
 
     # Batch correction command (no flags - uses project config)
@@ -199,18 +214,26 @@ User Workflow:
         help="Create test data fixtures using 3-tier strategy: tiny real + synthetic + dev real data",
     )
     test_data_parser.add_argument(
-        "--tier", type=str, choices=["tiny", "synthetic", "real", "all"], default="all",
-        help="Which tier of test data to create (default: all)"
+        "--tier",
+        type=str,
+        choices=["tiny", "synthetic", "real", "all"],
+        default="all",
+        help="Which tier of test data to create (default: all)",
     )
     test_data_parser.add_argument(
-        "--cells", type=int, help="Override number of cells (tiny: 50, synthetic: 500, real: 5000)"
+        "--cells",
+        type=int,
+        help="Override number of cells (tiny: 50, synthetic: 500, real: 5000)",
     )
     test_data_parser.add_argument(
-        "--genes", type=int, help="Override number of genes (tiny: 100, synthetic: 1000, real: 2000)"
+        "--genes",
+        type=int,
+        help="Override number of genes (tiny: 100, synthetic: 1000, real: 2000)",
     )
     test_data_parser.add_argument(
-        "--batch-versions", action="store_true",
-        help="Create both batch-corrected and uncorrected versions"
+        "--batch-versions",
+        action="store_true",
+        help="Create both batch-corrected and uncorrected versions",
     )
 
     # Update command
