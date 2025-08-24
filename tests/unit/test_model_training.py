@@ -1,5 +1,6 @@
 """Tests for model building and training functionality."""
 
+import os
 from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import numpy as np
@@ -447,9 +448,12 @@ class TestModelBuilder:
             if path_key == "experiment_dir":
                 assert paths[path_key] == "/tmp/test_model"
             elif path_key == "components_dir":
-                assert paths[path_key] == "/tmp/test_model/model_components"
+                expected = os.path.join("/tmp/test_model", "model_components")
+                assert paths[path_key] == expected
             else:
-                assert paths[path_key].startswith("/tmp/test_model/")
+                # Normalize path separators for cross-platform compatibility
+                normalized_path = paths[path_key].replace("\\", "/")
+                assert normalized_path.startswith("/tmp/test_model/")
 
 
 class TestModelLoader:
@@ -487,7 +491,8 @@ class TestModelLoader:
             loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == "/tmp/test_model/model.h5"
+            expected = os.path.join("/tmp/test_model", "model.h5")
+            assert path == expected
 
     def test_get_model_path_sklearn_model(self):
         """Test model path generation for sklearn models."""
@@ -498,7 +503,8 @@ class TestModelLoader:
             loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            assert path == "/tmp/test_model/model.pkl"
+            expected = os.path.join("/tmp/test_model", "model.pkl")
+            assert path == expected
 
     @patch("os.path.exists")
     @patch("tensorflow.keras.models.load_model")
