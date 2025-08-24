@@ -38,3 +38,6 @@ coverage/
 .vscode/
 .idea/
 *.ipynb_checkpoints
+
+# Local config files
+config.yaml
