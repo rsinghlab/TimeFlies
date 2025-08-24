@@ -579,7 +579,7 @@ def split_command(args) -> int:
 
         # Use the existing setup manager to create splits
         setup_manager = DataSetupManager()
-        success = setup_manager.setup_all_projects()
+        success = setup_manager.setup_data()
 
         if success:
             print("✅ Data splits created successfully!")
@@ -1833,20 +1833,9 @@ def setup_dev_environments() -> int:
         subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
         subprocess.run([venv_pip, "install", "-e", "."], check=True)
 
-        # Install development dependencies
+        # Install development dependencies from pyproject.toml
         print("🛠️  Installing development dependencies...")
-        dev_deps = [
-            "pytest>=7.0.0",
-            "pytest-cov>=4.0.0",
-            "pytest-mock>=3.8.0",
-            "pytest-xdist>=3.0.0",
-            "black>=23.0.0",
-            "isort>=5.12.0",
-            "ruff>=0.1.0",
-            "mypy>=1.5.0",
-            "pre-commit>=3.0.0",
-        ]
-        subprocess.run([venv_pip, "install"] + dev_deps, check=True)
+        subprocess.run([venv_pip, "install", "-e", ".[dev]"], check=True)
         print("✅ Main and development dependencies installed")
 
         # Create batch environment
@@ -1863,31 +1852,8 @@ def setup_dev_environments() -> int:
         batch_pip = ".venv_batch/bin/pip"
 
         subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
-        subprocess.run(
-            [
-                batch_pip,
-                "install",
-                "torch",
-                "torchvision",
-                "torchaudio",
-                "--index-url",
-                "https://download.pytorch.org/whl/cpu",
-            ],
-            check=True,
-        )
-        subprocess.run(
-            [
-                batch_pip,
-                "install",
-                "scvi-tools",
-                "scanpy",
-                "pandas",
-                "numpy",
-                "matplotlib",
-                "seaborn",
-            ],
-            check=True,
-        )
+        # Install TimeFlies with batch-correction and dev extras
+        subprocess.run([batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True)
         print("✅ Batch dependencies installed")
 
         # Create activation scripts
