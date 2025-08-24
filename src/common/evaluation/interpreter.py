@@ -585,8 +585,10 @@ class Metrics:
             baseline_f1 (float): Baseline F1 score.
             file_name (str): The name of the file to save the metrics in.
         """
+
         # Function to format the metrics as percentages
-        format_percent = lambda x: f"{x * 100:.2f}%"
+        def format_percent(x):
+            return f"{x * 100:.2f}%"
 
         # Construct the metrics dictionary with formatted values
         metrics = {

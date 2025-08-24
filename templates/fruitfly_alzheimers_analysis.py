@@ -220,7 +220,6 @@ def create_comprehensive_visualizations(df, output_dir):
     try:
         # Determine figure layout based on available data
         has_genotype = "genotype" in df.columns and len(df["genotype"].unique()) > 1
-        n_plots = 4 if has_genotype else 3
 
         fig, axes = plt.subplots(
             2, 2 if has_genotype else 2, figsize=(15, 12) if has_genotype else (12, 12)

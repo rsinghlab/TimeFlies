@@ -591,7 +591,7 @@ class PathManager:
             experiment_name: Name of experiment to link to
         """
         latest_path = Path(self.get_latest_symlink_path())
-        experiment_dir = self.get_experiment_dir(experiment_name)
+        self.get_experiment_dir(experiment_name)
 
         # Remove existing symlink
         if latest_path.exists() or latest_path.is_symlink():

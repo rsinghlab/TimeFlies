@@ -7,7 +7,7 @@ It reads the active_project.yaml file to determine which project config to use.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import yaml
 
@@ -97,7 +97,7 @@ def get_active_config_path(config_type: str = "default") -> str:
     Returns:
         str: Path to the config file for the active project
     """
-    active_project = get_active_project()
+    get_active_project()
 
     # Map config types to file names
     config_files = {
@@ -168,7 +168,7 @@ def get_config_for_active_project(config_type: str = "default"):
     Returns:
         ConfigManager instance for the active project
     """
-    active_project = get_active_project()
+    get_active_project()
     config_path = get_active_config_path(config_type)
 
     # Use shared config manager for all projects

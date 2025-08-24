@@ -46,7 +46,7 @@ class GPUHandler:
         else:
             # Regular GPU configuration
             # Check if any GPUs are available for TensorFlow
-            tf_gpu = len(tf.config.list_physical_devices("GPU")) > 0
+            len(tf.config.list_physical_devices("GPU")) > 0
 
             # Get the list of physical GPU devices recognized by TensorFlow
             gpus = tf.config.experimental.list_physical_devices("GPU")

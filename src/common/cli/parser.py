@@ -5,7 +5,7 @@ Modern subcommand-based CLI parser for TimeFlies.
 """
 
 import argparse
-from typing import List, Optional
+from typing import Optional
 
 
 def create_main_parser() -> argparse.ArgumentParser:
@@ -21,27 +21,27 @@ User Workflow:
   python run_timeflies.py train [--with-eda]         # Train models with evaluation
   python run_timeflies.py evaluate [--with-eda]      # Evaluate models on test data
   python run_timeflies.py analyze [--with-eda]       # Project-specific analysis scripts
-  
+
   # Individual steps
   python run_timeflies.py split                      # Just create train/eval splits
   python run_timeflies.py eda --save-report          # Exploratory data analysis
   python run_timeflies.py batch-correct              # Apply batch correction
   python run_timeflies.py verify                     # Check system status
-  
+
   # Development/testing
   python run_timeflies.py test [unit|integration]    # Run test suite
   python run_timeflies.py test --coverage            # Generate coverage report
   python run_timeflies.py create-test-data           # Generate test fixtures
   python run_timeflies.py update                     # Update to latest version
-  
-  # Project switching (temporary override)  
+
+  # Project switching (temporary override)
   python run_timeflies.py --aging train              # Train aging project
   python run_timeflies.py --alzheimers analyze       # Analyze Alzheimer's project
   python run_timeflies.py --tissue head train        # Override tissue type
-  
+
   # Global options work with any command
   --batch-corrected --verbose --tissue head --aging
-  
+
   # Permanent project switching: Edit configs/default.yaml
         """,
     )
@@ -127,14 +127,12 @@ User Workflow:
     )
 
     # Split command (create train/eval data splits)
-    split_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "split", help="Create train/eval data splits from your original data"
     )
 
     # Verify command (system setup verification)
-    verify_parser = subparsers.add_parser(
-        "verify", help="Verify installation and system setup"
-    )
+    subparsers.add_parser("verify", help="Verify installation and system setup")
 
     # Test command (test runner integration)
     test_parser = subparsers.add_parser(
@@ -204,7 +202,7 @@ User Workflow:
     )
 
     # Batch correction command (no flags - uses project config)
-    batch_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "batch-correct", help="Run batch correction using project config settings"
     )
 
@@ -237,7 +235,7 @@ User Workflow:
     )
 
     # Update command
-    update_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "update",
         help="Update TimeFlies to the latest version from GitHub",
     )

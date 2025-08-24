@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 
 import pandas as pd
 import scanpy as sc

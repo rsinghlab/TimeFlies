@@ -199,7 +199,7 @@ def main():
         epilog="""
 Examples:
   python test_runner.py                    # Run all tests
-  python test_runner.py unit               # Unit tests only  
+  python test_runner.py unit               # Unit tests only
   python test_runner.py --fast             # Skip slow tests
   python test_runner.py --coverage         # With coverage report
   python test_runner.py --debug            # Stop on first failure

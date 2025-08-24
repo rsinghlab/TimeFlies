@@ -56,7 +56,7 @@ class TestCompleteWorkflows:
     def test_config_loading_complete_workflow(self):
         """Test complete config loading workflow."""
         # Test actual config loading process
-        project = get_active_project()
+        get_active_project()
         config_manager = get_config_for_active_project("default")
         config = config_manager.get_config()
 
@@ -245,7 +245,7 @@ class TestDataProcessingWorkflows:
 
             # Make predictions
             y_pred = model.predict(X_test)
-            y_proba = model.predict_proba(X_test)
+            model.predict_proba(X_test)
 
             # Calculate comprehensive metrics
             accuracy = accuracy_score(y_test, y_pred)

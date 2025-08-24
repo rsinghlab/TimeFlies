@@ -294,8 +294,8 @@ class TestPipelineManager:
 
         pipeline.reset_pipeline()
 
-        assert pipeline.data_loaded == False
-        assert pipeline.model_trained == False
+        assert not pipeline.data_loaded
+        assert not pipeline.model_trained
 
     def test_validate_config(self):
         """Test configuration validation."""
