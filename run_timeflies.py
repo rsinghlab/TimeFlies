@@ -61,11 +61,13 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''  # Disable GPU for cleaner output
 
 # Suppress ABSL and other warnings
 import logging
+
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 # Additional suppression for CUDA/cuDNN warnings
 import warnings
+
 warnings.filterwarnings('ignore', category=UserWarning)
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -75,7 +77,7 @@ def show_banner():
     print("    TIMEFLIES v1.0 - Machine Learning for Aging Analysis")
     print("=" * 70)
     print("Single-cell RNA-seq analysis for Drosophila aging patterns")
-    print("Deep learning models with SHAP interpretability")  
+    print("Deep learning models with SHAP interpretability")
     print("Batch correction and comprehensive evaluation tools")
     print("3-tier test data system for reliable development")
     print("=" * 70)
@@ -106,14 +108,14 @@ def main():
     if len(sys.argv) == 1 or '--help' in sys.argv or '-h' in sys.argv:
         show_banner()
         print()
-        
+
     # Run the CLI and pipeline
     try:
         # Only show "Starting" message for specific setup commands
         if len(sys.argv) > 1 and sys.argv[1] in ['setup', 'create-test-data']:
             print("Starting TimeFlies pipeline...")
         exit_code = main_cli()
-        
+
         # Don't print additional success/failure messages - commands handle this themselves
         sys.exit(exit_code)
     except KeyboardInterrupt:

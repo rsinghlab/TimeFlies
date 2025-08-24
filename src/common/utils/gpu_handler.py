@@ -1,8 +1,9 @@
 """GPU configuration utilities for TensorFlow."""
 
 import os
-import tensorflow as tf
 from typing import Any
+
+import tensorflow as tf
 
 
 class GPUHandler:

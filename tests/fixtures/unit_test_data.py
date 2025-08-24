@@ -1,15 +1,16 @@
 """Test data creation utilities for unit tests."""
 
+import shutil
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import anndata as ad
 import numpy as np
 import pandas as pd
-import tempfile
-import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional
-import anndata as ad
 
 
-def create_sample_anndata(n_cells: int = 100, n_genes: int = 50, 
+def create_sample_anndata(n_cells: int = 100, n_genes: int = 50,
                          add_age: bool = True, add_batch: bool = False) -> ad.AnnData:
     """Create a sample AnnData object for testing.
     
@@ -25,32 +26,32 @@ def create_sample_anndata(n_cells: int = 100, n_genes: int = 50,
     # Create synthetic expression data
     np.random.seed(42)  # For reproducible tests
     X = np.random.negative_binomial(10, 0.3, size=(n_cells, n_genes)).astype(float)
-    
+
     # Create cell metadata
     obs = pd.DataFrame(index=[f"cell_{i}" for i in range(n_cells)])
-    
+
     if add_age:
         # Create age groups (young, middle, old)
         ages = np.random.choice([1, 10, 20], n_cells)
         obs['age'] = ages
         obs['age_group'] = pd.cut(ages, bins=[0, 5, 15, 25], labels=['young', 'middle', 'old'])
-    
+
     if add_batch:
         # Create batch effects
         obs['batch'] = np.random.choice(['batch1', 'batch2', 'batch3'], n_cells)
-    
+
     # Create gene metadata
     var = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
     var['gene_type'] = np.random.choice(['protein_coding', 'lncRNA', 'pseudogene'], n_genes)
     var['highly_variable'] = np.random.choice([True, False], n_genes, p=[0.2, 0.8])
-    
+
     # Create AnnData object
     adata = ad.AnnData(X=X, obs=obs, var=var)
-    
+
     return adata
 
 
-def create_test_project_structure(base_path: Path) -> Dict[str, Path]:
+def create_test_project_structure(base_path: Path) -> dict[str, Path]:
     """Create a test project directory structure.
     
     Args:
@@ -68,15 +69,15 @@ def create_test_project_structure(base_path: Path) -> Dict[str, Path]:
         'outputs_fruitfly_aging': base_path / 'outputs' / 'fruitfly_aging' / 'head',
         'outputs_fruitfly_alzheimers': base_path / 'outputs' / 'fruitfly_alzheimers' / 'head',
     }
-    
+
     # Create all directories
     for path in structure.values():
         path.mkdir(parents=True, exist_ok=True)
-    
+
     return structure
 
 
-def create_minimal_config() -> Dict[str, Any]:
+def create_minimal_config() -> dict[str, Any]:
     """Create a minimal configuration for testing.
     
     Returns:
@@ -114,11 +115,11 @@ def create_minimal_config() -> Dict[str, Any]:
 
 class TestDataManager:
     """Manager for test data lifecycle."""
-    
+
     def __init__(self):
         self.temp_dirs = []
         self.test_files = []
-    
+
     def create_temp_dir(self, prefix: str = "timeflies_test_") -> Path:
         """Create a temporary directory for testing.
         
@@ -131,8 +132,8 @@ class TestDataManager:
         temp_dir = Path(tempfile.mkdtemp(prefix=prefix))
         self.temp_dirs.append(temp_dir)
         return temp_dir
-    
-    def create_test_h5ad(self, path: Path, n_cells: int = 100, n_genes: int = 50, 
+
+    def create_test_h5ad(self, path: Path, n_cells: int = 100, n_genes: int = 50,
                         add_age: bool = True, add_batch: bool = False) -> Path:
         """Create a test H5AD file.
         
@@ -151,19 +152,19 @@ class TestDataManager:
         adata.write_h5ad(path)
         self.test_files.append(path)
         return path
-    
+
     def cleanup(self):
         """Clean up all temporary files and directories."""
         # Remove test files
         for file_path in self.test_files:
             if file_path.exists():
                 file_path.unlink()
-        
+
         # Remove temp directories
         for temp_dir in self.temp_dirs:
             if temp_dir.exists():
                 shutil.rmtree(temp_dir)
-        
+
         # Clear lists
         self.temp_dirs.clear()
         self.test_files.clear()

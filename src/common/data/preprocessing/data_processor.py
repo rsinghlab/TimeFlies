@@ -1,16 +1,17 @@
 """Main data preprocessing utilities for TimeFlies project."""
 
+import logging
 import os
-from scipy.sparse import issparse
+from typing import Any, List, Optional, Tuple
+
+import dill as pickle
 import numpy as np
 import scanpy as sc
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.utils import to_categorical  # type: ignore
-import dill as pickle
-import logging
-from typing import Tuple, Optional, List, Any
 from anndata import AnnData
+from scipy.sparse import issparse
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from tensorflow.keras.utils import to_categorical  # type: ignore
 
 from ...utils.path_manager import PathManager
 
@@ -82,7 +83,7 @@ class DataPreprocessor:
         # Sample data if required (only for random splits - genotype splits sample after splitting)
         split_method = getattr(config.data.split, "method", "random").lower()
         num_samples = getattr(config.data.sampling, "samples", None)
-        
+
         if num_samples and num_samples < adata.n_obs and split_method == "random":
             random_state = getattr(config.general, "random_state", 42)
             sample_indices = adata.obs.sample(
@@ -97,7 +98,7 @@ class DataPreprocessor:
 
         return adata
 
-    def split_data(self, dataset: AnnData, evaluation_mode: bool = False) -> Tuple[AnnData, AnnData]:
+    def split_data(self, dataset: AnnData, evaluation_mode: bool = False) -> tuple[AnnData, AnnData]:
         """
         Filter/split the dataset based on the configuration using generic column-based approach.
         
@@ -120,17 +121,17 @@ class DataPreprocessor:
             column = getattr(config.data.split, "column", None)
             train_values = getattr(config.data.split, "train", [])
             test_values = getattr(config.data.split, "test", [])
-            
+
             if not column:
                 raise ValueError("Column name must be specified for column-based splits")
-            
+
             if column not in dataset.obs.columns:
                 raise ValueError(f"Column '{column}' not found in dataset observations")
-            
+
             # Convert values to lowercase strings for consistent matching
             train_values_norm = [str(v).lower() for v in train_values]
             test_values_norm = [str(v).lower() for v in test_values]
-            
+
             # Filter data based on column values
             if evaluation_mode:
                 # For evaluation: return test data only
@@ -146,13 +147,13 @@ class DataPreprocessor:
                 ].copy()
                 test_subset = dataset[:0].copy()  # Empty subset
                 print(f"Training mode: Using {train_subset.n_obs} cells with {column} in {train_values}")
-            
+
             # Apply sampling (only to training data during training)
             num_samples = getattr(config.data.sampling, "samples", None)
             if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
                 random_state = getattr(config.general, "random_state", 42)
                 train_sample_indices = train_subset.obs.sample(
-                    n=min(num_samples, train_subset.n_obs), 
+                    n=min(num_samples, train_subset.n_obs),
                     random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
@@ -171,13 +172,13 @@ class DataPreprocessor:
                 train_subset = dataset.copy()
                 test_subset = dataset[:0].copy()  # Empty subset
                 print(f"Training mode: Using full dataset ({train_subset.n_obs} cells)")
-                
+
             # Apply sampling if specified (only during training)
             num_samples = getattr(config.data.sampling, "samples", None)
             if num_samples and not evaluation_mode and num_samples < train_subset.n_obs:
                 random_state = getattr(config.general, "random_state", 42)
                 train_sample_indices = train_subset.obs.sample(
-                    n=min(num_samples, train_subset.n_obs), 
+                    n=min(num_samples, train_subset.n_obs),
                     random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
@@ -187,7 +188,7 @@ class DataPreprocessor:
 
     def select_highly_variable_genes(
         self, train_subset: AnnData, test_subset: AnnData
-    ) -> Tuple[AnnData, AnnData, Optional[List[str]]]:
+    ) -> tuple[AnnData, AnnData, list[str] | None]:
         """
         Select highly variable genes from the training data and apply to both training and testing data.
         Simplified version for specific use cases only.
@@ -222,7 +223,7 @@ class DataPreprocessor:
 
     def prepare_labels(
         self, train_subset: AnnData, test_subset: AnnData
-    ) -> Tuple[np.ndarray, np.ndarray, LabelEncoder]:
+    ) -> tuple[np.ndarray, np.ndarray, LabelEncoder]:
         """
         Prepare labels for training and testing data.
 
@@ -240,7 +241,7 @@ class DataPreprocessor:
         label_encoder = LabelEncoder()
 
         train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
-        
+
         # Handle empty test set (simplified training approach)
         if test_subset.n_obs > 0:
             test_labels = label_encoder.transform(test_subset.obs[encoding_var])
@@ -255,7 +256,7 @@ class DataPreprocessor:
 
     def normalize_data(
         self, train_data: np.ndarray, test_data: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, Optional[StandardScaler], bool]:
+    ) -> tuple[np.ndarray, np.ndarray, StandardScaler | None, bool]:
         """
         Normalize training and testing data if required.
 
@@ -292,7 +293,7 @@ class DataPreprocessor:
 
     def reshape_for_cnn(
         self, train_data: np.ndarray, test_data: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Reshape data for CNN models.
 
@@ -380,7 +381,7 @@ class DataPreprocessor:
 
         # Print data sizes and class counts
         print(f"Training data size: {train_subset.shape}")
-        
+
         encoding_var = getattr(config.data, "target_variable", "age")
         print("\nCounts of each class in the training data:")
         print(train_subset.obs[encoding_var].value_counts())
@@ -420,7 +421,7 @@ class DataPreprocessor:
 
         # Get mix_included flag from config
         mix_included = getattr(config.data.filtering, "include_mixed_sex", False)
-        
+
         # Store the gene names used in training for consistent evaluation
         if highly_variable_genes is not None:
             self.train_gene_names = highly_variable_genes
@@ -497,16 +498,16 @@ class DataPreprocessor:
 
         # Split-specific filtering for evaluation (only test groups)
         split_method = getattr(config.data.split, "method", "random").lower()
-        
+
         if split_method == "column":
             # Generic column-based evaluation filtering
             column = getattr(config.data.split, "column", None)
             test_values = getattr(config.data.split, "test", [])
-            
+
             if column and test_values:
                 # Convert values to lowercase strings for consistent matching
                 test_values_norm = [str(v).lower() for v in test_values]
-                
+
                 # Filter to only test values for evaluation
                 adata = adata[
                     adata.obs[column].str.lower().isin(test_values_norm)

@@ -4,14 +4,14 @@ import logging
 import logging.config
 import os
 import sys
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 def setup_logging(
     level: str = "INFO",
-    log_file: Optional[str] = None,
-    log_dir: Optional[str] = None,
+    log_file: str | None = None,
+    log_dir: str | None = None,
     format_style: str = "detailed",
 ) -> None:
     """

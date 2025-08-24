@@ -50,14 +50,14 @@ User Workflow:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
-    
+
     # Batch correction flag (global)
     parser.add_argument(
-        "--batch-corrected", action="store_true", 
+        "--batch-corrected", action="store_true",
         help="Use batch-corrected data for all operations"
     )
-    
-    # Common overrides  
+
+    # Common overrides
     parser.add_argument(
         "--tissue", type=str, help="Override tissue type (e.g., head, body)"
     )
@@ -67,7 +67,7 @@ User Workflow:
     parser.add_argument(
         "--target", type=str, help="Override target variable (e.g., age)"
     )
-    
+
     # Project selection (mutually exclusive)
     project_group = parser.add_mutually_exclusive_group()
     project_group.add_argument(
@@ -93,16 +93,16 @@ User Workflow:
     train_parser.add_argument(
         "--with-analysis", action="store_true", help="Run analysis after training"
     )
-    
+
     # EDA command (simplified)
     eda_parser = subparsers.add_parser(
         "eda", help="Run exploratory data analysis on the full dataset"
     )
     eda_parser.add_argument(
-        "--save-report", action="store_true", 
+        "--save-report", action="store_true",
         help="Generate HTML report of EDA results"
     )
-    
+
     # Setup command (main user workflow)
     setup_parser = subparsers.add_parser(
         "setup", help="Complete setup: split data + verify system + create directories"
@@ -115,7 +115,7 @@ User Workflow:
         "--dev", action="store_true",
         help="Developer setup: only create environments (.venv and .venv_batch)"
     )
-    
+
     # Split command (create train/eval data splits)
     split_parser = subparsers.add_parser("split", help="Create train/eval data splits from your original data")
 
@@ -163,7 +163,7 @@ User Workflow:
         "--with-analysis", action="store_true", help="Run analysis after evaluation"
     )
     eval_parser.add_argument(
-        "--interpret", action="store_true", 
+        "--interpret", action="store_true",
         help="Enable SHAP interpretation (overrides config setting)"
     )
     eval_parser.add_argument(
@@ -180,7 +180,7 @@ User Workflow:
         help="Path to existing predictions CSV (skip model loading)"
     )
     analyze_parser.add_argument(
-        "--with-eda", action="store_true", 
+        "--with-eda", action="store_true",
         help="Run EDA before analysis"
     )
     analyze_parser.add_argument(
@@ -209,7 +209,7 @@ User Workflow:
         "--genes", type=int, help="Override number of genes (tiny: 100, synthetic: 1000, real: 2000)"
     )
     test_data_parser.add_argument(
-        "--batch-versions", action="store_true", 
+        "--batch-versions", action="store_true",
         help="Create both batch-corrected and uncorrected versions"
     )
 
@@ -222,7 +222,7 @@ User Workflow:
     return parser
 
 
-def parse_arguments(argv: Optional[List[str]] = None) -> argparse.Namespace:
+def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = create_main_parser()
     return parser.parse_args(argv)

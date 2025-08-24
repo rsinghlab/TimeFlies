@@ -2,18 +2,19 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Conv1D, GlobalMaxPooling1D, Flatten
-from tensorflow.keras.optimizers import Adam
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-import xgboost as xgb
-import numpy as np
 
-from ..utils.logging_config import get_logger
-from ..utils.exceptions import ModelError
+import numpy as np
+import tensorflow as tf
+import xgboost as xgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from tensorflow.keras.layers import Conv1D, Dense, Dropout, Flatten, GlobalMaxPooling1D
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+
 from ..utils.constants import SUPPORTED_MODEL_TYPES
+from ..utils.exceptions import ModelError
+from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -28,7 +29,7 @@ class BaseModel(ABC):
         self.is_trained = False
 
     @abstractmethod
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build the model architecture."""
         pass
 
@@ -37,8 +38,8 @@ class BaseModel(ABC):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> Any:
         """Train the model."""
         pass
@@ -67,7 +68,7 @@ class BaseModel(ABC):
 class CNNModel(BaseModel):
     """Convolutional Neural Network model."""
 
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build CNN architecture."""
         try:
             model_config = getattr(self.config.model, "cnn", {})
@@ -138,8 +139,8 @@ class CNNModel(BaseModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> Any:
         """Train the CNN model."""
         try:
@@ -212,7 +213,7 @@ class CNNModel(BaseModel):
 class MLPModel(BaseModel):
     """Multi-Layer Perceptron model."""
 
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build MLP architecture."""
         try:
             model_config = getattr(self.config.model, "mlp", {})
@@ -257,8 +258,8 @@ class MLPModel(BaseModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> Any:
         """Train the MLP model."""
         try:
@@ -329,7 +330,7 @@ class MLPModel(BaseModel):
 class LogisticRegressionModel(BaseModel):
     """Logistic Regression model using scikit-learn."""
 
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build logistic regression model."""
         try:
             random_state = getattr(self.config.general, "random_state", 42)
@@ -350,8 +351,8 @@ class LogisticRegressionModel(BaseModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> None:
         """Train logistic regression model."""
         try:
@@ -400,7 +401,7 @@ class LogisticRegressionModel(BaseModel):
 class XGBoostModel(BaseModel):
     """XGBoost model using xgboost library."""
 
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build XGBoost model."""
         try:
             random_state = getattr(self.config.general, "random_state", 42)
@@ -428,8 +429,8 @@ class XGBoostModel(BaseModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> None:
         """Train XGBoost model."""
         try:
@@ -478,7 +479,7 @@ class XGBoostModel(BaseModel):
 class RandomForestModel(BaseModel):
     """Random Forest model using scikit-learn."""
 
-    def build(self, input_shape: Tuple[int, ...], num_classes: int) -> None:
+    def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
         """Build Random Forest model."""
         try:
             random_state = getattr(self.config.general, "random_state", 42)
@@ -501,8 +502,8 @@ class RandomForestModel(BaseModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        X_val: Optional[np.ndarray] = None,
-        y_val: Optional[np.ndarray] = None,
+        X_val: np.ndarray | None = None,
+        y_val: np.ndarray | None = None,
     ) -> None:
         """Train Random Forest model."""
         try:

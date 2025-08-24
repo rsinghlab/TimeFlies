@@ -1,21 +1,21 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.metrics import (
-    confusion_matrix,
-    ConfusionMatrixDisplay,
-    roc_curve,
-    auc,
-)
-import seaborn as sns
-from sklearn.preprocessing import label_binarize
-import shap
 import sys
-import pandas as pd
-from scipy.sparse import issparse
-import matplotlib.pyplot as plt
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import shap
+from scipy.sparse import issparse
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    auc,
+    confusion_matrix,
+    roc_curve,
+)
+from sklearn.preprocessing import label_binarize
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
@@ -458,9 +458,7 @@ class VisualizationTools:
             plt.plot(
                 fpr[i],
                 tpr[i],
-                label="ROC curve of {0} (area = {1:0.2f})".format(
-                    class_names[i], roc_auc[i]
-                ),
+                label=f"ROC curve of {class_names[i]} (area = {roc_auc[i]:0.2f})",
             )
         plt.plot([0, 1], [0, 1], "k--")
         plt.xlim([0.0, 1.0])
@@ -596,7 +594,7 @@ class Visualizer:
 
         # Initialize VisualizationTools for evaluation visuals (will be updated based on context)
         self.visual_tools = VisualizationTools(self.config, self.path_manager)
-        
+
         # Separate tool for training visuals
         training_visuals_dir = self.path_manager.get_training_visuals_dir()
         self.training_visual_tools = VisualizationTools(self.config, self.path_manager, training_visuals_dir)
@@ -612,7 +610,7 @@ class Visualizer:
             experiment_dir = self.path_manager.get_experiment_dir(experiment_name)
         else:
             experiment_dir = self.path_manager.get_experiment_dir()
-            
+
         eval_visuals_dir = os.path.join(experiment_dir, "evaluation", "plots")
         os.makedirs(eval_visuals_dir, exist_ok=True)
         self.visual_tools = VisualizationTools(self.config, self.path_manager, eval_visuals_dir)
@@ -746,7 +744,7 @@ class Visualizer:
         self._visualize_confusion_matrix()
         self._plot_roc_curve()
         self._plot_shap_summary()
-        
+
     def run_with_training(self):
         """
         Run visualization pipeline including training plots.

@@ -4,12 +4,13 @@ Aging-Specific Visualization Module
 Specialized plotting and visualization methods for aging research in Drosophila.
 """
 
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
-from pathlib import Path
+import seaborn as sns
 
 
 class AgingVisualizer:
@@ -60,9 +61,9 @@ class AgingVisualizer:
     def plot_age_progression(
         self,
         adata,
-        genes: List[str],
+        genes: list[str],
         age_column: str = "age",
-        save_path: Optional[Path] = None,
+        save_path: Path | None = None,
     ) -> plt.Figure:
         """
         Plot gene expression changes across ages.
@@ -131,10 +132,10 @@ class AgingVisualizer:
     def plot_sex_aging_comparison(
         self,
         adata,
-        genes: List[str],
+        genes: list[str],
         age_column: str = "age",
         sex_column: str = "sex",
-        save_path: Optional[Path] = None,
+        save_path: Path | None = None,
     ) -> plt.Figure:
         """
         Plot sex-specific aging patterns.
@@ -220,9 +221,9 @@ class AgingVisualizer:
     def plot_aging_markers_heatmap(
         self,
         adata,
-        aging_markers: List[str],
+        aging_markers: list[str],
         age_column: str = "age",
-        save_path: Optional[Path] = None,
+        save_path: Path | None = None,
     ) -> plt.Figure:
         """
         Create heatmap of aging marker expression across ages.
@@ -294,11 +295,11 @@ class AgingVisualizer:
 
     def plot_trajectory_genes(
         self,
-        trajectory_results: Dict,
+        trajectory_results: dict,
         adata,
         age_column: str = "age",
         top_n: int = 6,
-        save_path: Optional[Path] = None,
+        save_path: Path | None = None,
     ) -> plt.Figure:
         """
         Plot top trajectory genes over age.

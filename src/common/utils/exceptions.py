@@ -1,12 +1,12 @@
 """Custom exceptions for TimeFlies project."""
 
-from typing import Optional, Any
+from typing import Any, Optional
 
 
 class TimeFliesError(Exception):
     """Base exception class for TimeFlies project."""
 
-    def __init__(self, message: str, details: Optional[Any] = None):
+    def __init__(self, message: str, details: Any | None = None):
         self.message = message
         self.details = details
         super().__init__(self.message)

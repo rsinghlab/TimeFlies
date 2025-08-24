@@ -1,17 +1,19 @@
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Suppress TensorFlow logging
-import tensorflow as tf
-from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.model_selection import train_test_split
 import json
+
 import dill as pickle
-from ..utils.path_manager import PathManager
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+import tensorflow as tf
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
+
+from ..utils.path_manager import PathManager
 
 
 class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
@@ -222,48 +224,49 @@ class ModelLoader:
             model_filename = "model.pkl"
         model_path = os.path.join(self.model_dir, model_filename)
         return model_path
-    
+
     def _verify_split_compatibility(self):
         """
         Verify that the current config's split settings are compatible with the saved model.
         Raises a warning or error if there's a mismatch that could cause issues.
         """
         import json
+
         from ..utils.split_naming import SplitNamingUtils
-        
+
         # Look for metadata.json in the model directory
         metadata_path = os.path.join(self.model_dir, "metadata.json")
-        
+
         if not os.path.exists(metadata_path):
             print("WARNING: No metadata found for saved model, cannot verify split compatibility")
             return
-        
+
         try:
-            with open(metadata_path, 'r') as f:
+            with open(metadata_path) as f:
                 saved_metadata = json.load(f)
-            
+
             # Extract current split configuration
             current_split = SplitNamingUtils.extract_split_details_for_metadata(self.config)
-            
+
             # Get saved split details if they exist
             saved_split = saved_metadata.get('split_details', {})
-            
+
             if not saved_split:
                 print("WARNING: No split details in saved model metadata, cannot verify compatibility")
                 return
-            
+
             # Compare key split parameters
             method_match = current_split.get('method') == saved_split.get('method')
             split_name_match = current_split.get('split_name') == saved_split.get('split_name')
-            
+
             if not method_match or not split_name_match:
-                print(f"WARNING: Split configuration mismatch!")
+                print("WARNING: Split configuration mismatch!")
                 print(f"  Current: {current_split.get('split_name')} ({current_split.get('method')})")
                 print(f"  Saved model: {saved_split.get('split_name')} ({saved_split.get('method')})")
                 print("  This may cause evaluation issues if train/test data differs from model training")
             else:
                 print(f"✓ Split configuration matches saved model: {current_split.get('split_name')}")
-                
+
         except Exception as e:
             print(f"WARNING: Could not verify split compatibility: {e}")
 
@@ -280,23 +283,23 @@ class ModelLoader:
         """
         # Verify split compatibility before loading
         self._verify_split_compatibility()
-        
+
         # Load the model
         print(f"DEBUG: Attempting to load model from: {self.model_path}")
         if os.path.exists(self.model_path):
-            print(f"DEBUG: Model file exists, loading...")
+            print("DEBUG: Model file exists, loading...")
             if self.model_type in ["cnn", "mlp"]:
                 # Suppress the compile warning for loaded models
-                import warnings
                 import logging
+                import warnings
                 # Temporarily suppress absl warnings
                 absl_logger = logging.getLogger('absl')
                 old_level = absl_logger.level
                 absl_logger.setLevel(logging.ERROR)
-                
+
                 model = tf.keras.models.load_model(self.model_path)
                 print(f"DEBUG: Model loaded successfully from {self.model_path}")
-                
+
                 # Restore logging level
                 absl_logger.setLevel(old_level)
             else:
@@ -330,7 +333,7 @@ class ModelLoader:
         mix_included = self._load_component_file("mix_included.pkl")
 
         reference_data = self._load_component_file("reference_data.npy", file_type="numpy")
-        
+
         # History is in training subdirectory
         history = self._load_training_file("history.pkl")
 
@@ -396,13 +399,13 @@ class ModelLoader:
         # Try new model_components directory first
         components_dir = os.path.join(self.model_dir, "model_components")
         new_path = os.path.join(components_dir, file_name)
-        
+
         if os.path.exists(new_path):
             if file_type == "pickle":
                 return self._load_pickle(new_path)
             elif file_type == "numpy":
                 return np.load(new_path, allow_pickle=True)
-        
+
         # Fallback to old location (root of model directory)
         old_path = os.path.join(self.model_dir, file_name)
         if os.path.exists(old_path):
@@ -410,7 +413,7 @@ class ModelLoader:
                 return self._load_pickle(old_path)
             elif file_type == "numpy":
                 return np.load(old_path, allow_pickle=True)
-        
+
         # File not found in either location
         print(f"Error: {file_name} not found in {new_path} or {old_path}")
         exit()
@@ -429,13 +432,13 @@ class ModelLoader:
         # Try new training directory first
         training_dir = os.path.join(self.model_dir, "training")
         new_path = os.path.join(training_dir, file_name)
-        
+
         if os.path.exists(new_path):
             if file_type == "pickle":
                 return self._load_pickle(new_path)
             elif file_type == "numpy":
                 return np.load(new_path, allow_pickle=True)
-        
+
         # Fallback to old location (root of model directory)
         old_path = os.path.join(self.model_dir, file_name)
         if os.path.exists(old_path):
@@ -443,7 +446,7 @@ class ModelLoader:
                 return self._load_pickle(old_path)
             elif file_type == "numpy":
                 return np.load(old_path, allow_pickle=True)
-        
+
         # File not found in either location
         print(f"Error: {file_name} not found in {new_path} or {old_path}")
         exit()
@@ -767,7 +770,7 @@ class ModelBuilder:
             experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         else:
             experiment_dir = self.path_manager.get_experiment_dir()
-        
+
         os.makedirs(experiment_dir, exist_ok=True)
         return experiment_dir
 
@@ -786,7 +789,7 @@ class ModelBuilder:
         training_dir = os.path.join(experiment_dir, "training")
         os.makedirs(components_dir, exist_ok=True)
         os.makedirs(training_dir, exist_ok=True)
-        
+
         paths = {
             "label_path": os.path.join(components_dir, "label_encoder.pkl"),
             "reference_path": os.path.join(components_dir, "reference_data.npy"),
@@ -822,7 +825,7 @@ class ModelBuilder:
 
         # Load the best validation loss from file
         try:
-            with open(best_val_loss_path, "r") as f:
+            with open(best_val_loss_path) as f:
                 best_val_loss = json.load(f)["best_val_loss"]
         except FileNotFoundError:
             print("No best validation loss found. Starting from scratch.")
@@ -943,7 +946,7 @@ class ModelBuilder:
         )
 
         try:
-            with open(best_val_accuracy_path, "r") as f:
+            with open(best_val_accuracy_path) as f:
                 best_val_accuracy = json.load(f)["best_val_accuracy"]
         except FileNotFoundError:
             best_val_accuracy = 0  # Initialize if no record exists

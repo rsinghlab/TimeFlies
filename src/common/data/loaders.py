@@ -1,11 +1,13 @@
 """Data loading utilities for TimeFlies project."""
 
 import os
-import scanpy as sc
-import pandas as pd
 from pathlib import Path
-from typing import Tuple, List, Any
+from typing import Any, List, Tuple
+
+import pandas as pd
+import scanpy as sc
 from anndata import AnnData
+
 from ..utils.path_manager import PathManager
 
 
@@ -42,8 +44,8 @@ class DataLoader:
         """
         # Path to the main h5ad file (directly in tissue directory from PathManager)
         train_template = getattr(self.config.paths.data, "train", "fly_train.h5ad")
-        
-        # Map project name to file naming convention  
+
+        # Map project name to file naming convention
         # Use top-level project name, not data.project (which comes from base config)
         project_name = getattr(self.config, 'project', 'fruitfly_aging')
         if project_name == 'fruitfly_aging':
@@ -52,10 +54,10 @@ class DataLoader:
             project_for_files = 'alzheimers'
         else:
             project_for_files = project_name
-            
+
         train_filename = train_template.format(
             project=project_for_files,
-            tissue=getattr(self.config.data, 'tissue', 'head'), 
+            tissue=getattr(self.config.data, 'tissue', 'head'),
             species=getattr(self.config.data, 'species', 'drosophila')
         ).split('/')[-1]
         self.h5ad_file_path = os.path.join(self.Data_dir, train_filename)
@@ -86,7 +88,7 @@ class DataLoader:
             species=getattr(self.config.data, 'species', 'drosophila')
         ).split('/')[-1]
         self.h5ad_file_path_corrected = os.path.join(self.Data_dir, train_batch_filename)
-        
+
         eval_batch_template = getattr(self.config.paths.batch_data, "eval", "fly_eval_batch.h5ad")
         eval_batch_filename = eval_batch_template.format(
             project=project_for_files,
@@ -95,7 +97,7 @@ class DataLoader:
         ).split('/')[-1]
         self.h5ad_eval_file_path_corrected = os.path.join(self.Data_dir, eval_batch_filename)
 
-    def load_data(self) -> Tuple[AnnData, AnnData, AnnData]:
+    def load_data(self) -> tuple[AnnData, AnnData, AnnData]:
         """
         Loads the main datasets.
 
@@ -116,7 +118,7 @@ class DataLoader:
 
         return adata, adata_eval, adata_original
 
-    def load_corrected_data(self) -> Tuple[AnnData, AnnData]:
+    def load_corrected_data(self) -> tuple[AnnData, AnnData]:
         """
         Loads the batch-corrected datasets.
 
@@ -135,7 +137,7 @@ class DataLoader:
 
         return adata_corrected, adata_eval_corrected
 
-    def load_gene_lists(self) -> Tuple[List[str], List[str]]:
+    def load_gene_lists(self) -> tuple[list[str], list[str]]:
         """
         Loads gene lists from CSV files using new project structure.
 

@@ -6,9 +6,11 @@ It reads the active_project.yaml file to determine which project config to use.
 """
 
 import os
-import yaml
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+import yaml
+
 from ..utils.exceptions import ConfigurationError
 from ..utils.logging_config import get_logger
 
@@ -50,7 +52,7 @@ def get_active_project() -> str:
 
             for path in default_paths:
                 if os.path.exists(path):
-                    with open(path, "r") as f:
+                    with open(path) as f:
                         default_config = yaml.safe_load(f)
                     project = default_config.get("project")
                     if project:
@@ -69,7 +71,7 @@ def get_active_project() -> str:
             )
 
     try:
-        with open(active_config_path, "r") as f:
+        with open(active_config_path) as f:
             active_config = yaml.safe_load(f)
 
         active_project = active_config.get("active_project")
@@ -132,7 +134,7 @@ def get_active_config_path(config_type: str = "default") -> str:
     return config_path
 
 
-def get_quick_overrides() -> Dict[str, Any]:
+def get_quick_overrides() -> dict[str, Any]:
     """
     Get any quick overrides from active_project.yaml.
 
@@ -149,7 +151,7 @@ def get_quick_overrides() -> Dict[str, Any]:
 
     for path in search_paths:
         if os.path.exists(path):
-            with open(path, "r") as f:
+            with open(path) as f:
                 active_config = yaml.safe_load(f)
                 return active_config.get("quick_overrides", {})
 

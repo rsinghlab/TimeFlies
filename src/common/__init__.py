@@ -1,6 +1,6 @@
 """TimeFlies: Shared utilities and components for biological data analysis."""
 
-__version__ = "0.2.0"
+__version__ = "1.0"
 __author__ = "TimeFlies Team"
 
 # Shared utilities available to all projects
