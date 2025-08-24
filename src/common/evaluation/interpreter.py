@@ -276,10 +276,14 @@ class Interpreter:
                 )
 
             # Convert the SHAP values to a list of arrays for compatibility with the rest of the code
-            squeezed_shap_values = [
-                squeezed_shap_values[:, :, i]
-                for i in range(squeezed_shap_values.shape[2])
-            ]
+            if squeezed_shap_values.ndim >= 3:
+                squeezed_shap_values = [
+                    squeezed_shap_values[:, :, i]
+                    for i in range(squeezed_shap_values.shape[2])
+                ]
+            else:
+                # For 2D arrays, just wrap in a list
+                squeezed_shap_values = [squeezed_shap_values]
 
         return squeezed_shap_values, squeezed_test_data
 
