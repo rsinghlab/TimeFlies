@@ -48,7 +48,7 @@ jobs:
 
     - name: Test imports
       run: |
-        python -c "from common.core.config_manager import ConfigManager; print('✅ Import test passed')"
+        python -c "from common.core.config_manager import ConfigManager; print('Import test passed')"
 
     - name: Run tests
       run: |
