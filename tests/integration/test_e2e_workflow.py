@@ -82,9 +82,9 @@ def test_timeflies_with_correct_data_format():
         assert train_split.n_obs >= 0, "Train split should work"
         assert test_split.n_obs >= 0, "Test split should work"
         total_cells = train_split.n_obs + test_split.n_obs
-        assert (
-            total_cells <= adata.n_obs
-        ), f"Split cells ({total_cells}) shouldn't exceed original ({adata.n_obs})"
+        assert total_cells <= adata.n_obs, (
+            f"Split cells ({total_cells}) shouldn't exceed original ({adata.n_obs})"
+        )
 
         print("✅ DataPreprocessor.split_data() works")
 
@@ -146,12 +146,12 @@ def test_timeflies_with_correct_data_format():
         # Test predictions
         predictions = model.predict(X_train[:5])
         assert len(predictions) == 5, "Should predict 5 samples"
-        assert all(
-            isinstance(p, int | np.integer) for p in predictions
-        ), "Predictions should be integers"
-        assert all(
-            0 <= p < n_classes for p in predictions
-        ), "Predictions should be valid class indices"
+        assert all(isinstance(p, int | np.integer) for p in predictions), (
+            "Predictions should be integers"
+        )
+        assert all(0 <= p < n_classes for p in predictions), (
+            "Predictions should be valid class indices"
+        )
 
         # Test probabilities
         probabilities = model.predict_proba(X_train[:3])
@@ -159,9 +159,9 @@ def test_timeflies_with_correct_data_format():
             3,
             n_classes,
         ), f"Expected shape (3, {n_classes}), got {probabilities.shape}"
-        assert np.allclose(
-            probabilities.sum(axis=1), 1.0, rtol=1e-5
-        ), "Probabilities should sum to 1"
+        assert np.allclose(probabilities.sum(axis=1), 1.0, rtol=1e-5), (
+            "Probabilities should sum to 1"
+        )
 
         print("✅ Model prediction successful")
 
