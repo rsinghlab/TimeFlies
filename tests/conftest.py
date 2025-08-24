@@ -1,27 +1,28 @@
 """Pytest configuration and shared fixtures."""
 
-import pytest
-import tempfile
 import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
+
+import pytest
 
 # Add src to Python path for testing
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from tests.fixtures.unit_test_data import (
-    create_sample_anndata, 
-    create_test_project_structure,
-    create_minimal_config,
-    TestDataManager
-)
+from unittest.mock import Mock
+
+from common.cli.parser import create_main_parser
 
 # Import project modules for fixtures
-# from projects.fruitfly_aging.core.config_manager import Config, ConfigManager
-from common.cli.parser import create_main_parser
-from common.core.active_config import get_config_for_active_project
-from unittest.mock import Mock, patch
+from common.core.config_manager import Config, ConfigManager
+from tests.fixtures.unit_test_data import (
+    TestDataManager,
+    create_minimal_config,
+    create_sample_anndata,
+    create_test_project_structure,
+)
 
 
 @pytest.fixture(scope="session")
@@ -38,24 +39,34 @@ def minimal_config():
     return create_minimal_config()
 
 
-@pytest.fixture(scope="function") 
+@pytest.fixture(scope="function")
 def sample_anndata():
     """Create sample AnnData object."""
-    return create_sample_anndata(n_obs=100, n_vars=200)
+    return create_sample_anndata(n_cells=100, n_genes=200)
 
 
 @pytest.fixture(scope="function")
 def temp_project():
     """Create temporary project with full structure."""
-    with TestDataManager(create_full_structure=True) as project_files:
+    manager = TestDataManager()
+    try:
+        temp_dir = manager.create_temp_dir()
+        project_files = create_test_project_structure(temp_dir)
+        project_files['base_dir'] = temp_dir
         yield project_files
+    finally:
+        manager.cleanup()
 
 
 @pytest.fixture(scope="function")
 def temp_dir():
     """Create temporary directory."""
-    with TestDataManager(create_full_structure=False) as project_files:
-        yield project_files["base_dir"]
+    manager = TestDataManager()
+    try:
+        temp_dir = manager.create_temp_dir()
+        yield str(temp_dir)
+    finally:
+        manager.cleanup()
 
 
 @pytest.fixture(scope="function")
@@ -106,13 +117,13 @@ def sample_data_files(temp_dir):
 @pytest.fixture(scope="function")
 def large_sample_anndata():
     """Create larger sample AnnData for integration tests."""
-    return create_sample_anndata(n_obs=1000, n_vars=2000)
+    return create_sample_anndata(n_cells=1000, n_genes=2000)
 
 
 @pytest.fixture(scope="function")
 def small_sample_anndata():
     """Create small sample AnnData for unit tests."""
-    return create_sample_anndata(n_obs=50, n_vars=100)
+    return create_sample_anndata(n_cells=50, n_genes=100)
 
 
 @pytest.fixture(scope="function")
@@ -176,7 +187,7 @@ def reset_global_state():
     """Reset global state before each test."""
     # Reset any global state if needed
     yield
-    
+
     # Clean up after test
     pass
 
@@ -211,11 +222,11 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.unit)
         elif "integration" in str(item.fspath):
             item.add_marker(pytest.mark.integration)
-            
+
         # Add slow marker for certain tests
         if "slow" in item.name or "integration" in str(item.fspath):
             item.add_marker(pytest.mark.slow)
-            
+
         # Add CLI marker for CLI tests
         if "cli" in item.name or "cli" in str(item.fspath):
             item.add_marker(pytest.mark.cli)
@@ -227,12 +238,12 @@ def setup_test_environment():
     # Disable GPU for testing to avoid conflicts
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow warnings
-    
+
     # Set test-specific environment variables
     os.environ["TIMEFLIES_TEST_MODE"] = "1"
-    
+
     yield
-    
+
     # Clean up environment variables
     if "TIMEFLIES_TEST_MODE" in os.environ:
         del os.environ["TIMEFLIES_TEST_MODE"]
@@ -240,7 +251,7 @@ def setup_test_environment():
 
 # Skip tests requiring GPU if no GPU available
 def pytest_runtest_setup(item):
-    """Skip GPU tests if no GPU available.""" 
+    """Skip GPU tests if no GPU available."""
     if "gpu" in item.keywords:
         try:
             import tensorflow as tf
@@ -251,18 +262,18 @@ def pytest_runtest_setup(item):
 
 
 # Custom test result reporting
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
+def pytest_terminal_summary(terminalreporter, exitstatus=None, config=None):
     """Add custom terminal summary."""
     if hasattr(terminalreporter, 'stats'):
         passed = len(terminalreporter.stats.get('passed', []))
         failed = len(terminalreporter.stats.get('failed', []))
         skipped = len(terminalreporter.stats.get('skipped', []))
-        
+
         terminalreporter.write_sep("=", "TimeFlies Test Summary")
         terminalreporter.write_line(f"Tests passed: {passed}")
         terminalreporter.write_line(f"Tests failed: {failed}")
         terminalreporter.write_line(f"Tests skipped: {skipped}")
-        
+
         if failed == 0:
             terminalreporter.write_line("🎉 All tests passed!", green=True)
         else:
