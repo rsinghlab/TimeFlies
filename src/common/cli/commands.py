@@ -67,6 +67,9 @@ def run_system_tests(args) -> int:
     if getattr(args, "coverage", False):
         cmd.extend(["--cov=src", "--cov-report=html", "--cov-report=term"])
 
+    if getattr(args, "verbose", False):
+        cmd.append("-v")
+
     if getattr(args, "fast", False):
         cmd.extend(["-m", "not functional and not system"])
 

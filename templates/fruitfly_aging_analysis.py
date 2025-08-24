@@ -11,7 +11,7 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -329,7 +329,7 @@ class AgingAnalyzer:
                     "correlation": float(correlation),
                     "p_value": float(p_value),
                 }
-            except:
+            except Exception:
                 continue  # Skip genes with issues
 
         return correlations

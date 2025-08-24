@@ -7,6 +7,19 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
       - id: check-merge-conflict
+      - id: check-ast
+        description: Check Python files parse as valid syntax
+      - id: debug-statements
+        description: Check for debugger imports and breakpoint() calls
+      - id: detect-private-key
+        description: Detect presence of private keys
+      - id: check-json
+        description: Check JSON files are valid
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        description: Fixes mixed line endings
+      - id: check-toml
+        description: Check TOML files are valid
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.2

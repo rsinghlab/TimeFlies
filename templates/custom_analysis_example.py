@@ -170,6 +170,6 @@ def analyze_gene_importance(model, feature_names):
                 {"gene": feature_names, "importance": importances}
             ).sort_values("importance", ascending=False)
             return importance_df
-    except:
+    except Exception:
         pass
     return None
