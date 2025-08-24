@@ -1,7 +1,5 @@
 """Constants and configuration values for TimeFlies project."""
 
-from typing import Any
-
 # Model constants
 DEFAULT_TARGET_SUM = 1e4
 DEFAULT_N_TOP_GENES = 5000

@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import yaml
 
@@ -235,7 +235,7 @@ class ConfigManager:
             return  # User already has their config
 
         # Copy default config to user's project directory
-        print("📋 Creating config.yaml in your project directory...")
+        print("INFO: Creating config.yaml in your project directory...")
         if not project_config.exists():
             # Find source config from package/development
             source_configs = [
@@ -252,7 +252,7 @@ class ConfigManager:
                     shutil.copy2(source_config, project_config)
                     print("✅ Created config.yaml from TimeFlies defaults")
                     print(
-                        "📝 You can now edit ./config.yaml to customize your project settings"
+                        "CREATE: You can now edit ./config.yaml to customize your project settings"
                     )
                     return  # Success - exit method
 
@@ -277,7 +277,7 @@ class ConfigManager:
                     shutil.copy2(source_path, project_config)
                     print(f"✅ Created config.yaml from {source_path}")
                     print(
-                        "📝 You can now edit ./config.yaml to customize your project settings"
+                        "CREATE: You can now edit ./config.yaml to customize your project settings"
                     )
                     return
             except (OSError, yaml.YAMLError):

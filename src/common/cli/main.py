@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Main CLI entry point for TimeFlies package."""
 
-import os
 import sys
 from pathlib import Path
 

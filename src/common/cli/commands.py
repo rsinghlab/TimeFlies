@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from ..analysis.eda import EDAHandler
-from ..core.active_config import get_active_project, get_config_for_active_project
+from ..core.active_config import get_config_for_active_project
 
 # Optional import for batch correction
 try:
@@ -30,26 +30,26 @@ def run_system_tests(args) -> int:
     # Check if tests directory exists (developer installation)
     tests_dir = Path("tests")
     if not tests_dir.exists():
-        print("📋 TimeFlies Test Information")
+        print("TimeFlies Test Information")
         print("=" * 50)
-        print("⚠️  Full test suite not available in user installation")
+        print("WARNING: Full test suite not available in user installation")
         print("")
-        print("✅ To verify your installation works:")
+        print("To verify your installation works:")
         print("   timeflies verify")
         print("")
-        print("🛠️  For full development testing:")
+        print("For full development testing:")
         print("   git clone https://github.com/rsinghlab/TimeFlies.git")
         print("   cd TimeFlies")
         print("   timeflies test --coverage")
         print("")
-        print("💡 User installation is working correctly if:")
+        print("NOTE: User installation is working correctly if:")
         print("   • timeflies verify passes")
         print("   • timeflies setup completes successfully")
         print("   • Your research workflow runs without errors")
         return 0
 
     # Developer path - run actual tests
-    print("🧪 Running TimeFlies Test Suite...")
+    print("TESTING: Running TimeFlies Test Suite...")
     print("=" * 50)
 
     import sys
@@ -83,7 +83,7 @@ def run_system_tests(args) -> int:
         result = subprocess.run(cmd, cwd=Path.cwd())
         return result.returncode
     except Exception as e:
-        print(f"❌ Test execution failed: {e}")
+        print(f"[ERROR] Test execution failed: {e}")
         return 1
 
 
@@ -163,12 +163,12 @@ def verify_workflow_command(args) -> int:
         import pandas
         import scanpy
 
-        print("   ✅ Scientific packages (numpy, pandas, scanpy, anndata)")
+        print("   [OK] Scientific packages (numpy, pandas, scanpy, anndata)")
 
         import sklearn
         import tensorflow
 
-        print("   ✅ Machine learning packages (tensorflow, sklearn)")
+        print("   [OK] Machine learning packages (tensorflow, sklearn)")
 
         from ..core.active_config import (
             get_active_project,
@@ -176,10 +176,10 @@ def verify_workflow_command(args) -> int:
         )
         from ..utils.gpu_handler import GPUHandler
 
-        print("   ✅ TimeFlies core modules")
+        print("   [OK] TimeFlies core modules")
 
     except ImportError as e:
-        print(f"   ❌ Import failed: {e}")
+        print(f"   [ERROR] Import failed: {e}")
         all_passed = False
 
     # 2. Test project configuration
@@ -188,7 +188,7 @@ def verify_workflow_command(args) -> int:
         # Check for project override from CLI flags
         if hasattr(args, "project") and args.project:
             active_project = args.project
-            print(f"   🔄 Using CLI project override: {active_project}")
+            print(f"   PROCESS: Using CLI project override: {active_project}")
             # Use importlib to dynamically import the project's config manager
             import importlib
 
@@ -199,17 +199,17 @@ def verify_workflow_command(args) -> int:
             config_manager = ConfigManager("default")
         else:
             active_project = get_active_project()
-            print(f"   ✅ Active project detected: {active_project}")
+            print(f"   [OK] Active project detected: {active_project}")
             config_manager = get_config_for_active_project("default")
 
         config = config_manager.get_config()
-        print("   ✅ Project config loaded successfully")
-        print(f"   ✅ Target variable: {config.data.target_variable}")
-        print(f"   ✅ Model type: {config.data.model}")
+        print("   [OK] Project config loaded successfully")
+        print(f"   [OK] Target variable: {config.data.target_variable}")
+        print(f"   [OK] Model type: {config.data.model}")
 
     except Exception as e:
-        print(f"   ❌ Project config not set up: {e}")
-        print("   💡 Check your configs/default.yaml file")
+        print(f"   [ERROR] Project config not set up: {e}")
+        print("   NOTE: Check your configs/default.yaml file")
         all_passed = False
 
     # 3. Test original data files (workflow step 2)
@@ -220,8 +220,10 @@ def verify_workflow_command(args) -> int:
         data_root = Path("data")
 
         if not data_root.exists():
-            print("   ❌ No data directory found")
-            print("   💡 Create data/[project]/[tissue]/ and add original H5AD files")
+            print("   [ERROR] No data directory found")
+            print(
+                "   NOTE: Create data/[project]/[tissue]/ and add original H5AD files"
+            )
             workflow_complete = False
             all_passed = False
         else:
@@ -240,18 +242,18 @@ def verify_workflow_command(args) -> int:
                                 )
 
             if original_files_found:
-                print("   ✅ Original data files found:")
+                print("   [OK] Original data files found:")
                 for file in original_files_found:
                     print(f"      {file}")
             else:
-                print("   ❌ No original H5AD data files found")
+                print("   [ERROR] No original H5AD data files found")
                 print(
-                    "   💡 Add your *_original.h5ad files to data/[project]/[tissue]/"
+                    "   NOTE: Add your *_original.h5ad files to data/[project]/[tissue]/"
                 )
                 workflow_complete = False
 
     except Exception as e:
-        print(f"   ❌ Data check failed: {e}")
+        print(f"   [ERROR] Data check failed: {e}")
         all_passed = False
 
     # 4. Test test data fixtures (workflow step 4)
@@ -262,8 +264,8 @@ def verify_workflow_command(args) -> int:
         fixtures_root = Path("tests/fixtures")
 
         if not fixtures_root.exists():
-            print("   ❌ No test fixtures directory found")
-            print("   💡 Run: python run_timeflies.py create-test-data")
+            print("   [ERROR] No test fixtures directory found")
+            print("   NOTE: Run: python run_timeflies.py create-test-data")
             workflow_complete = False
         else:
             test_projects = []
@@ -275,20 +277,20 @@ def verify_workflow_command(args) -> int:
                         test_projects.append(project_dir.name)
 
             if test_projects:
-                print(f"   ✅ Test data available for: {', '.join(test_projects)}")
+                print(f"   [OK] Test data available for: {', '.join(test_projects)}")
 
                 summary_file = fixtures_root / "test_data_summary.json"
                 if summary_file.exists():
-                    print("   ✅ Test data summary file exists")
+                    print("   [OK] Test data summary file exists")
                 else:
-                    print("   ⚠️  Test data summary missing")
+                    print("   WARNING:  Test data summary missing")
             else:
-                print("   ❌ No test data fixtures found")
-                print("   💡 Run: python run_timeflies.py create-test-data")
+                print("   [ERROR] No test data fixtures found")
+                print("   NOTE: Run: python run_timeflies.py create-test-data")
                 workflow_complete = False
 
     except Exception as e:
-        print(f"   ❌ Test data check failed: {e}")
+        print(f"   [ERROR] Test data check failed: {e}")
         workflow_complete = False
         all_passed = False
 
@@ -313,14 +315,14 @@ def verify_workflow_command(args) -> int:
                                 )
 
         if splits_found:
-            print(f"   ✅ Data splits found for: {', '.join(splits_found)}")
+            print(f"   [OK] Data splits found for: {', '.join(splits_found)}")
         else:
-            print("   ❌ No data splits (*_train.h5ad, *_eval.h5ad) found")
-            print("   💡 Run: python run_timeflies.py setup")
+            print("   [ERROR] No data splits (*_train.h5ad, *_eval.h5ad) found")
+            print("   NOTE: Run: python run_timeflies.py setup")
             workflow_complete = False
 
     except Exception as e:
-        print(f"   ❌ Data splits check failed: {e}")
+        print(f"   [ERROR] Data splits check failed: {e}")
         workflow_complete = False
         all_passed = False
 
@@ -332,7 +334,7 @@ def verify_workflow_command(args) -> int:
         # Check if batch environment exists
         batch_env = Path(".venv_batch")
         if batch_env.exists():
-            print("   ✅ Batch correction environment found")
+            print("   [OK] Batch correction environment found")
 
             # Check for batch corrected files
             data_root = Path("data")
@@ -352,24 +354,24 @@ def verify_workflow_command(args) -> int:
                                     )
 
             if batch_files_found:
-                print("   ✅ Batch corrected files found:")
+                print("   [OK] Batch corrected files found:")
                 for file in batch_files_found:
                     print(f"      {file}")
             else:
                 print(
-                    "   ⚠️  Batch correction environment found but no batch corrected files"
+                    "   WARNING:  Batch correction environment found but no batch corrected files"
                 )
                 print(
-                    "   💡 Run: source activate_batch.sh && python run_timeflies.py batch-correct"
+                    "   NOTE: Run: source activate_batch.sh && python run_timeflies.py batch-correct"
                 )
         else:
-            print("   ⚠️  No batch correction environment")
+            print("   WARNING:  No batch correction environment")
             print(
-                "   💡 Optional: Re-run setup_dev_env.sh and choose 'y' for batch environment"
+                "   NOTE: Optional: Re-run setup_dev_env.sh and choose 'y' for batch environment"
             )
 
     except Exception as e:
-        print(f"   ⚠️  Could not check batch correction: {e}")
+        print(f"   WARNING:  Could not check batch correction: {e}")
 
     # 7. Test GPU/hardware
     print("\n7. Testing hardware configuration...")
@@ -378,47 +380,49 @@ def verify_workflow_command(args) -> int:
 
         gpus = tf.config.list_physical_devices("GPU")
         if gpus:
-            print(f"   ✅ GPU available: {len(gpus)} device(s)")
+            print(f"   [OK] GPU available: {len(gpus)} device(s)")
         else:
-            print("   ✅ Running on CPU (GPU not required)")
+            print("   [OK] Running on CPU (GPU not required)")
 
     except Exception as e:
-        print(f"   ⚠️  Could not check hardware: {e}")
+        print(f"   WARNING:  Could not check hardware: {e}")
 
     # Summary
     print("\n" + "=" * 60)
     if all_passed and workflow_complete:
-        print("🎉 COMPLETE WORKFLOW VERIFIED! Ready to train models.")
+        print("SUCCESS: COMPLETE WORKFLOW VERIFIED! Ready to train models.")
     elif all_passed:
-        print("✅ CORE SYSTEM OK - Complete the workflow steps below.")
+        print("[OK] CORE SYSTEM OK - Complete the workflow steps below.")
     else:
-        print("❌ ISSUES FOUND - Fix the problems above.")
+        print("[ERROR] ISSUES FOUND - Fix the problems above.")
 
-    print("\n📋 Workflow status:")
+    print("\nINFO: Workflow status:")
     print(
-        "   1. ✅ Data files placed"
+        "   1. [OK] Data files placed"
         if workflow_complete
-        else "   1. ❌ Place original H5AD files in data/[project]/[tissue]/"
+        else "   1. [ERROR] Place original H5AD files in data/[project]/[tissue]/"
     )
     print(
-        "   2. ✅ Test fixtures created"
+        "   2. [OK] Test fixtures created"
         if workflow_complete
-        else "   2. ❌ Run: python run_timeflies.py create-test-data"
+        else "   2. [ERROR] Run: python run_timeflies.py create-test-data"
     )
     print(
-        "   3. ✅ Data splits created"
+        "   3. [OK] Data splits created"
         if workflow_complete
-        else "   3. ❌ Run: python run_timeflies.py setup"
+        else "   3. [ERROR] Run: python run_timeflies.py setup"
     )
     print(
-        "   4. ✅ Verification complete"
+        "   4. [OK] Verification complete"
         if all_passed and workflow_complete
-        else "   4. ❌ Fix issues above"
+        else "   4. [ERROR] Fix issues above"
     )
     print("   5. Next: python run_timeflies.py train")
     print("   6. Evaluate: python run_timeflies.py evaluate")
     print("   7. Analyze: python run_timeflies.py analyze")
-    print("   ⚠️  Optional: python run_timeflies.py batch-correct (between steps 3-4)")
+    print(
+        "   WARNING:  Optional: python run_timeflies.py batch-correct (between steps 3-4)"
+    )
 
     print("=" * 60)
 
@@ -437,7 +441,7 @@ def verify_workflow_command(args) -> int:
 
 def run_test_suite(args) -> int:
     """Run the test suite using test_runner.py functionality."""
-    print("🧪 Running TimeFlies Test Suite...")
+    print("Running TimeFlies Test Suite...")
     print("=" * 60)
 
     try:
@@ -477,11 +481,11 @@ def run_test_suite(args) -> int:
         return 0 if success else 1
 
     except ImportError as e:
-        print(f"❌ Could not import test runner: {e}")
-        print("💡 Make sure tests/test_runner.py exists")
+        print(f"[ERROR] Could not import test runner: {e}")
+        print("NOTE: Make sure tests/test_runner.py exists")
         return 1
     except Exception as e:
-        print(f"❌ Test execution failed: {e}")
+        print(f"[ERROR] Test execution failed: {e}")
         return 1
 
 
@@ -491,45 +495,45 @@ def new_setup_command(args) -> int:
     For developers: just create environments.
     """
     if hasattr(args, "dev") and args.dev:
-        print("🛠️ TimeFlies Developer Setup")
+        print("SETUP: TimeFlies Developer Setup")
         print("=" * 50)
         print("Setting up development environments...")
 
         # For devs: just create the environments
         return setup_dev_environments()
 
-    print("🚀 TimeFlies Complete Setup")
+    print("LAUNCH: TimeFlies Complete Setup")
     print("=" * 50)
     print("Setting up your TimeFlies environment...")
 
     # 0. Create user configuration and templates
-    print("\n0️⃣ Setting up configuration and templates...")
+    print("\n0. Setting up configuration and templates...")
     setup_result = setup_user_environment()
     if setup_result != 0:
-        print("❌ User environment setup failed.")
+        print("[ERROR] User environment setup failed.")
         return setup_result
-    print("✅ Configuration and templates ready")
+    print("[OK] Configuration and templates ready")
 
     # 1. Create data splits
-    print("\n1️⃣ Creating data splits...")
+    print("\n1. Creating data splits...")
     split_result = split_command(args)
     if split_result != 0:
-        print("❌ Data split creation failed.")
+        print("[ERROR] Data split creation failed.")
         return split_result
 
     # 2. Optional batch correction
     if hasattr(args, "batch_correct") and args.batch_correct:
-        print("\n2️⃣ Running batch correction...")
+        print("\n2. Running batch correction...")
         batch_result = batch_command(args)
         if batch_result != 0:
-            print("❌ Batch correction failed.")
+            print("[ERROR] Batch correction failed.")
             return batch_result
-        print("✅ Batch correction completed")
+        print("[OK] Batch correction completed")
     else:
-        print("\n2️⃣ Skipping batch correction")
+        print("\n2. Skipping batch correction")
 
     # 3. Create output directories
-    print("\n3️⃣ Creating output directories...")
+    print("\n3. Creating output directories...")
     from pathlib import Path
 
     output_dirs = [
@@ -549,27 +553,27 @@ def new_setup_command(args) -> int:
         for dir_path in output_dirs:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
-    print("✅ Output directories created")
+    print("[OK] Output directories created")
 
     # 4. System verification (always runs last)
-    print("\n4️⃣ Verifying system setup...")
+    print("\n4. Verifying system setup...")
     from common.cli.system_checks import verify_system
 
     dev_mode = hasattr(args, "dev") and args.dev
     verify_result = verify_system(dev_mode=dev_mode)
     if verify_result != 0:
-        print("❌ System verification failed. Please fix issues above.")
+        print("[ERROR] System verification failed. Please fix issues above.")
         return verify_result
 
-    print("\n🎉 SETUP COMPLETE!")
+    print("\nSUCCESS: SETUP COMPLETE!")
     print("=" * 50)
     print("Your TimeFlies environment is ready!")
     print("\nNext steps:")
-    print("  📊 Run EDA:        timeflies eda --save-report")
-    print("  🚂 Train models:   timeflies train")
-    print("  📊 Evaluate:       timeflies evaluate")
-    print("  🧠 Analyze:        timeflies analyze")
-    print("  📈 Full pipeline:  timeflies train --with-eda --with-analysis")
+    print("  DATA: Run EDA:        timeflies eda --save-report")
+    print("  TRAIN: Train models:   timeflies train")
+    print("  DATA: Evaluate:       timeflies evaluate")
+    print("  AI: Analyze:        timeflies analyze")
+    print("  METRICS: Full pipeline:  timeflies train --with-eda --with-analysis")
     print("\nAll results will be saved to organized directories in outputs/")
 
     return 0
@@ -580,7 +584,7 @@ def split_command(args) -> int:
     try:
         from common.data.setup import DataSetupManager
 
-        print("🔄 Creating train/eval data splits...")
+        print("PROCESS: Creating train/eval data splits...")
         print("============================================================")
 
         # Use the existing setup manager to create splits
@@ -588,10 +592,10 @@ def split_command(args) -> int:
         success = setup_manager.setup_data()
 
         if success:
-            print("✅ Data splits created successfully!")
+            print("[OK] Data splits created successfully!")
             return 0
         else:
-            print("❌ Failed to create data splits")
+            print("[ERROR] Failed to create data splits")
             return 1
 
     except Exception as e:
@@ -638,17 +642,17 @@ def process_data_splits(
 
         # Check if splits already exist
         if train_file.exists() or eval_file.exists():
-            print(f"⏭️  Splits already exist for {file_path.name} - skipping")
+            print(f"SKIP:  Splits already exist for {file_path.name} - skipping")
             print(
-                f"   📁 Found: {train_file.name if train_file.exists() else ''} {eval_file.name if eval_file.exists() else ''}"
+                f"   FOUND: Found: {train_file.name if train_file.exists() else ''} {eval_file.name if eval_file.exists() else ''}"
             )
             return True
 
-        print(f"📂 Processing: {file_path.name}")
+        print(f"FILE: Processing: {file_path.name}")
 
         # Load data
         adata = anndata.read_h5ad(file_path)
-        print(f"   📊 Loaded: {adata.shape[0]} cells × {adata.shape[1]} genes")
+        print(f"   DATA: Loaded: {adata.shape[0]} cells × {adata.shape[1]} genes")
 
         # Determine stratification columns
         stratify_cols = []
@@ -656,14 +660,14 @@ def process_data_splits(
         # Primary stratification: encoding variable (age/disease status)
         if encoding_var in adata.obs.columns:
             stratify_cols.append(encoding_var)
-            print(f"   🎯 Primary stratification: {encoding_var}")
+            print(f"   TARGET: Primary stratification: {encoding_var}")
 
         # Secondary stratification: sex
         sex_cols = ["sex", "Sex", "gender", "Gender"]
         for col in sex_cols:
             if col in adata.obs.columns and col not in stratify_cols:
                 stratify_cols.append(col)
-                print(f"   ⚧️  Secondary stratification: {col}")
+                print(f"   SECONDARY:  Secondary stratification: {col}")
                 break
 
         # Tertiary stratification: cell type
@@ -678,11 +682,11 @@ def process_data_splits(
         for col in celltype_cols:
             if col in adata.obs.columns and col not in stratify_cols:
                 stratify_cols.append(col)
-                print(f"   🧬 Tertiary stratification: {col}")
+                print(f"   DNA: Tertiary stratification: {col}")
                 break
 
         if not stratify_cols:
-            print("   ⚠️  No stratification columns found, using random split")
+            print("   WARNING:  No stratification columns found, using random split")
             stratify_labels = None
         else:
             # Create combined stratification labels
@@ -693,13 +697,13 @@ def process_data_splits(
                     adata.obs[stratify_cols].astype(str).agg("_".join, axis=1)
                 )
 
-            print(f"   📈 Stratification groups: {len(stratify_labels.unique())}")
+            print(f"   METRICS: Stratification groups: {len(stratify_labels.unique())}")
 
         # Calculate split ratio to get desired eval size
         total_cells = adata.shape[0]
         if split_size >= total_cells:
             print(
-                f"   ⚠️  Split size ({split_size}) >= total cells ({total_cells}), using 20% split"
+                f"   WARNING:  Split size ({split_size}) >= total cells ({total_cells}), using 20% split"
             )
             test_size = 0.2
         else:
@@ -729,30 +733,29 @@ def process_data_splits(
         adata_eval = adata[eval_idx].copy()
 
         # Save splits
-        print(f"   💾 Saving: {train_file.name} ({len(adata_train)} cells)")
+        print(f"   SAVE: Saving: {train_file.name} ({len(adata_train)} cells)")
         adata_train.write_h5ad(train_file)
 
-        print(f"   💾 Saving: {eval_file.name} ({len(adata_eval)} cells)")
+        print(f"   SAVE: Saving: {eval_file.name} ({len(adata_eval)} cells)")
         adata_eval.write_h5ad(eval_file)
 
-        print("   ✅ Split completed successfully")
+        print("   [OK] Split completed successfully")
         return True
 
     except Exception as e:
-        print(f"   ❌ Error processing {file_path.name}: {e}")
+        print(f"   [ERROR] Error processing {file_path.name}: {e}")
         return False
 
 
 def eda_command(args, config) -> int:
     """Run exploratory data analysis on the dataset."""
     import os
-    from datetime import datetime
     from pathlib import Path
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
 
     try:
-        print("📊 Starting EDA with project settings:")
+        print("DATA: Starting EDA with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Batch corrected: {getattr(args, 'batch_corrected', False)}")
@@ -787,14 +790,14 @@ def eda_command(args, config) -> int:
         if hasattr(args, "save_report") and args.save_report:
             report_path = eda_dir / "eda_report.html"
             eda_handler.generate_html_report(report_path)
-            print(f"   📄 HTML report saved to: {report_path}")
+            print(f"   DOC: HTML report saved to: {report_path}")
 
-        print("\n✅ EDA completed successfully!")
+        print("\n[OK] EDA completed successfully!")
         print(f"   Results saved to: {eda_dir}")
         return 0
 
     except Exception as e:
-        print(f"❌ EDA failed: {e}")
+        print(f"[ERROR] EDA failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
@@ -807,10 +810,10 @@ def train_command(args, config) -> int:
     try:
         # Run EDA first if requested
         if hasattr(args, "with_eda") and args.with_eda:
-            print("\n📊 Running EDA before training...")
+            print("\nDATA: Running EDA before training...")
             result = eda_command(args, config)
             if result != 0:
-                print("❌ EDA failed, stopping pipeline")
+                print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
         print("Starting training with project settings:")
@@ -827,14 +830,14 @@ def train_command(args, config) -> int:
         pipeline = PipelineManager(config)
         results = pipeline.run()
 
-        print("\n✅ Training completed successfully!")
+        print("\n[OK] Training completed successfully!")
 
         # Run analysis after training if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
-            print("\n🔬 Running analysis after training...")
+            print("\nRESEARCH: Running analysis after training...")
             result = analyze_command(args, config)
             if result != 0:
-                print("⚠️  Analysis failed but training was successful")
+                print("WARNING:  Analysis failed but training was successful")
 
         # Check if model was actually saved (based on validation loss improvement)
         model_path = results.get("model_path", "outputs/models/")
@@ -849,28 +852,30 @@ def train_command(args, config) -> int:
             file_mod_time = os.path.getmtime(model_file)
             # If file was modified in the last 5 minutes, it was likely updated
             if time.time() - file_mod_time < 300:
-                print(f"   ✅ Model saved (validation loss improved): {model_path}")
+                print(f"   [OK] Model saved (validation loss improved): {model_path}")
             else:
-                print("   ⏭️  Model not saved (validation loss did not improve)")
-                print(f"   📁 Existing model location: {model_path}")
+                print("   SKIP:  Model not saved (validation loss did not improve)")
+                print(f"   FOUND: Existing model location: {model_path}")
         else:
-            print(f"   ✅ New model saved: {model_path}")
+            print(f"   [OK] New model saved: {model_path}")
 
         print(
-            f"   📊 Results saved to: {results.get('results_path', 'outputs/results/')}"
+            f"   DATA: Results saved to: {results.get('results_path', 'outputs/results/')}"
         )
 
         # Show best results path only if model improved
         if results.get("model_improved", False) and "best_results_path" in results:
-            print(f"   🏆 Best results also saved to: {results['best_results_path']}")
+            print(
+                f"   BEST: Best results also saved to: {results['best_results_path']}"
+            )
 
         if "duration" in results:
-            print(f"   ⏱️  Training duration: {results['duration']:.1f} seconds")
+            print(f"   TIME:  Training duration: {results['duration']:.1f} seconds")
 
         return 0
 
     except Exception as e:
-        print(f"❌ Training failed: {e}")
+        print(f"[ERROR] Training failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
@@ -978,10 +983,10 @@ def evaluate_command(args, config) -> int:
     try:
         # Run EDA first if requested
         if hasattr(args, "with_eda") and args.with_eda:
-            print("\n📊 Running EDA before evaluation...")
+            print("\nDATA: Running EDA before evaluation...")
             result = eda_command(args, config)
             if result != 0:
-                print("❌ EDA failed, stopping pipeline")
+                print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
         print("Starting evaluation with project settings:")
@@ -992,7 +997,7 @@ def evaluate_command(args, config) -> int:
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:
-            print("   📊 SHAP interpretation: ENABLED (via --interpret flag)")
+            print("   DATA: SHAP interpretation: ENABLED (via --interpret flag)")
             # Temporarily override config
             if hasattr(config, "interpretation") and hasattr(
                 config.interpretation, "shap"
@@ -1012,7 +1017,7 @@ def evaluate_command(args, config) -> int:
             original_shap = None
 
         if hasattr(args, "visualize") and args.visualize:
-            print("   📈 Visualizations: ENABLED (via --visualize flag)")
+            print("   METRICS: Visualizations: ENABLED (via --visualize flag)")
             # Temporarily override config
             if hasattr(config, "visualizations"):
                 original_viz = config.visualizations.enabled
@@ -1040,19 +1045,19 @@ def evaluate_command(args, config) -> int:
         if original_viz is not None:
             config.visualizations.enabled = original_viz
 
-        print("\n✅ Evaluation completed successfully!")
+        print("\n[OK] Evaluation completed successfully!")
 
         # Run analysis after evaluation if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
-            print("\n🔬 Running analysis after evaluation...")
+            print("\nRESEARCH: Running analysis after evaluation...")
             result = analyze_command(args, config)
             if result != 0:
-                print("⚠️  Analysis failed but evaluation was successful")
+                print("WARNING:  Analysis failed but evaluation was successful")
 
         return 0
 
     except Exception as e:
-        print(f"❌ Evaluation failed: {e}")
+        print(f"[ERROR] Evaluation failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
@@ -1069,7 +1074,7 @@ def analyze_command(args, config) -> int:
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
 
     try:
-        print("🔬 Starting analysis with project settings:")
+        print("RESEARCH: Starting analysis with project settings:")
         print(f"   Project: {getattr(config, 'project', 'unknown')}")
         print(f"   Tissue: {config.data.tissue}")
         print(f"   Model: {config.data.model}")
@@ -1084,7 +1089,7 @@ def analyze_command(args, config) -> int:
         predictions_path = None
         if hasattr(args, "predictions_path") and args.predictions_path:
             predictions_path = Path(args.predictions_path)
-            print(f"📂 Using provided predictions path: {predictions_path}")
+            print(f"FILE: Using provided predictions path: {predictions_path}")
         else:
             # Auto-detect predictions in new experiment structure
             from common.utils.path_manager import PathManager
@@ -1098,15 +1103,15 @@ def analyze_command(args, config) -> int:
                     Path(best_model_dir) / "evaluation" / "predictions.csv"
                 )
                 if predictions_path.exists():
-                    print(f"✅ Found predictions from best model: {predictions_path}")
+                    print(f"[OK] Found predictions from best model: {predictions_path}")
                 else:
                     predictions_path = None
             except Exception:
                 predictions_path = None
 
         if predictions_path and predictions_path.exists():
-            print(f"✅ Found existing predictions at {predictions_path}")
-            print("📊 Running analysis on existing predictions...")
+            print(f"[OK] Found existing predictions at {predictions_path}")
+            print("DATA: Running analysis on existing predictions...")
 
             # Just run the analysis script without reloading everything
             from common.core import PipelineManager
@@ -1117,10 +1122,10 @@ def analyze_command(args, config) -> int:
             if hasattr(pipeline, "run_analysis_script"):
                 pipeline.run_analysis_script()
 
-            print("\n✅ Analysis completed successfully!")
+            print("\n[OK] Analysis completed successfully!")
             return 0
 
-        print("⚠️  No predictions found, need to generate them...")
+        print("WARNING:  No predictions found, need to generate them...")
 
         # Check if model exists
         from common.utils.path_manager import PathManager
@@ -1130,19 +1135,19 @@ def analyze_command(args, config) -> int:
         model_path = Path(model_dir) / "model.h5"
 
         if not model_path.exists():
-            print(f"⚠️  No trained model found at {model_path}")
-            print("📦 Training model first...")
+            print(f"WARNING:  No trained model found at {model_path}")
+            print("PACKAGE: Training model first...")
 
             # Run training
             from common.core import PipelineManager
 
             pipeline = PipelineManager(config)
             pipeline.load_or_train_model()
-            print("✅ Model training complete!")
+            print("[OK] Model training complete!")
 
         # Enable analysis script execution in config
         if not hasattr(config.analysis, "run_analysis_script"):
-            print("❌ Analysis script configuration not found in config")
+            print("[ERROR] Analysis script configuration not found in config")
             return 1
 
         # Temporarily enable analysis script for this command
@@ -1159,7 +1164,7 @@ def analyze_command(args, config) -> int:
             pipeline = PipelineManager(config)
             pipeline.run_evaluation()
 
-            print("\n✅ Analysis completed successfully!")
+            print("\n[OK] Analysis completed successfully!")
             return 0
 
         finally:
@@ -1167,7 +1172,7 @@ def analyze_command(args, config) -> int:
             config.analysis.run_analysis_script.enabled = original_enabled
 
     except Exception as e:
-        print(f"❌ Analysis failed: {e}")
+        print(f"[ERROR] Analysis failed: {e}")
         if hasattr(args, "verbose") and args.verbose:
             import traceback
 
@@ -1186,27 +1191,27 @@ def create_test_data_command(args) -> int:
         import scanpy as sc
 
         tier = getattr(args, "tier", "all")
-        print(f"🧪 Creating Test Data Fixtures - Tier: {tier}")
+        print(f"TESTING: Creating Test Data Fixtures - Tier: {tier}")
         print("=" * 60)
         print("3-Tier Strategy:")
-        print("  📦 Tiny: Small real samples (committed to git)")
-        print("  🤖 Synthetic: Generated from metadata")
-        print("  🔬 Real: Full developer samples (gitignored)")
+        print("  PACKAGE: Tiny: Small real samples (committed to git)")
+        print("  AUTO: Synthetic: Generated from metadata")
+        print("  RESEARCH: Real: Full developer samples (gitignored)")
         print("")
 
         # For synthetic and tiny tiers, we can work from existing metadata
         if tier in ["synthetic", "tiny"]:
-            print("🔍 Looking for existing metadata...")
+            print("SEARCH: Looking for existing metadata...")
             return create_from_metadata(tier, args)
 
         # For real tier, we need actual data files
         data_root = Path("data")
         if not data_root.exists():
             print(
-                "❌ Data directory not found. Place data files in data/[project]/[tissue]/ first."
+                "[ERROR] Data directory not found. Place data files in data/[project]/[tissue]/ first."
             )
             print(
-                "💡 For synthetic data: run with --tier synthetic (uses existing metadata)"
+                "NOTE: For synthetic data: run with --tier synthetic (uses existing metadata)"
             )
             return 1
 
@@ -1239,8 +1244,8 @@ def create_test_data_command(args) -> int:
                 else:
                     continue
 
-                print(f"\n📁 Processing: {project_dir.name}/{tissue_dir.name}")
-                print(f"📊 Source file: {data_file.name}")
+                print(f"\nFOUND: Processing: {project_dir.name}/{tissue_dir.name}")
+                print(f"DATA: Source file: {data_file.name}")
 
                 # Create test data based on tier
                 if tier in ["tiny", "all"]:
@@ -1267,7 +1272,7 @@ def create_test_data_command(args) -> int:
                 projects_found.append(f"{project_dir.name}/{tissue_dir.name}")
 
         if not results:
-            print("\n❌ No test data created.")
+            print("\n[ERROR] No test data created.")
             return 1
 
         # Save summary
@@ -1286,27 +1291,26 @@ def create_test_data_command(args) -> int:
         with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2, default=str)
 
-        print(f"\n🎉 Test data created for {len(projects_found)} project(s)")
-        print(f"📄 Summary saved to: {summary_path}")
+        print(f"\nSUCCESS: Test data created for {len(projects_found)} project(s)")
+        print(f"DOC: Summary saved to: {summary_path}")
 
         return 0
 
     except ImportError as e:
-        print(f"❌ Required dependencies not available: {e}")
+        print(f"[ERROR] Required dependencies not available: {e}")
         return 1
     except Exception as e:
-        print(f"❌ Failed to create test data: {e}")
+        print(f"[ERROR] Failed to create test data: {e}")
         return 1
 
 
 def create_from_metadata(tier, args) -> int:
     """Create test data from existing metadata files."""
-    import json
     from pathlib import Path
 
     fixtures_root = Path("tests/fixtures")
     if not fixtures_root.exists():
-        print("❌ No test fixtures directory found")
+        print("[ERROR] No test fixtures directory found")
         return 1
 
     results = []
@@ -1316,7 +1320,7 @@ def create_from_metadata(tier, args) -> int:
         if not project_dir.is_dir() or project_dir.name.startswith("."):
             continue
 
-        print(f"\n📁 Processing project: {project_dir.name}")
+        print(f"\nFOUND: Processing project: {project_dir.name}")
 
         # Look for existing metadata files
         metadata_files = list(project_dir.glob("*_stats.json"))
@@ -1325,7 +1329,7 @@ def create_from_metadata(tier, args) -> int:
             # test_data_head_stats.json -> head
             tissue = metadata_file.stem.replace("test_data_", "").replace("_stats", "")
 
-            print(f"📊 Found metadata: {metadata_file.name} -> tissue: {tissue}")
+            print(f"DATA: Found metadata: {metadata_file.name} -> tissue: {tissue}")
 
             if tier == "tiny":
                 result = create_tiny_from_metadata(
@@ -1342,10 +1346,10 @@ def create_from_metadata(tier, args) -> int:
                     results.append(result)
 
     if not results:
-        print(f"❌ No metadata found for {tier} data creation")
+        print(f"[ERROR] No metadata found for {tier} data creation")
         return 1
 
-    print(f"\n🎉 Created {len(results)} {tier} fixtures!")
+    print(f"\nSUCCESS: Created {len(results)} {tier} fixtures!")
     return 0
 
 
@@ -1394,7 +1398,7 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
     np.random.seed(seed)
 
     try:
-        print("  📦 Creating tiny fixture from metadata...")
+        print("  PACKAGE: Creating tiny fixture from metadata...")
 
         with open(metadata_file) as f:
             metadata = json.load(f)
@@ -1459,12 +1463,12 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
             files_created.append(f"tiny_{tissue}_batch.h5ad")
 
         print(
-            f"    ✅ Tiny: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)"
+            f"    [OK] Tiny: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)"
         )
         return {"tier": "tiny", "project": project, "tissue": tissue}
 
     except Exception as e:
-        print(f"    ❌ Tiny creation failed: {e}")
+        print(f"    [ERROR] Tiny creation failed: {e}")
         return None
 
 
@@ -1485,7 +1489,7 @@ def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=No
     np.random.seed(seed)
 
     try:
-        print("  🤖 Creating synthetic fixture from metadata...")
+        print("  AUTO: Creating synthetic fixture from metadata...")
 
         with open(metadata_file) as f:
             metadata = json.load(f)
@@ -1550,12 +1554,12 @@ def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=No
             files_created.append(f"synthetic_{tissue}_batch.h5ad")
 
         print(
-            f"    ✅ Synthetic: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)"
+            f"    [OK] Synthetic: {', '.join(files_created)} ({n_cells} cells, {n_genes} genes)"
         )
         return {"tier": "synthetic", "project": project, "tissue": tissue}
 
     except Exception as e:
-        print(f"    ❌ Synthetic creation failed: {e}")
+        print(f"    [ERROR] Synthetic creation failed: {e}")
         return None
 
 
@@ -1570,7 +1574,7 @@ def create_tiny_fixtures(project, tissue, data_file, seed=42):
     np.random.seed(seed)
 
     try:
-        print("  📦 Creating tiny fixtures...")
+        print("  PACKAGE: Creating tiny fixtures...")
         adata = sc.read_h5ad(data_file)
 
         # Very small samples - suitable for git
@@ -1598,12 +1602,12 @@ def create_tiny_fixtures(project, tissue, data_file, seed=42):
         with open(metadata_path, "w") as f:
             json.dump(stats, f, indent=2, default=str)
 
-        print(f"    ✅ Tiny: {tiny_path} ({n_cells} cells, {n_genes} genes)")
+        print(f"    [OK] Tiny: {tiny_path} ({n_cells} cells, {n_genes} genes)")
 
         return {"tier": "tiny", "project": project, "tissue": tissue, "stats": stats}
 
     except Exception as e:
-        print(f"    ❌ Tiny fixtures failed: {e}")
+        print(f"    [ERROR] Tiny fixtures failed: {e}")
         return None
 
 
@@ -1613,12 +1617,11 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
     from pathlib import Path
 
     import numpy as np
-    import scanpy as sc
 
     np.random.seed(seed)
 
     try:
-        print("  🤖 Creating synthetic fixtures...")
+        print("  AUTO: Creating synthetic fixtures...")
 
         # First check if we have existing metadata to use
         output_dir = Path("tests/fixtures") / project
@@ -1674,7 +1677,7 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
             adata_synthetic.write_h5ad(synthetic_path)
 
             print(
-                f"    ✅ Synthetic: {synthetic_path} ({n_cells} cells, {n_genes} genes)"
+                f"    [OK] Synthetic: {synthetic_path} ({n_cells} cells, {n_genes} genes)"
             )
 
             return {
@@ -1685,17 +1688,16 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
             }
 
         else:
-            print("    ⚠️  No metadata found for synthetic generation")
+            print("    WARNING:  No metadata found for synthetic generation")
             return None
 
     except Exception as e:
-        print(f"    ❌ Synthetic fixtures failed: {e}")
+        print(f"    [ERROR] Synthetic fixtures failed: {e}")
         return None
 
 
 def create_real_fixtures(project, tissue, data_file, seed=42):
     """Create full-scale real data fixtures (gitignored) - Tier 3."""
-    import json
     from pathlib import Path
 
     import numpy as np
@@ -1704,7 +1706,7 @@ def create_real_fixtures(project, tissue, data_file, seed=42):
     np.random.seed(seed)
 
     try:
-        print("  🔬 Creating real fixtures...")
+        print("  RESEARCH: Creating real fixtures...")
         adata = sc.read_h5ad(data_file)
 
         # Larger realistic samples for thorough testing
@@ -1725,7 +1727,7 @@ def create_real_fixtures(project, tissue, data_file, seed=42):
         real_path = output_dir / f"real_{tissue}.h5ad"
         adata_real.write_h5ad(real_path)
 
-        print(f"    ✅ Real: {real_path} ({n_cells} cells, {n_genes} genes)")
+        print(f"    [OK] Real: {real_path} ({n_cells} cells, {n_genes} genes)")
 
         return {
             "tier": "real",
@@ -1735,7 +1737,7 @@ def create_real_fixtures(project, tissue, data_file, seed=42):
         }
 
     except Exception as e:
-        print(f"    ❌ Real fixtures failed: {e}")
+        print(f"    [ERROR] Real fixtures failed: {e}")
         return None
 
 
@@ -1802,12 +1804,10 @@ def generate_data_stats(adata, project, tissue, batch_corrected=False, tier=None
 
 def setup_dev_environments() -> int:
     """Set up complete development environments with all dependencies."""
-    import os
-    import sys
     from pathlib import Path
 
     try:
-        print("🛠️  Setting up TimeFlies development environments...")
+        print("SETUP:  Setting up TimeFlies development environments...")
         print("=" * 60)
 
         # Check Python version (same requirement as user install)
@@ -1821,48 +1821,48 @@ def setup_dev_environments() -> int:
                 major, minor = map(int, version.split(".")[:2])
                 if major == 3 and minor >= 12:
                     python_cmd = cmd
-                    print(f"✅ Found Python {version}")
+                    print(f"[OK] Found Python {version}")
                     break
             except (subprocess.CalledProcessError, FileNotFoundError, OSError):
                 continue
 
         if not python_cmd:
-            print("❌ Python 3.12+ required but not found")
+            print("[ERROR] Python 3.12+ required but not found")
             print("Install: sudo apt install python3.12 python3.12-venv")
             return 1
 
         # Create main environment
-        print("\n🐍 Setting up main environment (.venv)...")
+        print("\nPYTHON: Setting up main environment (.venv)...")
         if Path(".venv").exists():
-            print("⏭️  Removing existing main environment...")
+            print("SKIP:  Removing existing main environment...")
             subprocess.run(["rm", "-rf", ".venv"], check=True)
 
         subprocess.run([python_cmd, "-m", "venv", ".venv"], check=True)
-        print("✅ Main environment created")
+        print("[OK] Main environment created")
 
         # Install main dependencies
-        print("📦 Installing main dependencies...")
+        print("PACKAGE: Installing main dependencies...")
         venv_pip = ".venv/bin/pip"
 
         subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
         subprocess.run([venv_pip, "install", "-e", "."], check=True)
 
         # Install development dependencies from pyproject.toml
-        print("🛠️  Installing development dependencies...")
+        print("SETUP:  Installing development dependencies...")
         subprocess.run([venv_pip, "install", "-e", ".[dev]"], check=True)
-        print("✅ Main and development dependencies installed")
+        print("[OK] Main and development dependencies installed")
 
         # Create batch environment
-        print("\n🔬 Setting up batch correction environment (.venv_batch)...")
+        print("\nRESEARCH: Setting up batch correction environment (.venv_batch)...")
         if Path(".venv_batch").exists():
-            print("⏭️  Removing existing batch environment...")
+            print("SKIP:  Removing existing batch environment...")
             subprocess.run(["rm", "-rf", ".venv_batch"], check=True)
 
         subprocess.run([python_cmd, "-m", "venv", ".venv_batch"], check=True)
-        print("✅ Batch environment created")
+        print("[OK] Batch environment created")
 
         # Install batch dependencies
-        print("🧪 Installing batch correction dependencies...")
+        print("TESTING: Installing batch correction dependencies...")
         batch_pip = ".venv_batch/bin/pip"
 
         subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
@@ -1870,19 +1870,19 @@ def setup_dev_environments() -> int:
         subprocess.run(
             [batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True
         )
-        print("✅ Batch dependencies installed")
+        print("[OK] Batch dependencies installed")
 
         # Create activation scripts
-        print("\n📝 Creating activation scripts...")
+        print("\nCREATE: Creating activation scripts...")
         create_activation_scripts()
-        print("✅ Activation scripts created")
+        print("[OK] Activation scripts created")
 
         # Create directory structure
-        print("\n📁 Creating directory structure...")
+        print("\nFOUND: Creating directory structure...")
         create_project_directories()
-        print("✅ Project directories created")
+        print("[OK] Project directories created")
 
-        print("\n🎉 Development setup complete!")
+        print("\nSUCCESS: Development setup complete!")
         print("=" * 60)
         print("Next steps:")
         print("  source .activate.sh         # Activate main environment")
@@ -1893,7 +1893,7 @@ def setup_dev_environments() -> int:
         return 0
 
     except Exception as e:
-        print(f"❌ Development setup failed: {e}")
+        print(f"[ERROR] Development setup failed: {e}")
         return 1
 
 
@@ -1930,7 +1930,7 @@ def setup_user_environment():
         # Create config.yaml if it doesn't exist
         config_file = Path("config.yaml")
         if not config_file.exists():
-            print("   📋 Creating config.yaml...")
+            print("   INFO: Creating config.yaml...")
             # Find source config from TimeFlies installation
             source_configs = [
                 Path(__file__).parent.parent.parent.parent
@@ -1944,18 +1944,18 @@ def setup_user_environment():
             for source_config in source_configs:
                 if source_config.exists():
                     shutil.copy2(source_config, config_file)
-                    print("      ✅ Created config.yaml from TimeFlies defaults")
+                    print("      [OK] Created config.yaml from TimeFlies defaults")
                     break
             else:
-                print("      ❌ Could not find default config template")
+                print("      [ERROR] Could not find default config template")
                 return 1
         else:
-            print("   📋 config.yaml already exists")
+            print("   INFO: config.yaml already exists")
 
         # Create templates directory if it doesn't exist
         templates_dir = Path("templates")
         if not templates_dir.exists():
-            print("   📄 Creating templates directory...")
+            print("   DOC: Creating templates directory...")
             # Create directory if it doesn't exist (skip during tests)
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
                 templates_dir.mkdir(parents=True, exist_ok=True)
@@ -1970,27 +1970,27 @@ def setup_user_environment():
 
             for source_templates_dir in source_templates_dirs:
                 if source_templates_dir.exists():
-                    print("      📂 Copying analysis templates...")
+                    print("      FILE: Copying analysis templates...")
                     # Copy all template files
                     for template_file in source_templates_dir.glob("*"):
                         if template_file.is_file():
                             shutil.copy2(
                                 template_file, templates_dir / template_file.name
                             )
-                            print(f"         ✅ {template_file.name}")
+                            print(f"         [OK] {template_file.name}")
                     break
             else:
-                print("      ⚠️  Could not find templates directory")
+                print("      WARNING:  Could not find templates directory")
                 print(
-                    "      ℹ️  You can create custom analysis scripts in templates/ manually"
+                    "      INFO:  You can create custom analysis scripts in templates/ manually"
                 )
         else:
-            print("   📄 templates/ directory already exists")
+            print("   DOC: templates/ directory already exists")
 
         return 0
 
     except Exception as e:
-        print(f"   ❌ Setup failed: {e}")
+        print(f"   [ERROR] Setup failed: {e}")
         return 1
 
 
@@ -2018,7 +2018,7 @@ if [[ -f ".venv/bin/activate" ]]; then
     PS1="${PS1//\\(\\)/}"
     export PS1="(.venv) ${PS1}"
 else
-    echo "❌ Main environment not found (.venv/bin/activate)"
+    echo "[ERROR] Main environment not found (.venv/bin/activate)"
     return 1
 fi
 
@@ -2030,7 +2030,7 @@ alias tf-train="timeflies train"
 alias tf-eval="timeflies evaluate"
 alias tf-test="timeflies test"
 
-echo "🧬 TimeFlies Development Environment Activated!"
+echo "DNA: TimeFlies Development Environment Activated!"
 echo ""
 echo "Development commands:"
 echo "  timeflies test --coverage    # Run test suite with coverage"
@@ -2065,11 +2065,11 @@ if [[ -f ".venv_batch/bin/activate" ]]; then
     PS1="${PS1//\\(\\)/}"
     export PS1="(.venv_batch) ${PS1}"
 else
-    echo "❌ Batch correction environment not found"
+    echo "[ERROR] Batch correction environment not found"
     return 1
 fi
 
-echo "🧬 TimeFlies Batch Correction Environment Activated!"
+echo "DNA: TimeFlies Batch Correction Environment Activated!"
 echo ""
 echo "Available tools:"
 echo "  timeflies batch-correct  # Run scVI batch correction"
@@ -2095,7 +2095,7 @@ def update_command(args) -> int:
     import sys
     from pathlib import Path
 
-    print("🔄 Updating TimeFlies to latest version...")
+    print("PROCESS: Updating TimeFlies to latest version...")
     print("=" * 50)
 
     try:
@@ -2103,17 +2103,18 @@ def update_command(args) -> int:
         try:
             subprocess.run(["git", "--version"], check=True, capture_output=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print("❌ Git not found. Please install git to use the update command.")
+            print(
+                "[ERROR] Git not found. Please install git to use the update command."
+            )
             return 1
 
         # Create temporary directory for update
-        import shutil
         import tempfile
 
         with tempfile.TemporaryDirectory(prefix="timeflies_update_") as temp_dir:
             temp_path = Path(temp_dir)
 
-            print("📥 Downloading latest version...")
+            print("LOADING: Downloading latest version...")
 
             # Clone the latest version
             repo_url = "git@github.com:rsinghlab/TimeFlies.git"
@@ -2133,11 +2134,11 @@ def update_command(args) -> int:
             )
 
             if clone_result.returncode != 0:
-                print(f"❌ Failed to download update: {clone_result.stderr}")
-                print("💡 Please check your GitHub access and try again")
+                print(f"[ERROR] Failed to download update: {clone_result.stderr}")
+                print("NOTE: Please check your GitHub access and try again")
                 return 1
 
-            print("📦 Installing updated version...")
+            print("PACKAGE: Installing updated version...")
 
             # Install the updated version
             update_path = temp_path / "timeflies_update"
@@ -2148,28 +2149,28 @@ def update_command(args) -> int:
             )
 
             if install_result.returncode != 0:
-                print(f"❌ Installation failed: {install_result.stderr}")
+                print(f"[ERROR] Installation failed: {install_result.stderr}")
                 return 1
 
-            print("✅ TimeFlies updated successfully!")
+            print("[OK] TimeFlies updated successfully!")
 
             # Test the updated installation
-            print("🧪 Testing updated installation...")
+            print("TESTING: Testing updated installation...")
             test_result = subprocess.run(
                 ["timeflies", "--help"], capture_output=True, text=True
             )
 
             if test_result.returncode == 0:
-                print("✅ Update completed successfully!")
-                print("\n🎉 TimeFlies is now up to date!")
+                print("[OK] Update completed successfully!")
+                print("\nSUCCESS: TimeFlies is now up to date!")
             else:
-                print("⚠️  Update installed but CLI test failed")
+                print("WARNING:  Update installed but CLI test failed")
                 print(
-                    "💡 You may need to restart your terminal or reactivate your environment"
+                    "NOTE: You may need to restart your terminal or reactivate your environment"
                 )
 
             return 0
 
     except Exception as e:
-        print(f"❌ Update failed: {e}")
+        print(f"[ERROR] Update failed: {e}")
         return 1

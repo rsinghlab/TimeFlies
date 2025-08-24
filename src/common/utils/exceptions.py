@@ -1,6 +1,6 @@
 """Custom exceptions for TimeFlies project."""
 
-from typing import Any, Optional
+from typing import Any
 
 
 class TimeFliesError(Exception):

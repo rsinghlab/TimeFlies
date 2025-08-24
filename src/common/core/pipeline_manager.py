@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from common.data.loaders import DataLoader
 from common.data.preprocessing.data_processor import DataPreprocessor
@@ -936,7 +936,6 @@ class PipelineManager:
         """
         try:
             import importlib.util
-            import sys
             from pathlib import Path
 
             script_path = Path(script_path)
@@ -1062,7 +1061,7 @@ class PipelineManager:
             logger.info("Model training completed successfully.")
 
             # Auto-run evaluation after training using in-memory components
-            print("\n🔬 Auto-evaluating trained model on holdout set...")
+            print("\nRESEARCH: Auto-evaluating trained model on holdout set...")
             self.run_post_training_evaluation()
 
             end_time = time.time()

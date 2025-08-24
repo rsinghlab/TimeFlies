@@ -6,11 +6,8 @@ is properly set up and ready for use.
 """
 
 import importlib
-import os
 import sys
 from pathlib import Path
-
-import pkg_resources
 
 
 def verify_system(dev_mode: bool = None) -> bool:
@@ -30,7 +27,7 @@ def verify_system(dev_mode: bool = None) -> bool:
         dev_mode = Path("tests").exists() and Path("src").exists()
 
     mode_text = "Development" if dev_mode else "System"
-    print(f"🔍 TimeFlies {mode_text} Verification")
+    print(f"SEARCH: TimeFlies {mode_text} Verification")
     print("=" * 50)
 
     all_checks_passed = True
@@ -71,7 +68,7 @@ def verify_system(dev_mode: bool = None) -> bool:
 
 def check_python_version() -> bool:
     """Check if Python version meets requirements."""
-    print("\n📋 Python Version Check")
+    print("\nINFO: Python Version Check")
     print("-" * 30)
 
     current_version = sys.version_info
@@ -91,7 +88,7 @@ def check_python_version() -> bool:
 
 def check_required_packages() -> bool:
     """Check if required packages are installed."""
-    print("\n📦 Package Dependencies Check")
+    print("\nPACKAGE: Package Dependencies Check")
     print("-" * 30)
 
     # (package_name, min_version, import_name)
@@ -126,7 +123,7 @@ def check_required_packages() -> bool:
 
 def check_directory_structure(dev_mode: bool = False) -> bool:
     """Check if required directories exist."""
-    print("\n📁 Directory Structure Check")
+    print("\nFOUND: Directory Structure Check")
     print("-" * 30)
 
     if dev_mode:
@@ -192,7 +189,7 @@ def check_configuration() -> bool:
 
 def check_data_availability() -> bool:
     """Check if data directories and files are set up."""
-    print("\n📊 Data Availability Check")
+    print("\nDATA: Data Availability Check")
     print("-" * 30)
 
     data_dir = Path("data")
@@ -249,14 +246,14 @@ def check_data_availability() -> bool:
             "   Add your *_original.h5ad files to data/[project]/[tissue]/ directories"
         )
     elif not splits_found:
-        print("💡 Next step: Run 'timeflies setup' to split your data for training")
+        print("NOTE: Next step: Run 'timeflies setup' to split your data for training")
 
     return True  # Data is not required for basic system verification
 
 
 def check_gpu_availability() -> bool:
     """Check GPU availability (optional)."""
-    print("\n🖥️  GPU Check (Optional)")
+    print("\nSYSTEM:️  GPU Check (Optional)")
     print("-" * 30)
 
     try:
@@ -278,7 +275,7 @@ def check_gpu_availability() -> bool:
 
 def check_analysis_templates() -> bool:
     """Check if analysis templates directory exists and list available templates."""
-    print("\n🔬 Analysis Templates Check")
+    print("\nRESEARCH: Analysis Templates Check")
     print("-" * 30)
 
     templates_dir = Path("templates")
@@ -300,7 +297,7 @@ def check_analysis_templates() -> bool:
         print(f"✅ Found {len(analysis_templates)} analysis templates:")
         for template in sorted(analysis_templates):
             template_name = template.stem.replace("_analysis", "")
-            print(f"   📄 {template.name} -> project '{template_name}'")
+            print(f"   DOC: {template.name} -> project '{template_name}'")
 
     # Find other template files
     other_templates = [
@@ -313,9 +310,9 @@ def check_analysis_templates() -> bool:
         print("ℹ️  Additional template files:")
         for template in sorted(other_templates + readme_files):
             if template.name.startswith("README"):
-                print(f"   📋 {template.name} (documentation)")
+                print(f"   INFO: {template.name} (documentation)")
             else:
-                print(f"   📄 {template.name}")
+                print(f"   DOC: {template.name}")
 
     return True
 

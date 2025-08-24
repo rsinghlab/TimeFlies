@@ -15,9 +15,9 @@ Example: data/processed/uncorrected/head_cnn_age/all-genes_all-cells_all-sexes/
 
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 class PathManager:

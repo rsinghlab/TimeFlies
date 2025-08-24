@@ -5,7 +5,6 @@ import logging.config
 import os
 import sys
 from pathlib import Path
-from typing import Any, Optional
 
 
 def setup_logging(

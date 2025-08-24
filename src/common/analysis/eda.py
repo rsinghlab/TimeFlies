@@ -1,7 +1,6 @@
 # eda_handler.py
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -355,7 +354,7 @@ class EDAHandler:
         if data is None:
             raise ValueError(f"No data available for split: {split}")
 
-        print(f"\n📊 Running comprehensive EDA on {split_desc}")
+        print(f"\nDATA: Running comprehensive EDA on {split_desc}")
         print(f"   Samples: {data.n_obs:,}")
         print(f"   Genes: {data.n_vars:,}")
 
@@ -441,7 +440,7 @@ class EDAHandler:
 
     def _compute_basic_stats(self, data, split_desc):
         """Compute and save basic statistics."""
-        print("   📈 Computing basic statistics...")
+        print("   METRICS: Computing basic statistics...")
 
         stats = {
             "n_samples": data.n_obs,
@@ -482,7 +481,7 @@ class EDAHandler:
 
     def _analyze_distributions(self, data, split_desc):
         """Analyze and plot distributions."""
-        print("   📊 Analyzing distributions...")
+        print("   DATA: Analyzing distributions...")
 
         output_path = Path(self.output_dir)
 
@@ -537,7 +536,7 @@ class EDAHandler:
 
     def _analyze_correlations(self, data, split_desc):
         """Analyze correlations between features."""
-        print("   🔗 Analyzing correlations...")
+        print("   LINK: Analyzing correlations...")
 
         # Select top variable genes for correlation
         if hasattr(data, "var"):
@@ -576,7 +575,7 @@ class EDAHandler:
 
     def _perform_dim_reduction(self, data, split_desc):
         """Perform PCA and UMAP for visualization."""
-        print("   🗺️  Performing dimensionality reduction...")
+        print("   MAP:️  Performing dimensionality reduction...")
 
         try:
             import scanpy as sc
@@ -655,7 +654,7 @@ class EDAHandler:
 
     def _analyze_gene_expression(self, data, split_desc):
         """Analyze gene expression patterns."""
-        print("   🧬 Analyzing gene expression...")
+        print("   DNA: Analyzing gene expression...")
 
         # Get expression matrix
         if scipy.sparse.issparse(data.X):
@@ -737,7 +736,7 @@ class EDAHandler:
         if output_path is None:
             output_path = Path(self.output_dir) / "eda_report.html"
 
-        print("\n📝 Generating HTML report...")
+        print("\nCREATE: Generating HTML report...")
 
         html_content = self._generate_html_content()
 
@@ -880,12 +879,12 @@ class EDAHandler:
 </head>
 <body>
     <header>
-        <h1>🔬 TimeFlies EDA Report</h1>
+        <h1>RESEARCH: TimeFlies EDA Report</h1>
         <div class="subtitle">Comprehensive Exploratory Data Analysis</div>
     </header>
 
     <section class="section">
-        <h2>📊 Dataset Overview</h2>
+        <h2>DATA: Dataset Overview</h2>
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-value">{
@@ -937,7 +936,7 @@ class EDAHandler:
     </section>
 
     <section class="section">
-        <h2>📈 Visualizations</h2>
+        <h2>METRICS: Visualizations</h2>
 
         {
             self._generate_visualization_section(
@@ -964,7 +963,7 @@ class EDAHandler:
     </section>
 
     <section class="section">
-        <h2>📋 Data Tables</h2>
+        <h2>INFO: Data Tables</h2>
         <p>The following data files have been generated:</p>
         <ul>
             <li><strong>summary_stats.json</strong> - Complete statistical summary</li>

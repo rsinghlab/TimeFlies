@@ -307,7 +307,6 @@ class ModelLoader:
             if self.model_type in ["cnn", "mlp"]:
                 # Suppress the compile warning for loaded models
                 import logging
-                import warnings
 
                 # Temporarily suppress absl warnings
                 absl_logger = logging.getLogger("absl")

@@ -1,6 +1,5 @@
 """GPU configuration utilities for TensorFlow."""
 
-import os
 from typing import Any
 
 import tensorflow as tf
