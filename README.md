@@ -117,19 +117,16 @@ TimeFlies uses YAML configuration files to control model training, evaluation, a
 Control SHAP interpretation and visualizations:
 
 ```yaml
-# Enable/disable SHAP analysis during evaluation
+# Feature importance analysis
 interpretation:
   shap:
-    enabled: true          # Enable SHAP interpretation
-    n_samples: 100        # Number of samples for SHAP calculation
-    feature_names: true   # Include gene names in output
-    save_values: true     # Save SHAP values to CSV
+    enabled: false           # Enable/disable SHAP interpretation (includes visualizations)
+    load_existing: false     # Load existing SHAP values instead of computing
+    reference_size: 100      # Reference size for SHAP analysis
 
-# Control visualization generation
+# Visualizations
 visualizations:
-  enabled: true           # Enable plot generation
-  save_plots: true       # Save plots to files
-  plot_formats: ["png", "pdf"]  # Output formats
+  enabled: true             # Enable general visualizations (training plots, confusion matrix, ROC curves, etc.)
 ```
 
 #### Analysis Scripts
@@ -137,11 +134,13 @@ Configure project-specific analysis workflows:
 
 ```yaml
 analysis:
+  # Exploratory data analysis
+  eda:
+    enabled: false
+    
+  # Run project-specific analysis scripts
   run_analysis_script:
-    enabled: true         # Run project-specific analysis after evaluation
-  custom_analysis:        # Custom analysis settings
-    save_intermediate: true
-    generate_reports: true
+    enabled: false  # Set to true to run project-specific analysis after training
 ```
 
 ### CLI Overrides
