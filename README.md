@@ -235,7 +235,11 @@ After installation, users work with this structure in their project directory:
 
 ```
 your_project/
-├── config.yaml          # Created by TimeFlies (customize your settings)
+├── config.yaml          # Created by TimeFlies setup (customize your settings)
+├── templates/           # Analysis script templates (created by setup)
+│   ├── aging_analysis_template.py
+│   ├── custom_analysis_example.py
+│   └── README.md
 ├── data/                # Your input datasets
 │   ├── fruitfly_aging/
 │   │   └── head/
@@ -253,8 +257,9 @@ your_project/
 1. **Install TimeFlies**: `curl -O https://raw.githubusercontent.com/.../install_timeflies.sh && chmod +x install_timeflies.sh && ./install_timeflies.sh`
 2. **Activate**: `source .activate.sh` 
 3. **Add your data**: Place `*_original.h5ad` files in `data/[project]/[tissue]/`
-4. **Configure**: Edit `config.yaml` for your project settings
-5. **Run workflow**: `timeflies setup && timeflies train && timeflies evaluate`
+4. **Setup**: `timeflies setup` (creates config.yaml, templates/, splits data, verifies system)
+5. **Configure**: Edit `config.yaml` for your project settings (optional customization)
+6. **Run workflow**: `timeflies train && timeflies evaluate`
 
 ## System Requirements
 

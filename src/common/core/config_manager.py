@@ -100,8 +100,7 @@ class ConfigManager:
             except:
                 # Fallback to aging project if detection fails
                 self.project_name = "fruitfly_aging"
-        # Ensure user configs are installed to ~/.timeflies/
-        self._ensure_user_configs()
+        # Note: User configs (config.yaml) are created during 'timeflies setup' command
 
         self.config_path = self._find_config_path(config_path)
         self._config = None
