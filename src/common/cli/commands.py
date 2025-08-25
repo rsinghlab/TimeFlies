@@ -2382,14 +2382,19 @@ def update_command(args) -> int:
 
             print("LOADING: Downloading latest version...")
 
-            # Check current version first
-            current_version = None
-            version_file = Path(".timeflies_src") / "VERSION"
-            if version_file.exists():
+            # Check current commit hash
+            current_commit = None
+            timeflies_src = Path(".timeflies_src")
+            if timeflies_src.exists() and (timeflies_src / ".git").exists():
                 try:
-                    with open(version_file) as f:
-                        current_version = f.read().strip()
-                except Exception:
+                    result = subprocess.run(
+                        ["git", "-C", str(timeflies_src), "rev-parse", "HEAD"],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    )
+                    current_commit = result.stdout.strip()
+                except subprocess.CalledProcessError:
                     pass
 
             # Clone the latest version
@@ -2414,29 +2419,32 @@ def update_command(args) -> int:
                 print("NOTE: Please check your GitHub access and try again")
                 return 1
 
-            # Check if new version is different
+            # Check if new commit is different
             update_path = temp_path / "timeflies_update"
-            new_version_file = update_path / "VERSION"
-            new_version = None
-            if new_version_file.exists():
-                try:
-                    with open(new_version_file) as f:
-                        new_version = f.read().strip()
-                except Exception:
-                    pass
+            new_commit = None
+            try:
+                result = subprocess.run(
+                    ["git", "-C", str(update_path), "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                new_commit = result.stdout.strip()
+            except subprocess.CalledProcessError:
+                pass
 
-            # Compare versions
-            if current_version and new_version and current_version == new_version:
+            # Compare commits
+            if current_commit and new_commit and current_commit == new_commit:
                 print("INFO: No update found - current version is fully updated")
-                print(f"   Current version: {current_version}")
+                print(f"   Current commit: {current_commit[:8]}")
                 print("   Your TimeFlies installation is already up to date!")
                 return 0
 
             print("PACKAGE: Installing updated version...")
-            if current_version:
-                print(f"   Updating from version: {current_version}")
-            if new_version:
-                print(f"   Installing version: {new_version}")
+            if current_commit:
+                print(f"   Updating from commit: {current_commit[:8]}")
+            if new_commit:
+                print(f"   Installing commit: {new_commit[:8]}")
 
             # Install the updated version
             install_result = subprocess.run(
