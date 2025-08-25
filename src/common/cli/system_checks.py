@@ -259,8 +259,7 @@ def check_data_availability() -> bool:
                 train_files = list(tissue_dir.glob("*_train.h5ad"))
                 eval_files = list(tissue_dir.glob("*_eval.h5ad"))
 
-                # Check for batch-corrected files
-                batch_original_files = list(tissue_dir.glob("*_original_batch.h5ad"))
+                # Check for batch-corrected files (only train/eval, no original_batch)
                 batch_train_files = list(tissue_dir.glob("*_train_batch.h5ad"))
                 batch_eval_files = list(tissue_dir.glob("*_eval_batch.h5ad"))
 
@@ -270,11 +269,18 @@ def check_data_availability() -> bool:
                     )
                     splits_found = True
 
-                    # Show batch-corrected files if they exist
-                    if batch_original_files and batch_train_files and batch_eval_files:
+                    # Show batch-corrected files if they exist (both train and eval)
+                    if batch_train_files and batch_eval_files:
                         print(
-                            f"   ✅ Batch-corrected splits available (original: {len(batch_original_files)}, train: {len(batch_train_files)}, eval: {len(batch_eval_files)})"
+                            f"   ✅ Batch-corrected splits available (train: {len(batch_train_files)}, eval: {len(batch_eval_files)})"
                         )
+                    elif batch_train_files or batch_eval_files:
+                        # Partial batch files
+                        batch_count = len(batch_train_files) + len(batch_eval_files)
+                        print(
+                            f"   ⚠️  Partial batch correction found ({batch_count}/2 files)"
+                        )
+                        print("      Run 'timeflies batch-correct' to complete")
                 elif original_files:
                     print(
                         "   ⚠️  Data not split yet - run 'timeflies setup' or 'timeflies split'"
@@ -289,7 +295,6 @@ def check_data_availability() -> bool:
                     "*_original.h5ad",
                     "*_train.h5ad",
                     "*_eval.h5ad",
-                    "*_original_batch.h5ad",
                     "*_train_batch.h5ad",
                     "*_eval_batch.h5ad",
                     "*.csv",
@@ -300,6 +305,12 @@ def check_data_availability() -> bool:
 
                 all_files = set([f.name for f in tissue_dir.glob("*") if f.is_file()])
                 unexpected_files = all_files - expected_files
+
+                # Show CSV files (gene lists) if found
+                csv_files = list(tissue_dir.glob("*.csv"))
+                if csv_files:
+                    csv_names = [f.name for f in csv_files]
+                    print(f"   📊 Gene lists found: {', '.join(sorted(csv_names))}")
 
                 if unexpected_files:
                     print(
