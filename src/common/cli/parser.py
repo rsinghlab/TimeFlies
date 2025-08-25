@@ -16,38 +16,38 @@ def create_main_parser() -> argparse.ArgumentParser:
         epilog="""
 User Workflow:
   # Complete workflow (recommended)
-  python run_timeflies.py setup [--batch-correct]    # Split data + verify + create dirs
-  python run_timeflies.py train [--with-eda]         # Train models with evaluation
-  python run_timeflies.py evaluate [--with-eda]      # Evaluate models on test data
-  python run_timeflies.py analyze [--with-eda]       # Project-specific analysis scripts
+  timeflies setup [--batch-correct]    # Split data + verify + create dirs
+  timeflies train [--with-eda]         # Train models with evaluation
+  timeflies evaluate [--with-eda]      # Evaluate models on test data
+  timeflies analyze [--with-eda]       # Project-specific analysis scripts
 
   # Individual steps
-  python run_timeflies.py split                      # Just create train/eval splits
-  python run_timeflies.py eda --save-report          # Exploratory data analysis
-  python run_timeflies.py batch-correct              # Apply batch correction
-  python run_timeflies.py verify                     # Check system status
+  timeflies split                      # Just create train/eval splits
+  timeflies eda --save-report          # Exploratory data analysis
+  timeflies batch-correct              # Apply batch correction
+  timeflies verify                     # Check system status
 
   # Development/testing
-  python run_timeflies.py test [unit|integration]    # Run test suite
-  python run_timeflies.py test --coverage            # Generate coverage report
-  python run_timeflies.py create-test-data           # Generate test fixtures
-  python run_timeflies.py update                     # Update to latest version
+  timeflies test [unit|integration]    # Run test suite
+  timeflies test --coverage            # Generate coverage report
+  timeflies create-test-data           # Generate test fixtures
+  timeflies update                     # Update to latest version
 
   # Automated model training systems
-  python run_timeflies.py tune                       # Run hyperparameter tuning (uses default.yaml)
-  python run_timeflies.py tune custom_config.yaml    # Run with custom config file
-  python run_timeflies.py queue                      # Run default model queue
-  python run_timeflies.py queue custom_queue.yaml    # Run custom queue configuration
+  timeflies tune                       # Run hyperparameter tuning (uses config.yaml)
+  timeflies tune custom_config.yaml    # Run with custom config file
+  timeflies queue                      # Run default model queue
+  timeflies queue custom_queue.yaml    # Run custom queue configuration
 
   # Project switching (temporary override)
-  python run_timeflies.py --aging train              # Train aging project
-  python run_timeflies.py --alzheimers analyze       # Analyze Alzheimer's project
-  python run_timeflies.py --tissue head train        # Override tissue type
+  timeflies --aging train              # Train aging project
+  timeflies --alzheimers analyze       # Analyze Alzheimer's project
+  timeflies --tissue head train        # Override tissue type
 
   # Global options work with any command
   --batch-corrected --verbose --tissue head --aging
 
-  # Permanent project switching: Edit configs/default.yaml
+  # Permanent project switching: Edit config.yaml
         """,
     )
 
