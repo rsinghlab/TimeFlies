@@ -33,7 +33,9 @@ User Workflow:
   python run_timeflies.py create-test-data           # Generate test fixtures
   python run_timeflies.py update                     # Update to latest version
 
-  # Model queue system
+  # Automated model training systems
+  python run_timeflies.py tune                       # Run hyperparameter tuning (uses default.yaml)
+  python run_timeflies.py tune custom_config.yaml    # Run with custom config file
   python run_timeflies.py queue                      # Run default model queue
   python run_timeflies.py queue custom_queue.yaml    # Run custom queue configuration
 
@@ -244,6 +246,26 @@ User Workflow:
     subparsers.add_parser(
         "update",
         help="Update TimeFlies to the latest version from GitHub",
+    )
+
+    # Hyperparameter tuning command
+    tune_parser = subparsers.add_parser(
+        "tune",
+        help="Run automated hyperparameter tuning with grid, random, or Bayesian optimization",
+        description="Optimize hyperparameters for TimeFlies models using grid search, "
+        "random search, or Bayesian optimization (Optuna). Supports model architecture "
+        "exploration and comprehensive hyperparameter optimization with progress tracking.",
+    )
+    tune_parser.add_argument(
+        "config",
+        nargs="?",
+        default="configs/default.yaml",
+        help="Path to configuration YAML file with hyperparameter tuning enabled (default: configs/default.yaml)",
+    )
+    tune_parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
     )
 
     # Queue command for automated multi-model training
