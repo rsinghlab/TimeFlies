@@ -33,6 +33,10 @@ User Workflow:
   python run_timeflies.py create-test-data           # Generate test fixtures
   python run_timeflies.py update                     # Update to latest version
 
+  # Model queue system
+  python run_timeflies.py queue                      # Run default model queue
+  python run_timeflies.py queue custom_queue.yaml    # Run custom queue configuration
+
   # Project switching (temporary override)
   python run_timeflies.py --aging train              # Train aging project
   python run_timeflies.py --alzheimers analyze       # Analyze Alzheimer's project
@@ -252,7 +256,9 @@ User Workflow:
     )
     queue_parser.add_argument(
         "config",
-        help="Path to queue configuration YAML file (e.g., configs/model_queue.yaml)",
+        nargs="?",
+        default="configs/model_queue.yaml",
+        help="Path to queue configuration YAML file (default: configs/model_queue.yaml)",
     )
     queue_parser.add_argument(
         "--no-resume",

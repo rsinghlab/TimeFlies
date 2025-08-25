@@ -328,15 +328,36 @@ def check_model_queue_configs() -> bool:
 
     print("[OK] configs/ directory exists")
 
-    # Look for model queue configuration files
-    queue_configs = list(configs_dir.glob("model_queue*.yaml"))
+    # Check for default model queue configuration
+    default_queue_config = configs_dir / "model_queue.yaml"
 
-    if not queue_configs:
-        print("[WARN] No model queue configurations found")
-        print("   Create configs/model_queue*.yaml for automated training")
-        print("   Example: configs/model_queue_advanced_preprocessing.yaml")
+    if default_queue_config.exists():
+        print("[OK] Default model queue configuration found: model_queue.yaml")
+
+        # Validate the default config
+        try:
+            import yaml
+
+            with open(default_queue_config) as f:
+                queue_data = yaml.safe_load(f)
+            if "model_queue" in queue_data and "global_settings" in queue_data:
+                model_count = len(queue_data.get("model_queue", []))
+                print(f"   └─ {model_count} models configured in default queue")
+            else:
+                print("   └─ [WARN] Default config missing required sections")
+        except Exception as e:
+            print(f"   └─ [ERROR] Default config invalid: {e}")
     else:
-        print(f"[OK] Found {len(queue_configs)} model queue configurations:")
+        print("[WARN] No default model queue configuration found")
+        print("   Create configs/model_queue.yaml for 'timeflies queue' command")
+
+    # Look for additional model queue configuration files
+    queue_configs = [
+        f for f in configs_dir.glob("model_queue*.yaml") if f.name != "model_queue.yaml"
+    ]
+
+    if queue_configs:
+        print(f"[OK] Found {len(queue_configs)} additional queue configurations:")
         for config in sorted(queue_configs):
             print(f"   CONFIG: {config.name}")
 

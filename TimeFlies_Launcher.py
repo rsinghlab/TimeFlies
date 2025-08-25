@@ -215,13 +215,21 @@ class TimeFliesLauncher:
             side="left", padx=5
         )
 
-        # One-click analysis
+        # Queue and complete workflow row
+        button_frame3 = tk.Frame(actions_frame)
+        button_frame3.pack(pady=5)
+
         ttk.Button(
-            actions_frame,
-            text="Run Complete Workflow (One-Click)",
+            button_frame3,
+            text="Run Model Queue",
+            command=self.run_model_queue,
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            button_frame3,
+            text="Run Complete Workflow",
             command=self.run_complete_analysis,
-            width=40,
-        ).pack(pady=(10, 0))
+        ).pack(side="left", padx=5)
 
     def setup_results_tab(self, parent):
         """Setup results viewing tab."""
@@ -263,6 +271,7 @@ WORKFLOW:
 • Split: Create training and evaluation datasets
 • Train: Build machine learning models
 • Evaluate: Generate SHAP analysis and visualizations
+• Model Queue: Run multiple models sequentially with automated comparison
 
 DATA FORMAT:
 • Place *.h5ad files in data/project_name/tissue_type/
@@ -391,6 +400,12 @@ TROUBLESHOOTING:
     def run_analyze(self):
         cmd = ["python", "run_timeflies.py", "analyze"] + self.build_command_flags()
         self.run_command(cmd, "Analysis complete!")
+
+    def run_model_queue(self):
+        """Run automated multi-model training queue."""
+        self.run_command(
+            ["python", "run_timeflies.py", "queue"], "Model queue training complete!"
+        )
 
     def run_complete_analysis(self):
         """Run complete analysis workflow with selected options."""

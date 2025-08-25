@@ -14,7 +14,7 @@ from typing import Any, Optional
 import pandas as pd
 import yaml
 
-from common.cli.commands import run_evaluate, run_train
+from common.cli.commands import evaluate_command, train_command
 from common.core.config_manager import get_config_manager
 from common.utils.logging_config import get_logger
 
@@ -194,39 +194,43 @@ class ModelQueueManager:
                     for key, value in kwargs.items():
                         setattr(self, key, value)
 
-            # Set up training arguments with full configuration support
+            # Set up training arguments with actual configuration support
             train_args = Args(
                 verbose=False,
                 model=model_type,
-                tissue=config.get("tissue", "head"),
-                target=config.get("target", "age"),
+                tissue=config.get("data", {}).get("tissue", "head"),
+                target=config.get("data", {}).get("target_variable", "age"),
                 project=config.get("project"),
                 batch_corrected=config.get("data", {})
                 .get("batch_correction", {})
                 .get("enabled", False),
                 with_eda=config.get("with_eda", False),
                 with_analysis=config.get("with_analysis", True),
-                # Add data processing options
-                remove_sex_genes=config.get("data", {}).get("remove_sex_genes", False),
-                split_method=config.get("data", {}).get("split_method", "stratified"),
-                # Add all hyperparameters as arguments
-                **hyperparams,
             )
 
             # Store full config for this model to be used during training
             self._current_model_config = config
 
-            # Run training
-            print(f"\n[INFO] Starting training for {model_name}...")
-            run_train(train_args)
+            # Run training if configured
+            should_train = config.get("with_training", True)  # New setting for training
+            if should_train:
+                print(f"\n[INFO] Starting training for {model_name}...")
+                train_command(train_args, config)
+            else:
+                print(
+                    f"\n[INFO] Skipping training for {model_name} (with_training: false)"
+                )
 
-            # Run evaluation if configured
-            if config.get("with_analysis", True):
+            # Run evaluation if configured (separate from with_analysis which is for scripts)
+            should_evaluate = config.get(
+                "with_evaluation", True
+            )  # New setting for evaluation
+            if should_evaluate:
                 eval_args = Args(
                     verbose=False,
                     model=model_type,
-                    tissue=config.get("tissue", "head"),
-                    target=config.get("target", "age"),
+                    tissue=config.get("data", {}).get("tissue", "head"),
+                    target=config.get("data", {}).get("target_variable", "age"),
                     project=config.get("project"),
                     batch_corrected=config.get("data", {})
                     .get("batch_correction", {})
@@ -235,17 +239,10 @@ class ModelQueueManager:
                     with_analysis=config.get("with_analysis", True),
                     interpret=config.get("interpret", True),
                     visualize=config.get("visualize", True),
-                    # Add data processing options for evaluation
-                    remove_sex_genes=config.get("data", {}).get(
-                        "remove_sex_genes", False
-                    ),
-                    split_method=config.get("data", {}).get(
-                        "split_method", "stratified"
-                    ),
                 )
 
                 print(f"\n[INFO] Starting evaluation for {model_name}...")
-                run_evaluate(eval_args)
+                evaluate_command(eval_args, config)
 
             training_time = time.time() - start_time
 
@@ -438,9 +435,17 @@ class ModelQueueManager:
             f.write(f"**Queue Name:** {queue_name}\n")
             f.write(f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"**Total Models:** {len(self.model_queue)}\n")
-            f.write(
-                f"**Total Time:** {(time.time() - self.start_time) / 60:.2f} minutes\n\n"
-            )
+            # Calculate actual queue runtime (only if start_time was set during execution)
+            total_runtime = 0
+            if hasattr(self, "start_time") and self.start_time > 0:
+                total_runtime = (time.time() - self.start_time) / 60
+                # Only show time if it's reasonable (less than a day)
+                if total_runtime < 1440:  # 24 hours
+                    f.write(f"**Total Time:** {total_runtime:.2f} minutes\n\n")
+                else:
+                    f.write("**Total Time:** N/A (report generated separately)\n\n")
+            else:
+                f.write("**Total Time:** N/A (report generated separately)\n\n")
 
             # Summary statistics
             completed = [r for r in self.results if r.get("status") == "completed"]
@@ -485,15 +490,28 @@ class ModelQueueManager:
             f.write("## Detailed Results\n\n")
             for result in self.results:
                 f.write(f"### {result['name']}\n\n")
-                f.write(f"- **Type:** {result['model_type']}\n")
+                f.write(f"- **Model Type:** {result['model_type']}\n")
                 f.write(f"- **Status:** {result['status']}\n")
 
-                if result["description"]:
+                if result.get("description"):
                     f.write(f"- **Description:** {result['description']}\n")
 
-                if "metrics" in result:
+                if result.get("training_time"):
+                    f.write(
+                        f"- **Training Time:** {result['training_time']:.1f} seconds\n"
+                    )
+
+                # Add hyperparameters
+                if "hyperparameters" in result:
+                    hyperparams = result["hyperparameters"]
+                    if hyperparams:
+                        f.write("- **Hyperparameters:**\n")
+                        for key, value in hyperparams.items():
+                            f.write(f"  - {key}: {value}\n")
+
+                if "metrics" in result and result["metrics"]:
                     metrics = result["metrics"]
-                    f.write("- **Metrics:**\n")
+                    f.write("- **Performance Metrics:**\n")
                     f.write(f"  - Accuracy: {metrics.get('accuracy', 0):.3f}\n")
                     f.write(f"  - Precision: {metrics.get('precision', 0):.3f}\n")
                     f.write(f"  - Recall: {metrics.get('recall', 0):.3f}\n")
