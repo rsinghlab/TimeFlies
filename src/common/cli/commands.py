@@ -1935,36 +1935,56 @@ def setup_user_environment():
     try:
         # Create configs/ directory and copy all config files
         configs_dir = Path("configs")
+
+        # Create directory if it doesn't exist
         if not configs_dir.exists():
             print("   CONFIG: Creating configs/ directory...")
-            # Create directory if it doesn't exist (skip during tests)
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
                 configs_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            print("   CONFIG: configs/ directory already exists")
 
-            # Find source configs from TimeFlies installation
-            source_configs_dirs = [
-                Path.cwd()
-                / ".timeflies_src"
-                / "configs",  # user installation (current directory)
-                Path(__file__).parent.parent.parent.parent
-                / "configs",  # repo structure
-                Path(__file__).parent.parent.parent / "configs",  # installed structure
-                Path.home() / ".timeflies_src" / "configs",  # user installation (home)
-            ]
+        # Find source configs from TimeFlies installation
+        source_configs_dirs = [
+            Path.cwd()
+            / ".timeflies_src"
+            / "configs",  # user installation (current directory)
+            Path(__file__).parent.parent.parent.parent / "configs",  # repo structure
+            Path(__file__).parent.parent.parent / "configs",  # installed structure
+            Path.home() / ".timeflies_src" / "configs",  # user installation (home)
+        ]
 
+        # Check for missing config files and copy them
+        required_configs = [
+            "default.yaml",
+            "setup.yaml",
+            "batch_correction.yaml",
+            "hyperparameter_tuning.yaml",
+            "model_queue.yaml",
+        ]
+        missing_configs = [
+            cfg for cfg in required_configs if not (configs_dir / cfg).exists()
+        ]
+
+        if missing_configs:
+            print(f"   CONFIG: Found {len(missing_configs)} missing config files")
             for source_configs_dir in source_configs_dirs:
                 if source_configs_dir.exists():
-                    print("      CONFIG: Copying configuration files...")
-                    # Copy all config files
-                    for config_file in source_configs_dir.glob("*.yaml"):
-                        shutil.copy2(config_file, configs_dir / config_file.name)
-                        print(f"         [OK] {config_file.name}")
-                    break
+                    print("      CONFIG: Copying missing configuration files...")
+                    copied_any = False
+                    for config_name in missing_configs:
+                        source_config = source_configs_dir / config_name
+                        if source_config.exists():
+                            shutil.copy2(source_config, configs_dir / config_name)
+                            print(f"         [OK] {config_name}")
+                            copied_any = True
+                    if copied_any:
+                        break
             else:
                 print("      [ERROR] Could not find default config templates")
                 return 1
         else:
-            print("   CONFIG: configs/ directory already exists")
+            print("   CONFIG: All required config files present")
 
         # Remove any old config.yaml in root - we now use configs/ directory
         root_config = Path("config.yaml")
@@ -2335,6 +2355,14 @@ def update_command(args) -> int:
                 return 1
 
             print("[OK] TimeFlies updated successfully!")
+
+            # Copy any missing config files that install would provide
+            print("CONFIG: Checking for missing configuration files...")
+            config_copy_result = setup_user_environment()
+            if config_copy_result == 0:
+                print("[OK] Configuration files updated")
+            else:
+                print("WARNING: Some config files may not have been updated")
 
             # Test the updated installation
             print("TESTING: Testing updated installation...")
