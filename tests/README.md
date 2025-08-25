@@ -35,8 +35,11 @@ Comprehensive test suite with performance benchmarking, system validation, and p
 ### 📁 Integration Tests (`tests/integration/`) - Cross-component testing
 - `test_real_data_workflows.py` - Real data processing workflows
 
-### 📁 Functional Tests (`tests/functional/`) - End-to-end workflows
-- `test_workflows.py` - Complete user workflows
+### 📁 Functional Tests (`tests/functional/`) - End-to-end user workflows
+- Complete workflow testing from user perspective
+- Full command execution: setup → train → evaluate → analyze
+- Batch correction workflows with automatic environment switching
+- Multi-project testing scenarios
 
 ## Performance Benchmarking 🚀
 
@@ -139,20 +142,31 @@ timeflies test --rerun        # Re-run only failed tests
 
 ## Automatic Environment Switching
 
-The test runner automatically handles batch correction tests:
+TimeFlies automatically manages environments for batch correction across all modes:
 
-**What happens when you run `timeflies test --coverage`:**
-1. 🧪 **Regular tests** run in main `.venv` environment
-2. 🔄 **Auto-detects** batch correction tests
-3. 🧬 **Switches** to `.venv_batch` environment for batch correction tests
-4. 🔄 **Returns** to main `.venv` environment
-5. 📊 **Combines** coverage reports from both environments
+**Testing (`timeflies test --coverage`):**
+1. Regular tests run in main `.venv` environment
+2. Auto-detects batch correction tests requiring scVI dependencies
+3. Switches to `.venv_batch` environment for batch correction tests
+4. Returns to main `.venv` environment
+5. Combines coverage reports from both environments
+
+**User Commands:**
+- `timeflies batch-correct` → Auto-switches to batch env, runs correction, exits
+- `timeflies setup --batch-correct` → Auto-switches during batch correction step
+- `timeflies train --batch-corrected` → Uses existing batch-corrected files (main env)
+
+**Functional Test Coverage:**
+- Complete setup → batch-correct → train → evaluate workflows
+- Per-project batch correction enable/disable testing
+- Environment switching validation
+- Multi-project scenario testing
 
 **Developer Experience:**
-- ✅ **One command**: `timeflies test` - everything works automatically
-- ✅ **No manual switching**: Test runner handles environments
-- ✅ **Always ends in main env**: Never left in wrong environment
-- ✅ **Comprehensive testing**: Real batch correction testing, not just mocks
+- One command testing: `timeflies test` handles everything automatically
+- No manual environment switching required
+- Always returns to main environment
+- Real batch correction testing with proper dependencies
 
 ## Test Data Tiers
 
