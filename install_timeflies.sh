@@ -178,6 +178,10 @@ if [[ -f ".venv/bin/activate" ]]; then
     PS1="${PS1//((.venv))/}"
     PS1="${PS1//() /}"
     PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
     export PS1="(.venv) ${PS1}"
 elif [[ -f ".venv/Scripts/activate" ]]; then
     source .venv/Scripts/activate
@@ -188,6 +192,10 @@ elif [[ -f ".venv/Scripts/activate" ]]; then
     PS1="${PS1//((.venv))/}"
     PS1="${PS1//() /}"
     PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
     export PS1="(.venv) ${PS1}"
 else
     echo "❌ Virtual environment not found"
