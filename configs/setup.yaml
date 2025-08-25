@@ -7,6 +7,9 @@
 # Data splitting configuration
 train_test_split:
   split_size: 5000          # Number of cells in evaluation set
+  stratify_by: ["age"]      # Columns to stratify by (can be single string or list)
+  fallback_ratio: 0.2       # Fallback test ratio if split_size too large
+  random_state: 42          # Random seed for reproducible splits
 
 # Sampling configuration
 sampling:
