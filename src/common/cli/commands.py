@@ -1943,9 +1943,13 @@ def setup_user_environment():
 
             # Find source configs from TimeFlies installation
             source_configs_dirs = [
+                Path.cwd()
+                / ".timeflies_src"
+                / "configs",  # user installation (current directory)
                 Path(__file__).parent.parent.parent.parent
                 / "configs",  # repo structure
                 Path(__file__).parent.parent.parent / "configs",  # installed structure
+                Path.home() / ".timeflies_src" / "configs",  # user installation (home)
             ]
 
             for source_configs_dir in source_configs_dirs:
