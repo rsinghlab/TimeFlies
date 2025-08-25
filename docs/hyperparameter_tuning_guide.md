@@ -13,6 +13,7 @@ hyperparameter_tuning:
   enabled: true  # Enable hyperparameter optimization
   method: "bayesian"  # Options: "grid", "random", "bayesian"
   n_trials: 20
+  optimization_metric: "f1_score"  # Options: "accuracy", "f1_score", "precision", "recall", "roc_auc"
 ```
 
 ### 2. Run Hyperparameter Tuning
@@ -43,6 +44,7 @@ hyperparameter_tuning:
   enabled: true
   method: "bayesian"  # "grid", "random", or "bayesian"
   n_trials: 20        # For random/bayesian (ignored for grid)
+  optimization_metric: "f1_score"  # "accuracy", "f1_score", "precision", "recall", "roc_auc"
 
   # Speed optimizations for hyperparameter search
   search_optimizations:
@@ -115,6 +117,48 @@ hyperparameter_tuning:
 hyperparameter_tuning:
   method: "bayesian"
   n_trials: 30  # Usually needs fewer trials than random
+```
+
+## Optimization Metrics
+
+Choose the best metric for your research goals:
+
+### Available Metrics
+
+- **accuracy**: Overall classification accuracy (default)
+  - **Best for**: Balanced datasets, general performance
+  - **Formula**: (TP + TN) / (TP + TN + FP + FN)
+
+- **f1_score**: Harmonic mean of precision and recall
+  - **Best for**: Imbalanced datasets, aging research with rare categories
+  - **Formula**: 2 × (precision × recall) / (precision + recall)
+
+- **precision**: True positives / (true positives + false positives)
+  - **Best for**: When false positives are costly
+  - **Use case**: Confident age predictions
+
+- **recall**: True positives / (true positives + false negatives)
+  - **Best for**: When false negatives are costly
+  - **Use case**: Detecting all aging signatures
+
+- **roc_auc**: Area under ROC curve
+  - **Best for**: Ranking/probability-based evaluation
+  - **Use case**: Age progression modeling
+
+### Configuration Examples
+
+```yaml
+# For balanced aging datasets
+hyperparameter_tuning:
+  optimization_metric: "accuracy"
+
+# For imbalanced age groups
+hyperparameter_tuning:
+  optimization_metric: "f1_score"
+
+# For probabilistic age modeling
+hyperparameter_tuning:
+  optimization_metric: "roc_auc"
 ```
 
 ## CNN Architecture Variants
@@ -236,7 +280,7 @@ Only the model type specified in `data.model` will be tuned.
 Hyperparameter tuning results are organized in timestamped directories:
 
 ```
-outputs/hyperparameter_tuning/
+outputs/[project]/hyperparameter_tuning/
 └── timeflies_hyperparameter_search_2024-08-25_16-30-45/
     ├── hyperparameter_search_report.md    # Comprehensive results report
     ├── hyperparameter_search_metrics.csv  # Metrics for all trials

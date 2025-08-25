@@ -56,8 +56,9 @@ class HyperparameterTuner:
         self.completed_trials = []
         self.start_time = None
 
-        # Setup output directories
-        self.output_dir = Path("outputs") / "hyperparameter_tuning"
+        # Setup output directories (project-specific)
+        project_name = self.config.get("project", "default_project")
+        self.output_dir = Path("outputs") / project_name / "hyperparameter_tuning"
         self.run_dir = None
         self.checkpoint_file = None
 
@@ -65,6 +66,7 @@ class HyperparameterTuner:
         hp_config = self.config.get("hyperparameter_tuning", {})
         self.search_method = hp_config.get("method", "grid")
         self.n_trials = hp_config.get("n_trials", 20)
+        self.optimization_metric = hp_config.get("optimization_metric", "accuracy")
 
         # Get current model type to determine which hyperparameters to use
         self.current_model_type = self.config.get("data", {}).get("model", "CNN")
@@ -492,7 +494,7 @@ class HyperparameterTuner:
         storage = f"sqlite:///{storage_path}"
 
         self.study = optuna.create_study(
-            direction="maximize",  # Maximize accuracy
+            direction="maximize",  # Maximize the configured optimization metric
             study_name=study_name,
             storage=storage,
             load_if_exists=True,
@@ -565,9 +567,9 @@ class HyperparameterTuner:
         # Save checkpoint after each trial
         self.save_checkpoint(trial.number)
 
-        # Return objective value (accuracy) for maximization
+        # Return objective value (configured metric) for maximization
         if result["status"] == "completed" and result.get("metrics"):
-            return result["metrics"].get("accuracy", 0.0)
+            return result["metrics"].get(self.optimization_metric, 0.0)
         else:
             # Return low value for failed trials
             return 0.0
@@ -704,9 +706,10 @@ class HyperparameterTuner:
         if not completed_trials:
             return None
 
-        # Use accuracy as primary metric (could be configurable)
+        # Use configured optimization metric
         best_trial = max(
-            completed_trials, key=lambda x: x["metrics"].get("accuracy", 0)
+            completed_trials,
+            key=lambda x: x["metrics"].get(self.optimization_metric, 0),
         )
         return best_trial
 

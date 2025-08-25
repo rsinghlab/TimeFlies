@@ -63,6 +63,42 @@ Both interfaces provide identical functionality - choose what works best for you
 5. **Evaluation**: Run `timeflies evaluate` to assess model performance on test data
 6. **Analysis**: Results available in `outputs/[project]/` with model interpretability
 
+## Output Structure
+
+TimeFlies generates comprehensive outputs organized by project and analysis type:
+
+```
+outputs/
+├── fruitfly_aging/                          # Project-specific results
+│   ├── experiments/                         # Model queue results
+│   │   └── queue_experiment_2024-08-25_10-30-15/
+│   │       ├── model_comparison_report.md   # Queue summary report
+│   │       ├── model_metrics.csv            # All models comparison
+│   │       └── individual_model_results/    # Per-model outputs
+│   ├── hyperparameter_tuning/               # Hyperparameter optimization
+│   │   └── search_2024-08-25_16-30-45/
+│   │       ├── hyperparameter_search_report.md  # Best trials & selection reasoning
+│   │       ├── hyperparameter_search_metrics.csv # All trials data
+│   │       ├── checkpoint.json              # Resume capability
+│   │       └── optuna_study.db              # Bayesian optimization history
+│   ├── eda/                                 # Exploratory data analysis
+│   │   └── head/uncorrected/               # EDA reports by tissue/correction
+│   └── models/                              # Trained models & predictions
+│       ├── CNN_model_2024-08-25.keras      # Saved models
+│       ├── predictions.csv                  # Model predictions
+│       └── shap_analysis/                   # SHAP interpretability results
+└── fruitfly_alzheimers/                     # Separate project outputs
+    └── [same structure as above]
+```
+
+### Key Output Files
+
+- **Training Results**: Model files, predictions, performance metrics
+- **Hyperparameter Reports**: Comprehensive analysis of why best parameters were selected
+- **Model Queue Reports**: Comparison across multiple model configurations
+- **EDA Reports**: Data quality and distribution analysis
+- **SHAP Analysis**: Model interpretability and feature importance
+
 ## Supported Projects
 
 - **Fruitfly Aging**: Healthy aging analysis in Drosophila head tissue
