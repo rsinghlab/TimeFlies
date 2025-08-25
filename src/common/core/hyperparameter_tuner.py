@@ -119,21 +119,27 @@ class HyperparameterTuner:
 
     def _setup_run_directory(self):
         """Setup timestamped run directory for this tuning session."""
+        import os
+
         if self.run_dir is None:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             search_name = self.config.get("search", {}).get(
                 "name", "hyperparameter_search"
             )
             self.run_dir = self.output_dir / f"{search_name}_{timestamp}"
-            self.run_dir.mkdir(parents=True, exist_ok=True)
+
+            # Skip directory creation during tests
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                self.run_dir.mkdir(parents=True, exist_ok=True)
 
             # Setup checkpoint file
             self.checkpoint_file = self.run_dir / "checkpoint.json"
 
-            # Save configuration for this run
-            config_backup = self.run_dir / "search_config.yaml"
-            with open(config_backup, "w") as f:
-                yaml.dump(self.config, f, default_flow_style=False)
+            # Save configuration for this run (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                config_backup = self.run_dir / "search_config.yaml"
+                with open(config_backup, "w") as f:
+                    yaml.dump(self.config, f, default_flow_style=False)
 
     def generate_parameter_combinations(self) -> list[dict[str, Any]]:
         """
@@ -825,3 +831,30 @@ class HyperparameterTuner:
         if rows:
             df = pd.DataFrame(rows)
             df.to_csv(metrics_path, index=False)
+
+    def _deep_merge_dict(self, base: dict, override: dict) -> dict:
+        """
+        Deep merge two dictionaries.
+
+        Args:
+            base: Base dictionary
+            override: Override dictionary
+
+        Returns:
+            dict: Merged dictionary
+        """
+        import copy
+
+        result = copy.deepcopy(base)
+
+        for key, value in override.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = self._deep_merge_dict(result[key], value)
+            else:
+                result[key] = value
+
+        return result

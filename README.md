@@ -88,11 +88,12 @@ outputs/
 │   │       ├── model_metrics.csv            # All models comparison
 │   │       └── individual_model_results/    # Links to experiment dirs
 │   ├── hyperparameter_tuning/               # Hyperparameter optimization
-│   │   └── search_2024-08-25_16-30-45/
+│   │   └── hyperparameter_search_2024-08-25_16-30-45/
 │   │       ├── hyperparameter_search_report.md  # Best trials & selection reasoning
-│   │       ├── hyperparameter_search_metrics.csv # All trials data
-│   │       ├── checkpoint.json              # Resume capability
-│   │       └── optuna_study.db              # Bayesian optimization history
+│   │       ├── hyperparameter_search_metrics.csv # All trials data for analysis
+│   │       ├── checkpoint.json              # Resume capability for interrupted searches
+│   │       ├── search_config.yaml           # Configuration backup for reproducibility
+│   │       └── optuna_study.db              # Bayesian optimization database (if using Optuna)
 │   └── eda/                                 # Exploratory data analysis
 │       └── head/uncorrected/                # EDA reports by tissue/correction
 └── fruitfly_alzheimers/                     # Separate project outputs
@@ -179,7 +180,6 @@ timeflies verify                              # System verification
 ```bash
 timeflies test [unit|integration|functional|system|all] [--coverage] [--verbose] [--fast] [--debug] [--rerun]
 timeflies create-test-data [--tier tiny|synthetic|real|all] [--cells N] [--genes N] [--batch-versions]
-timeflies update                              # Update TimeFlies to latest GitHub version
 ```
 
 ### System Updates
