@@ -71,8 +71,12 @@ class DataSetupManager:
         filename += ".h5ad"
         return filename
 
-    def setup_data(self):
-        """Perform complete data setup including downloading, splitting, and verification for all projects."""
+    def setup_data(self, force_split=False):
+        """Perform complete data setup including downloading, splitting, and verification for all projects.
+
+        Args:
+            force_split (bool): If True, re-create splits even if they already exist
+        """
 
         logger.info("Starting data setup process...")
 
@@ -104,7 +108,7 @@ class DataSetupManager:
                     continue
 
                 # Step 2: Perform stratified split
-                if not self.stratified_split():
+                if not self.stratified_split(force_split=force_split):
                     logger.warning(f"Stratified split failed for {project}")
                     continue
 
@@ -158,8 +162,12 @@ class DataSetupManager:
         project = getattr(self.config.data, "project", "fruitfly_aging")
         return self.download_data_for_project(project)
 
-    def stratified_split(self):
-        """Perform stratified splitting of the dataset."""
+    def stratified_split(self, force_split=False):
+        """Perform stratified splitting of the dataset.
+
+        Args:
+            force_split (bool): If True, re-create splits even if they already exist
+        """
 
         logger.info("Performing stratified split...")
 
@@ -176,9 +184,17 @@ class DataSetupManager:
         if not original_file.exists():
             raise FileNotFoundError(f"Original data file not found: {original_file}")
 
-        if train_file.exists() and eval_file.exists():
+        if train_file.exists() and eval_file.exists() and not force_split:
             logger.info("Split files already exist. Skipping stratified split.")
             return True
+        elif force_split and (train_file.exists() or eval_file.exists()):
+            logger.info("Force split enabled. Removing existing split files...")
+            if train_file.exists():
+                train_file.unlink()
+                logger.info(f"Removed: {train_file}")
+            if eval_file.exists():
+                eval_file.unlink()
+                logger.info(f"Removed: {eval_file}")
 
         # Load the original data
         logger.info(f"Loading data from: {original_file}")

@@ -9,6 +9,8 @@
 # - Existing splits are preserved unless split parameters change
 # - Batch-corrected files are verified for consistency (same cells/genes/order)
 # - Only missing files are created, existing files are verified
+# - Use --force-split to recreate splits with new parameters:
+#   timeflies setup --force-split    # Recreates train/eval splits, verifies batch files
 
 # Data splitting configuration
 train_test_split:
