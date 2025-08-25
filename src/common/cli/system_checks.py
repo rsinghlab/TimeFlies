@@ -80,7 +80,7 @@ def check_python_version() -> bool:
     print("-" * 30)
 
     current_version = sys.version_info
-    required_version = (3, 10)  # Updated to match pyproject.toml
+    required_version = (3, 12)  # Updated to match actual requirements
 
     if current_version >= required_version:
         print(

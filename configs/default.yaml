@@ -275,56 +275,7 @@ logging:
   filename: "timeflies.log"  # Log filename
 
 # =============================================================================
-# BATCH CORRECTION CONFIGURATION (scVI)
+# CONFIGURATION NOTES
 # =============================================================================
-batch_correction:
-  model:
-    n_latent: 25              # Latent space dimensions
-    n_hidden: 256             # Hidden layer size
-    n_layers: 2               # Number of layers
-    dropout_rate: 0.15        # Dropout rate
-
-  # Training parameters
-  training:
-    max_epochs: null          # null = early stopping
-    weight_decay: 1e-4        # Weight decay for regularization
-    plan_kwargs:
-      weight_decay: 1e-4
-
-  # Data processing
-  preprocessing:
-    batch_column: "dataset"              # Column containing batch information
-    label_column: "afca_annotation_broad" # Cell type annotation column
-    library_size: 1e4                    # Target library size for normalization
-
-  # Output settings
-  output:
-    scvi_latent_key: "X_scVI"            # Key for latent representations
-    scvi_normalized_key: "scvi_normalized" # Key for normalized data
-    save_intermediate: true               # Save intermediate results
-
-  # Evaluation settings
-  evaluation:
-    run_metrics: false        # Set to true to automatically run evaluation metrics
-    run_visualization: false # Set to true to automatically generate UMAPs
-    metrics_output_dir: "outputs/{project}/results/batch_correction"
-    umap_output_dir: "outputs/{project}/results/batch_correction/umaps"
-
-# =============================================================================
-# PYTORCH CONFIGURATION (for batch correction environment)
-# =============================================================================
-pytorch:
-  float32_matmul_precision: "medium"    # Options: "medium", "high", "highest"
-  dl_num_workers: -1                    # -1 = cpu_count() - 1
-  dl_pin_memory: true                   # Pin memory for faster GPU transfer
-  seed: 42                              # Random seed for reproducibility
-
-# =============================================================================
-# SETUP CONFIGURATION
-# =============================================================================
-setup:
-  train_test_split:
-    split_size: 5000          # Number of cells in evaluation set
-  sampling:
-    num_samples: null         # null = use all samples, or specify number
-    num_variables: null       # null = use all genes, or specify number
+# For batch correction settings, see: configs/batch_correction.yaml
+# For setup/splitting settings, see: configs/setup.yaml

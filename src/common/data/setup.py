@@ -184,9 +184,28 @@ class DataSetupManager:
         logger.info(f"Loading data from: {original_file}")
         adata = anndata.read_h5ad(original_file)
 
-        # Get stratification parameters
+        # Load setup configuration
+        setup_config_path = Path("configs/setup.yaml")
+        if setup_config_path.exists():
+            import yaml
+
+            with open(setup_config_path) as f:
+                setup_config = yaml.safe_load(f)
+
+            # Use setup.yaml for split configuration
+            split_size = setup_config.get("train_test_split", {}).get(
+                "split_size", 5000
+            )
+            logger.info(f"Using setup.yaml split_size: {split_size}")
+        else:
+            # Fallback to old config method
+            split_size = 5000
+            logger.warning(
+                "configs/setup.yaml not found, using default split_size: 5000"
+            )
+
+        # Get other parameters
         encoding_var = self.config.data.target_variable
-        test_split = getattr(self.config.data.split, "test_ratio", 0.1)
         random_state = getattr(self.config.general, "random_state", 42)
 
         # Perform stratified split
@@ -199,9 +218,22 @@ class DataSetupManager:
         labels = adata.obs[encoding_var].values
         indices = np.arange(len(labels))
 
+        # Calculate test_size based on split_size
+        total_samples = len(adata)
+        if split_size >= total_samples:
+            logger.warning(
+                f"Split size {split_size} >= total samples {total_samples}, using 20% split"
+            )
+            test_size = 0.2
+        else:
+            test_size = split_size / total_samples
+            logger.info(
+                f"Using test_size: {test_size:.4f} ({split_size}/{total_samples})"
+            )
+
         # Perform stratified split
         train_idx, eval_idx = train_test_split(
-            indices, test_size=test_split, stratify=labels, random_state=random_state
+            indices, test_size=test_size, stratify=labels, random_state=random_state
         )
 
         # Create and save splits
