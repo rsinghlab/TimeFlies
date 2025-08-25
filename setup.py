@@ -11,7 +11,7 @@ from setuptools import find_packages, setup
 
 # Read the contents of README file
 this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 # Read requirements from pyproject.toml
 with open("pyproject.toml", "rb") as f:
