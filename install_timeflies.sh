@@ -98,18 +98,17 @@ INSTALL_SUCCESS=false
 if command -v git >/dev/null 2>&1; then
     print_status "Downloading and installing TimeFlies..."
 
-    # Clone to hidden temporary directory for user install
-    if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_install_tmp >/dev/null 2>&1; then
+    # Clone to permanent directory for user install (needed for editable install)
+    if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
         print_status "Installing dependencies (this may take a few minutes)..."
-        if cd .timeflies_install_tmp && pip install -e . >/dev/null 2>&1; then
+        if cd .timeflies_src && pip install -e . >/dev/null 2>&1; then
             print_success "Installed TimeFlies successfully"
             cd ..
-            # Remove the temporary directory after successful install
-            rm -rf .timeflies_install_tmp
+            # Keep the source directory for editable install
             INSTALL_SUCCESS=true
         else
             cd .. 2>/dev/null || true
-            rm -rf .timeflies_install_tmp 2>/dev/null || true
+            rm -rf .timeflies_src 2>/dev/null || true
         fi
     fi
 fi
@@ -247,7 +246,7 @@ chmod +x .activate_batch.sh
 
 # Set Windows hidden attribute for WSL
 if grep -q microsoft /proc/version 2>/dev/null; then
-    attrib +h .venv .activate.sh .activate_batch.sh 2>/dev/null || true
+    attrib +h .venv .activate.sh .activate_batch.sh .timeflies_src .venv_batch 2>/dev/null || true
 fi
 
 # Test installation
@@ -260,7 +259,7 @@ fi
 
 # Create basic directory structure
 print_status "Setting up project structure..."
-mkdir -p data outputs
+mkdir -p data
 
 # Basic project structure (user mode only)
 
@@ -313,14 +312,10 @@ echo -e "${BLUE}2. Add your research data:${NC}"
 echo "   mkdir -p data/your_project/tissue_type"
 echo "   # Copy your *_original.h5ad files there"
 echo ""
-echo -e "${BLUE}3. Configure analysis:${NC}"
-echo "   nano configs/default.yaml  # Edit project settings"
+echo -e "${BLUE}3. Complete setup:${NC}"
+echo "   timeflies setup              # Creates config, templates, outputs, GUI launcher"
 echo ""
-echo -e "${BLUE}4. Verify installation:${NC}"
-echo "   timeflies verify"
-echo ""
-echo -e "${BLUE}5. Run analysis workflow:${NC}"
-echo "   timeflies setup              # Split data + verify + create directories"
+echo -e "${BLUE}4. Run analysis workflow:${NC}"
 echo "   timeflies train              # Train models with auto-evaluation"
 echo "   timeflies evaluate           # Evaluate models on test data"
 echo "   timeflies analyze            # Project-specific analysis scripts"
@@ -331,6 +326,9 @@ echo ""
 echo -e "${YELLOW}📓 For Jupyter analysis:${NC}"
 echo "   pip install jupyter"
 echo "   jupyter notebook docs/notebooks/analysis.ipynb"
+echo ""
+echo -e "${GREEN}🖥️ For GUI Interface (after setup):${NC}"
+echo "   python TimeFlies_Launcher.py  # Graphical interface"
 echo ""
 echo -e "${GREEN}🛠️ For Developers:${NC}"
 echo "   git clone https://github.com/rsinghlab/TimeFlies.git"
