@@ -11,11 +11,12 @@ n_trials: 20  # For random/bayesian search (ignored for grid)
 optimization_metric: "accuracy"  # Options: "accuracy", "f1_score", "precision", "recall", "roc_auc"
 
 # Speed up hyperparameter search with reduced dataset and disabled features
+# To disable optimizations entirely: remove this section or set values to null
 search_optimizations:
   data:
     sampling:
-      samples: 1000    # Use subset for faster trials
-      variables: 500   # Use top 500 genes for speed
+      samples: 1000    # Use subset for faster trials (null = use all samples)
+      variables: 500   # Use top 500 genes for speed (null = use all genes)
   with_eda: false      # Skip EDA during search
   with_analysis: false # Skip analysis during search
   interpret: false     # Skip SHAP during search
