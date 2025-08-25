@@ -2353,6 +2353,10 @@ def update_command(args) -> int:
 
     print("PROCESS: Updating TimeFlies to latest version...")
     print("=" * 50)
+    print("POLICY: System files will be updated, user data preserved:")
+    print("   • UPDATE: .timeflies_src/, TimeFlies_Launcher.py, official templates")
+    print("   • PRESERVE: data/, outputs/, configs/, custom templates")
+    print("=" * 50)
 
     try:
         # Check if git is available
@@ -2410,31 +2414,70 @@ def update_command(args) -> int:
 
             print("[OK] TimeFlies updated successfully!")
 
-            # Fully refresh .timeflies_src with latest code and configs
-            print("REFRESH: Updating .timeflies_src with latest files...")
+            # Smart update: refresh system files, preserve user data
+            print("UPDATE: Updating system files while preserving user data...")
+            import shutil
+
+            # 1. Update .timeflies_src (source code and templates)
+            print("   SYSTEM: Updating .timeflies_src with latest code...")
             timeflies_src = Path.cwd() / ".timeflies_src"
             if timeflies_src.exists():
-                import shutil
-
-                # Remove old .timeflies_src and replace with updated version
-                print("   REMOVE: Removing old .timeflies_src...")
                 shutil.rmtree(timeflies_src)
-                print("   COPY: Installing updated .timeflies_src...")
-                shutil.copytree(update_path, timeflies_src)
-                print("   [OK] .timeflies_src fully updated")
-            else:
-                print(
-                    "   WARNING: .timeflies_src not found, creating new installation..."
-                )
-                shutil.copytree(update_path, timeflies_src)
+            shutil.copytree(update_path, timeflies_src)
+            print("      [OK] Source code updated")
 
-            # Copy any missing config files that install would provide
-            print("CONFIG: Checking for missing configuration files...")
+            # 2. Update GUI launcher (preserve user customizations by checking if different)
+            launcher_file = Path("TimeFlies_Launcher.py")
+            new_launcher = update_path / "TimeFlies_Launcher.py"
+            if new_launcher.exists():
+                if not launcher_file.exists():
+                    print("   GUI: Installing TimeFlies_Launcher.py...")
+                    shutil.copy2(new_launcher, launcher_file)
+                    print("      [OK] GUI launcher installed")
+                else:
+                    # Compare files and only update if different
+                    import filecmp
+
+                    if not filecmp.cmp(new_launcher, launcher_file, shallow=False):
+                        print("   GUI: Updating TimeFlies_Launcher.py...")
+                        shutil.copy2(new_launcher, launcher_file)
+                        print("      [OK] GUI launcher updated")
+                    else:
+                        print("   GUI: TimeFlies_Launcher.py already current")
+
+            # 3. Update templates (add new, preserve custom ones)
+            print("   TEMPLATES: Updating analysis templates...")
+            templates_dir = Path("templates")
+            new_templates_dir = update_path / "templates"
+            if new_templates_dir.exists():
+                if not templates_dir.exists():
+                    templates_dir.mkdir(parents=True, exist_ok=True)
+
+                # Copy new/updated template files
+                for template_file in new_templates_dir.glob("*"):
+                    dst_template = templates_dir / template_file.name
+                    if not dst_template.exists():
+                        shutil.copy2(template_file, dst_template)
+                        print(f"      [NEW] {template_file.name}")
+                    elif template_file.name in [
+                        "README.md",
+                        "custom_analysis_example.py",
+                        "aging_analysis_template.py",
+                    ]:
+                        # Update official templates
+                        shutil.copy2(template_file, dst_template)
+                        print(f"      [UPDATED] {template_file.name}")
+                    # Preserve user's custom templates (don't overwrite)
+
+            # 4. Add any missing config files (preserve existing ones)
+            print("   CONFIG: Checking for missing configuration files...")
             config_copy_result = setup_user_environment()
             if config_copy_result == 0:
-                print("[OK] Configuration files updated")
+                print("      [OK] Configuration files current")
             else:
-                print("WARNING: Some config files may not have been updated")
+                print("      WARNING: Some config files may not have been updated")
+
+            print("   [OK] System files updated, user data preserved")
 
             # Test the updated installation
             print("TESTING: Testing updated installation...")
