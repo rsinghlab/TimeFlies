@@ -181,6 +181,7 @@ Transcriptomics aging research computational tool - Updated August 2024
 - Code must pass all linting and type checking
 - Breaking changes require migration guides
 - Performance regressions are not acceptable
+- Remove Emojis unless needed.
 
 ---
 

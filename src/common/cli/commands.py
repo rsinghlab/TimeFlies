@@ -1991,6 +1991,32 @@ def setup_user_environment():
         else:
             print("   DOC: templates/ directory already exists")
 
+        # Copy TimeFlies GUI Launcher
+        launcher_file = Path("TimeFlies_Launcher.py")
+        if not launcher_file.exists():
+            print("   GUI: Setting up TimeFlies GUI Launcher...")
+            # Find source launcher from TimeFlies installation
+            source_launchers = [
+                Path(__file__).parent.parent.parent.parent
+                / "TimeFlies_Launcher.py",  # repo structure
+                Path(__file__).parent.parent.parent
+                / "TimeFlies_Launcher.py",  # installed structure
+            ]
+
+            for source_launcher in source_launchers:
+                if source_launcher.exists():
+                    shutil.copy2(source_launcher, launcher_file)
+                    print("      [OK] TimeFlies GUI Launcher available")
+                    print(
+                        "      INFO: Run 'python TimeFlies_Launcher.py' for graphical interface"
+                    )
+                    break
+            else:
+                print("      WARNING: Could not find GUI launcher")
+                print("      INFO: Use command-line interface instead")
+        else:
+            print("   GUI: TimeFlies_Launcher.py already exists")
+
         return 0
 
     except Exception as e:
