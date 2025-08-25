@@ -126,6 +126,8 @@ def execute_command(args) -> bool:
             return tune_command(args) == 0
         elif args.command == "queue":
             return queue_command(args) == 0
+        elif args.command == "gui":
+            return gui_command(args) == 0
         else:
             print(f"Unknown command: {args.command}")
             return False
@@ -2770,28 +2772,17 @@ def update_command(args) -> int:
             except Exception as e:
                 print(f"   [WARNING] Could not update dependencies: {e}")
 
-            # Check for GUI support (tkinter)
-            print("GUI: Checking GUI support (tkinter)...")
+            # Check for web GUI support
+            print("GUI: Checking web GUI support...")
             try:
-                import tkinter
+                import gradio
 
-                print("   [OK] GUI support available")
+                print(f"   ✅ Web GUI available (gradio {gradio.__version__})")
+                print("   Run: timeflies gui")
             except ImportError:
-                print("   [WARNING] GUI support (tkinter) not installed")
-                print("   To enable GUI support, install tkinter:")
-                import platform
-
-                if platform.system() == "Linux":
-                    print("      Ubuntu/Debian: sudo apt install python3-tk")
-                    print("      RHEL/CentOS:   sudo yum install python3-tkinter")
-                    print("      Arch:          sudo pacman -S tk")
-                elif platform.system() == "Darwin":
-                    print("      macOS: tkinter should be included with Python")
-                    print("      If missing: brew install python-tk")
-                elif platform.system() == "Windows":
-                    print("      Windows: tkinter should be included with Python")
-                print("   Note: TimeFlies CLI works fully without GUI support")
-                print("   GUI launcher (TimeFlies_Launcher.py) requires tkinter")
+                print("   ℹ️  Web GUI not available (gradio not installed)")
+                print("   GUI functionality included in TimeFlies installation")
+                print("   Note: TimeFlies CLI works fully without GUI")
 
             # Test the updated installation
             print("TESTING: Testing updated installation...")
@@ -2812,4 +2803,41 @@ def update_command(args) -> int:
 
     except Exception as e:
         print(f"[ERROR] Update failed: {e}")
+        return 1
+
+
+def gui_command(args) -> int:
+    """Launch web-based graphical user interface."""
+    try:
+        from common.gui.gradio_launcher import launch_gui
+
+        print("🚀 Starting TimeFlies Web GUI...")
+        print(f"📍 Will launch at: http://{args.host}:{args.port}")
+
+        if args.share:
+            print("🌐 Creating public URL for remote access...")
+            print("⚠️  WARNING: Public URLs can be accessed by anyone!")
+
+        print("💡 Press Ctrl+C to stop the GUI server")
+        print()
+
+        launch_gui(
+            server_name=args.host,
+            server_port=args.port,
+            share=args.share,
+            debug=args.debug,
+        )
+
+        return 0
+
+    except ImportError as e:
+        print(f"❌ Error importing GUI modules: {e}")
+        print("💡 Make sure gradio is installed: pip install gradio>=4.0.0")
+        return 1
+    except KeyboardInterrupt:
+        print("\n✅ GUI server stopped by user")
+        return 0
+    except Exception as e:
+        print(f"❌ Failed to start GUI: {e}")
+        print("💡 Make sure you're in the TimeFlies virtual environment")
         return 1

@@ -30,6 +30,9 @@ source .activate.sh
 # Complete setup workflow (customize configs/setup.yaml first)
 timeflies setup [--batch-correct]
 
+# Web-based GUI (recommended for beginners)
+timeflies gui
+
 # Batch correction (automatic environment switching)
 timeflies batch-correct
 
@@ -49,20 +52,23 @@ timeflies tune [--no-resume]
 timeflies analyze
 ```
 
-**Graphical User Interface (Alternative):**
-For users who prefer a GUI, run `python TimeFlies_Launcher.py` to open a user-friendly graphical interface with:
-- Installation wizard with progress tracking
-- Point-and-click analysis workflow
-- Batch correction tab with automatic environment switching
-- Configuration editing (project, tissue, model settings)
-- Hyperparameter tuning interface
-- Results browser and visualization tools
-- Built-in help and documentation
+**Web-Based GUI (Recommended):**
+For users who prefer a graphical interface, run `timeflies gui` to launch a modern web-based interface:
+- **Works everywhere:** Any browser, any OS, no system dependencies
+- **Point-and-click workflow:** Setup, training, batch correction, hyperparameter tuning
+- **Real-time progress:** Live updates and comprehensive logging
+- **Remote access:** Can be accessed from other devices (with --share flag)
+- **Mobile-friendly:** Works on tablets and smartphones
+- **Automatic environment handling:** Seamlessly manages virtual environments
 
-**GUI Requirements:** The GUI requires tkinter (automatically checked during `timeflies update`).
-If missing, install with: `sudo apt install python3-tk` (Ubuntu/Debian) or equivalent for your OS.
+**Usage:**
+```bash
+timeflies gui                    # Launch on http://localhost:7860
+timeflies gui --port 8080        # Use different port
+timeflies gui --share            # Create public URL (use with caution)
+```
 
-Both CLI and GUI interfaces provide identical functionality - choose what works best for you.
+Both CLI and web GUI provide identical functionality - choose what works best for you.
 
 ## Configuration Files
 
