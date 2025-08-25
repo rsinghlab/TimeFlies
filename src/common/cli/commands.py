@@ -572,9 +572,9 @@ def new_setup_command(args) -> int:
 
     dev_mode = hasattr(args, "dev") and args.dev
     verify_result = verify_system(dev_mode=dev_mode)
-    if verify_result != 0:
+    if not verify_result:  # verify_system returns True/False, not 0/1
         print("[ERROR] System verification failed. Please fix issues above.")
-        return verify_result
+        return 1
 
     print("\nSUCCESS: SETUP COMPLETE!")
     print("=" * 50)

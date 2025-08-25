@@ -259,11 +259,22 @@ def check_data_availability() -> bool:
                 train_files = list(tissue_dir.glob("*_train.h5ad"))
                 eval_files = list(tissue_dir.glob("*_eval.h5ad"))
 
+                # Check for batch-corrected files
+                batch_original_files = list(tissue_dir.glob("*_original_batch.h5ad"))
+                batch_train_files = list(tissue_dir.glob("*_train_batch.h5ad"))
+                batch_eval_files = list(tissue_dir.glob("*_eval_batch.h5ad"))
+
                 if original_files and train_files and eval_files:
                     print(
                         f"   ✅ Data splits ready (original: {len(original_files)}, train: {len(train_files)}, eval: {len(eval_files)})"
                     )
                     splits_found = True
+
+                    # Show batch-corrected files if they exist
+                    if batch_original_files and batch_train_files and batch_eval_files:
+                        print(
+                            f"   ✅ Batch-corrected splits available (original: {len(batch_original_files)}, train: {len(batch_train_files)}, eval: {len(batch_eval_files)})"
+                        )
                 elif original_files:
                     print(
                         "   ⚠️  Data not split yet - run 'timeflies setup' or 'timeflies split'"
@@ -272,6 +283,29 @@ def check_data_availability() -> bool:
                     print(
                         "   ⚠️  No *_original.h5ad files found - add your source data first"
                     )
+
+                # Check for unexpected files
+                expected_patterns = [
+                    "*_original.h5ad",
+                    "*_train.h5ad",
+                    "*_eval.h5ad",
+                    "*_original_batch.h5ad",
+                    "*_train_batch.h5ad",
+                    "*_eval_batch.h5ad",
+                    "*.csv",
+                ]  # Allow CSV files like autosomal.csv, sex.csv
+                expected_files = set()
+                for pattern in expected_patterns:
+                    expected_files.update([f.name for f in tissue_dir.glob(pattern)])
+
+                all_files = set([f.name for f in tissue_dir.glob("*") if f.is_file()])
+                unexpected_files = all_files - expected_files
+
+                if unexpected_files:
+                    print(
+                        f"   ⚠️  Additional files found: {', '.join(sorted(unexpected_files))}"
+                    )
+                    print("      Please verify these files are needed")
 
     if not data_found:
         print("⚠️  No H5AD data files found")
