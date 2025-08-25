@@ -130,10 +130,20 @@ User Workflow:
         action="store_true",
         help="Developer setup: only create environments (.venv and .venv_batch)",
     )
+    setup_parser.add_argument(
+        "--force-split",
+        action="store_true",
+        help="Force recreate data splits even if they already exist",
+    )
 
     # Split command (create train/eval data splits)
-    subparsers.add_parser(
+    split_parser = subparsers.add_parser(
         "split", help="Create train/eval data splits from your original data"
+    )
+    split_parser.add_argument(
+        "--force-split",
+        action="store_true",
+        help="Force recreate data splits even if they already exist",
     )
 
     # Verify command (system setup verification)
