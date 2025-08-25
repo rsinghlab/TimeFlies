@@ -20,3 +20,14 @@ sampling:
 directories:
   create_batch_corrected: true    # Create batch-corrected output directories
   create_project_dirs: true       # Create project-specific directories
+
+# Project-specific overrides (optional)
+# Override settings for specific data folder names
+project_overrides:
+  # Example: Different stratification for different datasets
+  # fruitfly_alzheimers:
+  #   stratify_by: ["age", "genotype"]
+  #   split_size: 3000
+  # my_custom_project:
+  #   stratify_by: ["timepoint", "condition"]
+  #   fallback_ratio: 0.15
