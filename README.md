@@ -34,6 +34,9 @@ timeflies train [--with-eda --with-analysis]
 # Evaluate trained models
 timeflies evaluate [--with-eda --with-analysis]
 
+# Automated multi-model training queue
+timeflies queue [configs/model_queue.yaml] [--no-resume]
+
 # Run project-specific analysis
 timeflies analyze
 ```
@@ -89,6 +92,18 @@ Both interfaces provide identical functionality - choose what works best for you
 - **Comprehensive Reports**: Markdown summaries and CSV exports for model comparison
 - **Flexible Preprocessing**: Different batch correction, filtering, and splitting methods per model
 
+## Documentation
+
+### Comprehensive Guides
+- **[Model Queue System Guide](docs/model_queue_guide.md)** - Complete guide for automated multi-model training
+- **[Analysis Templates Guide](templates/README.md)** - Custom analysis script templates and examples
+- **[Development Roadmap](docs/timeflies_todo.md)** - Current development status and future plans
+
+### Quick Links
+- **Templates**: Pre-built analysis scripts in `templates/` directory
+- **Configuration**: YAML examples in `configs/` directory
+- **Test Data**: 3-tier test fixtures in `tests/fixtures/`
+
 ## Commands Reference
 
 **All 12 CLI commands with their full options:**
@@ -99,7 +114,7 @@ timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
 timeflies train [--with-eda] [--with-analysis] # Train models
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
-timeflies queue configs/model_queue.yaml [--no-resume] # Automated multi-model training with progress tracking
+timeflies queue [configs/model_queue.yaml] [--no-resume] # Automated multi-model training queue (see docs/model_queue_guide.md)
 ```
 
 ### Data & Analysis Commands
@@ -195,7 +210,7 @@ timeflies analyze --analysis-script templates/my_analysis.py
 Available templates:
 - `templates/custom_analysis_example.py` - Basic template with all features
 - `templates/aging_analysis_template.py` - Aging-specific analysis patterns
-- `templates/README.md` - Full documentation and examples
+- **[templates/README.md](templates/README.md)** - Full documentation and examples
 
 ## Development
 
