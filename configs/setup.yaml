@@ -22,12 +22,13 @@ directories:
   create_project_dirs: true       # Create project-specific directories
 
 # Project-specific overrides (optional)
-# Override settings for specific data folder names
+# Override settings for specific data folder names found in data/
+# The project name must match your data/ folder structure: data/[project_name]/[tissue]/
 project_overrides:
   # Example: Different stratification for different datasets
-  # fruitfly_alzheimers:
+  # fruitfly_alzheimers:          # Matches data/fruitfly_alzheimers/ folder
   #   stratify_by: ["age", "genotype"]
   #   split_size: 3000
-  # my_custom_project:
+  # my_custom_project:            # Would match data/my_custom_project/ folder
   #   stratify_by: ["timepoint", "condition"]
   #   fallback_ratio: 0.15
