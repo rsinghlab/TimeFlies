@@ -2739,58 +2739,59 @@ def update_command(args) -> int:
 
             print("   [OK] System files updated, user data preserved")
 
-            # Update batch environment dependencies if it exists
-            batch_env_path = Path(".venv_batch")
-            if batch_env_path.exists():
-                print("BATCH: Updating batch correction environment...")
-                batch_python = batch_env_path / "bin" / "python3"
-                batch_pip = batch_env_path / "bin" / "pip"
+            # Update dependencies by running install script dependency sections
+            print("DEPENDENCIES: Updating environment dependencies...")
+            print("   Running dependency installation from install script...")
 
-                if batch_python.exists() and batch_pip.exists():
-                    try:
-                        # Update core batch correction dependencies
-                        print("   Updating scVI and batch correction dependencies...")
-                        batch_deps = [
-                            "torch",
-                            "torchvision",
-                            "torchaudio",
-                            "--index-url",
-                            "https://download.pytorch.org/whl/cpu",
-                            "scvi-tools",
-                            "scanpy",
-                            "pandas",
-                            "numpy",
-                            "matplotlib",
-                            "seaborn",
-                            "scib",
-                            "shap",
-                        ]
+            try:
+                install_script = Path(".timeflies_src/install_timeflies.sh")
+                if install_script.exists():
+                    # Run install script with a flag to only install dependencies
+                    env = os.environ.copy()
+                    env["TIMEFLIES_UPDATE_DEPS_ONLY"] = "1"
 
-                        result = subprocess.run(
-                            [str(batch_pip), "install", "--upgrade"] + batch_deps,
-                            capture_output=True,
-                            text=True,
-                            timeout=300,
-                        )
+                    result = subprocess.run(
+                        ["bash", str(install_script)],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=600,
+                    )
 
-                        if result.returncode == 0:
-                            print("   [OK] Batch environment dependencies updated")
-                        else:
-                            print(
-                                "   [WARNING] Some batch dependencies may not have updated"
-                            )
-                            print(f"   Error: {result.stderr[:200]}...")
-
-                    except subprocess.TimeoutExpired:
-                        print("   [WARNING] Batch dependency update timed out")
-                    except Exception as e:
-                        print(f"   [WARNING] Batch dependency update failed: {e}")
+                    if result.returncode == 0:
+                        print("   [OK] Dependencies updated from install script")
+                    else:
+                        print("   [WARNING] Dependency update had some issues")
+                        if result.stderr:
+                            print(f"   Details: {result.stderr[:200]}...")
                 else:
-                    print("   [WARNING] Batch environment python/pip not found")
-            else:
-                print(
-                    "   No batch environment found - skipping batch dependency updates"
-                )
+                    print("   [WARNING] Install script not found")
+                    print("   Skipping dependency updates")
+            except Exception as e:
+                print(f"   [WARNING] Could not update dependencies: {e}")
+
+            # Check for GUI support (tkinter)
+            print("GUI: Checking GUI support (tkinter)...")
+            try:
+                import tkinter
+
+                print("   [OK] GUI support available")
+            except ImportError:
+                print("   [WARNING] GUI support (tkinter) not installed")
+                print("   To enable GUI support, install tkinter:")
+                import platform
+
+                if platform.system() == "Linux":
+                    print("      Ubuntu/Debian: sudo apt install python3-tk")
+                    print("      RHEL/CentOS:   sudo yum install python3-tkinter")
+                    print("      Arch:          sudo pacman -S tk")
+                elif platform.system() == "Darwin":
+                    print("      macOS: tkinter should be included with Python")
+                    print("      If missing: brew install python-tk")
+                elif platform.system() == "Windows":
+                    print("      Windows: tkinter should be included with Python")
+                print("   Note: TimeFlies CLI works fully without GUI support")
+                print("   GUI launcher (TimeFlies_Launcher.py) requires tkinter")
 
             # Test the updated installation
             print("TESTING: Testing updated installation...")
