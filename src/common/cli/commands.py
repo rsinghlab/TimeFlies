@@ -2790,7 +2790,42 @@ def update_command(args) -> int:
 def gui_command(args) -> int:
     """Launch web-based graphical user interface."""
     try:
-        from common.gui.gradio_launcher import launch_gui
+        # Try multiple import strategies for different installation methods
+        launch_gui = None
+
+        # Strategy 1: Direct import (works for most cases)
+        try:
+            from common.gui.gradio_launcher import launch_gui
+        except ImportError:
+            # Strategy 2: Add source directory to path for editable installs
+            import sys
+            from pathlib import Path
+
+            # Find TimeFlies source directory
+            timeflies_src = None
+            current_dir = Path.cwd()
+
+            # Check common locations
+            possible_locations = [
+                current_dir / ".timeflies_src" / "src",
+                current_dir / "src",
+                Path(__file__).parent.parent.parent,  # Up from cli/commands.py
+            ]
+
+            for src_path in possible_locations:
+                if (src_path / "common" / "gui" / "gradio_launcher.py").exists():
+                    timeflies_src = str(src_path)
+                    break
+
+            if timeflies_src and timeflies_src not in sys.path:
+                sys.path.insert(0, timeflies_src)
+                try:
+                    from common.gui.gradio_launcher import launch_gui
+                except ImportError:
+                    pass
+
+        if launch_gui is None:
+            raise ImportError("Could not import GUI launcher from any location")
 
         print("🚀 Starting TimeFlies Web GUI...")
         print(f"📍 Will launch at: http://{args.host}:{args.port}")
@@ -2813,7 +2848,10 @@ def gui_command(args) -> int:
 
     except ImportError as e:
         print(f"❌ Error importing GUI modules: {e}")
-        print("💡 Make sure gradio is installed: pip install gradio>=4.0.0")
+        print("💡 Solutions:")
+        print("   1. Make sure gradio is installed: pip install gradio>=4.0.0")
+        print("   2. Try: timeflies update  # Updates dependencies")
+        print("   3. Make sure you're in TimeFlies directory with .timeflies_src/")
         return 1
     except KeyboardInterrupt:
         print("\n✅ GUI server stopped by user")
