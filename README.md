@@ -53,11 +53,16 @@ timeflies analyze
 For users who prefer a GUI, run `python TimeFlies_Launcher.py` to open a user-friendly graphical interface with:
 - Installation wizard with progress tracking
 - Point-and-click analysis workflow
+- Batch correction tab with automatic environment switching
 - Configuration editing (project, tissue, model settings)
+- Hyperparameter tuning interface
 - Results browser and visualization tools
 - Built-in help and documentation
 
-Both interfaces provide identical functionality - choose what works best for you.
+**GUI Requirements:** The GUI requires tkinter (automatically checked during `timeflies update`).
+If missing, install with: `sudo apt install python3-tk` (Ubuntu/Debian) or equivalent for your OS.
+
+Both CLI and GUI interfaces provide identical functionality - choose what works best for you.
 
 ## Configuration Files
 
