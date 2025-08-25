@@ -1938,7 +1938,7 @@ def create_project_directories():
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def setup_user_environment(skip_gui_check=False):
+def setup_user_environment(skip_gui_check=False, quiet_mode=False):
     """Create user configuration and templates."""
     import shutil
     from pathlib import Path
@@ -1953,7 +1953,8 @@ def setup_user_environment(skip_gui_check=False):
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
                 configs_dir.mkdir(parents=True, exist_ok=True)
         else:
-            print("   CONFIG: configs/ directory already exists")
+            if not quiet_mode:
+                print("   CONFIG: configs/ directory already exists")
 
         # Find source configs from TimeFlies installation
         source_configs_dirs = [
@@ -1993,7 +1994,8 @@ def setup_user_environment(skip_gui_check=False):
                 print("      [ERROR] Could not find default config templates")
                 return 1
         else:
-            print("   CONFIG: All required config files present")
+            if not quiet_mode:
+                print("   CONFIG: All required config files present")
 
         # Remove any old config.yaml in root - we now use configs/ directory
         root_config = Path("config.yaml")
@@ -2038,7 +2040,8 @@ def setup_user_environment(skip_gui_check=False):
                     "      INFO:  You can create custom analysis scripts in templates/ manually"
                 )
         else:
-            print("   DOC: templates/ directory already exists")
+            if not quiet_mode:
+                print("   DOC: templates/ directory already exists")
 
         # Copy TimeFlies GUI Launcher (skip during updates)
         if not skip_gui_check:
@@ -2523,6 +2526,7 @@ def update_command(args) -> int:
             new_configs_dir = update_path / "configs"
 
             if configs_dir.exists() and new_configs_dir.exists():
+                print("      Comparing user configs with official versions...")
                 backup_needed = []
                 for config_file in [
                     "default.yaml",
@@ -2545,7 +2549,30 @@ def update_command(args) -> int:
                                 new_content = f2.read()
 
                             if user_content != new_content:
+                                # Debug: Show first difference for troubleshooting
+                                import difflib
+
+                                diff_lines = list(
+                                    difflib.unified_diff(
+                                        user_content.splitlines(),
+                                        new_content.splitlines(),
+                                        fromfile=f"user/{config_file}",
+                                        tofile=f"official/{config_file}",
+                                        lineterm="",
+                                        n=3,
+                                    )
+                                )
+                                if diff_lines:
+                                    print(
+                                        f"      DIFF detected in {config_file} (showing first few lines):"
+                                    )
+                                    for line in diff_lines[
+                                        :10
+                                    ]:  # Show first 10 diff lines
+                                        print(f"         {line}")
                                 backup_needed.append(config_file)
+                            else:
+                                print(f"      ✅ {config_file} unchanged")
                         except Exception:
                             # Fallback to filecmp if reading fails
                             import filecmp
@@ -2574,7 +2601,9 @@ def update_command(args) -> int:
                         )
 
             # Then ensure all required configs exist (add missing only)
-            config_copy_result = setup_user_environment(skip_gui_check=True)
+            config_copy_result = setup_user_environment(
+                skip_gui_check=True, quiet_mode=True
+            )
             if config_copy_result == 0:
                 print("      [OK] Configuration files verified and updated")
             else:
