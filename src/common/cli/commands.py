@@ -1962,12 +1962,15 @@ def setup_user_environment():
         else:
             print("   CONFIG: configs/ directory already exists")
 
-        # Also create config.yaml symlink/copy in root for compatibility
+        # Remove any old config.yaml in root - we now use configs/ directory
         root_config = Path("config.yaml")
-        default_config = configs_dir / "default.yaml"
-        if not root_config.exists() and default_config.exists():
-            print("   INFO: Creating config.yaml -> configs/default.yaml")
-            shutil.copy2(default_config, root_config)
+        if root_config.exists():
+            print("   CLEANUP: Moving old config.yaml to configs/user_config.yaml")
+            user_config = configs_dir / "user_config.yaml"
+            if not user_config.exists():
+                shutil.move(root_config, user_config)
+            else:
+                root_config.unlink()  # Remove if user_config already exists
 
         # Create templates directory if it doesn't exist
         templates_dir = Path("templates")

@@ -1,0 +1,19 @@
+# =============================================================================
+# TIMEFLIES SETUP CONFIGURATION
+# =============================================================================
+# Configuration for data splitting and sampling during initial setup.
+# Users can customize these settings before running 'timeflies setup'.
+
+# Data splitting configuration
+train_test_split:
+  split_size: 5000          # Number of cells in evaluation set
+
+# Sampling configuration
+sampling:
+  num_samples: null         # null = use all samples, or specify number
+  num_variables: null       # null = use all genes, or specify number
+
+# Directory structure
+directories:
+  create_batch_corrected: true    # Create batch-corrected output directories
+  create_project_dirs: true       # Create project-specific directories
