@@ -193,38 +193,54 @@ class DataSetupManager:
                 setup_config = yaml.safe_load(f)
 
             # Use setup.yaml for split configuration
-            split_size = setup_config.get("train_test_split", {}).get(
-                "split_size", 5000
+            split_config = setup_config.get("train_test_split", {})
+            split_size = split_config.get("split_size", 5000)
+            stratify_by = split_config.get("stratify_by", ["age"])
+            # Handle both string and list format
+            if isinstance(stratify_by, str):
+                stratify_by = [stratify_by]
+            fallback_ratio = split_config.get("fallback_ratio", 0.2)
+            random_state = split_config.get("random_state", 42)
+            logger.info(
+                f"Using setup.yaml: split_size={split_size}, stratify_by={stratify_by}"
             )
-            logger.info(f"Using setup.yaml split_size: {split_size}")
         else:
-            # Fallback to old config method
+            # Fallback to defaults
             split_size = 5000
-            logger.warning(
-                "configs/setup.yaml not found, using default split_size: 5000"
-            )
-
-        # Get other parameters
-        encoding_var = self.config.data.target_variable
-        random_state = getattr(self.config.general, "random_state", 42)
+            stratify_by = ["age"]
+            fallback_ratio = 0.2
+            random_state = 42
+            logger.warning("configs/setup.yaml not found, using defaults")
 
         # Perform stratified split
         from sklearn.model_selection import train_test_split
 
         # Get stratification labels
-        if encoding_var not in adata.obs.columns:
-            raise ValueError(f"Encoding variable '{encoding_var}' not found in data.")
+        missing_cols = [col for col in stratify_by if col not in adata.obs.columns]
+        if missing_cols:
+            raise ValueError(
+                f"Stratification columns not found in data: {missing_cols}"
+            )
 
-        labels = adata.obs[encoding_var].values
+        # Create composite stratification labels if multiple columns
+        if len(stratify_by) == 1:
+            labels = adata.obs[stratify_by[0]].values
+        else:
+            # Combine multiple columns for stratification
+            labels = (
+                adata.obs[stratify_by]
+                .apply(lambda x: "_".join(x.astype(str)), axis=1)
+                .values
+            )
         indices = np.arange(len(labels))
 
         # Calculate test_size based on split_size
         total_samples = len(adata)
         if split_size >= total_samples:
             logger.warning(
-                f"Split size {split_size} >= total samples {total_samples}, using 20% split"
+                f"Split size {split_size} >= total samples {total_samples}, using fallback ratio {fallback_ratio}"
             )
-            test_size = 0.2
+            test_size = fallback_ratio
         else:
             test_size = split_size / total_samples
             logger.info(
