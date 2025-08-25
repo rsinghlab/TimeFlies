@@ -76,6 +76,7 @@ Transcriptomics aging research computational tool - Updated August 2024
   - Ensure consistent error handling patterns
   - Optimize memory usage for large datasets
   - Performance profiling and optimization
+  - Improve testing naming
 
 ### Advanced Features
 
@@ -116,7 +117,6 @@ Transcriptomics aging research computational tool - Updated August 2024
 - [ ] **User Documentation**
   - Create step-by-step tutorials for common research workflows
   - Add troubleshooting guide for common issues
-  - Video tutorials for GUI usage
   - API documentation with Sphinx
 
 - [ ] **Developer Documentation**
@@ -164,7 +164,7 @@ Transcriptomics aging research computational tool - Updated August 2024
 - ✅ **Documentation**: Complete user and developer guides
 
 ### Technology Stack
-- **Core**: Python 3.10+, TensorFlow/Keras, scikit-learn
+- **Core**: Python 3.12+, TensorFlow/Keras, scikit-learn
 - **Optimization**: Optuna for Bayesian hyperparameter tuning
 - **Data**: AnnData, pandas, NumPy for single-cell data handling
 - **Visualization**: matplotlib, seaborn for analysis plots
@@ -187,5 +187,5 @@ Transcriptomics aging research computational tool - Updated August 2024
 
 ---
 
-**Last Updated**: August 2024
+**Last Updated**: August 2025
 **Next Review**: After research publication milestones
