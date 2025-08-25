@@ -903,16 +903,45 @@ def train_command(args, config) -> int:
 def batch_command(args) -> int:
     """Run batch correction pipeline."""
     if not BATCH_CORRECTION_AVAILABLE:
-        print("Error: Cannot perform batch correction.")
-        print("The scVI dependencies are not installed in this environment.")
-        print(
-            "To perform batch correction, install: pip install scvi-tools scanpy scib"
-        )
-        print("Note: You can still use existing batch-corrected data files.")
-        print(
-            "Make sure you're in the batch correction environment: source activate_batch.sh"
-        )
-        return 1
+        print("🔄 Batch correction requires switching to the batch environment...")
+        print("   Detecting current environment and switching automatically...")
+
+        # Try to auto-switch to batch correction environment
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        # Check if we're in TimeFlies directory and have batch environment
+        timeflies_dir = Path.cwd()
+        batch_env = timeflies_dir / ".venv_batch"
+
+        if not batch_env.exists():
+            print("❌ Batch correction environment not found (.venv_batch)")
+            print("   Please run 'timeflies setup --dev' to create batch environment")
+            return 1
+
+        print("✅ Found batch environment, switching and re-executing...")
+
+        # Re-execute the command in the batch environment
+        batch_python = batch_env / "bin" / "python3"
+        if not batch_python.exists():
+            print("❌ Batch environment python not found")
+            return 1
+
+        # Build command to re-execute in batch environment
+        cmd = [str(batch_python), sys.argv[0]] + sys.argv[1:]
+
+        try:
+            import os
+
+            result = subprocess.run(cmd, env={**os.environ, "TIMEFLIES_BATCH_ENV": "1"})
+            return result.returncode
+        except Exception as e:
+            print(f"❌ Failed to switch environments: {e}")
+            print(
+                "💡 Manual workaround: source .activate_batch.sh && timeflies batch-correct"
+            )
+            return 1
 
     print(f"Running batch correction for {args.tissue} tissue...")
 
