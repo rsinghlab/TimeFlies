@@ -376,11 +376,6 @@ class DataSetupManager:
 
         # Report batch file status
         logger.info("Batch correction verification:")
-        logger.info(
-            f"  Current project config: {getattr(self.config.data, 'project', 'NOT_SET')}"
-        )
-        logger.info(f"  Looking for train: {batch_train_file}")
-        logger.info(f"  Looking for eval: {batch_eval_file}")
         if batch_train_exists or batch_eval_exists:
             batch_count = sum([batch_train_exists, batch_eval_exists])
             logger.info(f"Found {batch_count}/2 batch-corrected files:")
