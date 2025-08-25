@@ -1,0 +1,108 @@
+# Model Queue Configuration
+# This file defines multiple models to train sequentially
+# Each model will be trained, evaluated, and saved with full outputs
+
+queue_settings:
+  name: "comprehensive_model_comparison"
+  sequential: true  # Set to false for parallel execution (future feature)
+  save_checkpoints: true  # Save progress to resume if interrupted
+  generate_summary: true  # Generate comparison report at the end
+
+# Define models to train in sequence
+model_queue:
+  - name: "cnn_baseline"
+    model_type: "CNN"
+    description: "Baseline CNN with default parameters"
+    hyperparameters:
+      epochs: 100
+      batch_size: 32
+      learning_rate: 0.001
+
+  - name: "cnn_deep"
+    model_type: "CNN"
+    description: "Deeper CNN with more filters"
+    hyperparameters:
+      epochs: 150
+      batch_size: 32
+      learning_rate: 0.0005
+      filters: [64, 128, 256]
+      dropout_rate: 0.3
+
+  - name: "mlp_standard"
+    model_type: "MLP"
+    description: "Standard MLP architecture"
+    hyperparameters:
+      epochs: 100
+      batch_size: 64
+      learning_rate: 0.001
+      hidden_units: [128, 64, 32]
+
+  - name: "mlp_large"
+    model_type: "MLP"
+    description: "Larger MLP with more layers"
+    hyperparameters:
+      epochs: 100
+      batch_size: 32
+      learning_rate: 0.0005
+      hidden_units: [256, 128, 64, 32]
+      dropout_rate: 0.4
+
+  - name: "xgboost_default"
+    model_type: "xgboost"
+    description: "XGBoost with default parameters"
+    hyperparameters:
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.3
+
+  - name: "xgboost_tuned"
+    model_type: "xgboost"
+    description: "XGBoost with tuned parameters"
+    hyperparameters:
+      n_estimators: 200
+      max_depth: 8
+      learning_rate: 0.1
+      subsample: 0.8
+      colsample_bytree: 0.8
+
+  - name: "random_forest_default"
+    model_type: "random_forest"
+    description: "Random Forest baseline"
+    hyperparameters:
+      n_estimators: 100
+      max_depth: null
+      min_samples_split: 2
+
+  - name: "random_forest_deep"
+    model_type: "random_forest"
+    description: "Random Forest with more trees"
+    hyperparameters:
+      n_estimators: 300
+      max_depth: 20
+      min_samples_split: 5
+      min_samples_leaf: 2
+
+  - name: "logistic_baseline"
+    model_type: "logistic"
+    description: "Logistic Regression baseline"
+    hyperparameters:
+      max_iter: 1000
+      C: 1.0
+
+  - name: "logistic_regularized"
+    model_type: "logistic"
+    description: "Logistic Regression with L2 regularization"
+    hyperparameters:
+      max_iter: 1000
+      C: 0.1
+      penalty: "l2"
+
+# Settings that apply to all models (can be overridden per model)
+global_settings:
+  tissue: "head"
+  target: "age"
+  project: "fruitfly_aging"
+  with_eda: false  # Set to true to run EDA for each model
+  with_analysis: true
+  interpret: true  # SHAP analysis
+  visualize: true  # Generate plots

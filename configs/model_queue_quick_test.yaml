@@ -1,0 +1,34 @@
+# Quick test queue configuration with just 2 models
+# For testing the queue system functionality
+
+queue_settings:
+  name: "quick_test"
+  sequential: true
+  save_checkpoints: true
+  generate_summary: true
+
+model_queue:
+  - name: "cnn_test"
+    model_type: "CNN"
+    description: "Quick CNN test model"
+    hyperparameters:
+      epochs: 5  # Very short for testing
+      batch_size: 32
+      learning_rate: 0.001
+
+  - name: "xgboost_test"
+    model_type: "xgboost"
+    description: "Quick XGBoost test model"
+    hyperparameters:
+      n_estimators: 10  # Very small for testing
+      max_depth: 3
+      learning_rate: 0.3
+
+global_settings:
+  tissue: "head"
+  target: "age"
+  project: "fruitfly_aging"
+  with_eda: false
+  with_analysis: false  # Skip analysis for quick test
+  interpret: false  # Skip SHAP for quick test
+  visualize: false  # Skip visualizations for quick test

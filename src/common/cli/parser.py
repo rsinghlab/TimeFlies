@@ -242,6 +242,20 @@ User Workflow:
         help="Update TimeFlies to the latest version from GitHub",
     )
 
+    # Queue command for automated multi-model training
+    queue_parser = subparsers.add_parser(
+        "queue", help="Run automated sequential model training from queue configuration"
+    )
+    queue_parser.add_argument(
+        "config",
+        help="Path to queue configuration YAML file (e.g., configs/model_queue.yaml)",
+    )
+    queue_parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
+    )
+
     return parser
 
 

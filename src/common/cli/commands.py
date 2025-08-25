@@ -122,6 +122,8 @@ def execute_command(args) -> bool:
             return create_test_data_command(args) == 0
         elif args.command == "update":
             return update_command(args) == 0
+        elif args.command == "queue":
+            return queue_command(args) == 0
         else:
             print(f"Unknown command: {args.command}")
             return False
@@ -2088,6 +2090,49 @@ echo "  source .activate.sh"
     # Make executable
 
     subprocess.run(["chmod", "+x", ".activate.sh", ".activate_batch.sh"], check=True)
+
+
+def queue_command(args) -> int:
+    """
+    Run automated model queue for sequential training.
+
+    Args:
+        args: Command line arguments containing queue config path
+
+    Returns:
+        0 on success, 1 on failure
+    """
+    from pathlib import Path
+
+    from common.core.model_queue import ModelQueueManager
+
+    print("\n" + "=" * 60)
+    print("TIMEFLIES MODEL QUEUE MANAGER")
+    print("=" * 60)
+
+    config_path = Path(args.config)
+
+    if not config_path.exists():
+        print(f"[ERROR] Queue configuration not found: {config_path}")
+        print("\nExample queue configuration: configs/model_queue_example.yaml")
+        return 1
+
+    try:
+        # Initialize queue manager
+        manager = ModelQueueManager(str(config_path))
+
+        # Run the queue (resume by default unless --no-resume is specified)
+        resume = not args.no_resume
+        manager.run_queue(resume=resume)
+
+        return 0
+
+    except Exception as e:
+        print(f"[ERROR] Queue execution failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return 1
 
 
 def update_command(args) -> int:
