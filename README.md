@@ -72,6 +72,20 @@ TimeFlies uses modular configuration files in the `configs/` directory:
 5. **Evaluation**: Run `timeflies evaluate` to assess model performance on test data
 6. **Analysis**: Results available in `outputs/[project]/` with model interpretability
 
+### Re-splitting Data
+
+If you need to change splitting parameters (e.g., different stratification or split size):
+
+```bash
+# Edit configs/setup.yaml with new parameters
+timeflies setup --force-split    # Recreates splits, preserves batch-corrected files
+```
+
+**Smart behavior:**
+- `--force-split` removes existing train/eval splits and recreates them
+- Batch-corrected files are preserved (never deleted)
+- Verifies batch-corrected files still match new splits exactly
+
 ## Output Structure
 
 TimeFlies generates comprehensive outputs organized by project and analysis type:
@@ -189,7 +203,7 @@ outputs/
 
 ### Core Research Commands
 ```bash
-timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
+timeflies setup [--batch-correct] [--force-split] [--dev]     # Complete setup workflow
 timeflies train [--with-eda] [--with-analysis] # Train models (includes automatic evaluation)
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
@@ -199,7 +213,7 @@ timeflies tune [--no-resume] # Hyperparameter optimization using configs/hyperpa
 
 ### Data & Analysis Commands
 ```bash
-timeflies split                               # Create train/eval splits
+timeflies split [--force-split]              # Create train/eval splits
 timeflies eda [--save-report]                 # Exploratory data analysis
 timeflies batch-correct                       # Create batch-corrected files (requires .venv_batch)
 timeflies verify                              # System verification
