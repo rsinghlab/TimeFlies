@@ -37,8 +37,8 @@ timeflies evaluate [--with-eda --with-analysis]
 # Automated multi-model training queue
 timeflies queue [configs/model_queue.yaml] [--no-resume]
 
-# Automated hyperparameter tuning
-timeflies tune [configs/default.yaml] [--no-resume]
+# Automated hyperparameter tuning (customize configs/hyperparameter_tuning.yaml first)
+timeflies tune [--no-resume]
 
 # Run project-specific analysis
 timeflies analyze
@@ -53,6 +53,15 @@ For users who prefer a GUI, run `python TimeFlies_Launcher.py` to open a user-fr
 - Built-in help and documentation
 
 Both interfaces provide identical functionality - choose what works best for you.
+
+## Configuration Files
+
+TimeFlies uses modular configuration files in the `configs/` directory:
+- **default.yaml**: Main configuration (project, model, data settings)
+- **setup.yaml**: Data splitting settings (split_size, stratify_by)
+- **batch_correction.yaml**: Batch correction and PyTorch settings
+- **hyperparameter_tuning.yaml**: Hyperparameter search ranges for tuning
+- **model_queue.yaml**: Sequential model training configurations
 
 ## Research Workflow
 
@@ -185,7 +194,7 @@ timeflies train [--with-eda] [--with-analysis] # Train models
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
 timeflies queue [configs/model_queue.yaml] [--no-resume] # Automated multi-model training queue (see docs/model_queue_guide.md)
-timeflies tune [configs/default.yaml] [--no-resume] # Hyperparameter optimization with grid/random/Bayesian search (see docs/hyperparameter_tuning_guide.md)
+timeflies tune [--no-resume] # Hyperparameter optimization using configs/hyperparameter_tuning.yaml (see docs/hyperparameter_tuning_guide.md)
 ```
 
 ### Data & Analysis Commands

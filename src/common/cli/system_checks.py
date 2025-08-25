@@ -168,31 +168,56 @@ def check_configuration() -> bool:
     print("\n⚙️  Configuration Check")
     print("-" * 30)
 
-    config_path = Path("configs/default.yaml")
+    all_valid = True
+    configs_dir = Path("configs")
 
-    if not config_path.exists():
-        print("❌ configs/default.yaml not found")
+    # Check configs directory exists
+    if not configs_dir.exists():
+        print("❌ configs/ directory not found")
         return False
 
-    try:
-        import yaml
+    # Check each required config file
+    required_configs = {
+        "default.yaml": ["project", "data", "model"],
+        "setup.yaml": ["train_test_split", "sampling"],
+        "batch_correction.yaml": ["batch_correction", "pytorch"],
+        "hyperparameter_tuning.yaml": ["method", "model_hyperparams"],
+        "model_queue.yaml": None,  # No specific required keys
+    }
 
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+    import yaml
 
-        # Check required top-level keys
-        required_keys = ["project", "data"]
-        for key in required_keys:
-            if key not in config:
-                print(f"❌ Missing required config key: {key}")
-                return False
+    for config_file, required_keys in required_configs.items():
+        config_path = configs_dir / config_file
 
-        print(f"✅ Configuration valid (project: {config.get('project', 'unknown')})")
-        return True
+        if not config_path.exists():
+            if config_file in ["default.yaml", "setup.yaml"]:
+                print(f"❌ {config_file} not found (required)")
+                all_valid = False
+            else:
+                print(f"ℹ️  {config_file} not found (optional)")
+            continue
 
-    except Exception as e:
-        print(f"❌ Configuration error: {e}")
-        return False
+        try:
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+
+            # Check required keys if specified
+            if required_keys:
+                missing_keys = [key for key in required_keys if key not in config]
+                if missing_keys:
+                    print(f"❌ {config_file} missing keys: {missing_keys}")
+                    all_valid = False
+                else:
+                    print(f"✅ {config_file} valid")
+            else:
+                print(f"✅ {config_file} found")
+
+        except Exception as e:
+            print(f"❌ {config_file} error: {e}")
+            all_valid = False
+
+    return all_valid
 
 
 def check_data_availability() -> bool:
