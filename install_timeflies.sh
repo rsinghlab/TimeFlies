@@ -259,20 +259,40 @@ export ABSL_LOG_LEVEL=ERROR
 # Activate batch correction environment
 if [[ -f ".venv_batch/bin/activate" ]]; then
     source .venv_batch/bin/activate
-    # Clean up prompt - remove any existing (.venv_batch) and empty parentheses
-    PS1="\${PS1//\\(.venv_batch\\) /}"
-    PS1="\${PS1//\\(.venv_batch\\)/}"
-    PS1="\${PS1//\\(\\) /}"
-    PS1="\${PS1//\\(\\)/}"
-    export PS1="(.venv_batch) \${PS1}"
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv_batch) /}"
+    PS1="${PS1//(.venv_batch)/}"
+    PS1="${PS1//((.venv_batch) )/}"
+    PS1="${PS1//((.venv_batch))/}"
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv_batch) ${PS1}"
 elif [[ -f ".venv_batch/Scripts/activate" ]]; then
     source .venv_batch/Scripts/activate
-    # Clean up prompt - remove any existing (.venv_batch) and empty parentheses
-    PS1="\${PS1//\\(.venv_batch\\) /}"
-    PS1="\${PS1//\\(.venv_batch\\)/}"
-    PS1="\${PS1//\\(\\) /}"
-    PS1="\${PS1//\\(\\)/}"
-    export PS1="(.venv_batch) \${PS1}"
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv_batch) /}"
+    PS1="${PS1//(.venv_batch)/}"
+    PS1="${PS1//((.venv_batch) )/}"
+    PS1="${PS1//((.venv_batch))/}"
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv_batch) ${PS1}"
 else
     echo "❌ Batch correction environment not found"
     return 1
