@@ -115,7 +115,7 @@ def execute_command(args) -> bool:
             dev_mode = (
                 args.dev if hasattr(args, "dev") and args.dev is not None else None
             )
-            return verify_system(dev_mode=dev_mode) == 0
+            return 0 if verify_system(dev_mode=dev_mode) else 1
         elif args.command == "test":
             return run_system_tests(args) == 0
         elif args.command == "create-test-data":
