@@ -372,6 +372,7 @@ class DataSetupManager:
         batch_files_exist = batch_train_exists and batch_eval_exists
 
         # Report batch file status
+        logger.info("Batch correction verification:")
         if batch_train_exists or batch_eval_exists:
             batch_count = sum([batch_train_exists, batch_eval_exists])
             logger.info(f"Found {batch_count}/2 batch-corrected files:")
@@ -387,7 +388,13 @@ class DataSetupManager:
                 if not batch_eval_exists:
                     missing.append(batch_eval_file.name)
                 logger.info(f"  ⚠️ Missing: {', '.join(missing)}")
-                logger.info("  Batch verification skipped (need both train and eval)")
+                logger.info(
+                    "  Batch verification skipped (incomplete batch correction)"
+                )
+        else:
+            logger.info(
+                "No batch-corrected files found (batch correction not performed)"
+            )
 
         if batch_files_exist:
             logger.info("Verifying batch-corrected files consistency...")
