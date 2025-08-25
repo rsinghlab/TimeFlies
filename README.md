@@ -25,7 +25,7 @@ source .activate.sh
 
 **Command Line Interface:**
 ```bash
-# Complete setup workflow
+# Complete setup workflow (customize configs/setup.yaml first)
 timeflies setup [--batch-correct]
 
 # Train models with evaluation
@@ -57,7 +57,7 @@ Both interfaces provide identical functionality - choose what works best for you
 ## Research Workflow
 
 1. **Data Setup**: Place your `*_original.h5ad` files in `data/[project]/[tissue]/`
-2. **Configuration**: Edit `configs/default.yaml` for your project settings
+2. **Configuration**: Edit `configs/setup.yaml` for data splitting (split_size, stratify_by, etc.)
 3. **Setup**: Run `timeflies setup` to create train/eval splits and verify system
 4. **Training**: Run `timeflies train` for model training with automatic evaluation
 5. **Evaluation**: Run `timeflies evaluate` to assess model performance on test data
@@ -387,8 +387,8 @@ your_project/
 1. **Install TimeFlies**: `curl -O https://raw.githubusercontent.com/.../install_timeflies.sh && chmod +x install_timeflies.sh && ./install_timeflies.sh`
 2. **Activate**: `source .activate.sh` (installs timeflies command to system)
 3. **Add your data**: Place `*_original.h5ad` files in `data/[project]/[tissue]/`
-4. **Setup**: `timeflies setup` (creates config.yaml, templates/, splits data, verifies system)
-5. **Configure**: Edit `config.yaml` for your project settings (or use GUI: `python TimeFlies_Launcher.py`)
+4. **Setup**: `timeflies setup` (creates configs/, templates/, splits data, verifies system)
+5. **Configure**: Edit configs for your project settings (or use GUI: `python TimeFlies_Launcher.py`)
 6. **Run workflow**: `timeflies train && timeflies evaluate`
 
 ## System Requirements
