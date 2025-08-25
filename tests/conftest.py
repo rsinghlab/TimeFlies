@@ -260,6 +260,31 @@ def setup_test_environment():
         del os.environ["TIMEFLIES_TEST_MODE"]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_outputs():
+    """Automatically clean up empty outputs directory after test session."""
+    yield  # Run tests first
+
+    # After all tests complete, clean up empty outputs directory
+    outputs_dir = Path("outputs")
+    if outputs_dir.exists():
+        try:
+            # Check if directory is empty or only contains empty subdirectories
+            is_empty = True
+            for _, _, files in os.walk(outputs_dir):
+                if files:  # If any files exist, don't clean up
+                    is_empty = False
+                    break
+
+            # Only remove if completely empty
+            if is_empty:
+                shutil.rmtree(outputs_dir)
+                print("🧹 Cleaned up empty outputs directory")
+        except (OSError, PermissionError):
+            # If we can't clean up, that's okay - just leave it
+            pass
+
+
 # Skip tests requiring GPU if no GPU available
 def pytest_runtest_setup(item):
     """Skip GPU tests if no GPU available."""
