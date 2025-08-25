@@ -1,0 +1,81 @@
+# =============================================================================
+# TIMEFLIES HYPERPARAMETER TUNING CONFIGURATION
+# =============================================================================
+# Configuration for automated hyperparameter optimization.
+# Users can customize these settings before running 'timeflies tune'.
+
+# General tuning settings
+enabled: false  # Set to true to enable hyperparameter optimization
+method: "bayesian"  # Options: "grid", "random", "bayesian"
+n_trials: 20  # For random/bayesian search (ignored for grid)
+optimization_metric: "accuracy"  # Options: "accuracy", "f1_score", "precision", "recall", "roc_auc"
+
+# Speed up hyperparameter search with reduced dataset and disabled features
+search_optimizations:
+  data:
+    sampling:
+      samples: 1000    # Use subset for faster trials
+      variables: 500   # Use top 500 genes for speed
+  with_eda: false      # Skip EDA during search
+  with_analysis: false # Skip analysis during search
+  interpret: false     # Skip SHAP during search
+  visualize: false     # Skip visualizations during search
+  model:
+    training:
+      epochs: 50       # Max epochs during search
+      early_stopping_patience: 5  # More aggressive early stopping
+
+# Hyperparameter ranges for your models
+# Only the current model type (from data.model) will be used
+model_hyperparams:
+  # CNN hyperparameters (used when data.model = "CNN")
+  CNN:
+    learning_rate: [0.0001, 0.001, 0.01]
+    batch_size: [16, 32, 64]
+    epochs: [50, 75, 100]
+    # CNN architecture variants
+    cnn_variants:
+      - name: "standard"
+        filters: [32]
+        kernel_sizes: [3]
+        pool_sizes: [2]
+      - name: "larger_filters"
+        filters: [64]
+        kernel_sizes: [3]
+        pool_sizes: [2]
+      - name: "larger_kernel"
+        filters: [32]
+        kernel_sizes: [5]
+        pool_sizes: [null]  # No pooling
+
+  # MLP hyperparameters
+  MLP:
+    learning_rate: [0.0001, 0.001, 0.01]
+    batch_size: [16, 32, 64]
+    epochs: [50, 75, 100]
+    hidden_layers:
+      - [512, 256, 128]
+      - [256, 128, 64]
+      - [1024, 512, 256]
+    dropout_rate: [0.2, 0.3, 0.5]
+
+  # Traditional ML hyperparameters
+  xgboost:
+    n_estimators: [100, 200, 300]
+    max_depth: [6, 9, 12]
+    learning_rate: [0.01, 0.1, 0.2]
+    subsample: [0.7, 0.8, 0.9]
+    colsample_bytree: [0.7, 0.8, 0.9]
+
+  random_forest:
+    n_estimators: [100, 200]
+    max_depth: [10, 20, null]
+    min_samples_split: [2, 5]
+    min_samples_leaf: [1, 2]
+    max_features: ["sqrt", "log2"]
+
+  logistic:
+    C: [0.1, 1.0, 10.0]
+    max_iter: [100, 500, 1000]
+    penalty: ["l1", "l2"]
+    solver: ["lbfgs", "liblinear"]
