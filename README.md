@@ -222,8 +222,21 @@ timeflies update
 
 **What happens during update:**
 - Downloads latest TimeFlies code from GitHub
-- Preserves your data, configurations, and results
 - Updates the installed package via pip
+- **Smart file management** - updates system files while preserving your work:
+
+**Files that get UPDATED:**
+- `.timeflies_src/` - source code and templates (completely refreshed)
+- `TimeFlies_Launcher.py` - GUI launcher (only if content changed)
+- Official templates - `README.md`, analysis examples (updated for new features)
+- Missing config files - adds new configs like `setup.yaml`, `hyperparameter_tuning.yaml`
+
+**Files that are PRESERVED (never touched):**
+- `data/` - your datasets and H5AD files
+- `outputs/` - all experiments, analysis results, and trained models
+- `configs/` - your customized configuration settings
+- Custom templates - any analysis scripts you created
+
 - Requires Git to be installed on your system
 
 **GUI Users**: Use the "Update TimeFlies" button in the Results tab for the same functionality.
