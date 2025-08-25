@@ -104,12 +104,12 @@ class DataSetupManager:
                     continue
 
                 # Step 2: Perform stratified split
-                if not self.stratified_split_for_project(project):
+                if not self.stratified_split():
                     logger.warning(f"Stratified split failed for {project}")
                     continue
 
                 # Step 3: Verify splits
-                if not self.verify_splits_for_project(project):
+                if not self.verify_splits():
                     logger.warning(f"Split verification failed for {project}")
                     continue
 
