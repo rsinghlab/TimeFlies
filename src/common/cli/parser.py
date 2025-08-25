@@ -33,6 +33,10 @@ User Workflow:
   python run_timeflies.py create-test-data           # Generate test fixtures
   python run_timeflies.py update                     # Update to latest version
 
+  # Model queue system
+  python run_timeflies.py queue                      # Run default model queue
+  python run_timeflies.py queue custom_queue.yaml    # Run custom queue configuration
+
   # Project switching (temporary override)
   python run_timeflies.py --aging train              # Train aging project
   python run_timeflies.py --alzheimers analyze       # Analyze Alzheimer's project
@@ -240,6 +244,26 @@ User Workflow:
     subparsers.add_parser(
         "update",
         help="Update TimeFlies to the latest version from GitHub",
+    )
+
+    # Queue command for automated multi-model training
+    queue_parser = subparsers.add_parser(
+        "queue",
+        help="Run automated sequential model training from queue configuration",
+        description="Train multiple models sequentially with different configurations. "
+        "Supports checkpoints, progress tracking, and comprehensive comparison reports. "
+        "Queue configurations define multiple models with hyperparameters and settings.",
+    )
+    queue_parser.add_argument(
+        "config",
+        nargs="?",
+        default="configs/model_queue.yaml",
+        help="Path to queue configuration YAML file (default: configs/model_queue.yaml)",
+    )
+    queue_parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
     )
 
     return parser

@@ -70,6 +70,7 @@ Both interfaces provide identical functionality - choose what works best for you
 - **Traditional ML**: XGBoost, Random Forest, Logistic Regression for comparison studies
 - **Automated Evaluation**: Built-in performance metrics and validation
 - **Model Interpretability**: Feature importance analysis with SHAP (configurable)
+- **Model Queue System**: Automated sequential training of multiple models with different configurations
 
 ### Data Processing
 - **Batch Correction**: scVI-tools integration for technical noise removal
@@ -81,9 +82,16 @@ Both interfaces provide identical functionality - choose what works best for you
 - **Comprehensive EDA**: Exploratory data analysis with automated reporting
 - **Flexible Configuration**: YAML-based project and model settings
 
+### Automated Model Queue System
+- **Sequential Training**: Train multiple models automatically with progress tracking
+- **Configuration Overrides**: Per-model settings for preprocessing, hyperparameters, and analysis options
+- **Checkpoint/Resume**: Automatic saving and resuming of interrupted training sessions
+- **Comprehensive Reports**: Markdown summaries and CSV exports for model comparison
+- **Flexible Preprocessing**: Different batch correction, filtering, and splitting methods per model
+
 ## Commands Reference
 
-**All 11 CLI commands with their full options:**
+**All 12 CLI commands with their full options:**
 
 ### Core Research Commands
 ```bash
@@ -91,6 +99,7 @@ timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
 timeflies train [--with-eda] [--with-analysis] # Train models
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
+timeflies queue configs/model_queue.yaml [--no-resume] # Automated multi-model training with progress tracking
 ```
 
 ### Data & Analysis Commands
