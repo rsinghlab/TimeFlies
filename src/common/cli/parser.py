@@ -244,7 +244,11 @@ User Workflow:
 
     # Queue command for automated multi-model training
     queue_parser = subparsers.add_parser(
-        "queue", help="Run automated sequential model training from queue configuration"
+        "queue",
+        help="Run automated sequential model training from queue configuration",
+        description="Train multiple models sequentially with different configurations. "
+        "Supports checkpoints, progress tracking, and comprehensive comparison reports. "
+        "Queue configurations define multiple models with hyperparameters and settings.",
     )
     queue_parser.add_argument(
         "config",

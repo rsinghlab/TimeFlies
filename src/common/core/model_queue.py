@@ -103,11 +103,19 @@ class ModelQueueManager:
             Complete configuration with global settings merged
         """
         # Start with global settings
-        config = self.global_settings.copy()
+        config = self._deep_merge_dict(self.global_settings.copy(), {})
 
         # Add model-specific settings
         config["model"] = model_config.get("model_type", "CNN")
         config["experiment_name"] = model_config.get("name", "unnamed_model")
+
+        # Apply any per-model configuration overrides
+        config_overrides = model_config.get("config_overrides", {})
+        if config_overrides:
+            config = self._deep_merge_dict(config, config_overrides)
+            logger.info(
+                f"Applied config overrides for {model_config.get('name', 'unnamed')}"
+            )
 
         # Merge hyperparameters
         hyperparams = model_config.get("hyperparameters", {})
@@ -124,6 +132,31 @@ class ModelQueueManager:
                 config["learning_rate"] = hyperparams["learning_rate"]
 
         return config, hyperparams
+
+    def _deep_merge_dict(self, base_dict: dict, override_dict: dict) -> dict:
+        """
+        Deep merge two dictionaries, with override_dict taking precedence.
+
+        Args:
+            base_dict: Base dictionary
+            override_dict: Dictionary with override values
+
+        Returns:
+            Merged dictionary
+        """
+        result = base_dict.copy()
+
+        for key, value in override_dict.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = self._deep_merge_dict(result[key], value)
+            else:
+                result[key] = value
+
+        return result
 
     def train_single_model(
         self, model_index: int, model_config: dict[str, Any]
@@ -161,18 +194,27 @@ class ModelQueueManager:
                     for key, value in kwargs.items():
                         setattr(self, key, value)
 
-            # Set up training arguments
+            # Set up training arguments with full configuration support
             train_args = Args(
                 verbose=False,
                 model=model_type,
                 tissue=config.get("tissue", "head"),
                 target=config.get("target", "age"),
                 project=config.get("project"),
-                batch_corrected=config.get("batch_corrected", False),
+                batch_corrected=config.get("data", {})
+                .get("batch_correction", {})
+                .get("enabled", False),
                 with_eda=config.get("with_eda", False),
                 with_analysis=config.get("with_analysis", True),
-                **hyperparams,  # Add hyperparameters as arguments
+                # Add data processing options
+                remove_sex_genes=config.get("data", {}).get("remove_sex_genes", False),
+                split_method=config.get("data", {}).get("split_method", "stratified"),
+                # Add all hyperparameters as arguments
+                **hyperparams,
             )
+
+            # Store full config for this model to be used during training
+            self._current_model_config = config
 
             # Run training
             print(f"\n[INFO] Starting training for {model_name}...")
@@ -186,11 +228,20 @@ class ModelQueueManager:
                     tissue=config.get("tissue", "head"),
                     target=config.get("target", "age"),
                     project=config.get("project"),
-                    batch_corrected=config.get("batch_corrected", False),
+                    batch_corrected=config.get("data", {})
+                    .get("batch_correction", {})
+                    .get("enabled", False),
                     with_eda=config.get("with_eda", False),
                     with_analysis=config.get("with_analysis", True),
                     interpret=config.get("interpret", True),
                     visualize=config.get("visualize", True),
+                    # Add data processing options for evaluation
+                    remove_sex_genes=config.get("data", {}).get(
+                        "remove_sex_genes", False
+                    ),
+                    split_method=config.get("data", {}).get(
+                        "split_method", "stratified"
+                    ),
                 )
 
                 print(f"\n[INFO] Starting evaluation for {model_name}...")
