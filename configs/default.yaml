@@ -88,6 +88,7 @@ hyperparameter_tuning:
   enabled: false  # Set to true to enable hyperparameter optimization
   method: "bayesian"  # Options: "grid", "random", "bayesian"
   n_trials: 20  # For random/bayesian search (ignored for grid)
+  optimization_metric: "accuracy"  # Options: "accuracy", "f1_score", "precision", "recall", "roc_auc"
 
   # Speed up hyperparameter search with reduced dataset and disabled features
   search_optimizations:

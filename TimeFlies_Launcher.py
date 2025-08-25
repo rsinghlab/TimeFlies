@@ -57,6 +57,11 @@ class TimeFliesLauncher:
         notebook.add(analysis_frame, text="Run Analysis")
         self.setup_analysis_tab(analysis_frame)
 
+        # Hyperparameter Tuning tab
+        tuning_frame = ttk.Frame(notebook)
+        notebook.add(tuning_frame, text="Hyperparameter Tuning")
+        self.setup_tuning_tab(tuning_frame)
+
         # Results tab
         results_frame = ttk.Frame(notebook)
         notebook.add(results_frame, text="View Results")
@@ -229,6 +234,96 @@ class TimeFliesLauncher:
             button_frame3,
             text="Run Complete Workflow",
             command=self.run_complete_analysis,
+        ).pack(side="left", padx=5)
+
+    def setup_tuning_tab(self, parent):
+        """Setup hyperparameter tuning tab for model optimization."""
+        # Configuration
+        config_frame = ttk.LabelFrame(parent, text="Tuning Configuration", padding=10)
+        config_frame.pack(fill="x", padx=10, pady=10)
+
+        # Search method selection
+        tk.Label(config_frame, text="Search Method:").pack(anchor="w")
+        self.search_method = tk.StringVar(value="bayesian")
+        method_frame = tk.Frame(config_frame)
+        method_frame.pack(fill="x", pady=(0, 10))
+
+        ttk.Radiobutton(
+            method_frame, text="Grid Search", variable=self.search_method, value="grid"
+        ).pack(side="left")
+        ttk.Radiobutton(
+            method_frame,
+            text="Random Search",
+            variable=self.search_method,
+            value="random",
+        ).pack(side="left", padx=(20, 0))
+        ttk.Radiobutton(
+            method_frame,
+            text="Bayesian (Optuna)",
+            variable=self.search_method,
+            value="bayesian",
+        ).pack(side="left", padx=(20, 0))
+
+        # Number of trials
+        trials_frame = tk.Frame(config_frame)
+        trials_frame.pack(fill="x")
+        tk.Label(trials_frame, text="Number of Trials:").pack(side="left")
+        self.n_trials = tk.StringVar(value="20")
+        tk.Spinbox(
+            trials_frame, from_=5, to=100, textvariable=self.n_trials, width=10
+        ).pack(side="left", padx=(10, 0))
+
+        # Search optimizations
+        opt_frame = ttk.LabelFrame(parent, text="Search Optimizations", padding=10)
+        opt_frame.pack(fill="x", padx=10, pady=10)
+
+        # Speed optimization checkboxes
+        self.fast_search = tk.BooleanVar(value=True)
+        self.use_subset = tk.BooleanVar(value=True)
+
+        ttk.Checkbutton(
+            opt_frame,
+            text="Use reduced dataset for speed (1000 cells, 500 genes)",
+            variable=self.use_subset,
+        ).pack(anchor="w")
+        ttk.Checkbutton(
+            opt_frame, text="Skip EDA/analysis during trials", variable=self.fast_search
+        ).pack(anchor="w")
+
+        # Model configuration
+        model_frame = ttk.LabelFrame(parent, text="Model Settings", padding=10)
+        model_frame.pack(fill="x", padx=10, pady=10)
+
+        tk.Label(model_frame, text="Model Type:").pack(anchor="w")
+        self.tuning_model = tk.StringVar(value="CNN")
+        ttk.Combobox(
+            model_frame,
+            textvariable=self.tuning_model,
+            values=["CNN", "MLP", "xgboost", "random_forest", "logistic"],
+            state="readonly",
+            width=20,
+        ).pack(anchor="w", pady=(0, 10))
+
+        # Action buttons
+        button_frame = tk.Frame(parent)
+        button_frame.pack(fill="x", padx=10, pady=20)
+
+        ttk.Button(
+            button_frame,
+            text="Start Hyperparameter Search",
+            command=self.run_hyperparameter_tuning,
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            button_frame,
+            text="View Tuning Results",
+            command=self.view_tuning_results,
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            button_frame,
+            text="Resume from Checkpoint",
+            command=self.resume_tuning,
         ).pack(side="left", padx=5)
 
     def setup_results_tab(self, parent):
@@ -472,6 +567,106 @@ TROUBLESHOOTING:
     def generate_report(self):
         """Generate analysis report."""
         self.run_command(["timeflies", "analyze"], "Analysis report generated!")
+
+    def run_hyperparameter_tuning(self):
+        """Run hyperparameter tuning with selected options."""
+        self.log_message("Starting hyperparameter tuning...")
+
+        # Create temporary config with tuning settings
+        import tempfile
+
+        import yaml
+
+        # Load current default config
+        try:
+            with open("configs/default.yaml") as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
+            messagebox.showerror(
+                "Error", "Default configuration file not found. Please run setup first."
+            )
+            return
+
+        # Update config with GUI settings
+        config["hyperparameter_tuning"] = {
+            "enabled": True,
+            "method": self.search_method.get(),
+            "n_trials": int(self.n_trials.get()),
+        }
+
+        # Update model type
+        config["data"]["model"] = self.tuning_model.get()
+
+        # Apply optimizations if selected
+        if self.use_subset.get() or self.fast_search.get():
+            config["hyperparameter_tuning"]["search_optimizations"] = {}
+
+            if self.use_subset.get():
+                config["hyperparameter_tuning"]["search_optimizations"]["data"] = {
+                    "sampling": {"samples": 1000, "variables": 500}
+                }
+
+            if self.fast_search.get():
+                config["hyperparameter_tuning"]["search_optimizations"].update(
+                    {
+                        "with_eda": False,
+                        "with_analysis": False,
+                        "interpret": False,
+                        "visualize": False,
+                    }
+                )
+
+        # Save temporary config and run tuning
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(config, f)
+            temp_config = f.name
+
+        try:
+            self.run_command(
+                ["python", "run_timeflies.py", "tune", temp_config],
+                "Hyperparameter tuning completed! Check results tab.",
+            )
+        finally:
+            # Clean up temporary file
+            import os
+
+            try:
+                os.unlink(temp_config)
+            except OSError:
+                pass
+
+    def view_tuning_results(self):
+        """View hyperparameter tuning results."""
+        self.log_message("Opening hyperparameter tuning results...")
+        try:
+            project = (
+                self.project_var.get()
+                if hasattr(self, "project_var")
+                else "fruitfly_aging"
+            )
+            tuning_dir = f"outputs/{project}/hyperparameter_tuning"
+
+            if os.path.exists(tuning_dir):
+                if sys.platform == "win32":
+                    os.startfile(tuning_dir)
+                elif sys.platform == "darwin":
+                    subprocess.run(["open", tuning_dir])
+                else:
+                    subprocess.run(["xdg-open", tuning_dir])
+            else:
+                messagebox.showinfo(
+                    "Info", "No hyperparameter tuning results found. Run tuning first."
+                )
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open results: {e}")
+
+    def resume_tuning(self):
+        """Resume hyperparameter tuning from checkpoint."""
+        self.log_message("Resuming hyperparameter tuning from checkpoint...")
+        self.run_command(
+            ["python", "run_timeflies.py", "tune"],  # Default resume behavior
+            "Hyperparameter tuning resumed and completed!",
+        )
 
     def run(self):
         """Start the GUI application."""
