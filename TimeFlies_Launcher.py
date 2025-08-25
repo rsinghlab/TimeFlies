@@ -57,6 +57,11 @@ class TimeFliesLauncher:
         notebook.add(analysis_frame, text="Run Analysis")
         self.setup_analysis_tab(analysis_frame)
 
+        # Batch Correction tab
+        batch_frame = ttk.Frame(notebook)
+        notebook.add(batch_frame, text="Batch Correction")
+        self.setup_batch_tab(batch_frame)
+
         # Hyperparameter Tuning tab
         tuning_frame = ttk.Frame(notebook)
         notebook.add(tuning_frame, text="Hyperparameter Tuning")
@@ -235,6 +240,86 @@ class TimeFliesLauncher:
             text="Run Complete Workflow",
             command=self.run_complete_analysis,
         ).pack(side="left", padx=5)
+
+    def setup_batch_tab(self, parent):
+        """Setup batch correction tab for scVI batch correction."""
+        # Project selection
+        project_frame = ttk.LabelFrame(parent, text="Project Configuration", padding=10)
+        project_frame.pack(fill="x", padx=10, pady=10)
+
+        tk.Label(project_frame, text="Project:").grid(row=0, column=0, sticky="w")
+        self.batch_project_var = tk.StringVar(value="fruitfly_alzheimers")
+        project_combo = ttk.Combobox(
+            project_frame,
+            textvariable=self.batch_project_var,
+            values=["fruitfly_aging", "fruitfly_alzheimers"],
+            state="readonly",
+            width=20,
+        )
+        project_combo.grid(row=0, column=1, padx=10, sticky="w")
+
+        tk.Label(project_frame, text="Tissue:").grid(row=1, column=0, sticky="w")
+        self.batch_tissue_var = tk.StringVar(value="head")
+        tissue_combo = ttk.Combobox(
+            project_frame,
+            textvariable=self.batch_tissue_var,
+            values=["head", "body"],
+            state="readonly",
+            width=20,
+        )
+        tissue_combo.grid(row=1, column=1, padx=10, sticky="w")
+
+        # Status display
+        status_frame = ttk.LabelFrame(parent, text="Environment Status", padding=10)
+        status_frame.pack(fill="x", padx=10, pady=10)
+
+        self.batch_env_status = tk.StringVar(value="Checking batch environment...")
+        tk.Label(status_frame, textvariable=self.batch_env_status).pack(anchor="w")
+
+        # Actions
+        actions_frame = ttk.LabelFrame(
+            parent, text="Batch Correction Actions", padding=10
+        )
+        actions_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Button(
+            actions_frame,
+            text="Check Batch Environment",
+            command=self.check_batch_environment,
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            actions_frame,
+            text="Run Batch Correction",
+            command=self.run_batch_correction,
+        ).pack(side="left", padx=5)
+
+        ttk.Button(
+            actions_frame, text="View Batch Results", command=self.view_batch_results
+        ).pack(side="left", padx=5)
+
+        # Information
+        info_frame = ttk.LabelFrame(parent, text="About Batch Correction", padding=10)
+        info_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        info_text = """Batch Correction using scVI:
+
+• Removes technical batch effects while preserving biological variation
+• Uses scVI (single-cell Variational Inference) deep learning model
+• Trains on train data only, applies to eval data as query (prevents data leakage)
+• Automatically switches to batch environment (.venv_batch) with PyTorch + scVI
+• Creates *_batch.h5ad files for downstream analysis
+
+Environment Management:
+• Main environment (.venv): TensorFlow-based models, general analysis
+• Batch environment (.venv_batch): PyTorch + scVI for batch correction
+• Automatic switching handles all dependencies transparently"""
+
+        info_label = tk.Label(info_frame, text=info_text, justify="left", anchor="nw")
+        info_label.pack(fill="both", expand=True)
+
+        # Check environment on startup
+        self.root.after(1000, self.check_batch_environment)
 
     def setup_tuning_tab(self, parent):
         """Setup hyperparameter tuning tab for model optimization."""
@@ -702,6 +787,88 @@ TROUBLESHOOTING:
             )
         else:
             self.log_message("Update cancelled by user.")
+
+    def check_batch_environment(self):
+        """Check if batch correction environment is available."""
+        import os
+        import subprocess
+
+        def check_env():
+            try:
+                # Check if .venv_batch exists
+                if not os.path.exists(".venv_batch"):
+                    self.batch_env_status.set(
+                        "❌ Batch environment not found - run 'timeflies setup --dev'"
+                    )
+                    return
+
+                # Check if scVI is available
+                result = subprocess.run(
+                    [
+                        ".venv_batch/bin/python",
+                        "-c",
+                        "import scvi; import scib; print('OK')",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+
+                if result.returncode == 0:
+                    self.batch_env_status.set(
+                        "✅ Batch environment ready - scVI and scib available"
+                    )
+                else:
+                    self.batch_env_status.set(
+                        "⚠️ Batch environment found but dependencies missing"
+                    )
+            except Exception as e:
+                self.batch_env_status.set(
+                    f"❌ Error checking batch environment: {str(e)[:50]}..."
+                )
+
+        # Run check in background thread
+        threading.Thread(target=check_env, daemon=True).start()
+
+    def run_batch_correction(self):
+        """Run batch correction with selected project and tissue."""
+        project_flag = (
+            "--alzheimers"
+            if self.batch_project_var.get() == "fruitfly_alzheimers"
+            else "--aging"
+        )
+        tissue = self.batch_tissue_var.get()
+
+        cmd = ["timeflies", project_flag, "--tissue", tissue, "batch-correct"]
+        self.run_command(
+            cmd,
+            f"Batch correction completed for {self.batch_project_var.get()} {tissue}",
+            timeout=600000,  # 10 minutes for scVI training
+        )
+
+    def view_batch_results(self):
+        """Open file browser to view batch correction results."""
+        project = self.batch_project_var.get()
+        tissue = self.batch_tissue_var.get()
+
+        # Try to open the results directory
+        results_dir = f"data/{project}/{tissue}"
+
+        try:
+            if os.path.exists(results_dir):
+                if sys.platform == "win32":
+                    os.startfile(results_dir)
+                elif sys.platform == "darwin":  # macOS
+                    subprocess.run(["open", results_dir])
+                else:  # Linux
+                    subprocess.run(["xdg-open", results_dir])
+
+                self.log_message(f"Opened results directory: {results_dir}")
+            else:
+                self.log_message(f"Results directory not found: {results_dir}")
+                self.log_message("Run batch correction first to generate results")
+        except Exception as e:
+            self.log_message(f"Error opening results directory: {e}")
 
     def run(self):
         """Start the GUI application."""

@@ -1037,14 +1037,40 @@ def batch_command(args) -> int:
         print(f"✓ Created: {project}_{args.tissue}_train_batch.h5ad")
         print(f"✓ Created: {project}_{args.tissue}_eval_batch.h5ad")
 
-        print("\nNext steps:")
-        print("1. Return to main environment: source activate.sh")
-        print(
-            "2. Train with batch data:     python run_timeflies.py train --batch-corrected"
-        )
-        print("   (Will automatically use batch-corrected files)")
+        # Check if we're in a subprocess (auto-switched environment) and this is manual batch-correct
+        if os.environ.get("TIMEFLIES_BATCH_ENV") == "1" and not os.environ.get(
+            "TIMEFLIES_SETUP_MODE"
+        ):
+            # We were auto-switched for manual batch-correct, prompt user about staying
+            print("\n🔄 Batch correction completed successfully!")
+            print(
+                "   You are currently in the batch correction environment (.venv_batch)"
+            )
+            print("\nOptions:")
+            print("   1. Return to main environment (default)")
+            print("   2. Stay in batch environment for development/debugging")
 
-        return 0
+            try:
+                choice = input("\nChoose [1] or 2: ").strip() or "1"
+                if choice == "2":
+                    print("\n✅ Staying in batch environment")
+                    print("   Available tools: scvi-tools, scanpy, scib")
+                    print("   To return later: deactivate && source .activate.sh")
+                    # Exit without returning, keeping user in batch environment
+                    sys.exit(0)
+                else:
+                    print("\n✅ Returning to main environment...")
+                    # Return normally - subprocess will exit back to main
+                    return 0
+            except (KeyboardInterrupt, EOFError):
+                print("\n✅ Returning to main environment...")
+                return 0
+        else:
+            # Direct execution, show next steps
+            print("\nNext steps:")
+            print("1. Train with batch data: timeflies --batch-corrected train")
+            print("   (Will automatically use batch-corrected files)")
+            return 0
 
     except Exception as e:
         print(f"Batch correction failed: {e}")
@@ -1052,6 +1078,12 @@ def batch_command(args) -> int:
             import traceback
 
             traceback.print_exc()
+
+        # If we're in auto-switched environment, ensure proper error exit
+        if os.environ.get("TIMEFLIES_BATCH_ENV") == "1":
+            print("❌ Batch correction failed in batch environment")
+            print("   Returning to main environment...")
+
         return 1
 
 
@@ -2706,6 +2738,59 @@ def update_command(args) -> int:
                 print("      WARNING: Some config files may not have been updated")
 
             print("   [OK] System files updated, user data preserved")
+
+            # Update batch environment dependencies if it exists
+            batch_env_path = Path(".venv_batch")
+            if batch_env_path.exists():
+                print("BATCH: Updating batch correction environment...")
+                batch_python = batch_env_path / "bin" / "python3"
+                batch_pip = batch_env_path / "bin" / "pip"
+
+                if batch_python.exists() and batch_pip.exists():
+                    try:
+                        # Update core batch correction dependencies
+                        print("   Updating scVI and batch correction dependencies...")
+                        batch_deps = [
+                            "torch",
+                            "torchvision",
+                            "torchaudio",
+                            "--index-url",
+                            "https://download.pytorch.org/whl/cpu",
+                            "scvi-tools",
+                            "scanpy",
+                            "pandas",
+                            "numpy",
+                            "matplotlib",
+                            "seaborn",
+                            "scib",
+                            "shap",
+                        ]
+
+                        result = subprocess.run(
+                            [str(batch_pip), "install", "--upgrade"] + batch_deps,
+                            capture_output=True,
+                            text=True,
+                            timeout=300,
+                        )
+
+                        if result.returncode == 0:
+                            print("   [OK] Batch environment dependencies updated")
+                        else:
+                            print(
+                                "   [WARNING] Some batch dependencies may not have updated"
+                            )
+                            print(f"   Error: {result.stderr[:200]}...")
+
+                    except subprocess.TimeoutExpired:
+                        print("   [WARNING] Batch dependency update timed out")
+                    except Exception as e:
+                        print(f"   [WARNING] Batch dependency update failed: {e}")
+                else:
+                    print("   [WARNING] Batch environment python/pip not found")
+            else:
+                print(
+                    "   No batch environment found - skipping batch dependency updates"
+                )
 
             # Test the updated installation
             print("TESTING: Testing updated installation...")

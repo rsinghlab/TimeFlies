@@ -91,16 +91,29 @@ print_status "Upgrading pip and installing GUI dependencies..."
 pip install --upgrade pip
 
 # Install tkinter if needed (for GUI support)
-if ! python -c "import tkinter" >/dev/null 2>&1; then
+if ! $PYTHON_CMD -c "import tkinter" >/dev/null 2>&1; then
     print_status "Installing GUI support (tkinter)..."
     case $PLATFORM in
         linux)
             if command -v apt >/dev/null 2>&1; then
-                sudo apt update && sudo apt install -y python3-tk || print_warning "Could not auto-install tkinter. Install manually: sudo apt install python3-tk"
+                print_status "Attempting to install python3-tk package..."
+                if sudo -n apt update && sudo -n apt install -y python3-tk >/dev/null 2>&1; then
+                    print_success "tkinter installed via system package"
+                else
+                    print_warning "Could not auto-install tkinter (requires sudo)"
+                    print_warning "For GUI support, run: sudo apt install python3-tk"
+                    print_warning "TimeFlies will work without GUI, CLI functionality unaffected"
+                fi
             elif command -v yum >/dev/null 2>&1; then
-                sudo yum install -y tkinter || print_warning "Could not auto-install tkinter. Install manually: sudo yum install tkinter"
+                if sudo -n yum install -y tkinter >/dev/null 2>&1; then
+                    print_success "tkinter installed via system package"
+                else
+                    print_warning "Could not auto-install tkinter (requires sudo)"
+                    print_warning "For GUI support, run: sudo yum install tkinter"
+                fi
             else
                 print_warning "Please install tkinter manually for GUI support"
+                print_warning "TimeFlies will work without GUI, CLI functionality unaffected"
             fi
             ;;
         macos)
@@ -110,6 +123,13 @@ if ! python -c "import tkinter" >/dev/null 2>&1; then
             print_warning "tkinter should be included with Python on Windows"
             ;;
     esac
+
+    # Test again after installation attempt
+    if $PYTHON_CMD -c "import tkinter" >/dev/null 2>&1; then
+        print_success "GUI support (tkinter) now available"
+    else
+        print_warning "GUI support not available - CLI functionality unaffected"
+    fi
 else
     print_success "GUI support (tkinter) already available"
 fi
