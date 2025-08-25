@@ -115,6 +115,64 @@ class TimeFliesWebGUI:
         progress(1.0, "Update complete")
         return output, status
 
+    def run_evaluate(
+        self,
+        include_eda: bool,
+        include_analysis: bool,
+        batch_corrected: bool,
+        progress=gr.Progress(),
+    ) -> tuple[str, str]:
+        """Run TimeFlies evaluation."""
+        cmd = ["timeflies", "evaluate"]
+        if include_eda:
+            cmd.append("--with-eda")
+        if include_analysis:
+            cmd.append("--with-analysis")
+        if batch_corrected:
+            cmd.append("--batch-corrected")
+
+        progress(0.1, "Starting evaluation...")
+        output, status = self.run_command_with_output(cmd, "TimeFlies Evaluation")
+        progress(1.0, "Evaluation complete")
+        return output, status
+
+    def run_analyze(
+        self, batch_corrected: bool, progress=gr.Progress()
+    ) -> tuple[str, str]:
+        """Run project analysis."""
+        cmd = ["timeflies", "analyze"]
+        if batch_corrected:
+            cmd.append("--batch-corrected")
+
+        progress(0.1, "Starting analysis...")
+        output, status = self.run_command_with_output(cmd, "Project Analysis")
+        progress(1.0, "Analysis complete")
+        return output, status
+
+    def run_queue(
+        self, config_file: str, no_resume: bool, progress=gr.Progress()
+    ) -> tuple[str, str]:
+        """Run model queue training."""
+        cmd = ["timeflies", "queue"]
+        if config_file.strip():
+            cmd.append(config_file)
+        if no_resume:
+            cmd.append("--no-resume")
+
+        progress(0.1, "Starting queue training...")
+        output, status = self.run_command_with_output(cmd, "Model Queue Training")
+        progress(1.0, "Queue training complete")
+        return output, status
+
+    def run_verify(self, progress=gr.Progress()) -> tuple[str, str]:
+        """Run system verification."""
+        progress(0.1, "Verifying system...")
+        output, status = self.run_command_with_output(
+            ["timeflies", "verify"], "System Verification"
+        )
+        progress(1.0, "Verification complete")
+        return output, status
+
     def check_batch_environment(self) -> str:
         """Check batch correction environment status."""
         if not Path(".venv_batch").exists():
@@ -303,6 +361,105 @@ class TimeFliesWebGUI:
                         show_progress=True,
                     )
 
+                # Evaluation Tab
+                with gr.Tab("📊 Model Evaluation"):
+                    gr.Markdown("### Evaluate Trained Models")
+
+                    with gr.Row():
+                        with gr.Column():
+                            eval_include_eda = gr.Checkbox(
+                                label="Include EDA", value=True
+                            )
+                            eval_include_analysis = gr.Checkbox(
+                                label="Include Analysis", value=True
+                            )
+                            eval_batch_corrected = gr.Checkbox(
+                                label="Use Batch Corrected Data", value=False
+                            )
+
+                    eval_btn = gr.Button("Run Evaluation", variant="primary", size="lg")
+
+                    eval_output = gr.Textbox(
+                        label="Evaluation Output",
+                        lines=15,
+                        max_lines=20,
+                        interactive=False,
+                    )
+                    eval_status = gr.Textbox(label="Status", interactive=False)
+
+                    eval_btn.click(
+                        self.run_evaluate,
+                        inputs=[
+                            eval_include_eda,
+                            eval_include_analysis,
+                            eval_batch_corrected,
+                        ],
+                        outputs=[eval_output, eval_status],
+                        show_progress=True,
+                    )
+
+                # Analysis Tab
+                with gr.Tab("🔬 Project Analysis"):
+                    gr.Markdown("### Run Project-Specific Analysis")
+
+                    with gr.Row():
+                        analyze_batch_corrected = gr.Checkbox(
+                            label="Use Batch Corrected Data", value=False
+                        )
+
+                    analyze_btn = gr.Button(
+                        "Run Analysis", variant="primary", size="lg"
+                    )
+
+                    analyze_output = gr.Textbox(
+                        label="Analysis Output",
+                        lines=15,
+                        max_lines=20,
+                        interactive=False,
+                    )
+                    analyze_status = gr.Textbox(label="Status", interactive=False)
+
+                    analyze_btn.click(
+                        self.run_analyze,
+                        inputs=[analyze_batch_corrected],
+                        outputs=[analyze_output, analyze_status],
+                        show_progress=True,
+                    )
+
+                # Queue Training Tab
+                with gr.Tab("🚂 Queue Training"):
+                    gr.Markdown("### Automated Multi-Model Training")
+
+                    with gr.Row():
+                        with gr.Column():
+                            queue_config = gr.Textbox(
+                                label="Queue Config File",
+                                value="configs/model_queue.yaml",
+                                placeholder="configs/model_queue.yaml",
+                            )
+                            queue_no_resume = gr.Checkbox(
+                                label="Start Fresh (No Resume)", value=False
+                            )
+
+                    queue_btn = gr.Button(
+                        "Start Queue Training", variant="primary", size="lg"
+                    )
+
+                    queue_output = gr.Textbox(
+                        label="Queue Training Output",
+                        lines=15,
+                        max_lines=20,
+                        interactive=False,
+                    )
+                    queue_status = gr.Textbox(label="Status", interactive=False)
+
+                    queue_btn.click(
+                        self.run_queue,
+                        inputs=[queue_config, queue_no_resume],
+                        outputs=[queue_output, queue_status],
+                        show_progress=True,
+                    )
+
                 # System Tab
                 with gr.Tab("🔧 System Management"):
                     gr.Markdown("### Update and System Operations")
@@ -311,15 +468,24 @@ class TimeFliesWebGUI:
                         update_btn = gr.Button(
                             "Update TimeFlies", variant="secondary", size="lg"
                         )
+                        verify_btn = gr.Button(
+                            "Verify System", variant="secondary", size="lg"
+                        )
 
-                    update_output = gr.Textbox(
-                        label="Update Output", lines=15, max_lines=20, interactive=False
+                    system_output = gr.Textbox(
+                        label="System Output", lines=15, max_lines=20, interactive=False
                     )
-                    update_status = gr.Textbox(label="Status", interactive=False)
+                    system_status = gr.Textbox(label="Status", interactive=False)
 
                     update_btn.click(
                         self.run_update,
-                        outputs=[update_output, update_status],
+                        outputs=[system_output, system_status],
+                        show_progress=True,
+                    )
+
+                    verify_btn.click(
+                        self.run_verify,
+                        outputs=[system_output, system_status],
                         show_progress=True,
                     )
 
