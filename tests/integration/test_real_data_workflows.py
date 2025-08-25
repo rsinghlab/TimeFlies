@@ -33,7 +33,7 @@ class TestCLIWorkflowIntegration:
         # Mock the data operations but test the CLI workflow
         with patch("common.cli.commands.setup_user_environment", return_value=0):
             with patch("common.cli.commands.split_command", return_value=0):
-                with patch("common.cli.system_checks.verify_system", return_value=0):
+                with patch("common.cli.system_checks.verify_system", return_value=True):
                     with patch(
                         "builtins.input", return_value="n"
                     ):  # Skip batch correction
