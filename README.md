@@ -28,7 +28,7 @@ source .activate.sh
 # Complete setup workflow (customize configs/setup.yaml first)
 timeflies setup [--batch-correct]
 
-# Train models with evaluation
+# Train models with automatic evaluation
 timeflies train [--with-eda --with-analysis]
 
 # Evaluate trained models
@@ -148,7 +148,7 @@ outputs/
 ### Machine Learning Pipeline
 - **Deep Learning Models**: CNN, MLP architectures for single-cell analysis
 - **Traditional ML**: XGBoost, Random Forest, Logistic Regression for comparison studies
-- **Automated Evaluation**: Built-in performance metrics and validation
+- **Automated Evaluation**: Built-in performance metrics and automatic post-training evaluation
 - **Model Interpretability**: Feature importance analysis with SHAP (configurable)
 - **Model Queue System**: Automated sequential training of multiple models with different configurations
 - **Hyperparameter Tuning**: Grid, random, and Bayesian optimization with CNN architecture variants
@@ -190,7 +190,7 @@ outputs/
 ### Core Research Commands
 ```bash
 timeflies setup [--batch-correct] [--dev]     # Complete setup workflow
-timeflies train [--with-eda] [--with-analysis] # Train models
+timeflies train [--with-eda] [--with-analysis] # Train models (includes automatic evaluation)
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
 timeflies queue [configs/model_queue.yaml] [--no-resume] # Automated multi-model training queue (see docs/model_queue_guide.md)
