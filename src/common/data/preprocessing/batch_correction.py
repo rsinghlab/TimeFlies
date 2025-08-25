@@ -255,11 +255,41 @@ class BatchCorrector:
         adata.layers["counts"] = adata.X.copy()
 
     def preprocess_data(self, adata_train, adata_eval):
-        """Prepare data for scVI training by adding counts layer."""
+        """Prepare data for scVI training by adding counts layer and fixing categorical data."""
         print("Preparing data for scVI...")
         self._prep_counts(adata_train)
         self._prep_counts(adata_eval)
+
+        # Fix categorical columns that should be numeric (common issue causing scVI errors)
+        self._fix_categorical_data(adata_train)
+        self._fix_categorical_data(adata_eval)
+
         print("Data preparation complete.")
+
+    def _fix_categorical_data(self, adata):
+        """Fix categorical columns that contain numeric strings."""
+        import pandas as pd
+
+        # Common columns that should be numeric but might be stored as string categories
+        numeric_columns = ["age", "timepoint", "day", "week", "month"]
+
+        for col in numeric_columns:
+            if col in adata.obs.columns and adata.obs[col].dtype.name == "category":
+                # Check if categories are numeric strings
+                categories = adata.obs[col].cat.categories
+                try:
+                    # Try to convert categories to numeric
+                    numeric_cats = pd.to_numeric(categories)
+                    # If successful, reorder categories numerically
+                    adata.obs[col] = adata.obs[col].cat.reorder_categories(
+                        [str(x) for x in sorted(numeric_cats)]
+                    )
+                    print(
+                        f"Fixed categorical ordering for '{col}': {adata.obs[col].cat.categories.tolist()}"
+                    )
+                except (ValueError, TypeError):
+                    # Categories are not numeric, leave as-is
+                    pass
 
     def setup_scvi(self, adata_train):
         """Setup AnnData for scVI model using train data."""
