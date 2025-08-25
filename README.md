@@ -267,7 +267,9 @@ TimeFlies/
 ├── templates/           # Analysis script templates
 ├── docs/               # Documentation and notebooks
 ├── install_timeflies.sh # One-click installer
-└── run_timeflies.py    # Main CLI entry point
+├── run_timeflies.py    # Main CLI entry point
+└── TimeFlies_Launcher.py    # GUI Launcher
+
 ```
 
 ## User Setup Guide
