@@ -2481,7 +2481,7 @@ def update_command(args) -> int:
     print("PROCESS: Updating TimeFlies to latest version...")
     print("=" * 50)
     print("POLICY: System files will be updated, user data preserved:")
-    print("   • UPDATE: .timeflies_src/, TimeFlies_Launcher.py, official templates")
+    print("   • UPDATE: .timeflies_src/, official templates")
     print("   • PRESERVE: data/, outputs/, configs/, custom templates")
     print("=" * 50)
 
@@ -2592,26 +2592,7 @@ def update_command(args) -> int:
             shutil.copytree(update_path, timeflies_src)
             print("      [OK] Source code updated")
 
-            # 2. Update GUI launcher (preserve user customizations by checking if different)
-            launcher_file = Path("TimeFlies_Launcher.py")
-            new_launcher = update_path / "TimeFlies_Launcher.py"
-            if new_launcher.exists():
-                if not launcher_file.exists():
-                    print("   GUI: Installing TimeFlies_Launcher.py...")
-                    shutil.copy2(new_launcher, launcher_file)
-                    print("      [OK] GUI launcher installed")
-                else:
-                    # Compare files and only update if different
-                    import filecmp
-
-                    if not filecmp.cmp(new_launcher, launcher_file, shallow=False):
-                        print("   GUI: Updating TimeFlies_Launcher.py...")
-                        shutil.copy2(new_launcher, launcher_file)
-                        print("      [OK] GUI launcher updated")
-                    else:
-                        print("   GUI: TimeFlies_Launcher.py already current")
-
-            # 3. Update templates (add new, preserve custom ones)
+            # 2. Update templates (add new, preserve custom ones)
             print("   TEMPLATES: Updating analysis templates...")
             templates_dir = Path("templates")
             new_templates_dir = update_path / "templates"
