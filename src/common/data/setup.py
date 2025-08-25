@@ -102,6 +102,9 @@ class DataSetupManager:
         for project in projects:
             logger.info(f"Processing project: {project}")
             try:
+                # Update config for current project
+                self.config.data.project = project
+
                 # Step 1: Download data (if needed)
                 if not self.download_data_for_project(project):
                     logger.warning(f"Data download failed for {project}")
@@ -373,6 +376,9 @@ class DataSetupManager:
 
         # Report batch file status
         logger.info("Batch correction verification:")
+        logger.info(
+            f"  Current project config: {getattr(self.config.data, 'project', 'NOT_SET')}"
+        )
         logger.info(f"  Looking for train: {batch_train_file}")
         logger.info(f"  Looking for eval: {batch_eval_file}")
         if batch_train_exists or batch_eval_exists:
