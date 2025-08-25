@@ -494,7 +494,7 @@ timeflies verify  # Checks for queue configs in system check
 - Consider disabling visualizations for large queues
 
 ### Debugging
-- Enable verbose output: `timeflies queue config.yaml --verbose`
+- Enable verbose output: `timeflies queue configs/model_queue.yaml --verbose`
 - Check individual model outputs in standard directories
 - Review checkpoint files for progress tracking
 - Examine log files in outputs/logs/

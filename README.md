@@ -400,7 +400,10 @@ After installation, users work with this structure in their project directory:
 
 ```
 your_project/
-├── config.yaml          # Created by TimeFlies setup (customize your settings)
+├── configs/             # Configuration directory created by TimeFlies setup
+│   ├── default.yaml     # Main configuration (customize your settings)
+│   ├── setup.yaml       # Data splitting configuration
+│   └── ...              # Other config files
 ├── templates/           # Analysis script templates (created by setup)
 │   ├── aging_analysis_template.py
 │   ├── custom_analysis_example.py
