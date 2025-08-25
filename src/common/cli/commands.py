@@ -2410,6 +2410,24 @@ def update_command(args) -> int:
 
             print("[OK] TimeFlies updated successfully!")
 
+            # Fully refresh .timeflies_src with latest code and configs
+            print("REFRESH: Updating .timeflies_src with latest files...")
+            timeflies_src = Path.cwd() / ".timeflies_src"
+            if timeflies_src.exists():
+                import shutil
+
+                # Remove old .timeflies_src and replace with updated version
+                print("   REMOVE: Removing old .timeflies_src...")
+                shutil.rmtree(timeflies_src)
+                print("   COPY: Installing updated .timeflies_src...")
+                shutil.copytree(update_path, timeflies_src)
+                print("   [OK] .timeflies_src fully updated")
+            else:
+                print(
+                    "   WARNING: .timeflies_src not found, creating new installation..."
+                )
+                shutil.copytree(update_path, timeflies_src)
+
             # Copy any missing config files that install would provide
             print("CONFIG: Checking for missing configuration files...")
             config_copy_result = setup_user_environment()
