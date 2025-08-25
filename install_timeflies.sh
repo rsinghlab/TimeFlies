@@ -147,19 +147,23 @@ export ABSL_LOG_LEVEL=ERROR
 # Activate virtual environment
 if [[ -f ".venv/bin/activate" ]]; then
     source .venv/bin/activate
-    # Clean up prompt - remove any existing (.venv) and empty parentheses
-    PS1="${PS1//\\(.venv\\) /}"
-    PS1="${PS1//\\(.venv\\)/}"
-    PS1="${PS1//\\(\\) /}"
-    PS1="${PS1//\\(\\)/}"
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
     export PS1="(.venv) ${PS1}"
 elif [[ -f ".venv/Scripts/activate" ]]; then
     source .venv/Scripts/activate
-    # Clean up prompt - remove any existing (.venv) and empty parentheses
-    PS1="${PS1//\\(.venv\\) /}"
-    PS1="${PS1//\\(.venv\\)/}"
-    PS1="${PS1//\\(\\) /}"
-    PS1="${PS1//\\(\\)/}"
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
     export PS1="(.venv) ${PS1}"
 else
     echo "❌ Virtual environment not found"

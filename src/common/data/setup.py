@@ -28,7 +28,8 @@ class DataSetupManager:
         """
         if config is None:
             try:
-                self.config = ConfigManager()
+                config_manager = ConfigManager()
+                self.config = config_manager.get_config()
             except Exception:
                 # If no config file available, create minimal config
                 minimal_config = {
