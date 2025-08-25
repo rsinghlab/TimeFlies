@@ -2535,11 +2535,23 @@ def update_command(args) -> int:
                     new_config = new_configs_dir / config_file
 
                     if user_config.exists() and new_config.exists():
-                        # Check if files are different
-                        import filecmp
+                        # Check if file contents are actually different
+                        try:
+                            with (
+                                open(user_config, encoding="utf-8") as f1,
+                                open(new_config, encoding="utf-8") as f2,
+                            ):
+                                user_content = f1.read()
+                                new_content = f2.read()
 
-                        if not filecmp.cmp(user_config, new_config, shallow=False):
-                            backup_needed.append(config_file)
+                            if user_content != new_content:
+                                backup_needed.append(config_file)
+                        except Exception:
+                            # Fallback to filecmp if reading fails
+                            import filecmp
+
+                            if not filecmp.cmp(user_config, new_config, shallow=False):
+                                backup_needed.append(config_file)
 
                 if backup_needed:
                     print(
@@ -2561,10 +2573,10 @@ def update_command(args) -> int:
                             f"         [BACKED UP] {config_file} -> backup_configs/{backup_name}"
                         )
 
-            # Then add missing configs (preserve existing ones)
+            # Then ensure all required configs exist (add missing only)
             config_copy_result = setup_user_environment(skip_gui_check=True)
             if config_copy_result == 0:
-                print("      [OK] Configuration files updated")
+                print("      [OK] Configuration files verified and updated")
             else:
                 print("      WARNING: Some config files may not have been updated")
 
