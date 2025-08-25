@@ -73,16 +73,28 @@ outputs/
 │   ├── experiments/                         # Model training results
 │   │   ├── uncorrected/                     # Non-batch-corrected results
 │   │   │   └── all_runs/
-│   │   │       └── cnn_ctrl-vs-alz/
-│   │   │           └── 2024-08-25_10-30-15/ # Individual experiment
-│   │   │               ├── model.h5         # Trained model
-│   │   │               ├── predictions.csv  # Model predictions
-│   │   │               ├── training/        # Training logs & plots
-│   │   │               ├── evaluation/      # Performance metrics
-│   │   │               │   └── plots/       # Evaluation visualizations
-│   │   │               └── shap_analysis/   # SHAP interpretability
-│   │   ├── batch_corrected/                 # Batch-corrected results
-│   │   │   └── [same structure as above]
+│   │   │       └── head_cnn_age/            # Config-specific experiments (tissue_model_target)
+│   │   │           ├── 2024-08-25_10-30-15/ # Individual experiment
+│   │   │           │   ├── model.h5         # Trained TensorFlow model
+│   │   │           │   ├── training/        # Training artifacts
+│   │   │           │   │   ├── history.json # Training metrics & loss curves
+│   │   │           │   │   ├── logs/        # Training logs
+│   │   │           │   │   └── plots/       # Training visualizations
+│   │   │           │   ├── evaluation/      # Test results
+│   │   │           │   │   ├── metrics.json # Performance metrics
+│   │   │           │   │   ├── predictions.csv # Model predictions
+│   │   │           │   │   └── plots/       # Performance visualizations
+│   │   │           │   │       ├── confusion_matrix.png
+│   │   │           │   │       ├── roc_curve.png
+│   │   │           │   │       └── classification_report.png
+│   │   │           │   ├── shap_analysis/   # SHAP interpretability
+│   │   │           │   │   ├── shap_values.csv
+│   │   │           │   │   ├── shap_summary.png
+│   │   │           │   │   └── feature_importance.png
+│   │   │           │   └── metadata.json    # Experiment reproducibility info
+│   │   │           ├── latest -> 2024-08-25_10-30-15/  # Symlink to most recent
+│   │   │           └── best -> 2024-08-25_10-30-15/    # Symlink to best performance
+│   │   ├── batch_corrected/                 # Batch-corrected results (same structure)
 │   │   └── queue_experiment_2024-08-25/     # Model queue results
 │   │       ├── model_comparison_report.md   # Queue summary report
 │   │       ├── model_metrics.csv            # All models comparison
@@ -95,7 +107,15 @@ outputs/
 │   │       ├── search_config.yaml           # Configuration backup for reproducibility
 │   │       └── optuna_study.db              # Bayesian optimization database (if using Optuna)
 │   └── eda/                                 # Exploratory data analysis
-│       └── head/uncorrected/                # EDA reports by tissue/correction
+│       └── head/                           # Tissue-specific analysis
+│           ├── uncorrected/                # Raw data EDA
+│           │   ├── eda_report.html         # Interactive analysis report
+│           │   ├── plots/                  # EDA visualizations
+│           │   │   ├── age_distribution.png
+│           │   │   ├── correlation_matrix.png
+│           │   │   └── dimensionality_reduction.png
+│           │   └── eda_summary.json        # Statistical summaries
+│           └── batch_corrected/            # Batch-corrected EDA (same structure)
 └── fruitfly_alzheimers/                     # Separate project outputs
     └── [same structure as above]
 ```
@@ -386,107 +406,6 @@ TimeFlies is designed for researchers studying:
 - Disease models and neurodegeneration
 - Cross-tissue aging comparisons
 - Batch effect correction in sc-RNA-seq
-
-## Output Structure
-
-TimeFlies organizes all outputs in a structured hierarchy for easy navigation and analysis:
-
-```
-outputs/
-├── fruitfly_aging/                    # Project-specific outputs
-│   ├── experiments/                   # Machine learning experiments
-│   │   ├── uncorrected/              # Original data experiments
-│   │   │   ├── all_runs/             # Complete experiment history
-│   │   │   │   └── head_cnn_age/     # Config-specific experiments (tissue_model_target)
-│   │   │   │       ├── 2025-01-22_14-30-15/  # Timestamped experiment
-│   │   │   │       │   ├── model.h5           # Trained model
-│   │   │   │       │   ├── training/          # Training artifacts
-│   │   │   │       │   │   ├── history.json   # Training metrics & loss curves
-│   │   │   │       │   │   ├── logs/          # Training logs
-│   │   │   │       │   │   └── plots/         # Training visualizations
-│   │   │   │       │   ├── evaluation/        # Test results
-│   │   │   │       │   │   ├── metrics.json   # Performance metrics
-│   │   │   │       │   │   ├── predictions.csv # Model predictions
-│   │   │   │       │   │   ├── shap_values.csv # SHAP interpretability
-│   │   │   │       │   │   └── plots/         # Result visualizations
-│   │   │   │       │   │       ├── confusion_matrix.png
-│   │   │   │       │   │       ├── roc_curve.png
-│   │   │   │       │   │       ├── shap_summary.png
-│   │   │   │       │   │       ├── feature_importance.png
-│   │   │   │       │   │       └── expression_heatmap.png
-│   │   │   │       │   └── metadata.json      # Experiment configuration
-│   │   │   │       └── 2025-01-22_15-45-30/  # Another experiment
-│   │   │   ├── latest -> all_runs/head_cnn_age/2025-01-22_15-45-30/  # ⚡ Latest experiment
-│   │   │   └── best/                 # 🏆 Collection of symlinks to best experiments
-│   │   │       └── head_cnn_age -> ../all_runs/head_cnn_age/2025-01-22_14-30-15/
-│   │   └── batch_corrected/          # Batch-corrected data experiments (same structure)
-│   │       ├── all_runs/
-│   │       ├── latest -> all_runs/.../
-│   │       └── best/
-│   ├── eda/                          # 📊 Exploratory Data Analysis
-│   │   ├── uncorrected/
-│   │   │   └── head/                 # Tissue-specific EDA
-│   │   │       ├── eda_report.html   # Interactive HTML report
-│   │   │       ├── eda_summary.json  # Statistical summaries
-│   │   │       ├── age_distribution.png
-│   │   │       ├── correlation_matrix.png
-│   │   │       ├── dimensionality_reduction.png
-│   │   │       └── top_expressed_genes.png
-│   │   └── batch_corrected/          # EDA for batch-corrected data
-│   │       └── head/
-│   ├── analysis/                     # Project-specific analysis
-│   │   ├── reports/                  # Custom analysis HTML/PDF reports
-│   │   └── custom/                   # User analysis script results
-│   ├── model_queue_summaries/        # 🚀 Automated model queue results
-│   │   └── 2025-01-22_16-30-45/     # Timestamped queue run
-│   │       ├── summary_report.md     # Comparative analysis report
-│   │       ├── metrics_summary.csv   # Performance metrics for all models
-│   │       ├── queue_checkpoint.json # Resume checkpoint data
-│   │       └── queue_config.yaml     # Configuration used for this run
-│   └── logs/                         # System logs
-└── fruitfly_alzheimers/              # Same structure for other projects
-    ├── experiments/
-    ├── eda/
-    ├── analysis/
-    ├── model_queue_summaries/
-    └── logs/
-```
-
-### Key Output Components
-
-**Model Artifacts:**
-- `model.h5` - Trained TensorFlow/Keras models ready for deployment
-- `training/history.json` - Complete training metrics and loss curves
-- `evaluation/metrics.json` - Test performance (accuracy, precision, recall, F1)
-- `metadata.json` - Experiment configuration and reproducibility info
-
-**Interpretability Results:**
-- `evaluation/shap_values.csv` - Feature importance values for each prediction
-- `plots/shap_summary.png` - Gene importance visualization
-- `plots/feature_importance.png` - Top contributing features
-- `plots/expression_heatmap.png` - Gene expression patterns
-
-**Model Performance:**
-- `plots/confusion_matrix.png` - Classification accuracy breakdown
-- `plots/roc_curve.png` - ROC analysis for binary classification
-- `evaluation/predictions.csv` - Model predictions with confidence scores
-
-**Exploratory Data Analysis (EDA):**
-- `eda/*/eda_report.html` - Interactive HTML reports with comprehensive data analysis
-- `age_distribution.png`, `correlation_matrix.png` - Data distribution visualizations
-- `dimensionality_reduction.png` - t-SNE/UMAP plots
-- `eda_summary.json` - Statistical summaries and data quality metrics
-
-**Model Queue Summaries (Automated Multi-Model Training):**
-- `model_queue_summaries/*/summary_report.md` - Comparative analysis of all models in queue
-- `metrics_summary.csv` - Performance metrics table (accuracy, precision, recall, F1) for all models
-- `queue_checkpoint.json` - Resume checkpoint for interrupted queue runs
-- `queue_config.yaml` - Configuration file used for the specific queue run
-
-**Smart Navigation:**
-- `latest/` - Symlink pointing to most recent experiment for each configuration
-- `best/` - Collection of symlinks to highest-performing experiments by configuration
-- Both symlinks automatically update as new experiments are run, providing quick access without searching
 
 ## Contributing
 
