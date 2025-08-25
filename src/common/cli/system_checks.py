@@ -48,13 +48,17 @@ def verify_system(dev_mode: bool = None) -> bool:
     config_check = check_configuration()
     all_checks_passed &= config_check
 
-    # Check analysis templates
-    templates_check = check_analysis_templates()
-    all_checks_passed &= templates_check
-
     # Check timeflies launcher installation
     launcher_check = check_timeflies_launcher()
     all_checks_passed &= launcher_check
+
+    # Check model queue configurations
+    queue_check = check_model_queue_configs()
+    all_checks_passed &= queue_check
+
+    # Check analysis templates
+    templates_check = check_analysis_templates()
+    all_checks_passed &= templates_check
 
     # Check data availability (skip for dev mode)
     if not dev_mode:
@@ -308,6 +312,84 @@ def check_timeflies_launcher() -> bool:
         print("   Run: pip install -e . (from TimeFlies directory)")
         print("   Or: source .activate.sh (if using installed version)")
         return False
+
+
+def check_model_queue_configs() -> bool:
+    """Check if model queue configurations are available and accessible."""
+    print("\nQUEUE: Model Queue Configuration Check")
+    print("-" * 30)
+
+    configs_dir = Path("configs")
+
+    if not configs_dir.exists():
+        print("[ERROR] configs/ directory not found")
+        print("   Model queue configurations require configs/ directory")
+        return False
+
+    print("[OK] configs/ directory exists")
+
+    # Check for default model queue configuration
+    default_queue_config = configs_dir / "model_queue.yaml"
+
+    if default_queue_config.exists():
+        print("[OK] Default model queue configuration found: model_queue.yaml")
+
+        # Validate the default config
+        try:
+            import yaml
+
+            with open(default_queue_config) as f:
+                queue_data = yaml.safe_load(f)
+            if "model_queue" in queue_data and "global_settings" in queue_data:
+                model_count = len(queue_data.get("model_queue", []))
+                print(f"   └─ {model_count} models configured in default queue")
+            else:
+                print("   └─ [WARN] Default config missing required sections")
+        except Exception as e:
+            print(f"   └─ [ERROR] Default config invalid: {e}")
+    else:
+        print("[WARN] No default model queue configuration found")
+        print("   Create configs/model_queue.yaml for 'timeflies queue' command")
+
+    # Look for additional model queue configuration files
+    queue_configs = [
+        f for f in configs_dir.glob("model_queue*.yaml") if f.name != "model_queue.yaml"
+    ]
+
+    if queue_configs:
+        print(f"[OK] Found {len(queue_configs)} additional queue configurations:")
+        for config in sorted(queue_configs):
+            print(f"   CONFIG: {config.name}")
+
+            # Validate YAML structure
+            try:
+                import yaml
+
+                with open(config) as f:
+                    queue_data = yaml.safe_load(f)
+
+                if "model_queue" in queue_data and "global_settings" in queue_data:
+                    model_count = len(queue_data.get("model_queue", []))
+                    print(f"      └─ {model_count} models configured")
+                else:
+                    print("      └─ [WARN] Missing required sections")
+
+            except Exception as e:
+                print(f"      └─ [ERROR] Invalid YAML: {e}")
+
+    # Check if user has access to create queue configs in current directory
+    try:
+        test_file = Path("configs/test_queue_write.tmp")
+        configs_dir.mkdir(exist_ok=True)
+        with open(test_file, "w") as f:
+            f.write("test")
+        test_file.unlink()
+        print("[OK] User can create queue configurations")
+    except Exception as e:
+        print(f"[WARN] Cannot write to configs/: {e}")
+        print("   User may need write permissions for model queue configs")
+
+    return True
 
 
 def check_analysis_templates() -> bool:

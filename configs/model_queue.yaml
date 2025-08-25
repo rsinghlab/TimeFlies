@@ -1,0 +1,174 @@
+# Advanced Model Queue Configuration
+# Demonstrates comprehensive data preprocessing using actual TimeFlies config structure
+
+queue_settings:
+  name: "advanced_preprocessing_comparison"
+  sequential: true
+  save_checkpoints: true
+  generate_summary: true
+
+model_queue:
+  # Baseline model with default config
+  - name: "baseline_cnn"
+    model_type: "CNN"
+    description: "Baseline CNN with default configuration"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+
+  # Model with batch correction enabled
+  - name: "cnn_batch_corrected"
+    model_type: "CNN"
+    description: "CNN with batch correction enabled"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+    config_overrides:
+      data:
+        batch_correction:
+          enabled: true
+
+  # Model with different sex filtering
+  - name: "cnn_male_only"
+    model_type: "CNN"
+    description: "CNN trained on male samples only"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+    config_overrides:
+      data:
+        sex: "male"  # Only male samples
+
+  # Model with different sampling
+  - name: "cnn_subset_samples"
+    model_type: "CNN"
+    description: "CNN with limited sample size"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+    config_overrides:
+      data:
+        sampling:
+          samples: 5000    # Limit to 5000 samples
+          variables: 1000  # Limit to top 1000 genes
+
+  # Model with random split method
+  - name: "cnn_random_split"
+    model_type: "CNN"
+    description: "CNN with random splitting method"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+    config_overrides:
+      data:
+        split:
+          method: "random"  # Use random split instead of column-based
+
+  # Model with different split configuration
+  - name: "cnn_custom_split"
+    model_type: "CNN"
+    description: "CNN with custom column-based split"
+    hyperparameters:
+      epochs: 50
+      batch_size: 32
+    config_overrides:
+      data:
+        split:
+          method: "column"
+          column: "genotype"
+          train: ["control"]  # Different training groups
+          test: ["htau"]            # Different test group
+
+  # XGBoost with comprehensive config
+  - name: "xgboost_comprehensive"
+    model_type: "xgboost"
+    description: "XGBoost with full configuration override"
+    hyperparameters:
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.1
+    config_overrides:
+      data:
+        batch_correction:
+          enabled: false
+        sex: "all"
+        sampling:
+          samples: null  # Use all samples
+          variables: null  # Use all genes
+
+  # Model for different project
+  - name: "aging_cnn"
+    model_type: "CNN"
+    description: "CNN trained on aging dataset"
+    hyperparameters:
+      epochs: 75
+      batch_size: 32
+    config_overrides:
+      project: "fruitfly_aging"    # Different project
+      data:
+        target_variable: "age"     # Different target
+        tissue: "head"
+        species: "drosophila"
+
+  # Example: Evaluate only (skip training for pre-trained model)
+  - name: "pretrained_cnn_eval"
+    model_type: "CNN"
+    description: "Evaluate pre-trained CNN model only"
+    hyperparameters:
+      epochs: 50  # Ignored since training is skipped
+      batch_size: 32
+    config_overrides:
+      with_training: false    # Skip training - load existing model
+      with_evaluation: true   # Run evaluation only
+      with_analysis: false    # Skip analysis scripts
+
+# Global settings matching actual TimeFlies config structure
+global_settings:
+  # Project settings
+  project: "fruitfly_alzheimers"
+
+  # Data settings (matching actual default.yaml structure)
+  data:
+    model: "CNN"
+    tissue: "head"
+    species: "drosophila"
+    cell_type: "all"
+    sex: "all"
+    target_variable: "age"
+
+    # Batch correction
+    batch_correction:
+      enabled: false
+
+    # Filtering
+    filtering:
+      include_mixed_sex: false
+
+    # Sampling
+    sampling:
+      samples: null  # null for all samples
+      variables: null  # null for all genes
+
+    # Splitting configuration
+    split:
+      method: "column"
+      column: "genotype"
+      train: ["control"]
+      test: ["ab42", "htau"]
+
+  # Model training settings
+  model:
+    training:
+      epochs: 100
+      batch_size: 32
+      validation_split: 0.2
+      early_stopping_patience: 8
+      learning_rate: 0.001
+
+  # Execution control
+  with_training: true     # Train models (set false to skip training for pre-trained models)
+  with_evaluation: true   # Evaluate models (set false to train-only)
+  with_eda: false         # Run EDA before training/evaluation
+  with_analysis: true     # Run analysis scripts after training/evaluation
+  interpret: true         # Enable SHAP interpretation
+  visualize: true         # Enable visualizations
