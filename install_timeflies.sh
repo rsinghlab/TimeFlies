@@ -148,19 +148,19 @@ export ABSL_LOG_LEVEL=ERROR
 if [[ -f ".venv/bin/activate" ]]; then
     source .venv/bin/activate
     # Clean up prompt - remove any existing (.venv) and empty parentheses
-    PS1="\${PS1//\\(.venv\\) /}"
-    PS1="\${PS1//\\(.venv\\)/}"
-    PS1="\${PS1//\\(\\) /}"
-    PS1="\${PS1//\\(\\)/}"
-    export PS1="(.venv) \${PS1}"
+    PS1="${PS1//\\(.venv\\) /}"
+    PS1="${PS1//\\(.venv\\)/}"
+    PS1="${PS1//\\(\\) /}"
+    PS1="${PS1//\\(\\)/}"
+    export PS1="(.venv) ${PS1}"
 elif [[ -f ".venv/Scripts/activate" ]]; then
     source .venv/Scripts/activate
     # Clean up prompt - remove any existing (.venv) and empty parentheses
-    PS1="\${PS1//\\(.venv\\) /}"
-    PS1="\${PS1//\\(.venv\\)/}"
-    PS1="\${PS1//\\(\\) /}"
-    PS1="\${PS1//\\(\\)/}"
-    export PS1="(.venv) \${PS1}"
+    PS1="${PS1//\\(.venv\\) /}"
+    PS1="${PS1//\\(.venv\\)/}"
+    PS1="${PS1//\\(\\) /}"
+    PS1="${PS1//\\(\\)/}"
+    export PS1="(.venv) ${PS1}"
 else
     echo "❌ Virtual environment not found"
     return 1
@@ -168,10 +168,16 @@ fi
 
 # Create helpful aliases
 alias tf="timeflies"
+alias tf-setup="timeflies setup"
 alias tf-verify="timeflies verify"
 alias tf-split="timeflies split"
 alias tf-train="timeflies train"
 alias tf-eval="timeflies evaluate"
+alias tf-analyze="timeflies analyze"
+alias tf-eda="timeflies eda"
+alias tf-tune="timeflies tune"
+alias tf-queue="timeflies queue"
+alias tf-test="timeflies test"
 
 echo "🧬 TimeFlies Research Environment Activated!"
 echo ""
@@ -185,6 +191,11 @@ echo "Quick commands:"
 echo "  timeflies split              # Create train/eval splits"
 echo "  timeflies batch-correct      # Apply batch correction"
 echo "  timeflies verify             # System verification"
+echo "  timeflies eda                # Exploratory data analysis"
+echo "  timeflies tune               # Hyperparameter tuning"
+echo "  timeflies queue              # Model queue training"
+echo "  timeflies test               # Run tests"
+echo "  timeflies update             # Update TimeFlies"
 echo ""
 echo "Getting started:"
 echo "  1. Add your H5AD files to: data/project_name/tissue_type/"
