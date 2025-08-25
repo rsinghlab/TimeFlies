@@ -341,6 +341,98 @@ class DataSetupManager:
                     f"Distribution difference for {label}: orig={orig_prop:.3f}, train={train_prop:.3f}, eval={eval_prop:.3f}"
                 )
 
+        # Verify batch-corrected files if they exist
+        batch_original_file = data_dir / self._generate_filename(
+            tissue, "original", batch=True
+        )
+        batch_train_file = data_dir / self._generate_filename(
+            tissue, "train", batch=True
+        )
+        batch_eval_file = data_dir / self._generate_filename(tissue, "eval", batch=True)
+
+        batch_files_exist = all(
+            [
+                batch_original_file.exists(),
+                batch_train_file.exists(),
+                batch_eval_file.exists(),
+            ]
+        )
+
+        if batch_files_exist:
+            logger.info("Verifying batch-corrected files consistency...")
+
+            # Load batch-corrected data
+            adata_batch_original = anndata.read_h5ad(batch_original_file)
+            adata_batch_train = anndata.read_h5ad(batch_train_file)
+            adata_batch_eval = anndata.read_h5ad(batch_eval_file)
+
+            # Verify same number of cells
+            if len(adata_batch_original) != len(adata_original):
+                raise ValueError(
+                    f"Batch-corrected original has different cell count: {len(adata_batch_original)} vs {len(adata_original)}"
+                )
+            if len(adata_batch_train) != len(adata_train):
+                raise ValueError(
+                    f"Batch-corrected train has different cell count: {len(adata_batch_train)} vs {len(adata_train)}"
+                )
+            if len(adata_batch_eval) != len(adata_eval):
+                raise ValueError(
+                    f"Batch-corrected eval has different cell count: {len(adata_batch_eval)} vs {len(adata_eval)}"
+                )
+
+            # Verify same number of genes
+            if adata_batch_original.n_vars != adata_original.n_vars:
+                raise ValueError(
+                    f"Batch-corrected original has different gene count: {adata_batch_original.n_vars} vs {adata_original.n_vars}"
+                )
+            if adata_batch_train.n_vars != adata_train.n_vars:
+                raise ValueError(
+                    f"Batch-corrected train has different gene count: {adata_batch_train.n_vars} vs {adata_train.n_vars}"
+                )
+            if adata_batch_eval.n_vars != adata_eval.n_vars:
+                raise ValueError(
+                    f"Batch-corrected eval has different gene count: {adata_batch_eval.n_vars} vs {adata_eval.n_vars}"
+                )
+
+            # Verify same cell order (obs_names)
+            if not adata_batch_original.obs_names.equals(adata_original.obs_names):
+                raise ValueError("Batch-corrected original has different cell order")
+            if not adata_batch_train.obs_names.equals(adata_train.obs_names):
+                raise ValueError("Batch-corrected train has different cell order")
+            if not adata_batch_eval.obs_names.equals(adata_eval.obs_names):
+                raise ValueError("Batch-corrected eval has different cell order")
+
+            # Verify same gene order (var_names)
+            if not adata_batch_original.var_names.equals(adata_original.var_names):
+                raise ValueError("Batch-corrected original has different gene order")
+            if not adata_batch_train.var_names.equals(adata_train.var_names):
+                raise ValueError("Batch-corrected train has different gene order")
+            if not adata_batch_eval.var_names.equals(adata_eval.var_names):
+                raise ValueError("Batch-corrected eval has different gene order")
+
+            # Verify metadata consistency (obs columns should be identical)
+            for file_type, (batch_data, regular_data) in [
+                ("original", (adata_batch_original, adata_original)),
+                ("train", (adata_batch_train, adata_train)),
+                ("eval", (adata_batch_eval, adata_eval)),
+            ]:
+                if not set(batch_data.obs.columns) == set(regular_data.obs.columns):
+                    logger.warning(
+                        f"Batch-corrected {file_type} has different metadata columns"
+                    )
+
+                # Check key metadata columns are identical
+                for col in ["age", "sex", "genotype"]:
+                    if col in regular_data.obs.columns:
+                        if not batch_data.obs[col].equals(regular_data.obs[col]):
+                            raise ValueError(
+                                f"Batch-corrected {file_type} has different {col} values"
+                            )
+
+            logger.info(
+                "✅ Batch-corrected files verified: same cells, genes, and order!"
+            )
+
         logger.info("Split verification completed successfully!")
         return True
 
