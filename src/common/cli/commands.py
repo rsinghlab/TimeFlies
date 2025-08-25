@@ -2600,6 +2600,15 @@ def update_command(args) -> int:
                             f"         [BACKED UP] {config_file} -> backup_configs/{backup_name}"
                         )
 
+            # Update config files that had differences
+            if backup_needed:
+                for config_file in backup_needed:
+                    src_config = new_configs_dir / config_file
+                    dst_config = configs_dir / config_file
+                    if src_config.exists():
+                        shutil.copy2(src_config, dst_config)
+                        print(f"         [UPDATED] {config_file}")
+
             # Then ensure all required configs exist (add missing only)
             config_copy_result = setup_user_environment(
                 skip_gui_check=True, quiet_mode=True
