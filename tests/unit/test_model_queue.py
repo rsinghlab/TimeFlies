@@ -3,7 +3,7 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
 import yaml
@@ -144,8 +144,8 @@ class TestModelQueueManager:
         # Clean up
         Path(temp_config_file).unlink()
 
-    @patch("common.core.model_queue.run_train")
-    @patch("common.core.model_queue.run_evaluate")
+    @patch("common.core.model_queue.train_command")
+    @patch("common.core.model_queue.evaluate_command")
     def test_train_single_model_success(
         self, mock_evaluate, mock_train, temp_config_file
     ):
@@ -160,8 +160,8 @@ class TestModelQueueManager:
         }
 
         # Mock successful training
-        mock_train.return_value = None
-        mock_evaluate.return_value = None
+        mock_train.return_value = 0
+        mock_evaluate.return_value = 0
 
         result = manager.train_single_model(0, model_config)
 
@@ -179,7 +179,7 @@ class TestModelQueueManager:
         # Clean up
         Path(temp_config_file).unlink()
 
-    @patch("common.core.model_queue.run_train")
+    @patch("common.core.model_queue.train_command")
     def test_train_single_model_failure(self, mock_train, temp_config_file):
         """Test handling of training failures."""
         manager = ModelQueueManager(temp_config_file)
@@ -279,6 +279,7 @@ class TestModelQueueManager:
             {
                 "name": "cnn_model",
                 "model_type": "CNN",
+                "description": "Test CNN model",
                 "status": "completed",
                 "training_time": 10.5,
                 "hyperparameters": {"epochs": 50, "batch_size": 32},
@@ -292,6 +293,7 @@ class TestModelQueueManager:
             {
                 "name": "xgb_model",
                 "model_type": "xgboost",
+                "description": "Test XGBoost model",
                 "status": "completed",
                 "training_time": 5.2,
                 "hyperparameters": {"n_estimators": 100, "max_depth": 6},
@@ -307,14 +309,39 @@ class TestModelQueueManager:
         manager.start_time = 1234567890  # Mock start time
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("pathlib.Path") as mock_path:
-                # Mock the outputs directory
-                mock_path.return_value.mkdir = Mock()
-                mock_path.return_value.__truediv__ = (
-                    lambda self, other: Path(temp_dir) / other
+            with patch("common.core.model_queue.Path") as mock_path_class:
+                # Create mock paths that behave like Path objects but don't create real directories
+                mock_outputs_path = Mock()
+                mock_summary_dir = Mock()
+
+                # Mock the mkdir method to do nothing
+                mock_outputs_path.mkdir = Mock()
+                mock_summary_dir.mkdir = Mock()
+
+                # Mock the path division operations
+                mock_outputs_path.__truediv__ = Mock(return_value=mock_summary_dir)
+                mock_summary_dir.__truediv__ = Mock(
+                    return_value=Path(temp_dir) / "mock_file"
                 )
 
-                report_path, csv_path = manager.generate_summary_report()
+                # Mock Path constructor
+                def mock_path_constructor(path_str):
+                    if str(path_str) == "outputs":
+                        return mock_outputs_path
+                    # Return a real path for other operations (like temp file paths)
+                    return Path(temp_dir) / str(path_str)
+
+                mock_path_class.side_effect = mock_path_constructor
+
+                # Also mock the file operations
+                with patch("builtins.open", mock_open()) as mock_file:
+                    report_path, csv_path = manager.generate_summary_report()
+
+                    # Verify directory creation was attempted (but mocked)
+                    mock_summary_dir.mkdir.assert_called_once()
+
+                    # Verify file writing was attempted
+                    mock_file.assert_called()  # Verify files were "written"
 
                 # Verify CSV was attempted to be saved
                 mock_to_csv.assert_called_once()

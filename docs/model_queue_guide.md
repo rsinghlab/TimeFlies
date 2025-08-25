@@ -87,6 +87,17 @@ data:
     test: ["ab42", "htau"]       # Values for testing
 ```
 
+#### Execution Control Settings
+```yaml
+# Control what stages run for each model
+with_training: true              # Train models (false = skip for pre-trained models)
+with_evaluation: true            # Evaluate models (false = train-only mode)
+with_eda: false                  # Run EDA before training/evaluation
+with_analysis: true              # Run analysis scripts after training/evaluation
+interpret: true                  # Enable SHAP interpretation
+visualize: true                  # Enable visualizations
+```
+
 #### Model Training Settings
 ```yaml
 model:
@@ -208,7 +219,60 @@ global_settings:
   interpret: true
 ```
 
-### 2. Preprocessing Comparison Queue
+### 2. Execution Mode Examples
+```yaml
+queue_settings:
+  name: "execution_modes_demo"
+  sequential: true
+  save_checkpoints: true
+  generate_summary: true
+
+model_queue:
+  # Full workflow: Train + Evaluate + Analysis
+  - name: "full_workflow"
+    model_type: "CNN"
+    description: "Complete training and evaluation"
+    hyperparameters:
+      epochs: 50
+    config_overrides:
+      with_training: true      # Train the model
+      with_evaluation: true    # Evaluate the model
+      with_analysis: true      # Run analysis scripts
+
+  # Train only (no evaluation)
+  - name: "train_only"
+    model_type: "CNN"
+    description: "Training only, skip evaluation"
+    hyperparameters:
+      epochs: 50
+    config_overrides:
+      with_training: true      # Train the model
+      with_evaluation: false   # Skip evaluation
+      with_analysis: false     # Skip analysis
+
+  # Evaluate pre-trained model only
+  - name: "evaluate_pretrained"
+    model_type: "CNN"
+    description: "Evaluate existing trained model"
+    hyperparameters:
+      epochs: 50  # Ignored
+    config_overrides:
+      with_training: false     # Skip training (load existing)
+      with_evaluation: true    # Evaluate the model
+      with_analysis: true      # Run analysis scripts
+
+global_settings:
+  project: "fruitfly_aging"
+  data:
+    tissue: "head"
+    target_variable: "age"
+  # Default execution mode
+  with_training: true
+  with_evaluation: true
+  with_analysis: true
+```
+
+### 3. Preprocessing Comparison Queue
 ```yaml
 queue_settings:
   name: "preprocessing_comparison"
@@ -276,11 +340,14 @@ global_settings:
 
 ### Basic Usage
 ```bash
-# Run a model queue
-timeflies queue configs/my_queue.yaml
+# Run the default model queue (uses configs/model_queue.yaml)
+timeflies queue
+
+# Run a custom queue configuration
+timeflies queue configs/my_custom_queue.yaml
 
 # Start fresh (ignore any existing checkpoint)
-timeflies queue configs/my_queue.yaml --no-resume
+timeflies queue --no-resume
 ```
 
 ### Queue Execution Flow
@@ -321,10 +388,13 @@ Best model so far: cnn_default (accuracy: 0.847)
 If training is interrupted, you can resume:
 ```bash
 # This will automatically resume from the last completed model
-timeflies queue configs/my_queue.yaml
+timeflies queue
 
 # To start completely fresh
-timeflies queue configs/my_queue.yaml --no-resume
+timeflies queue --no-resume
+
+# With custom configuration
+timeflies queue configs/my_queue.yaml
 ```
 
 ## Output Structure

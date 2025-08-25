@@ -110,6 +110,18 @@ model_queue:
         tissue: "head"
         species: "drosophila"
 
+  # Example: Evaluate only (skip training for pre-trained model)
+  - name: "pretrained_cnn_eval"
+    model_type: "CNN"
+    description: "Evaluate pre-trained CNN model only"
+    hyperparameters:
+      epochs: 50  # Ignored since training is skipped
+      batch_size: 32
+    config_overrides:
+      with_training: false    # Skip training - load existing model
+      with_evaluation: true   # Run evaluation only
+      with_analysis: false    # Skip analysis scripts
+
 # Global settings matching actual TimeFlies config structure
 global_settings:
   # Project settings
@@ -153,8 +165,10 @@ global_settings:
       early_stopping_patience: 8
       learning_rate: 0.001
 
-  # Analysis settings
-  with_eda: false
-  with_analysis: true
-  interpret: true
-  visualize: true
+  # Execution control
+  with_training: true     # Train models (set false to skip training for pre-trained models)
+  with_evaluation: true   # Evaluate models (set false to train-only)
+  with_eda: false         # Run EDA before training/evaluation
+  with_analysis: true     # Run analysis scripts after training/evaluation
+  interpret: true         # Enable SHAP interpretation
+  visualize: true         # Enable visualizations
