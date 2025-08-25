@@ -23,10 +23,21 @@ Transcriptomics aging research computational tool - Updated August 2024
 - **Testing**: Unit and integration tests with proper mocking
 - **Documentation**: Comprehensive guide with optimization metrics
 
+### ✅ Step 3: Batch Correction with Automatic Environment Management
+**Status**: Complete with comprehensive implementation
+- **BatchCorrector**: scVI integration with proper train/eval workflow
+- **Environment Management**: Seamless switching between main and batch environments
+- **Per-Project Control**: Enable/disable batch correction via configuration
+- **CLI Integration**: `timeflies batch-correct` with automatic dependency management
+- **ML Best Practices**: Prevents data leakage using proper train/query workflow
+- **Testing**: Real dependency testing with automatic environment switching
+- **Documentation**: Updated installation and workflow documentation
+
 ### ✅ Infrastructure & Quality
 - **Package Management**: Modern pyproject.toml with proper dependencies
 - **Code Quality**: Pre-commit hooks, ruff linting, proper type hints
 - **Testing Framework**: pytest with coverage reporting, test markers
+- **Environment Management**: Dual environment system (main + batch correction)
 - **Documentation**: Comprehensive README with output structure
 - **Git Workflow**: Feature branches, proper commit messages, CI/CD ready
 

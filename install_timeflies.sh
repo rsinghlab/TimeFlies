@@ -365,7 +365,7 @@ echo "   timeflies setup --batch-correct          # Include batch correction in 
 echo ""
 echo -e "${BLUE}4. Run analysis workflow:${NC}"
 echo "   timeflies train              # Train models with auto-evaluation"
-echo "   timeflies batch-correct --tissue head    # Optional: batch correction (auto-switches env)"
+echo "   timeflies batch-correct              # Optional: batch correction (auto-switches env)"
 echo "   timeflies train --batch-corrected        # Train with batch-corrected data"
 echo "   timeflies evaluate           # Evaluate models on test data"
 echo "   timeflies analyze            # Project-specific analysis scripts"

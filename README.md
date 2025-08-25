@@ -15,7 +15,9 @@ chmod +x install_timeflies.sh
 ./install_timeflies.sh
 ```
 
-### Activate Environment
+### Automatic Environment Activation
+
+The installer automatically activates TimeFlies. For new terminal windows:
 
 ```bash
 source .activate.sh
@@ -28,8 +30,11 @@ source .activate.sh
 # Complete setup workflow (customize configs/setup.yaml first)
 timeflies setup [--batch-correct]
 
+# Batch correction (automatic environment switching)
+timeflies batch-correct
+
 # Train models with automatic evaluation
-timeflies train [--with-eda --with-analysis]
+timeflies train [--with-eda --with-analysis --batch-corrected]
 
 # Evaluate trained models
 timeflies evaluate [--with-eda --with-analysis]
@@ -168,7 +173,10 @@ outputs/
 - **Hyperparameter Tuning**: Grid, random, and Bayesian optimization with CNN architecture variants
 
 ### Data Processing
-- **Batch Correction**: scVI-tools integration for technical noise removal
+- **Batch Correction**: scVI-tools integration with automatic environment management
+  - Per-project enable/disable configuration
+  - Proper ML workflow preventing data leakage (train/eval splits)
+  - Seamless environment switching for dependencies
 - **Smart Splitting**: Stratified train/eval splits preserving biological structure
 - **Quality Control**: Automated data validation and preprocessing
 
