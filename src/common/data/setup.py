@@ -358,35 +358,44 @@ class DataSetupManager:
                 )
 
         # Verify batch-corrected files if they exist
-        batch_original_file = data_dir / self._generate_filename(
-            tissue, "original", batch=True
-        )
+        # Note: Batch correction only creates train/eval batch files, not original_batch
         batch_train_file = data_dir / self._generate_filename(
             tissue, "train", batch=True
         )
         batch_eval_file = data_dir / self._generate_filename(tissue, "eval", batch=True)
 
-        batch_files_exist = all(
-            [
-                batch_original_file.exists(),
-                batch_train_file.exists(),
-                batch_eval_file.exists(),
-            ]
-        )
+        # Check which batch files exist
+        batch_train_exists = batch_train_file.exists()
+        batch_eval_exists = batch_eval_file.exists()
+
+        batch_files_exist = batch_train_exists and batch_eval_exists
+
+        # Report batch file status
+        if batch_train_exists or batch_eval_exists:
+            batch_count = sum([batch_train_exists, batch_eval_exists])
+            logger.info(f"Found {batch_count}/2 batch-corrected files:")
+            if batch_train_exists:
+                logger.info(f"  ✅ {batch_train_file.name}")
+            if batch_eval_exists:
+                logger.info(f"  ✅ {batch_eval_file.name}")
+
+            if not batch_files_exist:
+                missing = []
+                if not batch_train_exists:
+                    missing.append(batch_train_file.name)
+                if not batch_eval_exists:
+                    missing.append(batch_eval_file.name)
+                logger.info(f"  ⚠️ Missing: {', '.join(missing)}")
+                logger.info("  Batch verification skipped (need both train and eval)")
 
         if batch_files_exist:
             logger.info("Verifying batch-corrected files consistency...")
 
             # Load batch-corrected data
-            adata_batch_original = anndata.read_h5ad(batch_original_file)
             adata_batch_train = anndata.read_h5ad(batch_train_file)
             adata_batch_eval = anndata.read_h5ad(batch_eval_file)
 
             # Verify same number of cells
-            if len(adata_batch_original) != len(adata_original):
-                raise ValueError(
-                    f"Batch-corrected original has different cell count: {len(adata_batch_original)} vs {len(adata_original)}"
-                )
             if len(adata_batch_train) != len(adata_train):
                 raise ValueError(
                     f"Batch-corrected train has different cell count: {len(adata_batch_train)} vs {len(adata_train)}"
@@ -397,10 +406,6 @@ class DataSetupManager:
                 )
 
             # Verify same number of genes
-            if adata_batch_original.n_vars != adata_original.n_vars:
-                raise ValueError(
-                    f"Batch-corrected original has different gene count: {adata_batch_original.n_vars} vs {adata_original.n_vars}"
-                )
             if adata_batch_train.n_vars != adata_train.n_vars:
                 raise ValueError(
                     f"Batch-corrected train has different gene count: {adata_batch_train.n_vars} vs {adata_train.n_vars}"
@@ -411,16 +416,12 @@ class DataSetupManager:
                 )
 
             # Verify same cell order (obs_names)
-            if not adata_batch_original.obs_names.equals(adata_original.obs_names):
-                raise ValueError("Batch-corrected original has different cell order")
             if not adata_batch_train.obs_names.equals(adata_train.obs_names):
                 raise ValueError("Batch-corrected train has different cell order")
             if not adata_batch_eval.obs_names.equals(adata_eval.obs_names):
                 raise ValueError("Batch-corrected eval has different cell order")
 
             # Verify same gene order (var_names)
-            if not adata_batch_original.var_names.equals(adata_original.var_names):
-                raise ValueError("Batch-corrected original has different gene order")
             if not adata_batch_train.var_names.equals(adata_train.var_names):
                 raise ValueError("Batch-corrected train has different gene order")
             if not adata_batch_eval.var_names.equals(adata_eval.var_names):
@@ -428,7 +429,6 @@ class DataSetupManager:
 
             # Verify metadata consistency (obs columns should be identical)
             for file_type, (batch_data, regular_data) in [
-                ("original", (adata_batch_original, adata_original)),
                 ("train", (adata_batch_train, adata_train)),
                 ("eval", (adata_batch_eval, adata_eval)),
             ]:
