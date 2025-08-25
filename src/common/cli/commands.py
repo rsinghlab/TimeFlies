@@ -525,6 +525,8 @@ def new_setup_command(args) -> int:
 
     # 1. Create data splits
     print("\n1. Creating data splits...")
+    if hasattr(args, "force_split") and args.force_split:
+        print("   FORCE: Force split enabled - will recreate existing splits")
     split_result = split_command(args)
     if split_result != 0:
         print("[ERROR] Data split creation failed.")
@@ -599,8 +601,12 @@ def split_command(args) -> int:
         print("============================================================")
 
         # Use the existing setup manager to create splits
+        force_split = hasattr(args, "force_split") and args.force_split
+        if force_split:
+            print("FORCE: Force split enabled - will recreate existing splits")
+
         setup_manager = DataSetupManager()
-        success = setup_manager.setup_data()
+        success = setup_manager.setup_data(force_split=force_split)
 
         if success:
             print("[OK] Data splits created successfully!")
