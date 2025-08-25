@@ -323,10 +323,10 @@ if [[ ! -d ".venv_batch" ]]; then
         source .venv_batch/bin/activate
     fi
 
-    # Install PyTorch + scvi-tools
+    # Install PyTorch + scvi-tools + batch correction dependencies
     pip install --upgrade pip
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    pip install scvi-tools scanpy pandas numpy matplotlib seaborn
+    pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
 
     # Deactivate batch environment
     deactivate
@@ -361,9 +361,12 @@ echo "   # Copy your *_original.h5ad files there"
 echo ""
 echo -e "${BLUE}3. Complete setup:${NC}"
 echo "   timeflies setup              # Creates config, templates, outputs, GUI launcher"
+echo "   timeflies setup --batch-correct          # Include batch correction in setup"
 echo ""
 echo -e "${BLUE}4. Run analysis workflow:${NC}"
 echo "   timeflies train              # Train models with auto-evaluation"
+echo "   timeflies batch-correct --tissue head    # Optional: batch correction (auto-switches env)"
+echo "   timeflies train --batch-corrected        # Train with batch-corrected data"
 echo "   timeflies evaluate           # Evaluate models on test data"
 echo "   timeflies analyze            # Project-specific analysis scripts"
 echo ""
@@ -388,3 +391,20 @@ echo ""
 echo -e "${GREEN}🔬 Research Lab${NC}"
 echo "Contact your lab administrator for data access and support"
 echo "================================================"
+
+# Auto-activate the main environment for immediate use
+echo ""
+echo -e "${GREEN}🚀 Activating TimeFlies environment...${NC}"
+if [[ -f ".activate.sh" ]]; then
+    source .activate.sh
+    echo -e "${GREEN}✅ TimeFlies environment activated!${NC}"
+    echo ""
+    echo -e "${BLUE}You can now run TimeFlies commands directly:${NC}"
+    echo "   timeflies setup"
+    echo "   timeflies train"
+    echo "   timeflies --help"
+    echo ""
+    echo -e "${YELLOW}💡 Note: Open new terminal windows will need: source .activate.sh${NC}"
+else
+    echo -e "${RED}⚠️  Could not find .activate.sh - you may need to run: source .activate.sh${NC}"
+fi

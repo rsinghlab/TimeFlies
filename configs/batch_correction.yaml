@@ -4,8 +4,46 @@
 # Configuration for scVI batch correction and PyTorch environment.
 # Users can customize these settings before running batch correction.
 
-# scVI Model Configuration
+# Project-specific overrides for batch correction
+# Add any new project here with hierarchical settings following the main config structure
+project_overrides:
+  fruitfly_aging:
+    batch_correction:
+      enabled: true                        # Enable/disable batch correction for this project
+      preprocessing:
+        batch_column: "dataset"
+        label_column: "afca_annotation_broad"
+      evaluation:
+        plot_columns: ["dataset", "sex", "age", "genotype"]
+  fruitfly_alzheimers:
+    batch_correction:
+      enabled: true                        # Enable/disable batch correction for this project
+      preprocessing:
+        batch_column: "dataset"
+        label_column: "afca_annotation_broad"
+      evaluation:
+        plot_columns: ["dataset", "sex", "age", "genotype"]
+  # Add new projects here (can override any part of the config):
+  # your_new_project:
+  #   batch_correction:
+  #     enabled: false                     # Disable batch correction completely
+  # example_project_with_custom_settings:
+  #   batch_correction:
+  #     enabled: true                      # Enable with custom settings
+  #     model:
+  #       n_latent: 30
+  #     preprocessing:
+  #       batch_column: "sample_id"
+  #       label_column: "cell_type"
+  #       library_size: 1e5
+  #     evaluation:
+  #       plot_columns: ["sample_id", "condition", "timepoint"]
+  #       run_metrics: true
+
+# Default scVI Model Configuration
 batch_correction:
+  enabled: true                     # Default: batch correction enabled (can be overridden per project)
+
   model:
     n_latent: 25              # Latent space dimensions
     n_hidden: 256             # Hidden layer size
@@ -19,11 +57,14 @@ batch_correction:
     plan_kwargs:
       weight_decay: 1e-4
 
-  # Data processing
+  # Data processing (defaults - overridden by project_overrides)
   preprocessing:
     batch_column: "dataset"              # Column containing batch information
     label_column: "afca_annotation_broad" # Cell type annotation column
     library_size: 1e4                    # Target library size for normalization
+    sampling:
+      samples: null        # null = use all data, or specify number (e.g., 10000)
+      variables: null      # null = use all genes, or specify number (e.g., 2000)
 
   # Output settings
   output:
@@ -37,6 +78,7 @@ batch_correction:
     run_visualization: false # Set to true to automatically generate UMAPs
     metrics_output_dir: "outputs/{project}/results/batch_correction"
     umap_output_dir: "outputs/{project}/results/batch_correction/umaps"
+    plot_columns: ["dataset", "sex", "age", "genotype"]  # Default columns (overridden by project_overrides)
 
 # PyTorch Environment Configuration
 pytorch:

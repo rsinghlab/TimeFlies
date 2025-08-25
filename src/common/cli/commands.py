@@ -13,7 +13,7 @@ from pathlib import Path
 from ..analysis.eda import EDAHandler
 from ..core.active_config import get_config_for_active_project
 
-# Optional import for batch correction
+# Import batch correction class (dependencies checked at instantiation)
 try:
     from ..data.preprocessing.batch_correction import BatchCorrector
 
@@ -902,14 +902,94 @@ def train_command(args, config) -> int:
 
 def batch_command(args) -> int:
     """Run batch correction pipeline."""
-    if not BATCH_CORRECTION_AVAILABLE:
+    print(f"DEBUG: batch_command called with args: {args}")
+    print(f"DEBUG: args.tissue = {getattr(args, 'tissue', 'NOT_SET')}")
+    print(f"DEBUG: hasattr(args, 'project') = {hasattr(args, 'project')}")
+    if hasattr(args, "project"):
+        print(f"DEBUG: args.project = {args.project}")
+
+    print(f"Running batch correction for {args.tissue} tissue...")
+
+    # Determine project from command line flags
+    if hasattr(args, "project") and args.project == "fruitfly_alzheimers":
+        project = "fruitfly_alzheimers"
+    elif hasattr(args, "project") and args.project == "fruitfly_aging":
+        project = "fruitfly_aging"
+    else:
+        project = "fruitfly_aging"  # Default
+
+    print(f"DEBUG: determined project = {project}")
+    base_dir = Path(f"data/{project}/{args.tissue}")
+    print(f"DEBUG: base_dir = {base_dir}")
+
+    # Check if batch correction is enabled for this project
+    try:
+        from pathlib import Path as ConfigPath
+
+        import yaml
+
+        # Load batch correction config to check if enabled
+        config_paths = [
+            ConfigPath("configs/batch_correction.yaml"),
+            ConfigPath(__file__).parent.parent.parent.parent
+            / "configs/batch_correction.yaml",
+        ]
+
+        config_path = None
+        for path in config_paths:
+            if path.exists():
+                config_path = path
+                break
+
+        if config_path:
+            with open(config_path) as f:
+                batch_config = yaml.safe_load(f)
+
+            # Check project-specific enabled setting, fall back to default
+            enabled = batch_config.get("batch_correction", {}).get(
+                "enabled", True
+            )  # Default enabled
+            if (
+                "project_overrides" in batch_config
+                and project in batch_config["project_overrides"]
+            ):
+                project_config = batch_config["project_overrides"][project]
+                if "batch_correction" in project_config:
+                    enabled = project_config["batch_correction"].get("enabled", enabled)
+
+            if not enabled:
+                print(f"❌ Batch correction is disabled for project '{project}'")
+                print(
+                    f"   To enable: Set 'enabled: true' in configs/batch_correction.yaml under project_overrides.{project}"
+                )
+                return 0
+
+            print(f"✅ Batch correction is enabled for project '{project}'")
+        else:
+            print("⚠️  Could not find batch_correction.yaml, assuming enabled")
+
+    except Exception as e:
+        print(f"⚠️  Could not check enabled status: {e}, assuming enabled")
+
+    try:
+        print(
+            f"DEBUG: Creating BatchCorrector with project={project}, tissue={args.tissue}"
+        )
+        # Try to instantiate BatchCorrector (will check dependencies)
+        batch_corrector = BatchCorrector(
+            tissue=args.tissue,
+            base_dir=base_dir,
+            project=project,
+        )
+        print("DEBUG: BatchCorrector created successfully")
+
+    except ImportError:
         print("🔄 Batch correction requires switching to the batch environment...")
         print("   Detecting current environment and switching automatically...")
 
         # Try to auto-switch to batch correction environment
         import subprocess
         import sys
-        from pathlib import Path
 
         # Check if we're in TimeFlies directory and have batch environment
         timeflies_dir = Path.cwd()
@@ -943,70 +1023,26 @@ def batch_command(args) -> int:
             )
             return 1
 
-    print(f"Running batch correction for {args.tissue} tissue...")
-
+    # Dependencies available, run batch correction
     try:
-        # Create batch corrector with new data structure
-        # Determine project from config or use default
-        project = "fruitfly_aging"  # Default project
-        base_dir = f"data/{project}"
-
-        # Initialize batch corrector with updated paths
-        # IMPORTANT: Never use original file for batch correction to avoid data leakage
-        if args.original:
-            print(
-                "WARNING: Using --original flag for batch correction can cause data leakage!"
-            )
-            print(
-                "Batch correction should only be trained on training data, not the full dataset."
-            )
-            print("Switching to train/eval mode for proper ML hygiene.")
-            use_original = False
-        else:
-            use_original = False
-
-        batch_corrector = BatchCorrector(
-            data_type="uncorrected",
-            tissue=args.tissue,
-            base_dir=base_dir,
-            use_original=use_original,
-        )
-
-        # Run the batch correction training
+        # Run the complete batch correction workflow
         print("Training scVI model on TRAINING data only...")
         print("Then applying trained model to evaluation data (query mode)...")
         print("This prevents data leakage into the holdout set.")
-        batch_corrector.run()
-
-        # Run evaluation if requested
-        if args.evaluate:
-            print("\nEvaluating batch correction quality...")
-            batch_corrector.evaluate_metrics()
-
-        # Generate visualizations if requested
-        if args.visualize:
-            print("\nGenerating UMAP visualizations...")
-            batch_corrector.umap_visualization()
-
-        print("\n" + "=" * 60)
-        print("✓ BATCH CORRECTION COMPLETED SUCCESSFULLY!")
-        print("=" * 60)
+        batch_corrector.run_batch_correction()
 
         # Show what was created
-        tissue = args.tissue
-        print(f"✓ scVI model trained on: drosophila_{tissue}_aging_train.h5ad")
-        print(f"✓ Model applied to: drosophila_{tissue}_aging_eval.h5ad (query mode)")
-        print(f"✓ Created: drosophila_{tissue}_aging_train_batch.h5ad")
-        print(f"✓ Created: drosophila_{tissue}_aging_eval_batch.h5ad")
-        print("✓ Original file untouched (prevents data leakage)")
+        print(f"\n✓ scVI model trained on: {project}_{args.tissue}_train.h5ad")
+        print(f"✓ Model applied to: {project}_{args.tissue}_eval.h5ad (query mode)")
+        print(f"✓ Created: {project}_{args.tissue}_train_batch.h5ad")
+        print(f"✓ Created: {project}_{args.tissue}_eval_batch.h5ad")
 
         print("\nNext steps:")
         print("1. Return to main environment: source activate.sh")
-        print("2. Train with batch data:     python run_timeflies.py train")
-        print("   (Will automatically use batch-corrected files)")
         print(
-            "\nNote: No additional setup needed - batch correction used existing splits!"
+            "2. Train with batch data:     python run_timeflies.py train --batch-corrected"
         )
+        print("   (Will automatically use batch-corrected files)")
 
         return 0
 
@@ -1477,6 +1513,12 @@ def create_tiny_from_metadata(project, tissue, metadata_file, args, seed=None):
             sexes = list(metadata["sex_distribution"].keys())
             obs_data["sex"] = np.random.choice(sexes, n_cells)
 
+        # Add batch correction columns expected by TimeFlies
+        obs_data["dataset"] = np.random.choice(["batch1", "batch2"], n_cells)
+        obs_data["afca_annotation_broad"] = np.random.choice(
+            ["neuron", "glia", "muscle"], n_cells
+        )
+
         obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
         var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
 
@@ -1567,6 +1609,12 @@ def create_synthetic_from_metadata(project, tissue, metadata_file, args, seed=No
         if "sex_distribution" in metadata:
             sexes = list(metadata["sex_distribution"].keys())
             obs_data["sex"] = np.random.choice(sexes, n_cells)
+
+        # Add batch correction columns expected by TimeFlies
+        obs_data["dataset"] = np.random.choice(["batch1", "batch2"], n_cells)
+        obs_data["afca_annotation_broad"] = np.random.choice(
+            ["neuron", "glia", "muscle"], n_cells
+        )
 
         obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
         var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
@@ -1709,6 +1757,12 @@ def create_synthetic_fixtures(project, tissue, data_file, seed=42):
             if "sex_distribution" in metadata:
                 sexes = list(metadata["sex_distribution"].keys())
                 obs_data["sex"] = np.random.choice(sexes, n_cells)
+
+            # Add batch correction columns expected by TimeFlies
+            obs_data["dataset"] = np.random.choice(["batch1", "batch2"], n_cells)
+            obs_data["afca_annotation_broad"] = np.random.choice(
+                ["neuron", "glia", "muscle"], n_cells
+            )
 
             obs_df = pd.DataFrame(obs_data, index=[f"cell_{i}" for i in range(n_cells)])
             var_df = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
