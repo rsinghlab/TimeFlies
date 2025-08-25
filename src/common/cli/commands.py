@@ -582,11 +582,11 @@ def new_setup_command(args) -> int:
     print("=" * 50)
     print("Your TimeFlies environment is ready!")
     print("\nNext steps:")
-    print("  DATA: Run EDA:        timeflies eda --save-report")
-    print("  TRAIN: Train models:   timeflies train")
-    print("  DATA: Evaluate:       timeflies evaluate")
-    print("  AI: Analyze:        timeflies analyze")
-    print("  METRICS: Full pipeline:  timeflies train --with-eda --with-analysis")
+    print("  ANALYSIS: Run EDA:        timeflies eda --save-report")
+    print("  TRAINING: Train models:   timeflies train")
+    print("  EVALUATION: Evaluate:       timeflies evaluate")
+    print("  RESEARCH: Analyze:        timeflies analyze")
+    print("  WORKFLOW: Full pipeline:  timeflies train --with-eda --with-analysis")
     print("\nAll results will be saved to organized directories in outputs/")
 
     return 0
