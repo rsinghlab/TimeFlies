@@ -161,7 +161,7 @@ class BatchCorrector:
         # Data processing settings
         self.batch_column = batch_config.preprocessing.batch_column
         self.label_column = batch_config.preprocessing.label_column
-        self.library_size = batch_config.preprocessing.library_size
+        self.library_size = float(batch_config.preprocessing.library_size)
 
         # Output settings
         self.scvi_latent_key = batch_config.output.scvi_latent_key
@@ -169,15 +169,15 @@ class BatchCorrector:
 
         # Model parameters
         model_config = batch_config.model
-        self.n_latent = model_config.n_latent
-        self.n_hidden = model_config.n_hidden
-        self.n_layers = model_config.n_layers
-        self.dropout_rate = model_config.dropout_rate
+        self.n_latent = int(model_config.n_latent)
+        self.n_hidden = int(model_config.n_hidden)
+        self.n_layers = int(model_config.n_layers)
+        self.dropout_rate = float(model_config.dropout_rate)
 
         # Training parameters
         training_config = batch_config.training
-        self.max_epochs = training_config.max_epochs
-        self.weight_decay = training_config.weight_decay
+        self.max_epochs = training_config.max_epochs  # Can be None
+        self.weight_decay = float(training_config.weight_decay)
 
         # Evaluation settings
         eval_config = batch_config.evaluation
