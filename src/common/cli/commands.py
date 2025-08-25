@@ -2807,10 +2807,16 @@ def gui_command(args) -> int:
 
             # Check common locations
             possible_locations = [
-                current_dir / ".timeflies_src" / "src",
-                current_dir / "src",
-                Path(__file__).parent.parent.parent,  # Up from cli/commands.py
+                current_dir / ".timeflies_src" / "src",  # User installation
+                current_dir / "src",  # Development directory
+                Path.cwd() / "src",  # Current working directory src
             ]
+
+            # Add path relative to this file if available
+            try:
+                possible_locations.append(Path(__file__).parent.parent.parent)
+            except NameError:
+                pass
 
             for src_path in possible_locations:
                 if (src_path / "common" / "gui" / "gradio_launcher.py").exists():
