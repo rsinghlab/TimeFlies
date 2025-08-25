@@ -549,7 +549,6 @@ def new_setup_command(args) -> int:
         "outputs/fruitfly_alzheimers/experiments/batch_corrected",
         "outputs/fruitfly_alzheimers/eda/uncorrected",
         "outputs/fruitfly_alzheimers/eda/batch_corrected",
-        "logs",
     ]
 
     # Create directories if they don't exist (skip during tests)
@@ -558,6 +557,9 @@ def new_setup_command(args) -> int:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
     print("[OK] Output directories created")
+    print(
+        "      INFO: outputs/ - All results, plots, logs, and analysis reports organized by project"
+    )
 
     # 4. System verification (always runs last)
     print("\n4. Verifying system setup...")
@@ -1931,30 +1933,41 @@ def setup_user_environment():
     from pathlib import Path
 
     try:
-        # Create config.yaml if it doesn't exist
-        config_file = Path("config.yaml")
-        if not config_file.exists():
-            print("   INFO: Creating config.yaml...")
-            # Find source config from TimeFlies installation
-            source_configs = [
+        # Create configs/ directory and copy all config files
+        configs_dir = Path("configs")
+        if not configs_dir.exists():
+            print("   CONFIG: Creating configs/ directory...")
+            # Create directory if it doesn't exist (skip during tests)
+            if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+                configs_dir.mkdir(parents=True, exist_ok=True)
+
+            # Find source configs from TimeFlies installation
+            source_configs_dirs = [
                 Path(__file__).parent.parent.parent.parent
-                / "configs"
-                / "default.yaml",  # repo structure
-                Path(__file__).parent.parent.parent
-                / "configs"
-                / "default.yaml",  # installed structure
+                / "configs",  # repo structure
+                Path(__file__).parent.parent.parent / "configs",  # installed structure
             ]
 
-            for source_config in source_configs:
-                if source_config.exists():
-                    shutil.copy2(source_config, config_file)
-                    print("      [OK] Created config.yaml from TimeFlies defaults")
+            for source_configs_dir in source_configs_dirs:
+                if source_configs_dir.exists():
+                    print("      CONFIG: Copying configuration files...")
+                    # Copy all config files
+                    for config_file in source_configs_dir.glob("*.yaml"):
+                        shutil.copy2(config_file, configs_dir / config_file.name)
+                        print(f"         [OK] {config_file.name}")
                     break
             else:
-                print("      [ERROR] Could not find default config template")
+                print("      [ERROR] Could not find default config templates")
                 return 1
         else:
-            print("   INFO: config.yaml already exists")
+            print("   CONFIG: configs/ directory already exists")
+
+        # Also create config.yaml symlink/copy in root for compatibility
+        root_config = Path("config.yaml")
+        default_config = configs_dir / "default.yaml"
+        if not root_config.exists() and default_config.exists():
+            print("   INFO: Creating config.yaml -> configs/default.yaml")
+            shutil.copy2(default_config, root_config)
 
         # Create templates directory if it doesn't exist
         templates_dir = Path("templates")

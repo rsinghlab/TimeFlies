@@ -72,55 +72,91 @@ class DataSetupManager:
         return filename
 
     def setup_data(self):
-        """Perform complete data setup including downloading, splitting, and verification."""
+        """Perform complete data setup including downloading, splitting, and verification for all projects."""
 
         logger.info("Starting data setup process...")
 
-        # Step 1: Download data (if needed)
-        try:
-            self.download_data()
-        except Exception as e:
-            logger.error(f"Data download failed: {e}")
+        # Auto-detect all projects in data/ folder
+        data_dir = Path("data")
+        if not data_dir.exists():
+            logger.error(
+                "Data directory not found. Please create data/ and add your H5AD files."
+            )
             return False
 
-        # Step 2: Perform stratified split
-        try:
-            self.stratified_split()
-        except Exception as e:
-            logger.error(f"Stratified split failed: {e}")
+        projects = [p.name for p in data_dir.iterdir() if p.is_dir()]
+        if not projects:
+            logger.error(
+                "No project directories found in data/. Please add project folders like data/fruitfly_aging/"
+            )
             return False
 
-        # Step 3: Verify splits
-        try:
-            self.verify_splits()
-        except Exception as e:
-            logger.error(f"Split verification failed: {e}")
+        logger.info(f"Found projects: {projects}")
+
+        # Process each project
+        success_count = 0
+        for project in projects:
+            logger.info(f"Processing project: {project}")
+            try:
+                # Step 1: Download data (if needed)
+                if not self.download_data_for_project(project):
+                    logger.warning(f"Data download failed for {project}")
+                    continue
+
+                # Step 2: Perform stratified split
+                if not self.stratified_split_for_project(project):
+                    logger.warning(f"Stratified split failed for {project}")
+                    continue
+
+                # Step 3: Verify splits
+                if not self.verify_splits_for_project(project):
+                    logger.warning(f"Split verification failed for {project}")
+                    continue
+
+                logger.info(f"✅ {project} setup completed successfully!")
+                success_count += 1
+            except Exception as e:
+                logger.error(f"Error processing {project}: {e}")
+                continue
+
+        if success_count == 0:
+            logger.error("No projects were processed successfully!")
             return False
+        elif success_count < len(projects):
+            logger.warning(
+                f"Only {success_count}/{len(projects)} projects processed successfully"
+            )
+        else:
+            logger.info("All projects setup completed successfully!")
 
-        logger.info("Data setup completed successfully!")
-        return True
+        return success_count > 0
 
-    def download_data(self):
-        """Download and prepare data files."""
-
+    def download_data_for_project(self, project_name):
+        """Download and prepare data files for a specific project."""
         tissue = self.config.data.tissue
-        data_dir = Path(
-            f"data/{getattr(self.config.data, 'project', 'fruitfly_aging')}/{tissue}"
-        )
-        data_dir.mkdir(parents=True, exist_ok=True)
+        data_dir = Path(f"data/{project_name}/{tissue}")
 
-        original_file = data_dir / self._generate_filename(tissue, "original")
+        if not data_dir.exists():
+            logger.info(f"No {tissue} data directory found for {project_name}")
+            return True  # Skip if no data directory
 
-        if original_file.exists():
-            logger.info(f"Data file already exists: {original_file}")
+        # Look for any original files in the directory
+        original_files = list(data_dir.glob("*original*.h5ad"))
+
+        if original_files:
+            logger.info(
+                f"Data files already exist for {project_name}: {[f.name for f in original_files]}"
+            )
             return True
 
         # Here you would implement actual download logic
-        # For now, just log that this step needs implementation
-        logger.warning(
-            f"Data download not implemented. Please ensure {original_file} exists."
-        )
-        return original_file.exists()
+        logger.warning(f"No original data files found in {data_dir}")
+        return len(original_files) > 0
+
+    def download_data(self):
+        """Backward compatibility - download for current config project."""
+        project = getattr(self.config.data, "project", "fruitfly_aging")
+        return self.download_data_for_project(project)
 
     def stratified_split(self):
         """Perform stratified splitting of the dataset."""
