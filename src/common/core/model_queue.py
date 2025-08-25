@@ -527,6 +527,146 @@ class ModelQueueManager:
 
         return report_path, csv_path
 
+    @classmethod
+    def from_hyperparameter_results(
+        cls,
+        hyperparameter_results_dir: str,
+        global_settings: dict = None,
+        top_n: int = 5,
+    ) -> "ModelQueueManager":
+        """
+        Create a ModelQueueManager from hyperparameter tuning results.
+
+        This allows you to take the best configurations from hyperparameter
+        tuning and run them through the model queue system for production training.
+
+        Args:
+            hyperparameter_results_dir: Directory containing hyperparameter tuning results
+            global_settings: Global settings to apply to all models
+            top_n: Number of top configurations to include in queue
+
+        Returns:
+            ModelQueueManager instance with queue populated from best hyperparameters
+        """
+        import tempfile
+        from pathlib import Path
+
+        import pandas as pd
+        import yaml
+
+        results_dir = Path(hyperparameter_results_dir)
+
+        # Find metrics CSV file
+        metrics_csv = None
+        for csv_file in results_dir.glob("*metrics*.csv"):
+            metrics_csv = csv_file
+            break
+
+        if not metrics_csv or not metrics_csv.exists():
+            raise FileNotFoundError(
+                f"No hyperparameter metrics CSV found in {results_dir}"
+            )
+
+        # Load hyperparameter results
+        df = pd.read_csv(metrics_csv)
+
+        # Sort by accuracy (descending) and take top N
+        df_sorted = df.sort_values("accuracy", ascending=False)
+        top_configs = df_sorted.head(top_n)
+
+        # Create model queue from top configurations
+        model_queue = []
+
+        for i, (_, row) in enumerate(top_configs.iterrows()):
+            # Extract hyperparameters (columns starting with 'param_')
+            hyperparams = {}
+            for col in df.columns:
+                if col.startswith("param_"):
+                    param_name = col.replace("param_", "")
+                    hyperparams[param_name] = row[col]
+
+            # Extract config overrides (columns starting with 'config_' or 'arch_')
+            config_overrides = {}
+            for col in df.columns:
+                if col.startswith("config_") or col.startswith("arch_"):
+                    # This would need more sophisticated parsing in real implementation
+                    # For now, just collect architecture info
+                    if col.startswith("arch_"):
+                        if "architecture" not in config_overrides:
+                            config_overrides["architecture"] = {}
+                        arch_name = col.replace("arch_", "")
+                        config_overrides["architecture"][arch_name] = row[col]
+
+            # Create model configuration
+            model_config = {
+                "name": f"{row['variant_name']}_rank_{i + 1}",
+                "model_type": row["model_type"],
+                "description": f"Top-{i + 1} configuration from hyperparameter tuning (Accuracy: {row['accuracy']:.4f})",
+                "hyperparameters": hyperparams,
+            }
+
+            if config_overrides:
+                model_config["config_overrides"] = config_overrides
+
+            model_queue.append(model_config)
+
+        # Create queue configuration
+        queue_config = {
+            "queue_settings": {
+                "name": f"top_{top_n}_hyperparameter_results",
+                "sequential": True,
+                "save_checkpoints": True,
+                "generate_summary": True,
+            },
+            "model_queue": model_queue,
+            "global_settings": global_settings
+            or {
+                "project": "fruitfly_aging",
+                "with_training": True,
+                "with_evaluation": True,
+                "with_analysis": True,
+                "interpret": True,
+                "visualize": True,
+            },
+        }
+
+        # Save to temporary file and create ModelQueueManager
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            yaml.dump(queue_config, f, default_flow_style=False)
+            temp_config_path = f.name
+
+        return cls(temp_config_path)
+
+    def run_production_training(
+        self, enable_full_analysis: bool = True, enable_interpretation: bool = True
+    ):
+        """
+        Run queue with full production settings.
+
+        This enables all analysis features for production-ready training
+        of the best hyperparameter configurations.
+
+        Args:
+            enable_full_analysis: Enable comprehensive analysis and visualization
+            enable_interpretation: Enable SHAP interpretation
+        """
+        # Update global settings for production
+        if enable_full_analysis:
+            self.global_settings["with_eda"] = True
+            self.global_settings["with_analysis"] = True
+            self.global_settings["visualize"] = True
+
+        if enable_interpretation:
+            self.global_settings["interpret"] = True
+
+        print("🏭 Running production training with optimized hyperparameters")
+        print("   Full analysis enabled:", enable_full_analysis)
+        print("   SHAP interpretation enabled:", enable_interpretation)
+        print("")
+
+        # Run the queue
+        return self.run_queue(resume=True)
+
 
 def run_model_queue(queue_config_path: str, resume: bool = True):
     """
