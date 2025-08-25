@@ -2602,19 +2602,9 @@ def update_command(args) -> int:
 
             # Update config files that had differences
             if backup_needed:
-                print(
-                    f"      DEBUG: new_configs_dir exists: {new_configs_dir.exists()}"
-                )
-                if new_configs_dir.exists():
-                    print(
-                        f"      DEBUG: Contents of new_configs_dir: {list(new_configs_dir.glob('*.yaml'))}"
-                    )
                 for config_file in backup_needed:
                     src_config = new_configs_dir / config_file
                     dst_config = configs_dir / config_file
-                    print(
-                        f"      DEBUG: Trying to update {config_file}: src={src_config.exists()}, dst={dst_config.exists()}"
-                    )
                     if src_config.exists():
                         shutil.copy2(src_config, dst_config)
                         print(f"         [UPDATED] {config_file}")
