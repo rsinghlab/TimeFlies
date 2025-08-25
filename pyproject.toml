@@ -23,6 +23,7 @@ dependencies = [
     "dill>=0.3.0",
     "xgboost>=1.7.0",
     "optuna>=3.0.0",
+    "gradio>=4.0.0",
 ]
 
 [project.optional-dependencies]

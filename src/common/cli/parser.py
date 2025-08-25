@@ -21,6 +21,9 @@ User Workflow:
   timeflies evaluate [--with-eda]      # Evaluate models on test data
   timeflies analyze [--with-eda]       # Project-specific analysis scripts
 
+  # Graphical interface (web-based)
+  timeflies gui                        # Launch web GUI in browser
+
   # Individual steps
   timeflies split                      # Just create train/eval splits
   timeflies eda --save-report          # Exploratory data analysis
@@ -296,6 +299,38 @@ User Workflow:
         "--no-resume",
         action="store_true",
         help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
+    )
+
+    # GUI command for web interface
+    gui_parser = subparsers.add_parser(
+        "gui",
+        help="Launch web-based graphical user interface",
+        description="Start a web-based GUI for TimeFlies in your browser. "
+        "Provides point-and-click access to all TimeFlies functionality including "
+        "setup, training, batch correction, and hyperparameter tuning. "
+        "No system dependencies required - works in any browser.",
+    )
+    gui_parser.add_argument(
+        "--port",
+        type=int,
+        default=7860,
+        help="Port number for web server (default: 7860)",
+    )
+    gui_parser.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Host address for web server (default: 127.0.0.1 - local only)",
+    )
+    gui_parser.add_argument(
+        "--share",
+        action="store_true",
+        help="Create public URL for remote access (use with caution)",
+    )
+    gui_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode for development",
     )
 
     return parser
