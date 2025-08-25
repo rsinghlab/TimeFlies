@@ -3,6 +3,12 @@
 # =============================================================================
 # Configuration for data splitting and sampling during initial setup.
 # Users can customize these settings before running 'timeflies setup'.
+#
+# RE-RUNNING SETUP:
+# - Setup is safe to run multiple times (e.g., after batch correction)
+# - Existing splits are preserved unless split parameters change
+# - Batch-corrected files are verified for consistency (same cells/genes/order)
+# - Only missing files are created, existing files are verified
 
 # Data splitting configuration
 train_test_split:
