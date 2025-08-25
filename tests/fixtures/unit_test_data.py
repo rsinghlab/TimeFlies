@@ -44,8 +44,12 @@ def create_sample_anndata(
         obs["tissue"] = np.random.choice(["head", "body"], n_cells)
 
     if add_batch:
-        # Create batch effects
-        obs["batch"] = np.random.choice(["batch1", "batch2", "batch3"], n_cells)
+        # Create batch effects - use columns expected by batch correction
+        obs["dataset"] = np.random.choice(["batch1", "batch2", "batch3"], n_cells)
+        # Add cell type annotation expected by batch correction
+        obs["afca_annotation_broad"] = np.random.choice(
+            ["neuron", "glia", "muscle"], n_cells
+        )
 
     # Create gene metadata
     var = pd.DataFrame(index=[f"gene_{i}" for i in range(n_genes)])
