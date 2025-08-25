@@ -518,6 +518,11 @@ def new_setup_command(args) -> int:
         return setup_result
     print("[OK] Configuration and templates ready")
 
+    # Copy remaining config files now that pre-setup configs are available
+    additional_config_result = copy_remaining_config_files()
+    if additional_config_result != 0:
+        print("WARNING: Some additional config files may not have been copied")
+
     # 1. Create data splits
     print("\n1. Creating data splits...")
     split_result = split_command(args)
@@ -1955,15 +1960,13 @@ def setup_user_environment():
         ]
 
         # Check for missing config files and copy them
-        required_configs = [
-            "default.yaml",
+        # Only copy setup configs before setup runs - others get copied during setup
+        pre_setup_configs = [
             "setup.yaml",
             "batch_correction.yaml",
-            "hyperparameter_tuning.yaml",
-            "model_queue.yaml",
         ]
         missing_configs = [
-            cfg for cfg in required_configs if not (configs_dir / cfg).exists()
+            cfg for cfg in pre_setup_configs if not (configs_dir / cfg).exists()
         ]
 
         if missing_configs:
@@ -2061,6 +2064,57 @@ def setup_user_environment():
 
     except Exception as e:
         print(f"   [ERROR] Setup failed: {e}")
+        return 1
+
+
+def copy_remaining_config_files():
+    """Copy the remaining config files during setup process."""
+    import shutil
+    from pathlib import Path
+
+    try:
+        configs_dir = Path("configs")
+        if not configs_dir.exists():
+            configs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Configs that get copied during setup (not before)
+        setup_configs = [
+            "default.yaml",
+            "hyperparameter_tuning.yaml",
+            "model_queue.yaml",
+        ]
+
+        # Find source configs
+        source_configs_dirs = [
+            Path.cwd() / ".timeflies_src" / "configs",
+            Path(__file__).parent.parent.parent.parent / "configs",
+            Path(__file__).parent.parent.parent / "configs",
+            Path.home() / ".timeflies_src" / "configs",
+        ]
+
+        missing_configs = [
+            cfg for cfg in setup_configs if not (configs_dir / cfg).exists()
+        ]
+
+        if missing_configs:
+            print(
+                f"   CONFIG: Copying {len(missing_configs)} additional config files..."
+            )
+            for source_configs_dir in source_configs_dirs:
+                if source_configs_dir.exists():
+                    for config_name in missing_configs:
+                        source_config = source_configs_dir / config_name
+                        if source_config.exists():
+                            shutil.copy2(source_config, configs_dir / config_name)
+                            print(f"         [OK] {config_name}")
+                    break
+            else:
+                print("      WARNING: Could not find additional config templates")
+                return 1
+
+        return 0
+    except Exception as e:
+        print(f"   [ERROR] Config copying failed: {e}")
         return 1
 
 
