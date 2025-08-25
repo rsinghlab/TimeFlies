@@ -179,8 +179,25 @@ timeflies verify                              # System verification
 ```bash
 timeflies test [unit|integration|functional|system|all] [--coverage] [--verbose] [--fast] [--debug] [--rerun]
 timeflies create-test-data [--tier tiny|synthetic|real|all] [--cells N] [--genes N] [--batch-versions]
-timeflies update                              # Update to latest version
+timeflies update                              # Update TimeFlies to latest GitHub version
 ```
+
+### System Updates
+
+**Keep TimeFlies Updated**: Use `timeflies update` to get the latest features and bug fixes:
+
+```bash
+# Update to latest version from GitHub main branch
+timeflies update
+```
+
+**What happens during update:**
+- Downloads latest TimeFlies code from GitHub
+- Preserves your data, configurations, and results
+- Updates the installed package via pip
+- Requires Git to be installed on your system
+
+**GUI Users**: Use the "Update TimeFlies" button in the Results tab for the same functionality.
 
 ### Global Options (work with any command)
 ```bash
