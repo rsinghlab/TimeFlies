@@ -351,6 +351,20 @@ class TimeFliesLauncher:
             results_frame, text="Generate Report", command=self.generate_report
         ).pack(pady=5)
 
+        # System management
+        system_frame = ttk.LabelFrame(parent, text="System Management", padding=10)
+        system_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Button(
+            system_frame,
+            text="Update TimeFlies",
+            command=self.update_timeflies,
+        ).pack(pady=5)
+
+        ttk.Button(
+            system_frame, text="Check System Status", command=self.run_verify
+        ).pack(pady=5)
+
     def setup_help_tab(self, parent):
         """Setup help and documentation tab."""
         help_text = """
@@ -667,6 +681,27 @@ TROUBLESHOOTING:
             ["python", "run_timeflies.py", "tune"],  # Default resume behavior
             "Hyperparameter tuning resumed and completed!",
         )
+
+    def update_timeflies(self):
+        """Update TimeFlies to the latest version from GitHub."""
+        self.log_message("Checking for TimeFlies updates...")
+
+        # Confirm update with user
+        import tkinter.messagebox as msgbox
+
+        if msgbox.askyesno(
+            "Update TimeFlies",
+            "This will update TimeFlies to the latest version from GitHub.\n"
+            "Your data and configurations will be preserved.\n\n"
+            "Continue with update?",
+        ):
+            self.run_command(
+                ["python", "run_timeflies.py", "update"],
+                "TimeFlies updated successfully! Please restart the application.",
+                timeout=300000,  # 5 minutes timeout for git operations
+            )
+        else:
+            self.log_message("Update cancelled by user.")
 
     def run(self):
         """Start the GUI application."""
