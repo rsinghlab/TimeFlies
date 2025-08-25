@@ -30,6 +30,13 @@ Transcriptomics aging research computational tool - Updated August 2024
 - **Documentation**: Comprehensive README with output structure
 - **Git Workflow**: Feature branches, proper commit messages, CI/CD ready
 
+### ✅ Recent User Experience Improvements (December 2024)
+- **Config Update Fix**: Resolved issue where setup.yaml showed as different on every update
+- **Test Infrastructure**: Fixed mock return value inconsistencies in integration tests
+- **Documentation**: Updated all docs to reflect modular configs/ directory structure
+- **Split Data Utility**: Created extract_clean_splits.py for copying batch-corrected to non-batch files
+- **Setup Process**: Enhanced --force-split functionality with proper validation
+
 ---
 
 ## 🔬 Research & Analysis Tasks
@@ -86,6 +93,13 @@ Transcriptomics aging research computational tool - Updated August 2024
   - Add support for additional single-cell formats
   - Implement streaming data processing for very large datasets
   - Add data quality validation and reporting
+
+- [ ] **Batch Correction Storage Optimization**
+  - **Current**: Maintain separate batch-corrected and non-batch files (e.g., *_train.h5ad + *_train_batch.h5ad)
+  - **Proposed**: Store original data within batch-corrected files and extract when batch correction not needed
+  - **Benefits**: Reduce storage duplication, simplify data management, single source of truth
+  - **Implementation**: Investigate AnnData layers/obsm storage for original expression data
+  - **Impact**: Could halve storage requirements and eliminate file sync issues
 
 - [ ] **Visualization Improvements**
   - Interactive plots with Plotly integration
@@ -169,11 +183,12 @@ Transcriptomics aging research computational tool - Updated August 2024
 - **Testing**: pytest, coverage.py for comprehensive testing
 
 ### Development Priorities
-1. **Research Deliverables** - Complete analysis for ongoing publications
-2. **Testing Expansion** - Achieve >80% coverage for production readiness
-3. **Performance Optimization** - Scale to larger datasets and HPC environments
-4. **PyPI Deployment** - Enable easy installation for the research community
-5. **Advanced Features** - Multi-GPU, streaming data, advanced visualizations
+1. **User Experience & Stability** - Address real-world usage issues and improve workflows
+2. **Research Deliverables** - Complete analysis for ongoing publications
+3. **Data Management Optimization** - Investigate batch correction storage improvements
+4. **Testing Expansion** - Achieve >80% coverage for production readiness
+5. **Performance Optimization** - Scale to larger datasets and HPC environments
+6. **PyPI Deployment** - Enable easy installation for the research community
 
 ### Quality Standards
 - All new features must include comprehensive tests
@@ -185,5 +200,12 @@ Transcriptomics aging research computational tool - Updated August 2024
 
 ---
 
-**Last Updated**: August 2025
+**Last Updated**: December 2024
 **Next Review**: After research publication milestones
+
+### Recent Development Focus
+The current development cycle has focused on **user experience improvements** and **stability fixes** based on real-world usage feedback. Key areas include:
+- Fixing update command behavior and config management
+- Improving documentation accuracy and clarity
+- Enhancing data management utilities and workflows
+- Strengthening test infrastructure and CI/CD reliability
