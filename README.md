@@ -368,11 +368,18 @@ outputs/
 │   ├── analysis/                     # Project-specific analysis
 │   │   ├── reports/                  # Custom analysis HTML/PDF reports
 │   │   └── custom/                   # User analysis script results
+│   ├── model_queue_summaries/        # 🚀 Automated model queue results
+│   │   └── 2025-01-22_16-30-45/     # Timestamped queue run
+│   │       ├── summary_report.md     # Comparative analysis report
+│   │       ├── metrics_summary.csv   # Performance metrics for all models
+│   │       ├── queue_checkpoint.json # Resume checkpoint data
+│   │       └── queue_config.yaml     # Configuration used for this run
 │   └── logs/                         # System logs
 └── fruitfly_alzheimers/              # Same structure for other projects
     ├── experiments/
     ├── eda/
     ├── analysis/
+    ├── model_queue_summaries/
     └── logs/
 ```
 
@@ -400,6 +407,12 @@ outputs/
 - `age_distribution.png`, `correlation_matrix.png` - Data distribution visualizations
 - `dimensionality_reduction.png` - t-SNE/UMAP plots
 - `eda_summary.json` - Statistical summaries and data quality metrics
+
+**Model Queue Summaries (Automated Multi-Model Training):**
+- `model_queue_summaries/*/summary_report.md` - Comparative analysis of all models in queue
+- `metrics_summary.csv` - Performance metrics table (accuracy, precision, recall, F1) for all models
+- `queue_checkpoint.json` - Resume checkpoint for interrupted queue runs
+- `queue_config.yaml` - Configuration file used for the specific queue run
 
 **Smart Navigation:**
 - `latest/` - Symlink pointing to most recent experiment for each configuration
