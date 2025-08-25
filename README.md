@@ -37,6 +37,9 @@ timeflies evaluate [--with-eda --with-analysis]
 # Automated multi-model training queue
 timeflies queue [configs/model_queue.yaml] [--no-resume]
 
+# Automated hyperparameter tuning
+timeflies tune [configs/default.yaml] [--no-resume]
+
 # Run project-specific analysis
 timeflies analyze
 ```
@@ -74,6 +77,7 @@ Both interfaces provide identical functionality - choose what works best for you
 - **Automated Evaluation**: Built-in performance metrics and validation
 - **Model Interpretability**: Feature importance analysis with SHAP (configurable)
 - **Model Queue System**: Automated sequential training of multiple models with different configurations
+- **Hyperparameter Tuning**: Grid, random, and Bayesian optimization with CNN architecture variants
 
 ### Data Processing
 - **Batch Correction**: scVI-tools integration for technical noise removal
@@ -96,6 +100,7 @@ Both interfaces provide identical functionality - choose what works best for you
 
 ### Comprehensive Guides
 - **[Model Queue System Guide](docs/model_queue_guide.md)** - Complete guide for automated multi-model training
+- **[Hyperparameter Tuning Guide](docs/hyperparameter_tuning_guide.md)** - Grid, random, and Bayesian optimization with CNN variants
 - **[Analysis Templates Guide](templates/README.md)** - Custom analysis script templates and examples
 - **[Development Roadmap](docs/timeflies_todo.md)** - Current development status and future plans
 
@@ -115,6 +120,7 @@ timeflies train [--with-eda] [--with-analysis] # Train models
 timeflies evaluate [--with-eda] [--with-analysis] [--interpret] [--visualize] # Evaluate models on test data
 timeflies analyze [--predictions-path PATH] [--analysis-script PATH] [--with-eda] # Project-specific analysis scripts
 timeflies queue [configs/model_queue.yaml] [--no-resume] # Automated multi-model training queue (see docs/model_queue_guide.md)
+timeflies tune [configs/default.yaml] [--no-resume] # Hyperparameter optimization with grid/random/Bayesian search (see docs/hyperparameter_tuning_guide.md)
 ```
 
 ### Data & Analysis Commands
