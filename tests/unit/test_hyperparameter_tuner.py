@@ -1,6 +1,7 @@
 """Tests for hyperparameter tuning functionality."""
 
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -185,36 +186,40 @@ class TestHyperparameterTuner:
         # Clean up
         Path(temp_file).unlink()
 
+    @patch.dict(os.environ, {"PYTEST_CURRENT_TEST": ""}, clear=False)
     @patch("common.core.hyperparameter_tuner.time.time")
     def test_checkpoint_functionality(self, mock_time, temp_config_file):
-        """Test checkpoint saving and loading."""
+        """Test checkpoint saving and loading with temporary directory."""
         mock_time.return_value = 1000000000
 
-        tuner = HyperparameterTuner(temp_config_file)
-        tuner._setup_run_directory()
+        # Create temporary directory for this test
+        with tempfile.TemporaryDirectory() as temp_dir:
+            tuner = HyperparameterTuner(temp_config_file)
+            # Override the run_dir to use our temp directory
+            tuner.run_dir = Path(temp_dir) / "test_run"
+            tuner.checkpoint_file = tuner.run_dir / "checkpoint.json"
 
-        # Add some mock results
-        tuner.results = [
-            {"name": "test1", "status": "completed", "metrics": {"accuracy": 0.85}},
-            {"name": "test2", "status": "completed", "metrics": {"accuracy": 0.82}},
-        ]
-        tuner.completed_trials = [{"name": "test1"}, {"name": "test2"}]
-        tuner.start_time = 1000000000
+            # Add some mock results
+            tuner.results = [
+                {"name": "test1", "status": "completed", "metrics": {"accuracy": 0.85}},
+                {"name": "test2", "status": "completed", "metrics": {"accuracy": 0.82}},
+            ]
+            tuner.completed_trials = [{"name": "test1"}, {"name": "test2"}]
+            tuner.start_time = 1000000000
 
-        # Save checkpoint
-        tuner.save_checkpoint(1)
+            # Save checkpoint (will create temp directory)
+            tuner.save_checkpoint(1)
 
-        # Create new tuner and load checkpoint
-        tuner2 = HyperparameterTuner(temp_config_file)
-        tuner2._setup_run_directory()
-        tuner2.checkpoint_file = tuner.checkpoint_file  # Use same checkpoint file
+            # Create new tuner and load checkpoint
+            tuner2 = HyperparameterTuner(temp_config_file)
+            tuner2.checkpoint_file = tuner.checkpoint_file  # Use same checkpoint file
 
-        checkpoint_index = tuner2.load_checkpoint()
+            checkpoint_index = tuner2.load_checkpoint()
 
-        assert checkpoint_index == 1
-        assert len(tuner2.results) == 2
-        assert tuner2.results[0]["name"] == "test1"
-        assert tuner2.start_time == 1000000000
+            assert checkpoint_index == 1
+            assert len(tuner2.results) == 2
+            assert tuner2.results[0]["name"] == "test1"
+            assert tuner2.start_time == 1000000000
 
         # Clean up
         Path(temp_config_file).unlink()

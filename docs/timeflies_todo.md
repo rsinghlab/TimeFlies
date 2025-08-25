@@ -63,12 +63,9 @@ Transcriptomics aging research computational tool - Updated August 2024
 
 ## 🚀 Technical Enhancements
 
-### Testing & Quality (Current: ~60% coverage)
+### Testing & Quality (Current: ~40% coverage)
 
 - [ ] **Expand Test Coverage**
-  - Add integration tests for end-to-end workflows
-  - Test edge cases in data preprocessing pipelines
-  - Add performance/memory usage tests
   - Target: 80%+ coverage across all modules
 
 - [ ] **Code Quality Improvements**
