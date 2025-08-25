@@ -2746,9 +2746,9 @@ def update_command(args) -> int:
             try:
                 install_script = Path(".timeflies_src/install_timeflies.sh")
                 if install_script.exists():
-                    # Run install script with a flag to only install dependencies
+                    # Run install script in update mode (dependencies + update-safe operations)
                     env = os.environ.copy()
-                    env["TIMEFLIES_UPDATE_DEPS_ONLY"] = "1"
+                    env["TIMEFLIES_UPDATE_MODE"] = "1"
 
                     result = subprocess.run(
                         ["bash", str(install_script)],
