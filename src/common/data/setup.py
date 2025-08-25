@@ -217,8 +217,9 @@ class DataSetupManager:
                 stratify_by = [stratify_by]
             fallback_ratio = split_config.get("fallback_ratio", 0.2)
             random_state = split_config.get("random_state", 42)
+            logger.info("SPLIT: Loading split parameters from configs/setup.yaml")
             logger.info(
-                f"Using setup.yaml: split_size={split_size}, stratify_by={stratify_by}"
+                f"SPLIT: split_size={split_size}, stratify_by={stratify_by}, random_state={random_state}"
             )
         else:
             # Fallback to defaults

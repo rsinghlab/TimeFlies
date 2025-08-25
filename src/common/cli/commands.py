@@ -2382,6 +2382,16 @@ def update_command(args) -> int:
 
             print("LOADING: Downloading latest version...")
 
+            # Check current version first
+            current_version = None
+            version_file = Path(".timeflies_src") / "VERSION"
+            if version_file.exists():
+                try:
+                    with open(version_file) as f:
+                        current_version = f.read().strip()
+                except Exception:
+                    pass
+
             # Clone the latest version
             repo_url = "git@github.com:rsinghlab/TimeFlies.git"
             clone_result = subprocess.run(
@@ -2404,10 +2414,31 @@ def update_command(args) -> int:
                 print("NOTE: Please check your GitHub access and try again")
                 return 1
 
+            # Check if new version is different
+            update_path = temp_path / "timeflies_update"
+            new_version_file = update_path / "VERSION"
+            new_version = None
+            if new_version_file.exists():
+                try:
+                    with open(new_version_file) as f:
+                        new_version = f.read().strip()
+                except Exception:
+                    pass
+
+            # Compare versions
+            if current_version and new_version and current_version == new_version:
+                print("INFO: No update found - current version is fully updated")
+                print(f"   Current version: {current_version}")
+                print("   Your TimeFlies installation is already up to date!")
+                return 0
+
             print("PACKAGE: Installing updated version...")
+            if current_version:
+                print(f"   Updating from version: {current_version}")
+            if new_version:
+                print(f"   Installing version: {new_version}")
 
             # Install the updated version
-            update_path = temp_path / "timeflies_update"
             install_result = subprocess.run(
                 [sys.executable, "-m", "pip", "install", "--upgrade", str(update_path)],
                 capture_output=True,
@@ -2475,11 +2506,56 @@ def update_command(args) -> int:
                         print(f"      [UPDATED] {template_file.name}")
                     # Preserve user's custom templates (don't overwrite)
 
-            # 4. Add any missing config files (preserve existing ones)
-            print("   CONFIG: Checking for missing configuration files...")
+            # 4. Smart config backup and update
+            print("   CONFIG: Checking configuration files...")
+
+            # First, check if we need to backup any user-modified configs
+            configs_dir = Path("configs")
+            new_configs_dir = update_path / "configs"
+
+            if configs_dir.exists() and new_configs_dir.exists():
+                backup_needed = []
+                for config_file in [
+                    "default.yaml",
+                    "setup.yaml",
+                    "batch_correction.yaml",
+                    "hyperparameter_tuning.yaml",
+                    "model_queue.yaml",
+                ]:
+                    user_config = configs_dir / config_file
+                    new_config = new_configs_dir / config_file
+
+                    if user_config.exists() and new_config.exists():
+                        # Check if files are different
+                        import filecmp
+
+                        if not filecmp.cmp(user_config, new_config, shallow=False):
+                            backup_needed.append(config_file)
+
+                if backup_needed:
+                    print(
+                        f"      BACKUP: Found {len(backup_needed)} modified config files"
+                    )
+                    backup_dir = configs_dir / "backup_configs"
+                    backup_dir.mkdir(exist_ok=True)
+                    import datetime
+
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+                    for config_file in backup_needed:
+                        backup_name = (
+                            f"{config_file.replace('.yaml', '')}_{timestamp}.yaml"
+                        )
+                        backup_path = backup_dir / backup_name
+                        shutil.copy2(configs_dir / config_file, backup_path)
+                        print(
+                            f"         [BACKED UP] {config_file} -> backup_configs/{backup_name}"
+                        )
+
+            # Then add missing configs (preserve existing ones)
             config_copy_result = setup_user_environment()
             if config_copy_result == 0:
-                print("      [OK] Configuration files current")
+                print("      [OK] Configuration files updated")
             else:
                 print("      WARNING: Some config files may not have been updated")
 
