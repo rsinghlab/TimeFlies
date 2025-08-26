@@ -147,6 +147,12 @@ else
     if command -v git >/dev/null 2>&1; then
         print_status "Downloading and installing TimeFlies..."
 
+        # Remove existing directory if it exists
+        if [ -d ".timeflies_src" ]; then
+            print_status "Removing existing installation..."
+            rm -rf .timeflies_src
+        fi
+
         # Clone to permanent directory for user install (needed for editable install)
         if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
             print_status "Installing dependencies (this may take a few minutes)..."
