@@ -558,7 +558,7 @@ class EvaluationMetrics:
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
 
-        # Evaluating model
+        print("Evaluating classification model...")
 
         # Basic classification metrics
         if "accuracy" in eval_metrics:
@@ -687,30 +687,30 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        # Computing baselines
+        print("\nBaseline Metrics:")
 
-        # Create dummy training data (we'll use the test data for simplicity)
-        dummy_X = np.ones((len(true_labels), 1))  # Dummy features
+        # Use actual evaluation holdout data for baseline comparison
+        test_X = self.test_data
 
         for baseline_type in baseline_types:
             try:
                 if baseline_type == "random_classifier":
                     # Uniform random predictions
                     dummy_clf = DummyClassifier(strategy="uniform", random_state=42)
-                    dummy_clf.fit(dummy_X, true_labels)
-                    baseline_pred = dummy_clf.predict(dummy_X)
+                    dummy_clf.fit(test_X, true_labels)
+                    baseline_pred = dummy_clf.predict(test_X)
 
                 elif baseline_type == "majority_class":
                     # Always predict the most frequent class
                     dummy_clf = DummyClassifier(strategy="most_frequent")
-                    dummy_clf.fit(dummy_X, true_labels)
-                    baseline_pred = dummy_clf.predict(dummy_X)
+                    dummy_clf.fit(test_X, true_labels)
+                    baseline_pred = dummy_clf.predict(test_X)
 
                 elif baseline_type == "stratified_random":
                     # Random predictions respecting class distribution
                     dummy_clf = DummyClassifier(strategy="stratified", random_state=42)
-                    dummy_clf.fit(dummy_X, true_labels)
-                    baseline_pred = dummy_clf.predict(dummy_X)
+                    dummy_clf.fit(test_X, true_labels)
+                    baseline_pred = dummy_clf.predict(test_X)
 
                 else:
                     logger.warning(f"Unknown baseline type: {baseline_type}")
@@ -757,9 +757,9 @@ class EvaluationMetrics:
                     else float("inf"),
                 }
 
-                logger.info(
-                    f"📈 {baseline_type}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} "
-                    f"(+{model_accuracy - baseline_accuracy:+.3f} +{model_f1 - baseline_f1:+.3f})"
+                baseline_name = baseline_type.replace("_", " ").title()
+                print(
+                    f"\n{baseline_name}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} (+{model_accuracy - baseline_accuracy:+.3f} +{model_f1 - baseline_f1:+.3f})"
                 )
 
             except Exception as e:

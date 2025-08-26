@@ -134,6 +134,11 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             self.best_val_loss = current_val_loss
             self.model_improved = True
 
+            # Custom clean message instead of verbose Keras output
+            print(
+                f"Epoch {epoch + 1}: val_loss improved from {self.best:.5f} to {current_val_loss:.5f}"
+            )
+
             # Save best validation loss to a file
             with open(self.best_val_loss_path, "w") as f:
                 json.dump({"best_val_loss": self.best_val_loss}, f)
@@ -170,7 +175,11 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
                 pickle.dump(self.num_features, f)
 
             # Call the parent class's on_epoch_end method to save the model weights
+            # Temporarily suppress parent's verbose output
+            original_verbose = self.verbose
+            self.verbose = 0
             super().on_epoch_end(epoch, logs)
+            self.verbose = original_verbose
 
 
 class ModelLoader:
@@ -850,14 +859,21 @@ class ModelBuilder:
 
         # Load the best validation loss from file
         best_val_loss = float("inf")
+        model_found = False
         for path_to_try in [best_symlink_path, current_path]:
             try:
                 if os.path.exists(path_to_try):
                     with open(path_to_try) as f:
                         best_val_loss = json.load(f)["best_val_loss"]
+                        model_found = True
                         break
             except (FileNotFoundError, json.JSONDecodeError):
                 continue
+
+        if model_found:
+            print(f"Previous best validation loss: {best_val_loss:.5f}")
+        else:
+            print("No previous model found - starting fresh")
 
         # Split data into training and validation sets
         (
@@ -910,6 +926,8 @@ class ModelBuilder:
             validation_data=(val_inputs_split, val_labels_split),
             callbacks=[early_stopping, model_checkpoint],
         )
+
+        print("\nTraining Completed\n")
 
         # Save the history object only if the model was improved and saved at least once during training
         if model_checkpoint.model_improved:
