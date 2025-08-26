@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import scipy.stats as stats
+from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -645,6 +646,14 @@ class EvaluationMetrics:
                         )
                         metrics[f"class_{class_id}_f1"] = float(class_f1)
 
+        # Add baseline comparison if enabled
+        config_baselines = getattr(self.config.model.metrics, "baselines", {})
+        if config_baselines.get("enabled", False):
+            baseline_metrics = self._compute_baseline_comparison(
+                true_labels, predicted_classes, predictions
+            )
+            metrics["baselines"] = baseline_metrics
+
         # Log key metrics
         key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]
         for metric in key_metrics:
@@ -652,3 +661,101 @@ class EvaluationMetrics:
                 logger.info(f"{metric.upper()}: {metrics[metric]:.4f}")
 
         return metrics
+
+    def _compute_baseline_comparison(self, true_labels, predicted_classes, predictions):
+        """
+        Compute baseline comparisons for classification tasks.
+
+        Args:
+            true_labels: True class labels
+            predicted_classes: Model's predicted class labels
+            predictions: Model's prediction probabilities
+
+        Returns:
+            Dictionary containing baseline metrics and comparisons
+        """
+        baselines = {}
+
+        # Get baseline types from config
+        config_baselines = getattr(self.config.model.metrics, "baselines", {})
+        baseline_types = config_baselines.get("classification", [])
+
+        logger.info("Computing baseline comparisons...")
+
+        # Create dummy training data (we'll use the test data for simplicity)
+        dummy_X = np.ones((len(true_labels), 1))  # Dummy features
+
+        for baseline_type in baseline_types:
+            try:
+                if baseline_type == "random_classifier":
+                    # Uniform random predictions
+                    dummy_clf = DummyClassifier(strategy="uniform", random_state=42)
+                    dummy_clf.fit(dummy_X, true_labels)
+                    baseline_pred = dummy_clf.predict(dummy_X)
+
+                elif baseline_type == "majority_class":
+                    # Always predict the most frequent class
+                    dummy_clf = DummyClassifier(strategy="most_frequent")
+                    dummy_clf.fit(dummy_X, true_labels)
+                    baseline_pred = dummy_clf.predict(dummy_X)
+
+                elif baseline_type == "stratified_random":
+                    # Random predictions respecting class distribution
+                    dummy_clf = DummyClassifier(strategy="stratified", random_state=42)
+                    dummy_clf.fit(dummy_X, true_labels)
+                    baseline_pred = dummy_clf.predict(dummy_X)
+
+                else:
+                    logger.warning(f"Unknown baseline type: {baseline_type}")
+                    continue
+
+                # Compute metrics for this baseline
+                baseline_accuracy = float(accuracy_score(true_labels, baseline_pred))
+                baseline_f1 = float(
+                    f1_score(
+                        true_labels,
+                        baseline_pred,
+                        average="macro"
+                        if len(np.unique(true_labels)) > 2
+                        else "binary",
+                    )
+                )
+
+                # Store baseline metrics
+                baselines[baseline_type] = {
+                    "accuracy": baseline_accuracy,
+                    "f1_score": baseline_f1,
+                }
+
+                # Compute improvement over baseline
+                model_accuracy = float(accuracy_score(true_labels, predicted_classes))
+                model_f1 = float(
+                    f1_score(
+                        true_labels,
+                        predicted_classes,
+                        average="macro"
+                        if len(np.unique(true_labels)) > 2
+                        else "binary",
+                    )
+                )
+
+                baselines[baseline_type]["improvement"] = {
+                    "accuracy_improvement": model_accuracy - baseline_accuracy,
+                    "f1_improvement": model_f1 - baseline_f1,
+                    "accuracy_ratio": model_accuracy / baseline_accuracy
+                    if baseline_accuracy > 0
+                    else float("inf"),
+                    "f1_ratio": model_f1 / baseline_f1
+                    if baseline_f1 > 0
+                    else float("inf"),
+                }
+
+                logger.info(
+                    f"{baseline_type.upper()}: acc={baseline_accuracy:.4f}, f1={baseline_f1:.4f} "
+                    f"(improvement: acc=+{model_accuracy - baseline_accuracy:.4f}, f1=+{model_f1 - baseline_f1:.4f})"
+                )
+
+            except Exception as e:
+                logger.warning(f"Failed to compute {baseline_type} baseline: {e}")
+
+        return baselines
