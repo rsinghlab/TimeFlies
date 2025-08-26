@@ -757,6 +757,10 @@ class EvaluationMetrics:
 
         # Class distribution analysis
         unique_labels, counts = np.unique(self.test_labels, return_counts=True)
+        total_label_count = (
+            counts.sum()
+        )  # Use actual label count for correct percentages
+
         print("\nClass Distribution:")
 
         # Get class names if label encoder is available
@@ -765,21 +769,19 @@ class EvaluationMetrics:
             for i, (label, count) in enumerate(zip(unique_labels, counts)):
                 if i < len(class_names):
                     class_name = class_names[int(label)]
-                    percentage = (count / n_samples) * 100
+                    percentage = (count / total_label_count) * 100
                     print(
                         f"  └─ {class_name:<12}: {count:>5,} samples ({percentage:>5.1f}%)"
                     )
                 else:
-                    percentage = (count / n_samples) * 100
+                    percentage = (count / total_label_count) * 100
                     print(
                         f"  └─ Class {label:<7}: {count:>5,} samples ({percentage:>5.1f}%)"
                     )
         else:
             for label, count in zip(unique_labels, counts):
-                percentage = (count / n_samples) * 100
-                print(
-                    f"  └─ Class {label:<7}: {count:>5,} samples ({percentage:>5.1f}%)"
-                )
+                percentage = (count / total_label_count) * 100
+                print(f"  └─ {label:<12}: {count:>5,} samples ({percentage:>5.1f}%)")
 
         # Add genotype/split information if available from config
         self._display_split_info()
@@ -790,29 +792,45 @@ class EvaluationMetrics:
         """Display split configuration and genotype information if available."""
         try:
             # Check if split configuration is available
-            if hasattr(self.config, "data") and hasattr(self.config.data, "splits"):
-                splits_config = self.config.data.splits
+            if hasattr(self.config, "data") and hasattr(self.config.data, "split"):
+                split_config = self.config.data.split
 
-                print("\nData Split Configuration:")
+                print("\nSplit Configuration:")
 
-                # Training/validation split
-                if hasattr(splits_config, "train_size"):
-                    train_size = getattr(splits_config, "train_size", 0.8)
-                    val_size = 1.0 - train_size
-                    print(f"  └─ Training Split:    {train_size:.1%}")
-                    print(f"  └─ Validation Split:  {val_size:.1%}")
+                # Split method
+                if hasattr(split_config, "method"):
+                    method = split_config.method
+                    print(f"  └─ Split Method:      {method}")
 
-                # Stratification info
-                if hasattr(splits_config, "stratify") and splits_config.stratify:
-                    stratify_column = getattr(
-                        splits_config, "stratify_column", "genotype"
-                    )
-                    print(f"  └─ Stratified by:     {stratify_column}")
+                    if method == "column":
+                        # Column-based splitting details
+                        if hasattr(split_config, "column"):
+                            split_column = split_config.column
+                            print(f"  └─ Split Column:      {split_column}")
 
-                # Genotype information if available
-                if hasattr(splits_config, "genotype_column"):
-                    genotype_col = splits_config.genotype_column
-                    print(f"  └─ Genotype Column:   {genotype_col}")
+                        if hasattr(split_config, "train"):
+                            train_values = split_config.train
+                            if isinstance(train_values, list):
+                                train_str = ", ".join(map(str, train_values))
+                            else:
+                                train_str = str(train_values)
+                            print(f"  └─ Training Values:   {train_str}")
+
+                        if hasattr(split_config, "test"):
+                            test_values = split_config.test
+                            if isinstance(test_values, list):
+                                test_str = ", ".join(map(str, test_values))
+                            else:
+                                test_str = str(test_values)
+                            print(f"  └─ Test Values:       {test_str}")
+
+                    elif method == "random":
+                        # Random splitting details
+                        if hasattr(split_config, "test_ratio"):
+                            test_ratio = split_config.test_ratio
+                            train_ratio = 1.0 - test_ratio
+                            print(f"  └─ Training Split:    {train_ratio:.1%}")
+                            print(f"  └─ Test Split:        {test_ratio:.1%}")
 
                     # If we have genotype info in metadata, show distribution
                     if hasattr(self.config, "metadata") and hasattr(
