@@ -77,8 +77,7 @@ class PathManager:
             self.cell_type = getattr(config.data, "cell_type", "all").lower()
             self.sex_type = getattr(config.data, "sex_type", "all").lower()
 
-            # Generate experiment naming components
-            self.experiment_name = self._generate_experiment_name()
+            # Don't generate experiment name here - let caller provide it
 
         except AttributeError as e:
             raise ValueError(f"Invalid configuration structure: {e}")
