@@ -7,7 +7,7 @@
 # =============================================================================
 # PROJECT SETTINGS
 # =============================================================================
-project: fruitfly_alzheimers  # Options: fruitfly_aging, fruitfly_alzheimers
+project: fruitfly_alzheimers  # Options: fruitfly_aging, fruitfly_alzheimers, other_project_name
 
 general:
   random_state: 42
@@ -193,11 +193,12 @@ storage:
 
   model_saving:
     save_model_only_if_best: true    # Only save model.h5 if validation improves
-    compress_predictions: false      # Compress large CSV files (future feature)
 
 # =============================================================================
-# LOGGING CONFIGURATION
+# LOGGING CONFIGURATION (TODO: Not fully implemented)
 # =============================================================================
+# Note: Logging currently uses hardcoded values in logging_config.py
+# These settings are for future implementation
 logging:
   level: "INFO"              # Options: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
   format: "detailed"         # Options: "simple", "detailed", "json"
