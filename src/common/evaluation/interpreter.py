@@ -482,7 +482,7 @@ class Metrics:
             logger.info(f"Eval AUC: {test_auc}")
 
         if model_type in ["mlp", "cnn"]:
-            self.y_pred = self.model.predict(self.test_inputs)
+            self.y_pred = self.model.predict(self.test_inputs, verbose=0)
         else:
             self.y_pred = self.model.predict_proba(self.test_inputs)
 

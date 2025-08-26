@@ -629,7 +629,7 @@ class Visualizer:
         """
         model_type = getattr(self.config.data, "model", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
-            self.y_pred = self.model.predict(self.test_inputs)
+            self.y_pred = self.model.predict(self.test_inputs, verbose=0)
         else:
             self.y_pred = self.model.predict_proba(self.test_inputs)
 

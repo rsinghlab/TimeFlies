@@ -644,10 +644,12 @@ class PipelineManager:
             ):
                 components.append("baselines computed")
 
+            print("\n" + "=" * 50)
             if components:
                 print(f"Pipeline completed successfully ({', '.join(components)})")
             else:
                 print("Training and evaluation completed successfully")
+            print("=" * 50)
 
             # Add validation loss improvement message
             if self.model_improved:
@@ -1068,7 +1070,9 @@ class PipelineManager:
             # Model training completed successfully
 
             # Auto-run evaluation after training using in-memory components
+            print("\n" + "-" * 50)
             print("Auto-evaluating trained model on holdout set...")
+            print("-" * 50)
             self.run_post_training_evaluation()
 
             end_time = time.time()
