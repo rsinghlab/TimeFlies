@@ -120,13 +120,7 @@ class EvaluationMetrics:
         true_labels = np.asarray(true_labels, dtype=float).flatten()
         predicted_classes = np.asarray(predicted_classes, dtype=float).flatten()
 
-        # Debug logging
-        logger.info(
-            f"True labels shape: {true_labels.shape}, sample: {true_labels[:5]}"
-        )
-        logger.info(
-            f"Predicted classes shape: {predicted_classes.shape}, sample: {predicted_classes[:5]}"
-        )
+        # Debug logging removed for cleaner output
 
         # Compute metrics based on task type
         if len(predictions.shape) > 1 and predictions.shape[1] > 1:
@@ -162,7 +156,7 @@ class EvaluationMetrics:
             with open(metrics_file, "w") as f:
                 json.dump(metrics, f, indent=2)
 
-            logger.info(f"Metrics saved to {metrics_file}")
+            # Metrics saved
 
         # Save predictions to CSV for analysis scripts
         if self.path_manager:
@@ -210,7 +204,7 @@ class EvaluationMetrics:
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
             predictions_df.to_csv(predictions_file, index=False)
-            logger.info(f"Predictions saved to {predictions_file}")
+            # Predictions saved
 
         # Log key metrics
         logger.info("Model Evaluation Results:")
