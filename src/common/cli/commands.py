@@ -369,13 +369,10 @@ def verify_workflow_command(args) -> int:
                     "   WARNING:  Batch correction environment found but no batch corrected files"
                 )
                 print(
-                    "   NOTE: Run: source activate_batch.sh && python run_timeflies.py batch-correct"
+                    "   NOTE: Run: source activate_batch.sh && timeflies batch-correct"
                 )
         else:
             print("   WARNING:  No batch correction environment")
-            print(
-                "   NOTE: Optional: Re-run setup_dev_env.sh and choose 'y' for batch environment"
-            )
 
     except Exception as e:
         print(f"   WARNING:  Could not check batch correction: {e}")
@@ -412,24 +409,22 @@ def verify_workflow_command(args) -> int:
     print(
         "   2. [OK] Test fixtures created"
         if workflow_complete
-        else "   2. [ERROR] Run: python run_timeflies.py create-test-data"
+        else "   2. [ERROR] Run: timeflies create-test-data"
     )
     print(
         "   3. [OK] Data splits created"
         if workflow_complete
-        else "   3. [ERROR] Run: python run_timeflies.py setup"
+        else "   3. [ERROR] Run: timeflies setup"
     )
     print(
         "   4. [OK] Verification complete"
         if all_passed and workflow_complete
         else "   4. [ERROR] Fix issues above"
     )
-    print("   5. Next: python run_timeflies.py train")
-    print("   6. Evaluate: python run_timeflies.py evaluate")
-    print("   7. Analyze: python run_timeflies.py analyze")
-    print(
-        "   WARNING:  Optional: python run_timeflies.py batch-correct (between steps 3-4)"
-    )
+    print("   5. Next: timeflies train")
+    print("   6. Evaluate: timeflies evaluate")
+    print("   7. Analyze: timeflies analyze")
+    print("   WARNING:  Optional: timeflies batch-correct (between steps 3-4)")
 
     print("=" * 60)
 

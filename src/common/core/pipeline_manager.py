@@ -557,6 +557,9 @@ class PipelineManager:
                     self.path_manager,
                 )
 
+                # Set evaluation context with experiment name
+                visualizer.set_evaluation_context(self.experiment_name)
+
                 # Set output directory to plots directory
                 visualizer.visual_tools.output_dir = plots_dir
 
