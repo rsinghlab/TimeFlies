@@ -844,12 +844,18 @@ def train_command(args, config) -> int:
                 print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
-        print("Starting training with project settings:")
-        print(f"   Project: {getattr(config, 'project', 'unknown')}")
-        print(f"   Tissue: {config.data.tissue}")
-        print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.target_variable}")
-        print(f"   Batch correction: {config.data.batch_correction.enabled}")
+        print("=" * 60)
+        print("TIMEFLIES TRAINING")
+        print("=" * 60)
+        print(
+            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
+        )
+        print(f"Tissue: {config.data.tissue.title()}")
+        print(f"Model: {config.data.model}")
+        print(f"Target: {config.data.target_variable.title()}")
+        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
+        print(f"Batch Correction: {batch_status}")
+        print("-" * 60)
 
         # Use common PipelineManager for all projects
         from common.core import PipelineManager
@@ -885,14 +891,21 @@ def train_command(args, config) -> int:
                 print("   SKIP:  Model not saved (validation loss did not improve)")
                 print(f"   FOUND: Existing model location: {model_path}")
         else:
-            # Check if model was actually improved/updated
+            pass  # Model status will be shown in completion summary
+
+        if "duration" in results:
+            # Create completion summary
+            print("\n" + "=" * 60)
+            print("TRAINING SUMMARY")
+            print("=" * 60)
+
+            # Model status
             if results.get("model_improved", False):
                 print("✓ Best model updated (validation loss improved)")
             else:
                 print("- Best model not updated (validation loss did not improve)")
 
-        if "duration" in results:
-            # Create settings summary
+            # Duration and components
             components = []
             from common.core.config_manager import get_config_manager
 
@@ -909,10 +922,10 @@ def train_command(args, config) -> int:
             except Exception:
                 pass
 
-            settings_text = f" ({', '.join(components)})" if components else ""
-            print(
-                f"\nModel took {results['duration']:.1f}s to train and evaluate{settings_text}"
-            )
+            print(f"Training duration: {results['duration']:.1f}s")
+            if components:
+                print(f"Additional outputs: {', '.join(components)}")
+            print("=" * 60)
 
         return 0
 

@@ -130,7 +130,7 @@ def get_active_config_path(config_type: str = "default") -> str:
                 f"Config file not found: {config_filename} (looked in configs/ directory)"
             )
 
-    logger.info(f"Using config: {config_path}")
+    logger.debug(f"Using config: {config_path}")
     return config_path
 
 

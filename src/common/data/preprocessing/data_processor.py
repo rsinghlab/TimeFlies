@@ -148,7 +148,7 @@ class DataPreprocessor:
                 ].copy()
                 test_subset = dataset[:0].copy()  # Empty subset
                 print(
-                    f"Training mode: Using {train_subset.n_obs} cells with {column} in {train_values}"
+                    f"Training mode: {train_subset.n_obs} cells ({column} in {train_values})"
                 )
 
             # Apply sampling (only to training data during training)
@@ -175,7 +175,7 @@ class DataPreprocessor:
                 # Keras will handle train/validation split internally
                 train_subset = dataset.copy()
                 test_subset = dataset[:0].copy()  # Empty subset
-                print(f"Training mode: Using full dataset ({train_subset.n_obs} cells)")
+                print(f"Training mode: {train_subset.n_obs} cells (full dataset)")
 
             # Apply sampling if specified (only during training)
             num_samples = getattr(config.data.sampling, "samples", None)
@@ -380,18 +380,24 @@ class DataPreprocessor:
             highly_variable_genes,
         ) = self.select_highly_variable_genes(train_subset, test_subset)
 
-        # Print data sizes and class counts
-        print(f"Training data size: {train_subset.shape}")
-
+        # Print data summary
         encoding_var = getattr(config.data, "target_variable", "age")
-        print("\nCounts of each class in the training data:")
-        print(train_subset.obs[encoding_var].value_counts())
+        print("\n" + "-" * 40)
+        print("DATA PREPARATION")
+        print("-" * 40)
+        print(
+            f"Training samples: {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
+        )
 
-        # Only show test data info if we actually have test data
+        # Show class distribution more cleanly
+        class_counts = train_subset.obs[encoding_var].value_counts().sort_index()
+        class_dist = " | ".join([f"{k}: {v}" for k, v in class_counts.items()])
+        print(f"Class distribution: {class_dist}")
+
         if test_subset.n_obs > 0:
-            print(f"Testing data size: {test_subset.shape}")
-            print("\nCounts of each class in the testing data:")
-            print(test_subset.obs[encoding_var].value_counts())
+            print(
+                f"Testing samples: {test_subset.n_obs:,} cells, {test_subset.n_vars:,} genes"
+            )
 
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(

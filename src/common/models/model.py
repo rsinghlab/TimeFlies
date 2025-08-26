@@ -888,9 +888,9 @@ class ModelBuilder:
                 continue
 
         if model_found:
-            print(f"Previous best validation loss: {best_val_loss:.5f}")
+            print(f"Resuming training (best loss: {best_val_loss:.3f})")
         else:
-            print("No previous model found - starting fresh")
+            print("Starting fresh training session")
 
         # Split data into training and validation sets
         (

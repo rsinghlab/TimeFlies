@@ -187,7 +187,6 @@ class PipelineManager:
                 self.highly_variable_genes,
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
-            print("Training data preprocessed successfully.")
 
             # Free memory by deleting large raw data objects after preprocessing
             # (preserve evaluation data for auto-evaluation)
@@ -644,16 +643,7 @@ class PipelineManager:
             ):
                 components.append("baselines computed")
 
-            print("\n" + "=" * 50)
-            if components:
-                print(f"Pipeline completed successfully ({', '.join(components)})")
-            else:
-                print("Training and evaluation completed successfully")
-            print("=" * 50)
-
-            # Add validation loss improvement message
-            if self.model_improved:
-                print("Validation loss improved - best model updated")
+            # Pipeline completion is now handled by CLI commands
 
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
@@ -697,7 +687,9 @@ class PipelineManager:
         Note: Model loading is handled by the dedicated run_evaluation() method.
         """
         try:
-            print("\nBuilding and training model...")
+            print("\n" + "=" * 60)
+            print("TRAINING")
+            print("=" * 60)
             self.build_and_train_model()
             # Model built and trained successfully
         except Exception as e:
