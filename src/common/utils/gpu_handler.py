@@ -54,6 +54,10 @@ class GPUHandler:
             # Get the list of physical GPU devices recognized by TensorFlow
             gpus = tf.config.list_physical_devices("GPU")
 
+            # Also check for CUDA availability
+            cuda_available = tf.test.is_built_with_cuda()
+            gpu_available = tf.test.is_gpu_available()
+
             if gpus:
                 try:
                     # Set memory growth FIRST before any GPU operations
@@ -98,4 +102,12 @@ class GPUHandler:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)
             else:
-                print("💻 CPU mode: No GPUs detected")
+                # More informative GPU status
+                if cuda_available and not gpu_available:
+                    print(
+                        "💻 CPU mode: CUDA available but no GPUs accessible to TensorFlow"
+                    )
+                elif not cuda_available:
+                    print("💻 CPU mode: TensorFlow not built with CUDA support")
+                else:
+                    print("💻 CPU mode: No GPUs detected")

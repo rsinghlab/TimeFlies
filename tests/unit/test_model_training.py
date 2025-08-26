@@ -491,7 +491,7 @@ class TestModelLoader:
             loader.model_dir = "/tmp/test_model"
 
             path = loader._get_model_path()
-            expected = os.path.join("/tmp/test_model", "model.h5")
+            expected = os.path.join("/tmp/test_model", "model.keras")
             assert path == expected
 
     def test_get_model_path_sklearn_model(self):

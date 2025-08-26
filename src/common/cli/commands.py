@@ -857,13 +857,7 @@ def train_command(args, config) -> int:
         print(f"Batch Correction: {batch_status}")
         print("-" * 60)
 
-        # Initialize GPU early to show status in header
-        from common.utils.gpu_handler import GPUHandler
-
-        GPUHandler.configure(config)
-        print("-" * 60)
-
-        # Use common PipelineManager for all projects
+        # Use common PipelineManager for all projects (GPU will be configured there)
         from common.core import PipelineManager
 
         # Initialize and run pipeline
@@ -1277,6 +1271,9 @@ def analyze_command(args, config) -> int:
             from common.core import PipelineManager
 
             pipeline = PipelineManager(config)
+
+            # Pass the found predictions path to the pipeline
+            pipeline._analysis_predictions_path = str(predictions_path)
 
             # Only run the analysis script part
             if hasattr(pipeline, "run_analysis_script"):
