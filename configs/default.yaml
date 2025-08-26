@@ -211,3 +211,7 @@ logging:
 # =============================================================================
 # For batch correction settings, see: configs/batch_correction.yaml
 # For setup/splitting settings, see: configs/setup.yaml
+
+# TODO: Implement config-based logging
+# Currently logging uses hardcoded values in src/common/utils/logging_config.py
+# The logging section above is planned but not yet integrated with the actual logging system
