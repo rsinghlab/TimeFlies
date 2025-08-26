@@ -2061,37 +2061,13 @@ def setup_dev_environments() -> int:
         create_activation_scripts()
         print("[OK] Activation scripts created")
 
-        print("\nSUCCESS: Development setup complete!")
+        print("\n✅ DEVELOPMENT SETUP COMPLETE!")
         print("=" * 60)
-
-        # Auto-activate main environment for developers
-        print("🧬 Auto-activating TimeFlies development environment...")
-        activate_result = subprocess.run(
-            ["bash", "-c", "source .activate.sh && echo 'Environment activated'"],
-            capture_output=True,
-            text=True,
-        )
-
-        if activate_result.returncode == 0:
-            print("🧬 TimeFlies Development Environment Activated!")
-            print("\nDevelopment commands:")
-            print("  timeflies gui                # Launch web interface in browser")
-            print(
-                "  timeflies test --coverage    # Run full test suite with coverage report"
-            )
-            print(
-                "  timeflies verify             # Check development environment and dependencies"
-            )
-            print(
-                "  timeflies setup --dev --update  # Update environment with latest dependencies"
-            )
-        else:
-            print("Next steps:")
-            print("  source .activate.sh         # Activate main environment")
-            print("  source .activate_batch.sh   # Switch to batch environment")
-
-        print("  timeflies verify            # Verify setup")
-        print("  timeflies test              # Run full test suite")
+        print("\nTo activate the development environment:")
+        print("  source .activate.sh")
+        print("\nTo switch to batch correction environment:")
+        print("  source .activate_batch.sh")
+        print("\nThe activation script will show available commands.")
 
         return 0
 
