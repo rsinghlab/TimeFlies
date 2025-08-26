@@ -44,8 +44,12 @@ def run_analysis(model, config, path_manager, pipeline):
         # First check if the pipeline has a specific predictions path (from CLI)
         if hasattr(pipeline, "_analysis_predictions_path"):
             predictions_file = Path(pipeline._analysis_predictions_path)
+            # For best model paths, the experiment dir is parent.parent
+            # This handles both regular and best model paths correctly
             experiment_dir = predictions_file.parent.parent
             print("🎯 Using CLI-specified predictions from best model")
+            logger.debug(f"Using predictions from: {predictions_file}")
+            logger.debug(f"Using experiment dir: {experiment_dir}")
         else:
             # Try to get experiment directory from pipeline
             try:
@@ -90,7 +94,12 @@ def run_analysis(model, config, path_manager, pipeline):
 
         # Create analysis directory in the same experiment directory
         analysis_dir = Path(experiment_dir) / "alzheimers_analysis"
+
+        # Ensure the parent directory exists (important for best model paths)
+        analysis_dir.parent.mkdir(parents=True, exist_ok=True)
         analysis_dir.mkdir(exist_ok=True)
+
+        logger.debug(f"Created analysis directory at: {analysis_dir}")
 
         df = pd.read_csv(predictions_file)
         print(f"📊 Loaded {len(df)} predictions")
