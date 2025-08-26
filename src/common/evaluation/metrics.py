@@ -700,12 +700,11 @@ class EvaluationMetrics:
         metric_values = []
         for metric in key_metrics:
             if metric in metrics and metrics[metric] is not None:
-                metric_values.append(f"{metric}={metrics[metric]:.3f}")
+                capitalized_metric = metric.replace("_", " ").title()
+                metric_values.append(f"{capitalized_metric} = {metrics[metric]:.3f}")
 
         if metric_values:
-            print("\n" + "=" * 60)
-            print("🎯 MODEL PERFORMANCE")
-            print("=" * 60)
+            print("\n🎯 MODEL PERFORMANCE")
 
             # Create a dynamic results table that adjusts to content length
             result_content = " | ".join(metric_values)
@@ -758,9 +757,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\n" + "=" * 60)
-        print("📊 BASELINE COMPARISON")
-        print("=" * 60)
+        print("\n📊 BASELINE COMPARISON")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
@@ -784,8 +781,10 @@ class EvaluationMetrics:
             20, max_method_len + 2
         )  # At least 20, or method name + padding
 
-        # Create the table format strings
+        # Create the table format strings - ensure header and border widths match
+        # Border widths: 7, 7, 11, 8, 10, 9 (including padding)
         header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+        row_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
         border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬──────────┬─────────┐"
         border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼──────────┼─────────┤"
         border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴──────────┴─────────┘"
@@ -887,9 +886,9 @@ class EvaluationMetrics:
                 acc_improvement = model_accuracy - baseline_accuracy
                 f1_improvement = model_f1 - baseline_f1
 
-                # Format improvements with + or - signs
-                acc_sign = "+" if acc_improvement >= 0 else ""
-                f1_sign = "+" if f1_improvement >= 0 else ""
+                # Format improvements with + or - signs (avoid double ++)
+                acc_delta = f"{acc_improvement:+.3f}"
+                f1_delta = f"{f1_improvement:+.3f}"
 
                 # Use the dynamic format string for consistent alignment
                 row_format = f"│ {{:<{method_width}}} │ {{:.3f}} │ {{:.3f}} │ {{:>9.3f}} │ {{:.3f}} │ {{:>8s}} │ {{:>7s}} │"
@@ -900,8 +899,8 @@ class EvaluationMetrics:
                         baseline_f1,
                         baseline_precision,
                         baseline_recall,
-                        f"{acc_sign}{acc_improvement:+.3f}",
-                        f"{f1_sign}{f1_improvement:+.3f}",
+                        acc_delta,
+                        f1_delta,
                     )
                 )
 

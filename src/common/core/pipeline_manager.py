@@ -325,14 +325,12 @@ class PipelineManager:
         Load pre-trained model and preprocess evaluation data to prevent data leakage.
         """
         try:
-            logger.info("Loading pre-trained model...")
             # Initialize model loader if not already done
             if not hasattr(self, "model_loader"):
                 self.model_loader = ModelLoader(self.config_instance)
 
             # Load the pre-trained model
             self.model = self.model_loader.load_model()
-            logger.info("Pre-trained model loaded successfully.")
 
         except Exception as e:
             logger.error(f"Error during model loading: {e}")
@@ -616,14 +614,9 @@ class PipelineManager:
 
             # Evaluation data ready
 
-            # Run evaluation metrics (post-training: save to recent always, best only if improved)
+            # Run evaluation metrics (post-training: save to recent directory)
             self.run_metrics("recent")
-            if self.model_improved:
-                # Model improved during this training session
-                self.copy_metrics_to_best()
-            else:
-                # Model did not improve this session
-                pass
+            # If model improved, metrics are automatically accessible via best/ symlink
 
             # Run visualizations for experiment
             if getattr(self.config_instance.visualizations, "enabled", False):
@@ -826,53 +819,6 @@ class PipelineManager:
             logger.error(f"Error computing evaluation metrics: {e}")
             raise
 
-    def copy_metrics_to_best(self):
-        """Create symlinks to best model metrics instead of copying files."""
-        try:
-            from pathlib import Path
-
-            recent_dir = (
-                Path(self.path_manager.get_experiment_dir(self.experiment_name))
-                / "evaluation"
-            )
-            # Get the best symlink directory
-            config_key = self.path_manager.get_config_key()
-            best_dir = (
-                Path(self.path_manager.get_best_symlink_path())
-                / config_key
-                / "evaluation"
-            )
-
-            # Create best evaluation directory if it doesn't exist
-            best_dir.mkdir(parents=True, exist_ok=True)
-
-            # Create symlinks to metrics files
-            for file_name in ["metrics.json", "predictions.csv"]:
-                recent_file = recent_dir / file_name
-                best_file = best_dir / file_name
-                if recent_file.exists():
-                    # Remove existing symlink or file
-                    if best_file.exists() or best_file.is_symlink():
-                        best_file.unlink()
-                    # Create symlink to recent file
-                    best_file.symlink_to(recent_file)
-
-            # Metrics symlinked to best directory
-        except Exception as e:
-            logger.warning(f"Failed to symlink metrics to best directory: {e}")
-            # Fallback to copying if symlinks fail
-            try:
-                import shutil
-
-                for file_name in ["metrics.json", "predictions.csv"]:
-                    recent_file = recent_dir / file_name
-                    best_file = best_dir / file_name
-                    if recent_file.exists():
-                        shutil.copy2(recent_file, best_file)
-                logger.info("Fallback: Copied files to best directory")
-            except Exception as fallback_error:
-                logger.warning(f"Symlink and copy both failed: {fallback_error}")
-
     def display_duration(self, start_time, end_time):
         """
         Displays the duration of a task in a human-readable format.
@@ -1020,10 +966,9 @@ class PipelineManager:
             # Load pre-trained model
             self.load_model()
 
-            # Run evaluation metrics (standalone evaluation: compute once and save to both)
+            # Run evaluation metrics (standalone evaluation: save to recent directory only)
             self.run_metrics("recent")
-            # Copy metrics to best directory without recomputing
-            self.copy_metrics_to_best()
+            # No need to copy metrics - they're accessible via symlink: best/config_key/evaluation/
 
             # Analysis (conditional based on config)
             if getattr(self.config_instance.interpretation.shap, "enabled", False):
