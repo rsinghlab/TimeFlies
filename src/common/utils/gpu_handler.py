@@ -30,13 +30,22 @@ class GPUHandler:
         If memory growth cannot be set (e.g., because TensorFlow has already been
         initialized), it catches and prints the RuntimeError.
         """
-        # Reduce TensorFlow verbosity
+        # Reduce TensorFlow verbosity completely
+        import logging
         import os
         import warnings
 
+        # Set environment variables before any TF operations
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress all logs including warnings
+        os.environ["TF_ENABLE_ONEDNN_OPTS"] = (
+            "0"  # Disable oneDNN custom operations messages
+        )
+
+        # Suppress TensorFlow logging
         tf.get_logger().setLevel("ERROR")
+        logging.getLogger("tensorflow").setLevel(logging.ERROR)
         warnings.filterwarnings("ignore", category=UserWarning, module="keras")
+        warnings.filterwarnings("ignore", category=UserWarning, module="tensorflow")
         processor = getattr(config.hardware, "processor", "GPU")
 
         if processor == "M":
