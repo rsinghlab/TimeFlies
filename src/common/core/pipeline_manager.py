@@ -535,13 +535,7 @@ class PipelineManager:
             # Always update latest symlink
             self.path_manager.update_latest_symlink(self.experiment_name)
 
-            # Save config snapshot
-            experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
-            config_path = Path(experiment_dir) / "config.yaml"
-            import yaml
-
-            with open(config_path, "w") as f:
-                yaml.dump(self.config_instance.to_dict(), f, default_flow_style=False)
+            # Config snapshot not needed - users can access original config.yaml
 
         except Exception as e:
             logger.error(f"Failed to save experiment outputs: {e}")
@@ -573,7 +567,7 @@ class PipelineManager:
             )
 
             # Run metrics
-            metrics.run()
+            metrics.compute_metrics()
 
             # Store metrics for metadata
             if hasattr(metrics, "mae"):
@@ -657,7 +651,8 @@ class PipelineManager:
             self.run_metrics("recent")
             if self.model_improved:
                 logger.info("New best model found - saving metrics to best directory")
-                self.run_metrics("best")
+                # Copy recent metrics to best directory instead of recomputing
+                self.copy_metrics_to_best()
             else:
                 logger.info("Model did not improve - skipping best directory update")
 
@@ -844,10 +839,43 @@ class PipelineManager:
                 output_dir=evaluation_dir,
             )
             metrics.compute_metrics()
-            logger.info("Evaluation metrics computed successfully.")
+            # Metrics computed - logged by the metrics class
         except Exception as e:
             logger.error(f"Error computing evaluation metrics: {e}")
             raise
+
+    def copy_metrics_to_best(self):
+        """Copy already computed metrics from recent to best directory to avoid recomputation."""
+        try:
+            import shutil
+            from pathlib import Path
+
+            recent_dir = (
+                Path(self.path_manager.get_experiment_dir(self.experiment_name))
+                / "evaluation"
+            )
+            best_dir = (
+                Path(
+                    self.path_manager.get_experiment_dir(
+                        self.experiment_name, result_type="best"
+                    )
+                )
+                / "evaluation"
+            )
+
+            # Create best evaluation directory if it doesn't exist
+            best_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy metrics files
+            for file_name in ["metrics.json", "predictions.csv"]:
+                recent_file = recent_dir / file_name
+                best_file = best_dir / file_name
+                if recent_file.exists():
+                    shutil.copy2(recent_file, best_file)
+
+            # Metrics copied to best directory
+        except Exception as e:
+            logger.warning(f"Failed to copy metrics to best directory: {e}")
 
     def display_duration(self, start_time, end_time):
         """

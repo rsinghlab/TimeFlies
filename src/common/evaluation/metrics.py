@@ -8,22 +8,33 @@ from typing import Any
 
 import numpy as np
 import scipy.stats as stats
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
+)
 
 from common.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
-class AgingMetrics:
+class EvaluationMetrics:
     """
-    Metrics specialized for aging research evaluation.
+    General metrics for machine learning model evaluation.
 
     Provides methods for:
-    - Age prediction accuracy metrics
-    - Aging trajectory quality assessment
-    - Sex-specific aging performance
-    - Cross-tissue aging consistency
+    - Regression metrics (MAE, RMSE, R², correlation)
+    - Classification metrics (accuracy, precision, recall)
+    - Prediction analysis and visualization
+    - Cross-validation and statistical testing
     """
 
     def __init__(
@@ -116,8 +127,15 @@ class AgingMetrics:
             f"Predicted classes shape: {predicted_classes.shape}, sample: {predicted_classes[:5]}"
         )
 
-        # Compute age prediction metrics
-        metrics = self.evaluate_age_prediction(true_labels, predicted_classes)
+        # Compute metrics based on task type
+        if len(predictions.shape) > 1 and predictions.shape[1] > 1:
+            # Classification task - compute both classification and regression metrics
+            metrics = self.evaluate_classification_and_regression(
+                true_labels, predicted_classes, predictions
+            )
+        else:
+            # Pure regression task
+            metrics = self.evaluate_age_prediction(true_labels, predicted_classes)
 
         # Save metrics if path manager is available
         if self.path_manager:
@@ -514,3 +532,123 @@ class AgingMetrics:
         aging_scores = np.mean(marker_expressions, axis=0)
 
         return aging_scores
+
+    def evaluate_classification_and_regression(
+        self, true_labels, predicted_classes, predictions
+    ):
+        """
+        Comprehensive evaluation for classification tasks.
+
+        Args:
+            true_labels: True class labels
+            predicted_classes: Predicted class labels
+            predictions: Prediction probabilities (for AUC calculation)
+
+        Returns:
+            Dictionary containing all computed metrics
+        """
+        metrics = {}
+
+        # Get task type and metrics from config
+        task_type = getattr(self.config.model, "task_type", "classification")
+        config_metrics = getattr(self.config.model, "metrics", {})
+        eval_metrics = config_metrics.get("evaluation", {}).get(
+            "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
+        )
+
+        logger.info(f"Computing {task_type} metrics: {eval_metrics}")
+
+        # Basic classification metrics
+        if "accuracy" in eval_metrics:
+            metrics["accuracy"] = float(accuracy_score(true_labels, predicted_classes))
+
+        if "f1_score" in eval_metrics:
+            # Use macro average for multiclass, binary for binary classification
+            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
+            metrics["f1_score"] = float(
+                f1_score(true_labels, predicted_classes, average=average)
+            )
+
+        if "precision" in eval_metrics:
+            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
+            metrics["precision"] = float(
+                precision_score(true_labels, predicted_classes, average=average)
+            )
+
+        if "recall" in eval_metrics:
+            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
+            metrics["recall"] = float(
+                recall_score(true_labels, predicted_classes, average=average)
+            )
+
+        # AUC score (requires prediction probabilities)
+        if "auc" in eval_metrics and len(predictions.shape) > 1:
+            try:
+                if predictions.shape[1] == 2:
+                    # Binary classification - use probability of positive class
+                    metrics["auc"] = float(
+                        roc_auc_score(true_labels, predictions[:, 1])
+                    )
+                else:
+                    # Multiclass classification - use macro average
+                    metrics["auc"] = float(
+                        roc_auc_score(
+                            true_labels, predictions, multi_class="ovr", average="macro"
+                        )
+                    )
+            except Exception as e:
+                logger.warning(f"Could not compute AUC: {e}")
+                metrics["auc"] = None
+
+        # Confusion matrix
+        if "confusion_matrix" in eval_metrics:
+            cm = confusion_matrix(true_labels, predicted_classes)
+            metrics["confusion_matrix"] = (
+                cm.tolist()
+            )  # Convert to list for JSON serialization
+
+        # Additional detailed metrics
+        try:
+            # Classification report as dictionary
+            class_report = classification_report(
+                true_labels, predicted_classes, output_dict=True
+            )
+            metrics["classification_report"] = class_report
+        except Exception as e:
+            logger.warning(f"Could not compute classification report: {e}")
+
+        # Class-wise metrics if multiclass
+        unique_classes = np.unique(true_labels)
+        if len(unique_classes) > 2:
+            for class_id in unique_classes:
+                class_mask = true_labels == class_id
+                class_pred_mask = predicted_classes == class_id
+
+                # Per-class precision, recall, f1
+                if np.sum(class_pred_mask) > 0:  # Avoid division by zero
+                    class_precision = np.sum(class_mask & class_pred_mask) / np.sum(
+                        class_pred_mask
+                    )
+                    metrics[f"class_{class_id}_precision"] = float(class_precision)
+
+                if np.sum(class_mask) > 0:  # Avoid division by zero
+                    class_recall = np.sum(class_mask & class_pred_mask) / np.sum(
+                        class_mask
+                    )
+                    metrics[f"class_{class_id}_recall"] = float(class_recall)
+
+                    if class_precision + class_recall > 0:
+                        class_f1 = (
+                            2
+                            * (class_precision * class_recall)
+                            / (class_precision + class_recall)
+                        )
+                        metrics[f"class_{class_id}_f1"] = float(class_f1)
+
+        # Log key metrics
+        key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]
+        for metric in key_metrics:
+            if metric in metrics and metrics[metric] is not None:
+                logger.info(f"{metric.upper()}: {metrics[metric]:.4f}")
+
+        return metrics

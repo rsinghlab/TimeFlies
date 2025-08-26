@@ -78,6 +78,25 @@ data:
 # =============================================================================
 # For hyperparameter tuning settings, see: configs/hyperparameter_tuning.yaml
 model:
+  # Model task type - determines metrics and evaluation approach
+  task_type: "classification"  # Options: "classification", "regression"
+
+  # Metrics configuration
+  metrics:
+    # Training/validation metrics (used during model training)
+    training:
+      # For classification tasks
+      classification: ["accuracy", "categorical_crossentropy"]
+      # For regression tasks
+      regression: ["mse", "mae"]
+
+    # Evaluation metrics (computed after training on test set)
+    evaluation:
+      # Classification metrics for final evaluation
+      classification: ["accuracy", "f1_score", "precision", "recall", "auc", "confusion_matrix"]
+      # Regression metrics for final evaluation
+      regression: ["mse", "mae", "r2", "rmse", "correlation"]
+
   # Training parameters
   training:
     epochs: 100
@@ -97,12 +116,14 @@ model:
     dense_units: [128]         # Single dense layer before output
     dropout_rate: 0.5
     activation: "relu"
+    loss: "categorical_crossentropy"
 
   # MLP architecture
   mlp:
     hidden_layers: [512, 256, 128]
     activation: "relu"
     dropout_rate: 0.2
+    loss: "categorical_crossentropy"  # For classification tasks
 
   # XGBoost architecture
   xgboost:
