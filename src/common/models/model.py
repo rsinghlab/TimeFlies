@@ -833,7 +833,15 @@ class ModelBuilder:
             history: The training history.
         """
         custom_model_path = os.path.join(paths["experiment_dir"], "model.keras")
-        best_val_loss_path = os.path.join(paths["components_dir"], "best_val_loss.json")
+        # Try to load best validation loss from best symlink first, then current experiment
+        from pathlib import Path
+
+        best_symlink_path = (
+            self.path_manager.get_best_symlink_path()
+            + "/model_components/best_val_loss.json"
+        )
+        current_path = os.path.join(paths["components_dir"], "best_val_loss.json")
+
         self.num_features = (
             self.train_data.shape[2]
             if self.model_type == "cnn"
@@ -841,14 +849,15 @@ class ModelBuilder:
         )
 
         # Load the best validation loss from file
-        try:
-            with open(best_val_loss_path) as f:
-                best_val_loss = json.load(f)["best_val_loss"]
-                print(f"Loaded previous best validation loss: {best_val_loss}")
-        except FileNotFoundError:
-            print(f"Best validation loss file not found at: {best_val_loss_path}")
-            # No previous best validation loss - start fresh
-            best_val_loss = float("inf")
+        best_val_loss = float("inf")
+        for path_to_try in [best_symlink_path, current_path]:
+            try:
+                if os.path.exists(path_to_try):
+                    with open(path_to_try) as f:
+                        best_val_loss = json.load(f)["best_val_loss"]
+                        break
+            except (FileNotFoundError, json.JSONDecodeError):
+                continue
 
         # Split data into training and validation sets
         (
@@ -871,7 +880,7 @@ class ModelBuilder:
         )
         model_checkpoint = CustomModelCheckpoint(
             custom_model_path,
-            best_val_loss_path,
+            current_path,
             paths["label_path"],
             self.label_encoder,
             paths["reference_path"],
