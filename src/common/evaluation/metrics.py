@@ -664,9 +664,21 @@ class EvaluationMetrics:
                 metric_values.append(f"{metric}={metrics[metric]:.3f}")
 
         if metric_values:
-            print("\n" + "-" * 30)
-            print(f"Model Results: {' | '.join(metric_values)}")
-            print("-" * 30)
+            print("\n" + "=" * 60)
+            print("🎯 MODEL PERFORMANCE")
+            print("=" * 60)
+
+            # Create a nice results table
+            print("┌─────────────────────────────────────────────────────────┐")
+            print("│                    🤖 MODEL RESULTS                     │")
+            print("├─────────────────────────────────────────────────────────┤")
+            result_line = "│ " + " | ".join(metric_values) + " │"
+            # Center the results in the box
+            padding = (57 - len(" | ".join(metric_values))) // 2
+            if padding > 0:
+                result_line = f"│{' ' * padding}{' | '.join(metric_values)}{' ' * (57 - len(' | '.join(metric_values)) - padding)}│"
+            print(result_line)
+            print("└─────────────────────────────────────────────────────────┘")
 
         return metrics
 
@@ -689,12 +701,23 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\n" + "-" * 30)
-        print("Baseline Metrics:")
-        print("-" * 30)
+        print("\n" + "=" * 60)
+        print("📊 BASELINE COMPARISON")
+        print("=" * 60)
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
+
+        # Print table header
+        print(
+            "┌────────────────────┬───────┬───────┬───────────┬────────┬──────────┬─────────┐"
+        )
+        print(
+            "│ Baseline Method    │  Acc  │  F1   │ Precision │ Recall │ Acc Δ   │ F1 Δ    │"
+        )
+        print(
+            "├────────────────────┼───────┼───────┼───────────┼────────┼──────────┼─────────┤"
+        )
 
         for baseline_type in baseline_types:
             try:
@@ -782,11 +805,23 @@ class EvaluationMetrics:
                 }
 
                 baseline_name = baseline_type.replace("_", " ").title()
+                acc_improvement = model_accuracy - baseline_accuracy
+                f1_improvement = model_f1 - baseline_f1
+
+                # Format improvements with + or - signs
+                acc_sign = "+" if acc_improvement >= 0 else ""
+                f1_sign = "+" if f1_improvement >= 0 else ""
+
                 print(
-                    f"{baseline_name}: Accuracy={baseline_accuracy:.3f}, F1={baseline_f1:.3f}, Precision={baseline_precision:.3f}, Recall={baseline_recall:.3f} (improvement: +{model_accuracy - baseline_accuracy:.3f} +{model_f1 - baseline_f1:.3f})"
+                    f"│ {baseline_name:<18} │ {baseline_accuracy:.3f} │ {baseline_f1:.3f} │ {baseline_precision:.3f} │ {baseline_recall:.3f} │ {acc_sign}{acc_improvement:+.3f} │ {f1_sign}{f1_improvement:+.3f} │"
                 )
 
             except Exception as e:
                 logger.warning(f"Failed to compute {baseline_type} baseline: {e}")
+
+        # Close the table
+        print(
+            "└────────────────────┴───────┴───────┴───────────┴────────┴──────────┴─────────┘"
+        )
 
         return baselines

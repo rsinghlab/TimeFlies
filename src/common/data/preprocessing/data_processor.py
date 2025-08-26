@@ -383,7 +383,7 @@ class DataPreprocessor:
         # Print data summary
         encoding_var = getattr(config.data, "target_variable", "age")
         print("\n" + "-" * 40)
-        print("DATA PREPARATION")
+        print("📋 DATA PREPARATION")
         print("-" * 40)
         print(
             f"Training samples: {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"

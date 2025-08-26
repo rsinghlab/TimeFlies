@@ -845,7 +845,7 @@ def train_command(args, config) -> int:
                 return result
 
         print("=" * 60)
-        print("TIMEFLIES TRAINING")
+        print("🚀 TIMEFLIES TRAINING")
         print("=" * 60)
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
@@ -896,14 +896,14 @@ def train_command(args, config) -> int:
         if "duration" in results:
             # Create completion summary
             print("\n" + "=" * 60)
-            print("TRAINING SUMMARY")
+            print("🏁 TRAINING & EVALUATION SUMMARY")
             print("=" * 60)
 
-            # Model status
+            # Model status with emoji
             if results.get("model_improved", False):
-                print("✓ Best model updated (validation loss improved)")
+                print("🎉 Best model updated (validation loss improved)")
             else:
-                print("- Best model not updated (validation loss did not improve)")
+                print("📋 Best model not updated (validation loss did not improve)")
 
             # Duration and components
             components = []
@@ -922,9 +922,17 @@ def train_command(args, config) -> int:
             except Exception:
                 pass
 
-            print(f"Training duration: {results['duration']:.1f}s")
+            print(f"⏱️ Training duration: {results['duration']:.1f}s")
             if components:
-                print(f"Additional outputs: {', '.join(components)}")
+                component_icons = {
+                    "visuals": "📊",
+                    "baselines": "📏",
+                    "SHAP analysis": "🔍",
+                }
+                component_list = [
+                    f"{component_icons.get(comp, '•')} {comp}" for comp in components
+                ]
+                print(f"📦 Additional outputs: {', '.join(component_list)}")
             print("=" * 60)
 
         return 0
