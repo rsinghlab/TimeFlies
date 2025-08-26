@@ -385,8 +385,7 @@ class PipelineManager:
             )
 
             self.model, self.history, self.model_improved = self.model_builder.run()
-            print("History keys:", self.history.history.keys())
-            print(f"Model improved during training: {self.model_improved}")
+            # History and model improvement tracked internally
 
             # Set num_features and gene names for auto-evaluation
             self.num_features = self.train_data.shape[1]

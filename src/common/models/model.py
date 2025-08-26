@@ -902,7 +902,7 @@ class ModelBuilder:
 
         # Save the history object only if the model was improved and saved at least once during training
         if model_checkpoint.model_improved:
-            print("saving history")
+            #  Saving training history
             with open(paths["history_path"], "wb") as f:
                 pickle.dump(history.history, f)
 
