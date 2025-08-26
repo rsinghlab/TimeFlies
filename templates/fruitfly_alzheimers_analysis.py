@@ -37,69 +37,21 @@ def run_analysis(model, config, path_manager, pipeline):
         print("\n🧬 Alzheimer's Aging Acceleration Analysis")
         print("=" * 60)
 
-        # Try to find the predictions file
-        predictions_file = None
-        experiment_dir = None
+        # Get best model directory (instead of specific experiment)
+        experiment_dir = path_manager.get_best_model_dir_for_config()
+        if experiment_dir is None:
+            print("❌ No best model found. Train a model first.")
+            return
 
-        # First check if the pipeline has a specific predictions path (from CLI)
-        if hasattr(pipeline, "_analysis_predictions_path"):
-            predictions_file = Path(pipeline._analysis_predictions_path)
-            # For best model paths, the experiment dir is parent.parent
-            # This handles both regular and best model paths correctly
-            experiment_dir = predictions_file.parent.parent
-            print("🎯 Using CLI-specified predictions from best model")
-            logger.debug(f"Using predictions from: {predictions_file}")
-            logger.debug(f"Using experiment dir: {experiment_dir}")
-        else:
-            # Try to get experiment directory from pipeline
-            try:
-                experiment_dir = path_manager.get_experiment_dir(
-                    getattr(pipeline, "experiment_name", None)
-                )
-                predictions_file = (
-                    Path(experiment_dir) / "evaluation" / "predictions.csv"
-                )
-            except Exception:
-                experiment_dir = None
-
-        # If not found, search for predictions from the best model
-        if not predictions_file or not predictions_file.exists():
-            # Look for predictions in the best model directory first
-            base_path = Path(path_manager.base_path) / "experiments"
-
-            # Try to find best model predictions first
-            best_pattern = "**/best/**/evaluation/predictions.csv"
-            best_prediction_files = list(base_path.glob(best_pattern))
-
-            if best_prediction_files:
-                # Use the most recent best model predictions for this config
-                predictions_file = max(
-                    best_prediction_files, key=lambda x: x.stat().st_mtime
-                )
-                experiment_dir = predictions_file.parent.parent
-                print("🏆 Using predictions from best model for this configuration")
-            else:
-                # Fallback to any predictions file
-                search_pattern = "**/evaluation/predictions.csv"
-                prediction_files = list(base_path.glob(search_pattern))
-                if prediction_files:
-                    predictions_file = max(
-                        prediction_files, key=lambda x: x.stat().st_mtime
-                    )
-                    experiment_dir = predictions_file.parent.parent
-                    print(f"📍 Using most recent predictions: {predictions_file}")
-                else:
-                    print("❌ No predictions found. Run evaluation first.")
-                    return
-
-        # Create analysis directory in the same experiment directory
+        # Create analysis directory
         analysis_dir = Path(experiment_dir) / "alzheimers_analysis"
-
-        # Ensure the parent directory exists (important for best model paths)
-        analysis_dir.parent.mkdir(parents=True, exist_ok=True)
         analysis_dir.mkdir(exist_ok=True)
 
-        logger.debug(f"Created analysis directory at: {analysis_dir}")
+        # Load predictions
+        predictions_file = Path(experiment_dir) / "evaluation" / "predictions.csv"
+        if not predictions_file.exists():
+            print("❌ No predictions found. Run evaluation first.")
+            return
 
         df = pd.read_csv(predictions_file)
         print(f"📊 Loaded {len(df)} predictions")
@@ -161,7 +113,7 @@ def aging_acceleration_analysis(df, output_dir):
         "mean_prediction_error": float(mean_error),
         "std_prediction_error": float(std_error),
         "n_samples": len(df),
-        "accelerated_aging": mean_error > 0,
+        "accelerated_aging": bool(mean_error > 0),
     }
 
     import json
@@ -377,8 +329,9 @@ def generate_summary_report(df, output_dir):
             "mean_prediction_error_days": float(mean_error),
             "std_prediction_error_days": float(std_error),
             "percentage_predicted_older": float(older_pct),
-            "accelerated_aging_evidence": mean_error
-            > 1.0,  # More than 1 day older on average
+            "accelerated_aging_evidence": bool(
+                mean_error > 1.0
+            ),  # More than 1 day older on average
             "interpretation": {
                 "aging_acceleration": "Strong evidence"
                 if mean_error > 2.0
