@@ -160,13 +160,13 @@ def get_quick_overrides() -> dict[str, Any]:
 
 def get_config_for_active_project(config_type: str = "default"):
     """
-    Get the configuration manager for the active project.
+    Get the configuration for the active project.
 
     Args:
         config_type: Type of config to load ('default', 'setup', etc.)
 
     Returns:
-        ConfigManager instance for the active project
+        Config instance for the active project with overrides applied
     """
     get_active_project()
     config_path = get_active_config_path(config_type)
@@ -199,4 +199,4 @@ def get_config_for_active_project(config_type: str = "default"):
                 else:
                     setattr(config, key, value)
 
-    return config_manager
+    return config
