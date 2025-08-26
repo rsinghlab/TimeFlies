@@ -184,18 +184,21 @@ class EvaluationMetrics:
                 }
             )
 
-            # Add genotype information based on project and split method
+            # Add genotype information - try to get actual genotypes from evaluation data
             project = getattr(self.config, "project", "unknown")
             split_method = getattr(self.config.data.split, "method", "random")
 
-            # Project and split method tracked internally
+            # Try to load actual genotype information from evaluation data
+            genotype_info = self._get_evaluation_genotypes(project)
 
-            if project == "fruitfly_alzheimers" and split_method == "genotype":
-                # Test set is Alzheimer's flies (AB42/hTau)
-                # We don't have specific genotype per sample, but we know they're all disease flies
+            if genotype_info is not None and len(genotype_info) == len(predictions_df):
+                # Use actual genotype information
+                predictions_df["genotype"] = genotype_info
+            elif project == "fruitfly_alzheimers" and split_method == "genotype":
+                # Fallback: Test set is Alzheimer's flies (AB42/hTau)
                 predictions_df["genotype"] = "alzheimers"
             elif project == "fruitfly_alzheimers":
-                # For Alzheimer's project with other split methods, still mark as alzheimers
+                # Fallback: For Alzheimer's project with other split methods
                 predictions_df["genotype"] = "alzheimers"
             else:
                 predictions_df["genotype"] = "control"
@@ -223,6 +226,44 @@ class EvaluationMetrics:
                 logger.info(f"  Pearson Correlation: {pearson:.4f}")
 
         return metrics
+
+    def _get_evaluation_genotypes(self, project):
+        """
+        Load actual genotype information from evaluation data.
+
+        Args:
+            project: Project name (e.g., "fruitfly_alzheimers")
+
+        Returns:
+            List of genotype labels matching the evaluation samples, or None if not available
+        """
+        try:
+            from common.data.loaders import DataLoader
+
+            # Load evaluation data to get genotype information
+            data_loader = DataLoader(self.config)
+            _, adata_eval, _ = data_loader.load_data()
+
+            # Check if genotype column exists
+            if "genotype" not in adata_eval.obs.columns:
+                return None
+
+            # Apply same filtering that was used during evaluation
+            split_config = getattr(self.config.data, "split", None)
+            if split_config and hasattr(split_config, "test"):
+                test_genotypes = getattr(split_config, "test", [])
+                if test_genotypes:
+                    # Filter to only test genotypes
+                    mask = adata_eval.obs["genotype"].isin(test_genotypes)
+                    filtered_genotypes = adata_eval.obs["genotype"][mask].tolist()
+                    return filtered_genotypes
+
+            # Fallback: return all genotypes
+            return adata_eval.obs["genotype"].tolist()
+
+        except Exception:
+            # If we can't load genotype info, return None to use fallback
+            return None
 
     def evaluate_age_prediction(
         self, y_true: np.ndarray, y_pred: np.ndarray
