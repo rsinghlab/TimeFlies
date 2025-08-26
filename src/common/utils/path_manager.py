@@ -650,9 +650,7 @@ class PathManager:
         relative_path = Path("../all_runs") / config_key / experiment_name
         best_config_link.symlink_to(relative_path)
 
-        print(
-            f"✓ Updated best model collection: best/{config_key} → {config_key}/{experiment_name}"
-        )
+        # Best model collection updated silently
 
     def get_best_model_dir_for_config(self) -> str:
         """

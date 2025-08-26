@@ -664,7 +664,7 @@ class EvaluationMetrics:
                 metric_values.append(f"{metric}={metrics[metric]:.3f}")
 
         if metric_values:
-            print(f"Classification: {' | '.join(metric_values)}")
+            print(f"Model Results: {' | '.join(metric_values)}")
 
         return metrics
 
@@ -779,7 +779,7 @@ class EvaluationMetrics:
 
                 baseline_name = baseline_type.replace("_", " ").title()
                 print(
-                    f"{baseline_name}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} precision={baseline_precision:.3f} recall={baseline_recall:.3f} (improvement: +{model_accuracy - baseline_accuracy:.3f} +{model_f1 - baseline_f1:.3f})"
+                    f"{baseline_name}: Accuracy={baseline_accuracy:.3f}, F1={baseline_f1:.3f}, Precision={baseline_precision:.3f}, Recall={baseline_recall:.3f} (improvement: +{model_accuracy - baseline_accuracy:.3f} +{model_f1 - baseline_f1:.3f})"
                 )
 
             except Exception as e:

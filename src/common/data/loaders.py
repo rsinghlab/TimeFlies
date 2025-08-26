@@ -158,9 +158,5 @@ class DataLoader:
         # Log status of gene filtering capability
         if not autosomal_genes and not sex_genes:
             print("No gene reference data available - gene filtering will be skipped")
-        elif not autosomal_genes:
-            print("No autosomal gene data - autosomal gene filtering will be skipped")
-        elif not sex_genes:
-            print("No sex gene data - sex gene filtering will be skipped")
 
         return autosomal_genes, sex_genes
