@@ -2187,11 +2187,10 @@ def update_dev_environments() -> int:
 
         print("\n✅ UPDATE COMPLETE!")
         print("=" * 60)
-        print(
-            "\nYour environment is already activated. Changes will take effect on next activation."
-        )
-        print("\nTo apply changes now:")
-        print("  deactivate && source .activate.sh")
+        print("\nIMPORTANT: Updates will take effect on next activation.")
+        print("\nRun this command to reload with updates:")
+        print("  exec bash -c 'source .activate.sh'")
+        print("\n(This will restart your shell with the updated environment)")
 
         return 0
 
