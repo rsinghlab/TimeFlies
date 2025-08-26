@@ -214,11 +214,18 @@ class EvaluationMetrics:
 
         # Log key metrics
         logger.info("Model Evaluation Results:")
-        logger.info(f"  MAE: {metrics.get('mae', 'N/A'):.4f}")
-        logger.info(f"  RMSE: {metrics.get('rmse', 'N/A'):.4f}")
-        logger.info(f"  R² Score: {metrics.get('r2_score', 'N/A'):.4f}")
+        mae = metrics.get("mae", None)
+        rmse = metrics.get("rmse", None)
+        r2 = metrics.get("r2_score", None)
+        pearson = metrics.get("pearson_correlation", None)
+
+        logger.info(f"  MAE: {mae:.4f}" if mae is not None else "  MAE: N/A")
+        logger.info(f"  RMSE: {rmse:.4f}" if rmse is not None else "  RMSE: N/A")
+        logger.info(f"  R² Score: {r2:.4f}" if r2 is not None else "  R² Score: N/A")
         logger.info(
-            f"  Pearson Correlation: {metrics.get('pearson_correlation', 'N/A'):.4f}"
+            f"  Pearson Correlation: {pearson:.4f}"
+            if pearson is not None
+            else "  Pearson Correlation: N/A"
         )
 
         return metrics

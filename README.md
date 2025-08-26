@@ -120,7 +120,7 @@ outputs/
 │   │   │           │   │   ├── logs/        # Training logs
 │   │   │           │   │   └── plots/       # Training visualizations
 │   │   │           │   ├── evaluation/      # Test results
-│   │   │           │   │   ├── metrics.json # Performance metrics
+│   │   │           │   │   ├── metrics.json # Performance metrics (accuracy, F1, precision, recall, AUC, baselines)
 │   │   │           │   │   ├── predictions.csv # Model predictions
 │   │   │           │   │   └── plots/       # Performance visualizations
 │   │   │           │   │       ├── confusion_matrix.png
@@ -179,6 +179,7 @@ outputs/
 - **Deep Learning Models**: CNN, MLP architectures for single-cell analysis
 - **Traditional ML**: XGBoost, Random Forest, Logistic Regression for comparison studies
 - **Automated Evaluation**: Built-in performance metrics and automatic post-training evaluation
+- **Baseline Comparisons**: Automatic comparison against random classifier, majority class, and stratified random baselines
 - **Model Interpretability**: Feature importance analysis with SHAP (configurable)
 - **Model Queue System**: Automated sequential training of multiple models with different configurations
 - **Hyperparameter Tuning**: Grid, random, and Bayesian optimization with CNN architecture variants
