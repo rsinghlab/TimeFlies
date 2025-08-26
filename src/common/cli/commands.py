@@ -128,6 +128,8 @@ def execute_command(args) -> bool:
             return queue_command(args) == 0
         elif args.command == "gui":
             return gui_command(args) == 0
+        elif args.command == "uninstall":
+            return uninstall_command(args) == 0
         else:
             print(f"Unknown command: {args.command}")
             return False
@@ -2866,3 +2868,173 @@ def gui_command(args) -> int:
         print(f"❌ Failed to start GUI: {e}")
         print("💡 Make sure you're in the TimeFlies virtual environment")
         return 1
+
+
+def uninstall_command(args) -> int:
+    """Uninstall TimeFlies and clean up installation."""
+    import shutil
+    from pathlib import Path
+
+    print("🗑️  TimeFlies Uninstall")
+    print("=" * 50)
+
+    # Check what exists to be removed
+    items_to_remove = []
+    data_items = []
+
+    # Core installation files
+    core_items = [
+        (".venv", "Main virtual environment"),
+        (".venv_batch", "Batch correction environment"),
+        (".timeflies_src", "TimeFlies source code"),
+        (".activate.sh", "Main activation script"),
+        (".activate_batch.sh", "Batch activation script"),
+        ("install_timeflies.sh", "Installation script (if present)"),
+    ]
+
+    # Data/output directories
+    data_dirs = [
+        ("data", "Data files"),
+        ("outputs", "Analysis outputs"),
+        ("models", "Trained models"),
+        ("configs", "Configuration files"),
+    ]
+
+    # Check what exists
+    for item, desc in core_items:
+        if Path(item).exists():
+            items_to_remove.append((item, desc))
+
+    for item, desc in data_dirs:
+        if Path(item).exists():
+            data_items.append((item, desc))
+
+    # Show what will be removed
+    if not items_to_remove and not data_items:
+        print("✅ No TimeFlies installation found to remove")
+        return 0
+
+    print("The following will be removed:")
+    print()
+
+    # Core installation
+    if items_to_remove:
+        print("📦 Core Installation:")
+        for item, desc in items_to_remove:
+            size_info = ""
+            try:
+                if Path(item).is_dir():
+                    size_info = f" (~{sum(f.stat().st_size for f in Path(item).rglob('*') if f.is_file()) // (1024 * 1024)} MB)"
+            except Exception:
+                pass
+            print(f"  • {item:<20} - {desc}{size_info}")
+        print()
+
+    # Data directories
+    if data_items:
+        if args.keep_data:
+            print("💾 Data Directories (will be KEPT):")
+        else:
+            print("💾 Data Directories:")
+        for item, desc in data_items:
+            size_info = ""
+            try:
+                if Path(item).is_dir():
+                    size_info = f" (~{sum(f.stat().st_size for f in Path(item).rglob('*') if f.is_file()) // (1024 * 1024)} MB)"
+            except Exception:
+                pass
+            status = " (KEEPING)" if args.keep_data else " (REMOVING)"
+            print(f"  • {item:<20} - {desc}{size_info}{status}")
+        print()
+
+    # CLI command removal
+    try:
+        import shutil
+
+        cli_path = shutil.which("timeflies")
+        if cli_path:
+            print("🔧 CLI Command:")
+            print(f"  • {cli_path} - TimeFlies command")
+            print()
+    except Exception:
+        pass
+
+    # Dry run mode
+    if args.dry_run:
+        print("🔍 DRY RUN - Nothing will actually be removed")
+        return 0
+
+    # Confirmation
+    if not args.force:
+        print("⚠️  This action cannot be undone!")
+        if data_items and not args.keep_data:
+            print("⚠️  This will also remove your data and analysis results!")
+
+        confirm = input("\nType 'yes' to confirm uninstall: ").strip().lower()
+        if confirm != "yes":
+            print("❌ Uninstall cancelled")
+            return 1
+
+    print("\n🗑️  Removing TimeFlies installation...")
+
+    # Remove core installation
+    removed_count = 0
+    for item, desc in items_to_remove:
+        try:
+            item_path = Path(item)
+            if item_path.exists():
+                if item_path.is_dir():
+                    shutil.rmtree(item_path)
+                else:
+                    item_path.unlink()
+                print(f"  ✅ Removed {item}")
+                removed_count += 1
+        except Exception as e:
+            print(f"  ❌ Failed to remove {item}: {e}")
+
+    # Remove data directories if requested
+    if not args.keep_data:
+        for item, desc in data_items:
+            try:
+                item_path = Path(item)
+                if item_path.exists():
+                    if item_path.is_dir():
+                        shutil.rmtree(item_path)
+                    else:
+                        item_path.unlink()
+                    print(f"  ✅ Removed {item}")
+                    removed_count += 1
+            except Exception as e:
+                print(f"  ❌ Failed to remove {item}: {e}")
+
+    # Try to remove CLI command
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["pip", "uninstall", "timeflies", "-y"], capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print("  ✅ Removed timeflies CLI command")
+            removed_count += 1
+        else:
+            print("  ⚠️  Could not remove CLI command (may need manual cleanup)")
+    except Exception as e:
+        print(f"  ⚠️  Could not remove CLI command: {e}")
+
+    print()
+    if removed_count > 0:
+        print(f"🎉 Uninstall complete! Removed {removed_count} items")
+
+        if args.keep_data and data_items:
+            print(f"💾 Kept {len(data_items)} data directories as requested")
+            print("   (You can manually remove them later if needed)")
+
+        print()
+        print("To reinstall TimeFlies:")
+        print("  1. Download install_timeflies.sh")
+        print("  2. bash install_timeflies.sh")
+    else:
+        print("⚠️  No items were successfully removed")
+
+    return 0
