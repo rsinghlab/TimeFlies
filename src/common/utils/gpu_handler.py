@@ -49,18 +49,15 @@ class GPUHandler:
                 print("Could not set visible devices for M processor:", e)
         else:
             # Regular GPU configuration
-            # Check if any GPUs are available for TensorFlow
-            len(tf.config.list_physical_devices("GPU")) > 0
-
             # Get the list of physical GPU devices recognized by TensorFlow
-            gpus = tf.config.experimental.list_physical_devices("GPU")
+            gpus = tf.config.list_physical_devices("GPU")
 
             if gpus:
                 try:
                     # Set memory growth FIRST before any GPU operations
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    print("GPU memory growth set successfully.")
+                    print(f"GPU memory growth set successfully for {len(gpus)} GPU(s).")
                 except RuntimeError as e:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)

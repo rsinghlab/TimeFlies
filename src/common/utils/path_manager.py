@@ -463,9 +463,9 @@ class PathManager:
         return str(experiment_dir)
 
     def get_experiment_model_path(self, experiment_name: str = None) -> str:
-        """Get path to model.h5 in experiment directory."""
+        """Get path to model.keras in experiment directory."""
         experiment_dir = self.get_experiment_dir(experiment_name)
-        return str(Path(experiment_dir) / "model.h5")
+        return str(Path(experiment_dir) / "model.keras")
 
     def get_experiment_training_dir(self, experiment_name: str = None) -> str:
         """Get training directory in experiment."""

@@ -220,7 +220,7 @@ class ModelLoader:
         - str: The path to the model file.
         """
         if self.model_type in ["cnn", "mlp"]:
-            model_filename = "model.h5"
+            model_filename = "model.keras"
         else:
             model_filename = "model.pkl"
         model_path = os.path.join(self.model_dir, model_filename)
@@ -832,7 +832,7 @@ class ModelBuilder:
         Returns:
             history: The training history.
         """
-        custom_model_path = os.path.join(paths["experiment_dir"], "model.h5")
+        custom_model_path = os.path.join(paths["experiment_dir"], "model.keras")
         best_val_loss_path = os.path.join(paths["components_dir"], "best_val_loss.json")
         self.num_features = (
             self.train_data.shape[2]
@@ -844,8 +844,10 @@ class ModelBuilder:
         try:
             with open(best_val_loss_path) as f:
                 best_val_loss = json.load(f)["best_val_loss"]
+                print(f"Loaded previous best validation loss: {best_val_loss}")
         except FileNotFoundError:
-            print("No best validation loss found. Starting from scratch.")
+            print(f"Best validation loss file not found at: {best_val_loss_path}")
+            # No previous best validation loss - start fresh
             best_val_loss = float("inf")
 
         # Split data into training and validation sets

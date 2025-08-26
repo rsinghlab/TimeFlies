@@ -397,7 +397,7 @@ class PipelineManager:
 
             # Save training visuals to experiment directory
             if getattr(self.config_instance.visualizations, "enabled", False):
-                logger.info("Generating training visualizations...")
+                # Generating training visualizations
                 self._save_experiment_training_visuals()
 
         except Exception as e:
@@ -541,33 +541,10 @@ class PipelineManager:
         Save evaluation results to experiment directory.
         """
         try:
-            # Get evaluation directory paths (created when saving files)
-            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
-                self.experiment_name
-            )
+            # Get plots directory path (created when saving files)
             plots_dir = self.path_manager.get_experiment_plots_dir(self.experiment_name)
 
-            # Run metrics and save to experiment directory
-            from common.evaluation import Metrics
-
-            metrics = Metrics(
-                self.config_instance,
-                self.model,
-                self.test_data,
-                self.test_labels,
-                self.label_encoder,
-                self.path_manager,
-                output_dir=evaluation_dir,
-            )
-
-            # Run metrics
-            metrics.compute_metrics()
-
-            # Store metrics for metadata
-            if hasattr(metrics, "mae"):
-                self.last_mae = metrics.mae
-                self.last_r2 = getattr(metrics, "r2_score", None)
-                self.last_pearson = getattr(metrics, "pearson_correlation", None)
+            # Metrics are already computed by run_metrics() call before this method
 
             # Run visualizations if enabled
             if getattr(self.config_instance.visualizations, "enabled", False):
@@ -706,7 +683,7 @@ class PipelineManager:
         try:
             logger.info("Building and training model...")
             self.build_and_train_model()
-            logger.info("Model built and trained successfully.")
+            # Model built and trained successfully
         except Exception as e:
             logger.error(f"Error in model training: {e}")
             raise
@@ -1075,7 +1052,7 @@ class PipelineManager:
 
             # Model training/loading
             self.load_or_train_model()
-            logger.info("Model training completed successfully.")
+            # Model training completed successfully
 
             # Auto-run evaluation after training using in-memory components
             print("\nRESEARCH: Auto-evaluating trained model on holdout set...")
