@@ -827,9 +827,8 @@ class PipelineManager:
             raise
 
     def copy_metrics_to_best(self):
-        """Copy already computed metrics from recent to best directory to avoid recomputation."""
+        """Create symlinks to best model metrics instead of copying files."""
         try:
-            import shutil
             from pathlib import Path
 
             recent_dir = (
@@ -847,16 +846,32 @@ class PipelineManager:
             # Create best evaluation directory if it doesn't exist
             best_dir.mkdir(parents=True, exist_ok=True)
 
-            # Copy metrics files
+            # Create symlinks to metrics files
             for file_name in ["metrics.json", "predictions.csv"]:
                 recent_file = recent_dir / file_name
                 best_file = best_dir / file_name
                 if recent_file.exists():
-                    shutil.copy2(recent_file, best_file)
+                    # Remove existing symlink or file
+                    if best_file.exists() or best_file.is_symlink():
+                        best_file.unlink()
+                    # Create symlink to recent file
+                    best_file.symlink_to(recent_file)
 
-            # Metrics copied to best directory
+            # Metrics symlinked to best directory
         except Exception as e:
-            logger.warning(f"Failed to copy metrics to best directory: {e}")
+            logger.warning(f"Failed to symlink metrics to best directory: {e}")
+            # Fallback to copying if symlinks fail
+            try:
+                import shutil
+
+                for file_name in ["metrics.json", "predictions.csv"]:
+                    recent_file = recent_dir / file_name
+                    best_file = best_dir / file_name
+                    if recent_file.exists():
+                        shutil.copy2(recent_file, best_file)
+                logger.info("Fallback: Copied files to best directory")
+            except Exception as fallback_error:
+                logger.warning(f"Symlink and copy both failed: {fallback_error}")
 
     def display_duration(self, start_time, end_time):
         """

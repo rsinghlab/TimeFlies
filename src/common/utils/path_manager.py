@@ -612,12 +612,13 @@ class PathManager:
 
     def update_best_symlink(self, experiment_name: str):
         """
-        Copy best model files to the best/ collection directory at correction level.
-        Replaces symlink approach with direct file copying for better reliability.
+        Create symlink to best model experiment directory to save disk space.
+        Falls back to copying if symlinks are not supported.
 
         Args:
             experiment_name: Timestamp of experiment (e.g., "2025-01-22_14-30-15")
         """
+        import os
         import shutil
 
         # Get paths
@@ -653,22 +654,35 @@ class PathManager:
 
         # Create directory if it doesn't exist (skip during tests)
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            # Remove existing best model directory if it exists
-            if best_dir.exists():
-                shutil.rmtree(best_dir)
+            # Remove existing best model directory/symlink if it exists
+            if best_dir.exists() or best_dir.is_symlink():
+                if best_dir.is_symlink():
+                    best_dir.unlink()
+                else:
+                    shutil.rmtree(best_dir)
 
-            # Copy the entire experiment directory to best/
-            best_dir.mkdir(parents=True, exist_ok=True)
+            # Create parent directory
+            best_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            # Copy all contents from source to best directory
+            # Try to create symlink, fallback to copying if it fails
             if source_dir.exists():
-                for item in source_dir.iterdir():
-                    if item.is_dir():
-                        shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
-                    else:
-                        shutil.copy2(item, best_dir / item.name)
+                try:
+                    # Create symlink to the source directory
+                    best_dir.symlink_to(source_dir)
+                    # Best model symlink created
+                except (OSError, NotImplementedError):
+                    # Symlinks not supported (e.g., Windows without dev mode), fallback to copying
+                    best_dir.mkdir(parents=True, exist_ok=True)
+                    for item in source_dir.iterdir():
+                        if item.is_dir():
+                            shutil.copytree(
+                                item, best_dir / item.name, dirs_exist_ok=True
+                            )
+                        else:
+                            shutil.copy2(item, best_dir / item.name)
+                    # Best model copied (symlink fallback)
 
-        # Best model collection updated silently
+        # Best model collection updated
 
     def get_best_model_dir_for_config(self) -> str:
         """
