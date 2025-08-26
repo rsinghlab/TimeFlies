@@ -708,9 +708,7 @@ class EvaluationMetrics:
 
             # Create a dynamic results table that adjusts to content length
             result_content = " | ".join(metric_values)
-            table_width = max(
-                60, len(result_content) + 6
-            )  # Minimum 60, or content + padding (reduced padding)
+            table_width = len(result_content) + 4  # Exact width + minimal padding
 
             # Top border
             print("┌" + "─" * (table_width - 2) + "┐")
@@ -891,7 +889,7 @@ class EvaluationMetrics:
                 f1_delta = f"{f1_improvement:+.3f}"
 
                 # Use the dynamic format string for consistent alignment
-                row_format = f"│ {{:<{method_width}}} │ {{:.3f}} │ {{:.3f}} │ {{:>7.3f}} │ {{:>6.3f}} │ {{:>8s}} │ {{:>7s}} │"
+                row_format = f"│ {{:<{method_width}}} │ {{:.3f}} │ {{:.3f}} │ {{:>9.3f}} │ {{:>6.3f}} │ {{:>8s}} │ {{:>7s}} │"
                 print(
                     row_format.format(
                         baseline_name,
