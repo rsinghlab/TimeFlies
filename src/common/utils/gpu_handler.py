@@ -56,7 +56,8 @@ class GPUHandler:
 
             # Also check for CUDA availability
             cuda_available = tf.test.is_built_with_cuda()
-            gpu_available = tf.test.is_gpu_available()
+            # Use modern method instead of deprecated is_gpu_available()
+            gpu_available = len(gpus) > 0
 
             # Additional diagnostic info
             try:
