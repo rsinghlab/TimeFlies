@@ -912,7 +912,27 @@ def train_command(args, config) -> int:
             print(f"Best: {short_best}")
 
         if "duration" in results:
-            print(f"\nModel took {results['duration']:.1f}s to train and evaluate")
+            # Create settings summary
+            components = []
+            from common.core.config_manager import get_config_manager
+
+            try:
+                config_manager = get_config_manager()
+                config = config_manager.get_active_config()
+
+                if getattr(config.visualizations, "enabled", False):
+                    components.append("visuals")
+                if getattr(config.evaluation.baselines, "enabled", False):
+                    components.append("baselines")
+                if getattr(config.evaluation.shap, "enabled", False):
+                    components.append("SHAP analysis")
+            except Exception:
+                pass
+
+            settings_text = f" ({', '.join(components)})" if components else ""
+            print(
+                f"\nModel took {results['duration']:.1f}s to train and evaluate{settings_text}"
+            )
 
         return 0
 
@@ -927,11 +947,6 @@ def train_command(args, config) -> int:
 
 def batch_command(args) -> int:
     """Run batch correction pipeline."""
-    print(f"DEBUG: batch_command called with args: {args}")
-    print(f"DEBUG: args.tissue = {getattr(args, 'tissue', 'NOT_SET')}")
-    print(f"DEBUG: hasattr(args, 'project') = {hasattr(args, 'project')}")
-    if hasattr(args, "project"):
-        print(f"DEBUG: args.project = {args.project}")
 
     print(f"Running batch correction for {args.tissue} tissue...")
 
@@ -943,9 +958,7 @@ def batch_command(args) -> int:
     else:
         project = "fruitfly_aging"  # Default
 
-    print(f"DEBUG: determined project = {project}")
     base_dir = Path(f"data/{project}/{args.tissue}")
-    print(f"DEBUG: base_dir = {base_dir}")
 
     # Check if batch correction is enabled for this project
     try:
@@ -997,9 +1010,6 @@ def batch_command(args) -> int:
         print(f"⚠️  Could not check enabled status: {e}, assuming enabled")
 
     try:
-        print(
-            f"DEBUG: Creating BatchCorrector with project={project}, tissue={args.tissue}"
-        )
         # Try to instantiate BatchCorrector (will check dependencies)
         batch_corrector = BatchCorrector(
             tissue=args.tissue,

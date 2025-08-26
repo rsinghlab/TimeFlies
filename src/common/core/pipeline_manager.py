@@ -633,7 +633,25 @@ class PipelineManager:
             ):
                 self.run_analysis_script()
 
-            print("Post-training evaluation completed successfully.")
+            # Determine completion message based on what was run
+            components = []
+            if getattr(self.config_instance.visualizations, "enabled", False):
+                components.append("visuals saved")
+            if getattr(self.config_instance.interpretation.shap, "enabled", False):
+                components.append("SHAP analysis")
+            if getattr(
+                self.config_instance.evaluation.metrics.baselines, "enabled", True
+            ):
+                components.append("baselines computed")
+
+            if components:
+                print(f"Pipeline completed successfully ({', '.join(components)})")
+            else:
+                print("Training and evaluation completed successfully")
+
+            # Add validation loss improvement message
+            if self.model_improved:
+                print("Validation loss improved - best model updated")
 
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
@@ -734,7 +752,7 @@ class PipelineManager:
         Set up and run visualizations for the current experiment.
         """
         if getattr(self.config_instance.visualizations, "enabled", False):
-            print("Running visualizations...")
+            # Running visualizations
 
             # Ensure SHAP attributes exist (set to None if not available)
             if not hasattr(self, "squeezed_shap_values"):
@@ -771,7 +789,7 @@ class PipelineManager:
             visualizer.set_evaluation_context(getattr(self, "experiment_name", None))
 
             visualizer.run()
-            print("Visualizations completed.")
+            # Visualizations completed
         else:
             logger.info("Visualization is disabled in the configuration.")
 
