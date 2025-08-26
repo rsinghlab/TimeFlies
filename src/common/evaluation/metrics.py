@@ -664,7 +664,7 @@ class EvaluationMetrics:
                 metric_values.append(f"{metric}={metrics[metric]:.3f}")
 
         if metric_values:
-            print(f"📊 {' | '.join(metric_values)}")
+            print(f"Classification: {' | '.join(metric_values)}")
 
         return metrics
 
@@ -687,7 +687,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\nBaseline Metrics:")
+        print("\\nBaseline Metrics:")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
@@ -727,11 +727,31 @@ class EvaluationMetrics:
                         else "binary",
                     )
                 )
+                baseline_precision = float(
+                    precision_score(
+                        true_labels,
+                        baseline_pred,
+                        average="macro"
+                        if len(np.unique(true_labels)) > 2
+                        else "binary",
+                    )
+                )
+                baseline_recall = float(
+                    recall_score(
+                        true_labels,
+                        baseline_pred,
+                        average="macro"
+                        if len(np.unique(true_labels)) > 2
+                        else "binary",
+                    )
+                )
 
                 # Store baseline metrics
                 baselines[baseline_type] = {
                     "accuracy": baseline_accuracy,
                     "f1_score": baseline_f1,
+                    "precision": baseline_precision,
+                    "recall": baseline_recall,
                 }
 
                 # Compute improvement over baseline
@@ -759,7 +779,7 @@ class EvaluationMetrics:
 
                 baseline_name = baseline_type.replace("_", " ").title()
                 print(
-                    f"\n{baseline_name}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} (+{model_accuracy - baseline_accuracy:+.3f} +{model_f1 - baseline_f1:+.3f})"
+                    f"{baseline_name}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} precision={baseline_precision:.3f} recall={baseline_recall:.3f} (improvement: +{model_accuracy - baseline_accuracy:.3f} +{model_f1 - baseline_f1:.3f})"
                 )
 
             except Exception as e:

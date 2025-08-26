@@ -845,9 +845,13 @@ class ModelBuilder:
         # Try to load best validation loss from best symlink first, then current experiment
         from pathlib import Path
 
-        best_symlink_path = (
-            self.path_manager.get_best_symlink_path()
-            + "/model_components/best_val_loss.json"
+        # Get the correct best symlink path
+        config_key = self.path_manager.get_config_key()
+        best_symlink_path = str(
+            Path(self.path_manager.get_best_symlink_path())
+            / config_key
+            / "model_components"
+            / "best_val_loss.json"
         )
         current_path = os.path.join(paths["components_dir"], "best_val_loss.json")
 
