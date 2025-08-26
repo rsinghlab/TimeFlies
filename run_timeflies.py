@@ -58,7 +58,6 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN custom ops message
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["AUTOGRAPH_VERBOSITY"] = "0"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-os.environ["CUDA_VISIBLE_DEVICES"] = ""  # Disable GPU for cleaner output
 
 # Suppress ABSL and other warnings
 import logging
