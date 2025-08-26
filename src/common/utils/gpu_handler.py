@@ -97,18 +97,27 @@ class GPUHandler:
                             except Exception:
                                 gpu_details.append(f"GPU:{i}")
                     except ImportError:
-                        # Fallback to TensorFlow device names
-                        for i, gpu in enumerate(gpus):
-                            try:
-                                # Get GPU name from TensorFlow if available
-                                gpu_name = (
-                                    gpu.name.split("/")[-1]
-                                    if hasattr(gpu, "name") and gpu.name
-                                    else f"GPU:{i}"
-                                )
-                                gpu_details.append(gpu_name)
-                            except Exception:
-                                gpu_details.append(f"GPU:{i}")
+                        # Fallback to nvidia-smi results if available
+                        if nvidia_gpus and len(nvidia_gpus) >= len(gpus):
+                            for i in range(len(gpus)):
+                                gpu_name = nvidia_gpus[i].strip()
+                                if gpu_name:
+                                    gpu_details.append(gpu_name)
+                                else:
+                                    gpu_details.append(f"GPU:{i}")
+                        else:
+                            # Final fallback to TensorFlow device names
+                            for i, gpu in enumerate(gpus):
+                                try:
+                                    # Get GPU name from TensorFlow if available
+                                    gpu_name = (
+                                        gpu.name.split("/")[-1]
+                                        if hasattr(gpu, "name") and gpu.name
+                                        else f"GPU:{i}"
+                                    )
+                                    gpu_details.append(gpu_name)
+                                except Exception:
+                                    gpu_details.append(f"GPU:{i}")
 
                     if len(gpus) == 1:
                         print(f"GPU enabled: {gpu_details[0]}")
