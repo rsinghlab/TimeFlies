@@ -539,7 +539,7 @@ class PipelineManager:
 
     def _save_experiment_evaluation(self):
         """
-        Save evaluation results to experiment directory.
+        Save evaluation results to experiment directory for post-training evaluation.
         """
         try:
             # Get plots directory path (created when saving files)

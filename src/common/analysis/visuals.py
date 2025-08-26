@@ -599,11 +599,8 @@ class Visualizer:
         # Initialize VisualizationTools for evaluation visuals (will be updated based on context)
         self.visual_tools = VisualizationTools(self.config, self.path_manager)
 
-        # Separate tool for training visuals
-        training_visuals_dir = self.path_manager.get_training_visuals_dir()
-        self.training_visual_tools = VisualizationTools(
-            self.config, self.path_manager, training_visuals_dir
-        )
+        # Training visual tools will be created only when needed
+        self.training_visual_tools = None
 
     def set_evaluation_context(self, experiment_name=None):
         """
@@ -615,7 +612,13 @@ class Visualizer:
         if experiment_name:
             experiment_dir = self.path_manager.get_experiment_dir(experiment_name)
         else:
-            experiment_dir = self.path_manager.get_experiment_dir()
+            # For evaluation, use the best trained experiment instead of creating new one
+            try:
+                best_experiment = self.path_manager.get_best_experiment_name()
+                experiment_dir = self.path_manager.get_experiment_dir(best_experiment)
+            except (FileNotFoundError, RuntimeError):
+                # Fallback: create new experiment if no trained models exist
+                experiment_dir = self.path_manager.get_experiment_dir()
 
         eval_visuals_dir = os.path.join(experiment_dir, "evaluation", "plots")
         os.makedirs(eval_visuals_dir, exist_ok=True)
@@ -642,6 +645,13 @@ class Visualizer:
         Visualize the training history for the model based on the configuration.
         Saves to models/.../training/visuals/ directory.
         """
+        # Create training visual tools only when actually needed
+        if self.training_visual_tools is None:
+            training_visuals_dir = self.path_manager.get_training_visuals_dir()
+            self.training_visual_tools = VisualizationTools(
+                self.config, self.path_manager, training_visuals_dir
+            )
+
         model_type = getattr(self.config.data, "model", "CNN").lower()
         if model_type in ["mlp", "cnn"]:
             self.training_visual_tools.plot_history(
