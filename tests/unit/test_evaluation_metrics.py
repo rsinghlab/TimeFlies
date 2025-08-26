@@ -10,7 +10,7 @@ import pytest
 
 from common.analysis.eda import EDAHandler
 from common.evaluation.interpreter import Interpreter
-from common.evaluation.metrics import AgingMetrics
+from common.evaluation.metrics import EvaluationMetrics
 
 
 @pytest.mark.unit
@@ -38,7 +38,7 @@ class TestMetricsCalculator:
 
     def test_metrics_calculator_initialization(self, aging_config):
         """Test metrics calculator initialization."""
-        calculator = AgingMetrics(aging_config)
+        calculator = EvaluationMetrics(aging_config)
         assert calculator.config == aging_config
         assert hasattr(calculator, "config")
 
@@ -128,7 +128,7 @@ class TestAnalysisIntegration:
 
     def test_metrics_and_interpretation_integration(self, aging_config):
         """Test integration between metrics and interpretation."""
-        calculator = AgingMetrics(aging_config)
+        calculator = EvaluationMetrics(aging_config)
         # Skip interpreter initialization - requires actual model and data
         # interpreter = Interpreter(aging_config)
 
@@ -139,7 +139,7 @@ class TestAnalysisIntegration:
 
         try:
             # Test that calculator can be initialized
-            assert isinstance(calculator, AgingMetrics)
+            assert isinstance(calculator, EvaluationMetrics)
 
             # Test SHAP configuration exists in config
             assert aging_config.interpretation.shap.enabled is not None
@@ -153,7 +153,7 @@ class TestAnalysisIntegration:
     def test_eda_and_metrics_workflow(self, aging_config, small_sample_anndata):
         """Test workflow from EDA to metrics."""
         eda_handler = EDAHandler(aging_config)
-        calculator = AgingMetrics(aging_config)
+        calculator = EvaluationMetrics(aging_config)
 
         try:
             # Run EDA first
@@ -179,7 +179,7 @@ class TestAnalysisIntegration:
     def test_complete_evaluation_pipeline(self, aging_config):
         """Test complete evaluation pipeline components."""
         # Initialize all evaluation components
-        calculator = AgingMetrics(aging_config)
+        calculator = EvaluationMetrics(aging_config)
         # Skip interpreter - requires actual model and data
 
         # Test that all components are properly initialized
@@ -199,7 +199,7 @@ class TestAnalysisIntegration:
             }
 
             # Test that calculator is properly initialized
-            assert isinstance(calculator, AgingMetrics)
+            assert isinstance(calculator, EvaluationMetrics)
             assert calculator.config == aging_config
 
             # Should complete without errors

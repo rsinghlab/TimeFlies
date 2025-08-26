@@ -565,7 +565,7 @@ class EvaluationMetrics:
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
 
-        logger.info(f"Computing {task_type} metrics: {eval_metrics}")
+        logger.info(f"📊 Evaluating {task_type} model...")
 
         # Basic classification metrics
         if "accuracy" in eval_metrics:
@@ -663,11 +663,15 @@ class EvaluationMetrics:
             )
             metrics["baselines"] = baseline_metrics
 
-        # Log key metrics
+        # Log key metrics in a clean single line
         key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]
+        metric_values = []
         for metric in key_metrics:
             if metric in metrics and metrics[metric] is not None:
-                logger.info(f"{metric.upper()}: {metrics[metric]:.4f}")
+                metric_values.append(f"{metric}={metrics[metric]:.3f}")
+
+        if metric_values:
+            logger.info(f"📊 Classification: {' | '.join(metric_values)}")
 
         return metrics
 
@@ -690,7 +694,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        logger.info("Computing baseline comparisons...")
+        logger.info("📊 Computing baselines...")
 
         # Create dummy training data (we'll use the test data for simplicity)
         dummy_X = np.ones((len(true_labels), 1))  # Dummy features
@@ -761,8 +765,8 @@ class EvaluationMetrics:
                 }
 
                 logger.info(
-                    f"{baseline_type.upper()}: acc={baseline_accuracy:.4f}, f1={baseline_f1:.4f} "
-                    f"(improvement: acc=+{model_accuracy - baseline_accuracy:.4f}, f1=+{model_f1 - baseline_f1:.4f})"
+                    f"📈 {baseline_type}: acc={baseline_accuracy:.3f} f1={baseline_f1:.3f} "
+                    f"(+{model_accuracy - baseline_accuracy:+.3f} +{model_f1 - baseline_f1:+.3f})"
                 )
 
             except Exception as e:
