@@ -613,11 +613,14 @@ class PathManager:
 
     def update_best_symlink(self, experiment_name: str):
         """
-        Update best model symlink in the best/ collection directory at correction level.
+        Copy best model files to the best/ collection directory at correction level.
+        Replaces symlink approach with direct file copying for better reliability.
 
         Args:
             experiment_name: Timestamp of experiment (e.g., "2025-01-22_14-30-15")
         """
+        import shutil
+
         # Get paths
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
@@ -634,27 +637,44 @@ class PathManager:
             / "experiments"
             / correction_dir
             / "best"
+            / config_key
         )
+
+        # Source directory (the timestamped experiment)
+        source_dir = (
+            project_root
+            / "outputs"
+            / project_name
+            / "experiments"
+            / correction_dir
+            / "all_runs"
+            / config_key
+            / experiment_name
+        )
+
         # Create directory if it doesn't exist (skip during tests)
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            # Remove existing best model directory if it exists
+            if best_dir.exists():
+                shutil.rmtree(best_dir)
+
+            # Copy the entire experiment directory to best/
             best_dir.mkdir(parents=True, exist_ok=True)
 
-        # Path to symlink for this config within best/
-        best_config_link = best_dir / config_key
-
-        # Remove existing symlink for this config
-        if best_config_link.exists() or best_config_link.is_symlink():
-            best_config_link.unlink()
-
-        # Create new symlink: best/{config_key} -> ../all_runs/{config_key}/{experiment_name}
-        relative_path = Path("../all_runs") / config_key / experiment_name
-        best_config_link.symlink_to(relative_path)
+            # Copy all contents from source to best directory
+            if source_dir.exists():
+                for item in source_dir.iterdir():
+                    if item.is_dir():
+                        shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(item, best_dir / item.name)
 
         # Best model collection updated silently
 
     def get_best_model_dir_for_config(self) -> str:
         """
         Get the best model directory for the current configuration from best/ collection.
+        Now returns the copied directory instead of following symlinks.
 
         Returns:
             str: Path to best model experiment directory for current config
@@ -667,8 +687,8 @@ class PathManager:
         )
         config_key = self.get_config_key()
 
-        # Look for symlink in best/ directory
-        best_config_link = (
+        # Look for copied directory in best/ directory
+        best_config_dir = (
             project_root
             / "outputs"
             / project_name
@@ -678,10 +698,9 @@ class PathManager:
             / config_key
         )
 
-        if best_config_link.exists() and best_config_link.is_symlink():
-            # Follow symlink to get experiment directory
-            # The symlink points to: ../all_runs/{config_key}/{experiment_name}
-            experiment_dir = best_config_link.parent / best_config_link.readlink()
+        if best_config_dir.exists() and best_config_dir.is_dir():
+            # Return the copied directory directly
+            experiment_dir = best_config_dir
             return str(experiment_dir.resolve())
         else:
             # No best model exists yet for this config
