@@ -1,6 +1,6 @@
 #!/bin/bash
 # TimeFlies Installation Script
-# Installs from private GitHub repository with wheel fallback
+# Installs from GitHub repository with wheel fallback
 
 set -e
 
