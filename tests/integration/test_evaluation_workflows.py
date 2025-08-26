@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from common.evaluation.interpreter import Interpreter
-from common.evaluation.metrics import AgingMetrics
+from common.evaluation.metrics import EvaluationMetrics
 
 
 @pytest.mark.integration
@@ -179,7 +179,7 @@ class TestMetricsCalculatorIntegration:
         predictions = np.eye(3)[np.random.choice(3, 20)]  # 20x3 one-hot
         mock_model.predict.return_value = predictions
 
-        calculator = AgingMetrics(
+        calculator = EvaluationMetrics(
             aging_config,
             mock_model,
             test_data,
@@ -213,7 +213,7 @@ class TestMetricsCalculatorIntegration:
         # Mock continuous predictions
         mock_model.predict.return_value = np.random.rand(20)
 
-        calculator = AgingMetrics(
+        calculator = EvaluationMetrics(
             aging_config,
             mock_model,
             test_data,
@@ -252,7 +252,7 @@ class TestMetricsCalculatorIntegration:
         predictions = np.eye(3)[np.array([0, 1, 2, 1, 1, 2, 0, 0, 2] * 3 + [0, 1, 2])]
         mock_model.predict.return_value = predictions
 
-        calculator = AgingMetrics(
+        calculator = EvaluationMetrics(
             aging_config,
             mock_model,
             test_data,
@@ -290,7 +290,7 @@ class TestMetricsCalculatorIntegration:
         predictions = predictions / predictions.sum(axis=1, keepdims=True)
         mock_model.predict.return_value = predictions
 
-        calculator = AgingMetrics(
+        calculator = EvaluationMetrics(
             aging_config,
             mock_model,
             test_data,
@@ -335,7 +335,7 @@ class TestEvaluationWorkflowIntegration:
         mock_model.predict.return_value = predictions
 
         # Test metrics calculation
-        calculator = AgingMetrics(
+        calculator = EvaluationMetrics(
             aging_config,
             mock_model,
             test_data,

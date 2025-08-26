@@ -457,11 +457,10 @@ class PipelineManager:
                 )
                 return
 
-            # Create training directory in experiment
+            # Get training directory path (created when saving visualizations)
             training_dir = self.path_manager.get_experiment_training_dir(
                 self.experiment_name
             )
-            os.makedirs(training_dir, exist_ok=True)
 
             # Create visualizer with experiment training directory
             visualizer = self.visualizer_class(
@@ -545,13 +544,11 @@ class PipelineManager:
         Save evaluation results to experiment directory.
         """
         try:
-            # Create evaluation directory
+            # Get evaluation directory paths (created when saving files)
             evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
                 self.experiment_name
             )
             plots_dir = self.path_manager.get_experiment_plots_dir(self.experiment_name)
-            os.makedirs(evaluation_dir, exist_ok=True)
-            os.makedirs(plots_dir, exist_ok=True)
 
             # Run metrics and save to experiment directory
             from common.evaluation import Metrics

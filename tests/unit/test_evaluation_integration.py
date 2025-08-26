@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from common.evaluation.interpreter import Interpreter
-from common.evaluation.metrics import AgingMetrics
+from common.evaluation.metrics import EvaluationMetrics
 
 # Note: These classes may not exist as expected
 # from projects.fruitfly_aging.analysis.analyzer import ResultsAnalyzer
@@ -81,20 +81,20 @@ class TestInterpreter:
             mock_compute.assert_called_once()
 
 
-class TestAgingMetrics:
-    """Test AgingMetrics functionality."""
+class TestEvaluationMetrics:
+    """Test EvaluationMetrics functionality."""
 
     def test_aging_metrics_initialization(self):
-        """Test AgingMetrics initialization."""
+        """Test EvaluationMetrics initialization."""
         config = MagicMock()
-        metrics = AgingMetrics(config)
+        metrics = EvaluationMetrics(config)
         assert metrics.config == config
 
     def test_calculate_basic_metrics(self):
         """Test basic metrics calculation."""
         config = MagicMock()
 
-        # Create mock model and data for AgingMetrics
+        # Create mock model and data for EvaluationMetrics
         mock_model = MagicMock()
         test_data = np.random.rand(10, 5)
         test_labels = np.array([0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
@@ -123,7 +123,7 @@ class TestAgingMetrics:
         )
         mock_model.predict.return_value = predictions
 
-        metrics = AgingMetrics(
+        metrics = EvaluationMetrics(
             config, mock_model, test_data, test_labels, label_encoder, path_manager
         )
 
@@ -138,7 +138,7 @@ class TestAgingMetrics:
         """Test aging-specific metrics."""
         config = MagicMock()
 
-        # Create mock model and data for AgingMetrics
+        # Create mock model and data for EvaluationMetrics
         mock_model = MagicMock()
         test_data = np.random.rand(10, 5)
         test_labels = np.array([1, 2, 3, 1, 2, 3, 1, 2, 3, 1])  # Age groups
@@ -148,7 +148,7 @@ class TestAgingMetrics:
         path_manager.get_outputs_directory.return_value = "/tmp/test_outputs"
         path_manager.get_results_dir.return_value = "/tmp/test_results"
 
-        metrics = AgingMetrics(
+        metrics = EvaluationMetrics(
             config, mock_model, test_data, test_labels, label_encoder, path_manager
         )
 

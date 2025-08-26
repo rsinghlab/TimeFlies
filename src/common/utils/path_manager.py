@@ -535,11 +535,12 @@ class PathManager:
             metadata.update(additional_data)
 
         experiment_dir = Path(self.get_experiment_dir(experiment_name))
-        # Create directory if it doesn't exist (skip during tests)
-        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            experiment_dir.mkdir(parents=True, exist_ok=True)
-
         metadata_path = experiment_dir / "metadata.json"
+
+        # Create directory only when actually saving metadata
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            metadata_path.parent.mkdir(parents=True, exist_ok=True)
+
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
