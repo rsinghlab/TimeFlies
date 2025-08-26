@@ -263,7 +263,7 @@ class GeneFilter:
         """
         # Check if gene reference data is available for filtering
         if not self.autosomal_genes and not self.sex_genes:
-            print("Skipping gene filtering - no gene reference data available")
+            # Gene filtering skipped - already logged in data loader
             return self.adata, self.adata_eval, self.adata_original
 
         # Apply the gene filtering based on the config

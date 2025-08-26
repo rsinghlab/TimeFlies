@@ -513,9 +513,7 @@ class DataPreprocessor:
                 adata = adata[
                     adata.obs[column].str.lower().isin(test_values_norm)
                 ].copy()
-                print(
-                    f"Evaluation: Filtered to {adata.n_obs} cells with {column} in {test_values}"
-                )
+                # Evaluation filtering applied silently
 
         # Apply gene selection from corrected data if specified and not already using corrected data
         select_batch_genes = getattr(

@@ -877,22 +877,14 @@ class ModelBuilder:
         best_val_loss = float("inf")
         model_found = False
 
-        # Debug: print the paths being tried
-        print(f"DEBUG: Trying best symlink path: {best_symlink_path}")
-        print(f"DEBUG: Trying current path: {current_path}")
-
         for path_to_try in [best_symlink_path, current_path]:
             try:
                 if os.path.exists(path_to_try):
-                    print(f"DEBUG: Found file at: {path_to_try}")
                     with open(path_to_try) as f:
                         best_val_loss = json.load(f)["best_val_loss"]
                         model_found = True
                         break
-                else:
-                    print(f"DEBUG: File does not exist: {path_to_try}")
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                print(f"DEBUG: Error reading {path_to_try}: {e}")
+            except (FileNotFoundError, json.JSONDecodeError):
                 continue
 
         if model_found:
