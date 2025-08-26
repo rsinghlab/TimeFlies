@@ -2218,7 +2218,7 @@ def create_project_directories():
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def setup_user_environment(quiet_mode=False):
+def setup_user_environment(quiet_mode=False, skip_gui_check=False):
     """Create user configuration and templates."""
     import shutil
     from pathlib import Path
