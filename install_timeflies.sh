@@ -23,7 +23,7 @@ print_warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # Configuration - Update these URLs for your repository
-REPO_URL="git@github.com:rsinghlab/TimeFlies.git"  # Main repository
+REPO_URL="https://github.com/rsinghlab/TimeFlies.git"  # Main repository
 MAIN_BRANCH="main"  # Main development branch
 
 # Detect OS
