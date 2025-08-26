@@ -482,7 +482,7 @@ class PipelineManager:
 
             # Generate training plots
             visualizer._visualize_training_history()
-            logger.info("Training visualizations saved to experiment directory")
+            # Training visualizations saved
 
         except Exception as e:
             logger.warning(f"Failed to save experiment training visualizations: {e}")
@@ -522,14 +522,12 @@ class PipelineManager:
                 )
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 self.model.save(model_path)
-                logger.info(f"Model saved to {model_path}")
+                logger.info("✅ Model saved")
 
                 # Update best symlink if this is a new best model
                 if self.model_improved:
                     self.path_manager.update_best_symlink(self.experiment_name)
-                    logger.info("Updated best model symlink")
-            else:
-                logger.info("Model not saved (did not improve)")
+            # Model not saved if performance didn't improve
 
             # Always update latest symlink
             self.path_manager.update_latest_symlink(self.experiment_name)
@@ -594,7 +592,7 @@ class PipelineManager:
                 # Run evaluation visualizations (not training plots)
                 visualizer.run()
 
-            logger.info("Evaluation results saved to experiment directory")
+            # Results saved
 
         except Exception as e:
             logger.warning(f"Failed to save experiment evaluation: {e}")
@@ -882,13 +880,8 @@ class PipelineManager:
         - start_time (float): The start time of the task.
         - end_time (float): The end time of the task.
         """
-        duration_seconds = end_time - start_time
-        if duration_seconds < 60:
-            logger.info(f"The task took {round(duration_seconds)} seconds.")
-        else:
-            minutes = duration_seconds // 60
-            seconds = round(duration_seconds % 60)
-            logger.info(f"The task took {int(minutes)} minutes and {seconds} seconds.")
+        # Task timing logged by CLI, not here
+        pass
 
     def run_shap_interpretation(self):
         """Run SHAP interpretation if enabled in config."""

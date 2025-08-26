@@ -11,7 +11,7 @@ def setup_logging(
     level: str = "INFO",
     log_file: str | None = None,
     log_dir: str | None = None,
-    format_style: str = "detailed",
+    format_style: str = "clean",
 ) -> None:
     """
     Set up logging configuration for the TimeFlies project.
@@ -20,12 +20,13 @@ def setup_logging(
         level: Logging level ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
         log_file: Optional filename for log file
         log_dir: Optional directory for log files
-        format_style: 'simple', 'detailed', or 'json'
+        format_style: 'simple', 'clean', 'detailed', or 'json'
     """
 
     # Define format styles
     formats = {
         "simple": "%(levelname)s - %(message)s",
+        "clean": "%(levelname)s: %(message)s",  # Clean format without module names
         "detailed": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         "json": '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}',
     }
