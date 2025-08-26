@@ -552,7 +552,8 @@ class EvaluationMetrics:
 
         # Get task type and metrics from config
         task_type = getattr(self.config.model, "task_type", "classification")
-        config_metrics = getattr(self.config.model, "metrics", {})
+        eval_config = getattr(self.config, "evaluation", {})
+        config_metrics = eval_config.get("metrics", {})
         eval_metrics = config_metrics.get("evaluation", {}).get(
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
@@ -647,7 +648,8 @@ class EvaluationMetrics:
                         metrics[f"class_{class_id}_f1"] = float(class_f1)
 
         # Add baseline comparison if enabled
-        config_baselines = getattr(self.config.model.metrics, "baselines", {})
+        eval_config = getattr(self.config, "evaluation", {})
+        config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         if config_baselines.get("enabled", False):
             baseline_metrics = self._compute_baseline_comparison(
                 true_labels, predicted_classes, predictions
@@ -677,7 +679,8 @@ class EvaluationMetrics:
         baselines = {}
 
         # Get baseline types from config
-        config_baselines = getattr(self.config.model.metrics, "baselines", {})
+        eval_config = getattr(self.config, "evaluation", {})
+        config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
         logger.info("Computing baseline comparisons...")

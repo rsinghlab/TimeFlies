@@ -125,7 +125,8 @@ class CNNModel(BaseModel):
             # Get loss and metrics from config
             loss = getattr(model_config, "loss", "categorical_crossentropy")
             task_type = getattr(self.config.model, "task_type", "classification")
-            config_metrics = getattr(self.config.model, "metrics", {})
+            eval_config = getattr(self.config, "evaluation", {})
+            config_metrics = eval_config.get("metrics", {})
             training_metrics = config_metrics.get("training", {}).get(
                 task_type, ["accuracy"]
             )
@@ -252,7 +253,8 @@ class MLPModel(BaseModel):
             # Get loss and metrics from config
             loss = getattr(model_config, "loss", "categorical_crossentropy")
             task_type = getattr(self.config.model, "task_type", "classification")
-            config_metrics = getattr(self.config.model, "metrics", {})
+            eval_config = getattr(self.config, "evaluation", {})
+            config_metrics = eval_config.get("metrics", {})
             training_metrics = config_metrics.get("training", {}).get(
                 task_type, ["accuracy"]
             )
