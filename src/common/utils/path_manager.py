@@ -870,7 +870,7 @@ class PathManager:
     def get_best_model_dir_for_config(self) -> str:
         """
         Get the best model directory for the current configuration from best/ collection.
-        Now returns the copied directory instead of following symlinks.
+        Now handles new symlink structure: best/config_key/experiment_name/
 
         Returns:
             str: Path to best model experiment directory for current config
@@ -883,7 +883,7 @@ class PathManager:
         )
         config_key = self.get_config_key()
 
-        # Look for copied directory in best/ directory
+        # Look for best directory with new structure: best/config_key/experiment_name/
         best_config_dir = (
             project_root
             / "outputs"
@@ -895,9 +895,20 @@ class PathManager:
         )
 
         if best_config_dir.exists() and best_config_dir.is_dir():
-            # Return the copied directory directly
-            experiment_dir = best_config_dir
-            return str(experiment_dir.resolve())
-        else:
-            # No best model exists yet for this config
-            return None
+            # Get the best experiment name
+            try:
+                best_experiment_name = self.get_best_experiment_name()
+                experiment_dir = best_config_dir / best_experiment_name
+
+                if experiment_dir.exists():
+                    return str(experiment_dir.resolve())
+            except (FileNotFoundError, RuntimeError):
+                pass
+
+            # Fallback: look for any experiment directory in best/config_key/
+            for item in best_config_dir.iterdir():
+                if item.is_dir() or (item.is_symlink() and item.resolve().is_dir()):
+                    return str(item.resolve())
+
+        # No best model exists yet for this config
+        return None
