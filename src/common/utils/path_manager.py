@@ -452,7 +452,11 @@ class PathManager:
             )
 
             if not experiments_dir.exists():
-                return "experiment_1"  # Will be created by training
+                # No experiments exist yet - this should not happen in evaluation mode
+                raise FileNotFoundError(
+                    f"No experiments found for evaluation. Please run training first. "
+                    f"Expected directory: {experiments_dir}"
+                )
 
             # Find experiment with lowest validation loss
             best_experiment = None
@@ -495,10 +499,18 @@ class PathManager:
                     target = best_symlink.resolve()
                     best_experiment = target.name
 
-            return best_experiment or "experiment_1"
+            if best_experiment is None:
+                raise FileNotFoundError(
+                    "No valid experiments with training metadata found for evaluation. "
+                    "Please run training first to create experiments with validation loss data."
+                )
+            return best_experiment
 
-        except Exception:
-            return "experiment_1"
+        except FileNotFoundError:
+            # Re-raise our specific errors
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Error finding best experiment for evaluation: {e}")
 
     def get_config_key(self) -> str:
         """
