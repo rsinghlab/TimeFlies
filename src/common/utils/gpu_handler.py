@@ -59,7 +59,7 @@ class GPUHandler:
                     # Set memory growth FIRST before any GPU operations
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    print(f"🚀 GPU ready: {len(gpus)} device(s)")
+                    print(f"GPU ready: {len(gpus)} device(s)")
                 except RuntimeError as e:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)

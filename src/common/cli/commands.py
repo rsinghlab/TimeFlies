@@ -858,7 +858,7 @@ def train_command(args, config) -> int:
         pipeline = PipelineManager(config)
         results = pipeline.run()
 
-        print("\n✅ Training completed successfully!")
+        print("\nTraining completed successfully!")
 
         # Run analysis after training if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
@@ -891,7 +891,7 @@ def train_command(args, config) -> int:
                 short_path = "/".join(path_parts[-2:])  # Get last 2 parts
             else:
                 short_path = os.path.basename(model_path)
-            print(f"📁 Model: {short_path}")
+            print(f"Model: {short_path}")
 
         results_path = results.get("results_path", "outputs/results/")
         path_parts = results_path.split("/")
@@ -899,7 +899,7 @@ def train_command(args, config) -> int:
             short_results = "/".join(path_parts[-2:])
         else:
             short_results = os.path.basename(results_path)
-        print(f"📊 Results: {short_results}")
+        print(f"Results: {short_results}")
 
         # Show best results path only if model improved
         if results.get("model_improved", False) and "best_results_path" in results:
@@ -909,10 +909,10 @@ def train_command(args, config) -> int:
                 short_best = "/".join(path_parts[-2:])
             else:
                 short_best = os.path.basename(best_path)
-            print(f"🏆 Best: {short_best}")
+            print(f"Best: {short_best}")
 
         if "duration" in results:
-            print(f"⏱️  {results['duration']:.1f}s")
+            print(f"Duration: {results['duration']:.1f}s")
 
         return 0
 
