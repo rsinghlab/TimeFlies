@@ -599,8 +599,6 @@ class EvaluationMetrics:
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
 
-        print("Evaluating classification model...")
-
         # Basic classification metrics
         if "accuracy" in eval_metrics:
             metrics["accuracy"] = float(accuracy_score(true_labels, predicted_classes))
@@ -709,17 +707,33 @@ class EvaluationMetrics:
             print("🎯 MODEL PERFORMANCE")
             print("=" * 60)
 
-            # Create a nice results table
-            print("┌─────────────────────────────────────────────────────────┐")
-            print("│                    🤖 MODEL RESULTS                     │")
-            print("├─────────────────────────────────────────────────────────┤")
-            result_line = "│ " + " | ".join(metric_values) + " │"
-            # Center the results in the box
-            padding = (57 - len(" | ".join(metric_values))) // 2
-            if padding > 0:
-                result_line = f"│{' ' * padding}{' | '.join(metric_values)}{' ' * (57 - len(' | '.join(metric_values)) - padding)}│"
-            print(result_line)
-            print("└─────────────────────────────────────────────────────────┘")
+            # Create a dynamic results table that adjusts to content length
+            result_content = " | ".join(metric_values)
+            table_width = max(
+                60, len(result_content) + 8
+            )  # Minimum 60, or content + padding
+
+            # Top border
+            print("┌" + "─" * (table_width - 2) + "┐")
+
+            # Header
+            header = "🤖 MODEL RESULTS"
+            header_padding = (table_width - 2 - len(header)) // 2
+            print(
+                f"│{' ' * header_padding}{header}{' ' * (table_width - 2 - len(header) - header_padding)}│"
+            )
+
+            # Middle border
+            print("├" + "─" * (table_width - 2) + "┤")
+
+            # Results content
+            content_padding = (table_width - 2 - len(result_content)) // 2
+            print(
+                f"│{' ' * content_padding}{result_content}{' ' * (table_width - 2 - len(result_content) - content_padding)}│"
+            )
+
+            # Bottom border
+            print("└" + "─" * (table_width - 2) + "┘")
 
         return metrics
 
@@ -749,16 +763,32 @@ class EvaluationMetrics:
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
 
-        # Print table header
-        print(
-            "┌────────────────────┬───────┬───────┬───────────┬────────┬──────────┬─────────┐"
+        # Print table header with dynamic width for baseline method names
+        max_method_len = (
+            max(
+                len(baseline_type.replace("_", " ").title())
+                for baseline_type in baseline_types
+            )
+            if baseline_types
+            else 20
         )
+        method_width = max(
+            20, max_method_len + 2
+        )  # At least 20, or method name + padding
+
+        # Create the table format strings
+        header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+        border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬──────────┬─────────┐"
+        border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼──────────┼─────────┤"
+        border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴──────────┴─────────┘"
+
+        print(border_top)
         print(
-            "│ Baseline Method    │  Acc  │  F1   │ Precision │ Recall │ Acc Δ   │ F1 Δ    │"
+            header_format.format(
+                "Baseline Method", "Acc", "F1", "Precision", "Recall", "Acc Δ", "F1 Δ"
+            )
         )
-        print(
-            "├────────────────────┼───────┼───────┼───────────┼────────┼──────────┼─────────┤"
-        )
+        print(border_mid)
 
         for baseline_type in baseline_types:
             try:
@@ -853,16 +883,24 @@ class EvaluationMetrics:
                 acc_sign = "+" if acc_improvement >= 0 else ""
                 f1_sign = "+" if f1_improvement >= 0 else ""
 
+                # Use the dynamic format string for consistent alignment
+                row_format = f"│ {{:<{method_width}}} │ {{:.3f}} │ {{:.3f}} │ {{:>9.3f}} │ {{:.3f}} │ {{:>8s}} │ {{:>7s}} │"
                 print(
-                    f"│ {baseline_name:<18} │ {baseline_accuracy:.3f} │ {baseline_f1:.3f} │ {baseline_precision:.3f} │ {baseline_recall:.3f} │ {acc_sign}{acc_improvement:+.3f} │ {f1_sign}{f1_improvement:+.3f} │"
+                    row_format.format(
+                        baseline_name,
+                        baseline_accuracy,
+                        baseline_f1,
+                        baseline_precision,
+                        baseline_recall,
+                        f"{acc_sign}{acc_improvement:+.3f}",
+                        f"{f1_sign}{f1_improvement:+.3f}",
+                    )
                 )
 
             except Exception as e:
                 logger.warning(f"Failed to compute {baseline_type} baseline: {e}")
 
-        # Close the table
-        print(
-            "└────────────────────┴───────┴───────┴───────────┴────────┴──────────┴─────────┘"
-        )
+        # Close the table with dynamic border
+        print(border_bot)
 
         return baselines

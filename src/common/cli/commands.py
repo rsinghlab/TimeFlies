@@ -1139,11 +1139,18 @@ def evaluate_command(args, config) -> int:
                 print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
-        print("Starting evaluation with project settings:")
-        print(f"   Project: {getattr(config, 'project', 'unknown')}")
-        print(f"   Tissue: {config.data.tissue}")
-        print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.target_variable}")
+        print("=" * 60)
+        print("🧪 TIMEFLIES EVALUATION")
+        print("=" * 60)
+        print(
+            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
+        )
+        print(f"Tissue: {config.data.tissue.title()}")
+        print(f"Model: {config.data.model}")
+        print(f"Target: {config.data.target_variable.title()}")
+        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
+        print(f"Batch Correction: {batch_status}")
+        print("-" * 60)
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:
@@ -1195,7 +1202,9 @@ def evaluate_command(args, config) -> int:
         if original_viz is not None:
             config.visualizations.enabled = original_viz
 
-        print("\n[OK] Evaluation completed successfully!")
+        print("\n" + "=" * 60)
+        print("✅ EVALUATION COMPLETED")
+        print("=" * 60)
 
         # Run analysis after evaluation if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
