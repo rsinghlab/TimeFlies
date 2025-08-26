@@ -764,13 +764,19 @@ class EvaluationMetrics:
         test_X = self.test_data
 
         # Print table header with dynamic width for baseline method names
-        max_method_len = (
-            max(
-                len(baseline_type.replace("_", " ").title())
-                for baseline_type in baseline_types
-            )
-            if baseline_types
-            else 20
+        if not baseline_types:
+            # No baselines configured, return early
+            return {}
+
+        # Filter out empty baseline types and calculate max length
+        valid_baseline_types = [bt for bt in baseline_types if bt and bt.strip()]
+        if not valid_baseline_types:
+            # No valid baselines configured, return early
+            return {}
+
+        max_method_len = max(
+            len(baseline_type.replace("_", " ").title())
+            for baseline_type in valid_baseline_types
         )
         method_width = max(
             20, max_method_len + 2
@@ -790,7 +796,7 @@ class EvaluationMetrics:
         )
         print(border_mid)
 
-        for baseline_type in baseline_types:
+        for baseline_type in valid_baseline_types:
             try:
                 if baseline_type == "random_classifier":
                     # Uniform random predictions
