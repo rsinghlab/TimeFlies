@@ -111,10 +111,10 @@ class GPUHandler:
                                 gpu_details.append(f"GPU:{i}")
 
                     if len(gpus) == 1:
-                        print(f"🚀 GPU enabled: {gpu_details[0]}")
+                        print(f"GPU enabled: {gpu_details[0]}")
                     else:
                         print(
-                            f"🚀 GPU enabled: {len(gpus)} devices ({', '.join(gpu_details)})"
+                            f"GPU enabled: {len(gpus)} devices ({', '.join(gpu_details)})"
                         )
 
                 except RuntimeError as e:
