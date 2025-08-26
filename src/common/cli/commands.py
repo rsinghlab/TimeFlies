@@ -2096,27 +2096,87 @@ def update_dev_environments() -> int:
         print("\nPYTHON: Updating main environment (.venv)...")
         venv_pip = ".venv/bin/pip"
 
-        print("PACKAGE: Upgrading pip...")
-        subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
+        # Upgrade pip if needed
+        print("PACKAGE: Checking pip version...")
+        subprocess.run(
+            [
+                venv_pip,
+                "install",
+                "--upgrade",
+                "--upgrade-strategy",
+                "only-if-needed",
+                "pip",
+            ],
+            check=True,
+            capture_output=True,
+        )
 
-        print("PACKAGE: Syncing with updated package requirements...")
-        subprocess.run([venv_pip, "install", "-e", "."], check=True)
-        subprocess.run([venv_pip, "install", "-e", ".[dev]"], check=True)
-        print("[OK] Main environment synced with latest requirements")
+        # Use --upgrade-strategy only-if-needed to avoid reinstalling everything
+        print("PACKAGE: Installing new/updated dependencies...")
+        result = subprocess.run(
+            [
+                venv_pip,
+                "install",
+                "--upgrade",
+                "--upgrade-strategy",
+                "only-if-needed",
+                "-e",
+                ".[dev]",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        # Check if anything was actually updated
+        if (
+            "Successfully installed" in result.stdout
+            or "Requirement already satisfied" not in result.stdout
+        ):
+            print("[OK] New dependencies installed")
+        else:
+            print("[OK] All dependencies up to date")
 
         # Update batch environment if it exists
         if Path(".venv_batch").exists():
             print("\nRESEARCH: Updating batch correction environment (.venv_batch)...")
             batch_pip = ".venv_batch/bin/pip"
 
-            print("TESTING: Upgrading pip...")
-            subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
-
-            print("TESTING: Syncing batch requirements...")
             subprocess.run(
-                [batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True
+                [
+                    batch_pip,
+                    "install",
+                    "--upgrade",
+                    "--upgrade-strategy",
+                    "only-if-needed",
+                    "pip",
+                ],
+                check=True,
+                capture_output=True,
             )
-            print("[OK] Batch environment synced with latest requirements")
+
+            result = subprocess.run(
+                [
+                    batch_pip,
+                    "install",
+                    "--upgrade",
+                    "--upgrade-strategy",
+                    "only-if-needed",
+                    "-e",
+                    ".[batch-correction,dev]",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            if (
+                "Successfully installed" in result.stdout
+                or "Requirement already satisfied" not in result.stdout
+            ):
+                print("[OK] Batch environment updated")
+            else:
+                print("[OK] Batch environment up to date")
         else:
             print("\nSKIP: Batch environment not found, skipping batch update")
 
@@ -2125,12 +2185,13 @@ def update_dev_environments() -> int:
         create_activation_scripts()
         print("[OK] Activation scripts refreshed")
 
-        print("\nSUCCESS: Environment update complete!")
+        print("\n✅ UPDATE COMPLETE!")
         print("=" * 60)
-        print("Next steps:")
-        print("  deactivate                  # Exit current environment")
-        print("  source .activate.sh         # Reactivate with updates")
-        print("  timeflies verify            # Verify updated setup")
+        print(
+            "\nYour environment is already activated. Changes will take effect on next activation."
+        )
+        print("\nTo apply changes now:")
+        print("  deactivate && source .activate.sh")
 
         return 0
 
@@ -2391,10 +2452,12 @@ alias tf-test="timeflies test"
 echo "DNA: TimeFlies Development Environment Activated!"
 echo ""
 echo "Development commands:"
-echo "  timeflies test --coverage    # Run test suite with coverage"
-echo "  timeflies test --fast        # Quick tests"
+echo "  timeflies test               # Run test suite"
+echo "  timeflies test --coverage    # Run tests with coverage report"
+echo "  timeflies test --fast        # Quick tests only"
 echo "  timeflies create-test-data   # Generate test fixtures"
 echo "  timeflies verify             # System verification"
+echo "  timeflies setup --dev --update  # Update dependencies"
 echo ""
 echo "Code quality:"
 echo "  ruff check src/              # Linting"
