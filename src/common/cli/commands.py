@@ -521,6 +521,10 @@ def new_setup_command(args) -> int:
     print("=" * 50)
     print("Setting up your TimeFlies environment...")
 
+    # Fix any existing activation scripts that disable GPU access
+    print("SYSTEM: Checking GPU access configuration...")
+    fix_existing_activation_scripts()
+
     # 0. Create user configuration and templates
     print("\n0. Setting up configuration and templates...")
     setup_result = setup_user_environment()
@@ -2364,6 +2368,37 @@ def copy_remaining_config_files():
     except Exception as e:
         print(f"   [ERROR] Config copying failed: {e}")
         return 1
+
+
+def fix_existing_activation_scripts():
+    """Fix existing activation scripts that disable GPU access."""
+    import os
+    import re
+
+    scripts_to_fix = [".activate.sh", ".activate_batch.sh"]
+
+    for script_path in scripts_to_fix:
+        if os.path.exists(script_path):
+            try:
+                # Read the script
+                with open(script_path) as f:
+                    content = f.read()
+
+                # Replace the problematic line
+                original_content = content
+                content = re.sub(
+                    r'export CUDA_VISIBLE_DEVICES="".*\n',
+                    "# Keep GPU access enabled - only suppress verbose logging\n",
+                    content,
+                )
+
+                # Only write if we made changes
+                if content != original_content:
+                    with open(script_path, "w") as f:
+                        f.write(content)
+                    print(f"   ✅ Fixed GPU access in {script_path}")
+            except Exception as e:
+                print(f"   ⚠️  Could not fix {script_path}: {e}")
 
 
 def create_activation_scripts():
