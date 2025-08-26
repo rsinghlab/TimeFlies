@@ -2223,7 +2223,7 @@ def create_project_directories():
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def setup_user_environment(skip_gui_check=False, quiet_mode=False):
+def setup_user_environment(quiet_mode=False):
     """Create user configuration and templates."""
     import shutil
     from pathlib import Path
@@ -2328,32 +2328,8 @@ def setup_user_environment(skip_gui_check=False, quiet_mode=False):
             if not quiet_mode:
                 print("   DOC: templates/ directory already exists")
 
-        # Copy TimeFlies GUI Launcher (skip during updates)
-        if not skip_gui_check:
-            launcher_file = Path("TimeFlies_Launcher.py")
-            if not launcher_file.exists():
-                print("   GUI: Setting up TimeFlies GUI Launcher...")
-                # Find source launcher from TimeFlies installation
-                source_launchers = [
-                    Path(__file__).parent.parent.parent.parent
-                    / "TimeFlies_Launcher.py",  # repo structure
-                    Path(__file__).parent.parent.parent
-                    / "TimeFlies_Launcher.py",  # installed structure
-                ]
-
-                for source_launcher in source_launchers:
-                    if source_launcher.exists():
-                        shutil.copy2(source_launcher, launcher_file)
-                        print("      [OK] TimeFlies GUI Launcher available")
-                        print(
-                            "      INFO: Run 'python TimeFlies_Launcher.py' for graphical interface"
-                        )
-                        break
-                else:
-                    print("      WARNING: Could not find GUI launcher")
-                    print("      INFO: Use command-line interface instead")
-            else:
-                print("   GUI: TimeFlies_Launcher.py already exists")
+        # Note: GUI is now launched with 'timeflies gui' command
+        # The old TimeFlies_Launcher.py is deprecated
 
         return 0
 
