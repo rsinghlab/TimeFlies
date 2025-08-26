@@ -1020,9 +1020,10 @@ class PipelineManager:
             # Load pre-trained model
             self.load_model()
 
-            # Run evaluation metrics (standalone evaluation: save to both since using best model)
+            # Run evaluation metrics (standalone evaluation: compute once and save to both)
             self.run_metrics("recent")
-            self.run_metrics("best")
+            # Copy metrics to best directory without recomputing
+            self.copy_metrics_to_best()
 
             # Analysis (conditional based on config)
             if getattr(self.config_instance.interpretation.shap, "enabled", False):

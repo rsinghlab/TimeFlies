@@ -718,18 +718,20 @@ class EvaluationMetrics:
 
             # Header
             header = "🤖 MODEL RESULTS"
-            header_padding = (table_width - 2 - len(header)) // 2
-            print(
-                f"│{' ' * header_padding}{header}{' ' * (table_width - 2 - len(header) - header_padding)}│"
-            )
+            header_padding_left = (table_width - 2 - len(header)) // 2
+            header_padding_right = table_width - 2 - len(header) - header_padding_left
+            print(f"│{' ' * header_padding_left}{header}{' ' * header_padding_right}│")
 
             # Middle border
             print("├" + "─" * (table_width - 2) + "┤")
 
             # Results content
-            content_padding = (table_width - 2 - len(result_content)) // 2
+            content_padding_left = (table_width - 2 - len(result_content)) // 2
+            content_padding_right = (
+                table_width - 2 - len(result_content) - content_padding_left
+            )
             print(
-                f"│{' ' * content_padding}{result_content}{' ' * (table_width - 2 - len(result_content) - content_padding)}│"
+                f"│{' ' * content_padding_left}{result_content}{' ' * content_padding_right}│"
             )
 
             # Bottom border
