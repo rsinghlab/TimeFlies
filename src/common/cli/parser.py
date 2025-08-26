@@ -333,6 +333,32 @@ User Workflow:
         help="Enable debug mode for development",
     )
 
+    # Uninstall command
+    uninstall_parser = subparsers.add_parser(
+        "uninstall",
+        help="Uninstall TimeFlies and clean up installation",
+        description="""
+Remove TimeFlies installation including virtual environments,
+source code, and optionally data directories. Use with caution
+as this action cannot be undone.
+        """.strip(),
+    )
+    uninstall_parser.add_argument(
+        "--keep-data",
+        action="store_true",
+        help="Keep data, outputs, models, and config directories",
+    )
+    uninstall_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip confirmation prompt",
+    )
+    uninstall_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be removed without actually removing it",
+    )
+
     return parser
 
 

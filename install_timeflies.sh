@@ -119,8 +119,11 @@ if [[ "$UPDATE_MODE" == "true" ]]; then
     if [[ -d ".timeflies_src" ]]; then
         print_status "Updating TimeFlies source code..."
         if cd .timeflies_src && git pull origin "$MAIN_BRANCH" >/dev/null 2>&1; then
-            print_status "Updating dependencies..."
-            if pip install -e . >/dev/null 2>&1; then
+            print_status "Checking for new dependencies..."
+            # Only install if pyproject.toml changed or if install seems broken
+            if pip install -e . --quiet --no-deps >/dev/null 2>&1; then
+                # Check if we need to install new dependencies
+                pip install -e . --quiet --upgrade-strategy only-if-needed >/dev/null 2>&1
                 print_success "Updated TimeFlies successfully"
                 cd ..
                 INSTALL_SUCCESS=true
@@ -238,6 +241,7 @@ alias tf-tune="timeflies tune"
 alias tf-queue="timeflies queue"
 alias tf-test="timeflies test"
 alias tf-gui="timeflies gui"
+alias tf-uninstall="timeflies uninstall"
 
 echo "🧬 TimeFlies Research Environment Activated!"
 echo ""
@@ -257,6 +261,7 @@ echo "  timeflies tune               # Hyperparameter tuning"
 echo "  timeflies queue              # Model queue training"
 echo "  timeflies test               # Run tests"
 echo "  timeflies update             # Update TimeFlies"
+echo "  timeflies uninstall          # Uninstall TimeFlies completely"
 echo ""
 echo "Getting started:"
 echo "  1. Add your H5AD files to: data/project_name/tissue_type/"
