@@ -10,8 +10,6 @@
 project: fruitfly_alzheimers  # Options: fruitfly_aging, fruitfly_alzheimers
 
 general:
-  project_name: TimeFlies
-  version: "1.0.0"
   random_state: 42
 
 # =============================================================================
@@ -67,25 +65,18 @@ data:
     #     test: [30]                # Further filter test to age 30
 
 # =============================================================================
-# FILE PATHS (AUTO-GENERATED FROM TEMPLATES)
+# FILE PATHS (AUTO-GENERATED - DO NOT MODIFY)
 # =============================================================================
-# Uses template variables: {project}, {tissue}, {species}
-paths:
-  # Input/output data files
-  data:
-    train: "data/{project}/{tissue}/{species}_{tissue}_{project}_train.h5ad"
-    eval: "data/{project}/{tissue}/{species}_{tissue}_{project}_eval.h5ad"
-    original: "data/{project}/{tissue}/{species}_{tissue}_{project}_original.h5ad"
-  # Batch-corrected versions
-  batch_data:
-    train: "data/{project}/{tissue}/{species}_{tissue}_{project}_train_batch.h5ad"
-    eval: "data/{project}/{tissue}/{species}_{tissue}_{project}_eval_batch.h5ad"
-
-# For hyperparameter tuning settings, see: configs/hyperparameter_tuning.yaml
+# These paths are automatically determined based on your data files
+# Standard structure: data/{project}/{tissue}/{species}_{tissue}_{study_type}_original.h5ad
+# Examples:
+#   - data/fruitfly_alzheimers/head/drosophila_head_alzheimers_original.h5ad
+#   - data/fruitfly_aging/body/drosophila_body_aging_original.h5ad
 
 # =============================================================================
 # MODEL CONFIGURATION
 # =============================================================================
+# For hyperparameter tuning settings, see: configs/hyperparameter_tuning.yaml
 model:
   # Training parameters
   training:
