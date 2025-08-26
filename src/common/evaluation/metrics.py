@@ -709,10 +709,10 @@ class EvaluationMetrics:
         if metric_values:
             print("\n🎯 MODEL PERFORMANCE")
 
-            # Create a dynamic results table that adjusts to content length
+            # Create perfectly sized results table
             result_content = " | ".join(metric_values)
-            # Content + 2 spaces left + 2 spaces right + 2 border characters
-            table_width = len(result_content) + 4 + 2
+            content_line = f"│  {result_content}  │"
+            table_width = len(content_line)
 
             # Top border
             print("┌" + "─" * (table_width - 2) + "┐")
@@ -726,8 +726,8 @@ class EvaluationMetrics:
             # Middle border
             print("├" + "─" * (table_width - 2) + "┤")
 
-            # Results content - use exactly 2 spaces on each side
-            print(f"│  {result_content}  │")
+            # Results content
+            print(content_line)
 
             # Bottom border
             print("└" + "─" * (table_width - 2) + "┘")
@@ -735,9 +735,10 @@ class EvaluationMetrics:
         return metrics
 
     def _display_evaluation_info(self):
-        """Display information about the evaluation dataset."""
-        print("\n📊 EVALUATION DATASET")
-        print("-" * 60)
+        """Display comprehensive information about the evaluation dataset."""
+        print("\n" + "=" * 80)
+        print("📊 EVALUATION DATASET ANALYSIS")
+        print("=" * 80)
 
         # Dataset dimensions - handle different shapes safely
         if len(self.test_data.shape) == 2:
@@ -749,12 +750,14 @@ class EvaluationMetrics:
             n_samples = self.test_data.shape[0]
             n_features = np.prod(self.test_data.shape[1:])
 
-        print(f"Samples: {n_samples:,}")
-        print(f"Features (genes): {n_features:,}")
+        # Basic dataset info
+        print("Dataset Size:")
+        print(f"  └─ Samples:           {n_samples:,}")
+        print(f"  └─ Features (genes):  {n_features:,}")
 
-        # Class distribution
+        # Class distribution analysis
         unique_labels, counts = np.unique(self.test_labels, return_counts=True)
-        print("Class distribution:")
+        print("\nClass Distribution:")
 
         # Get class names if label encoder is available
         if self.label_encoder and hasattr(self.label_encoder, "classes_"):
@@ -763,17 +766,75 @@ class EvaluationMetrics:
                 if i < len(class_names):
                     class_name = class_names[int(label)]
                     percentage = (count / n_samples) * 100
-                    print(f"  • {class_name}: {count:,} samples ({percentage:.1f}%)")
-                else:
                     print(
-                        f"  • Class {label}: {count:,} samples ({(count / n_samples) * 100:.1f}%)"
+                        f"  └─ {class_name:<12}: {count:>5,} samples ({percentage:>5.1f}%)"
+                    )
+                else:
+                    percentage = (count / n_samples) * 100
+                    print(
+                        f"  └─ Class {label:<7}: {count:>5,} samples ({percentage:>5.1f}%)"
                     )
         else:
             for label, count in zip(unique_labels, counts):
                 percentage = (count / n_samples) * 100
-                print(f"  • Class {label}: {count:,} samples ({percentage:.1f}%)")
+                print(
+                    f"  └─ Class {label:<7}: {count:>5,} samples ({percentage:>5.1f}%)"
+                )
 
-        print("-" * 60)
+        # Add genotype/split information if available from config
+        self._display_split_info()
+
+        print("=" * 80)
+
+    def _display_split_info(self):
+        """Display split configuration and genotype information if available."""
+        try:
+            # Check if split configuration is available
+            if hasattr(self.config, "data") and hasattr(self.config.data, "splits"):
+                splits_config = self.config.data.splits
+
+                print("\nData Split Configuration:")
+
+                # Training/validation split
+                if hasattr(splits_config, "train_size"):
+                    train_size = getattr(splits_config, "train_size", 0.8)
+                    val_size = 1.0 - train_size
+                    print(f"  └─ Training Split:    {train_size:.1%}")
+                    print(f"  └─ Validation Split:  {val_size:.1%}")
+
+                # Stratification info
+                if hasattr(splits_config, "stratify") and splits_config.stratify:
+                    stratify_column = getattr(
+                        splits_config, "stratify_column", "genotype"
+                    )
+                    print(f"  └─ Stratified by:     {stratify_column}")
+
+                # Genotype information if available
+                if hasattr(splits_config, "genotype_column"):
+                    genotype_col = splits_config.genotype_column
+                    print(f"  └─ Genotype Column:   {genotype_col}")
+
+                    # If we have genotype info in metadata, show distribution
+                    if hasattr(self.config, "metadata") and hasattr(
+                        self.config.metadata, "genotype_distribution"
+                    ):
+                        print("\nGenotype Distribution (from metadata):")
+                        genotype_dist = self.config.metadata.genotype_distribution
+                        for genotype, count in genotype_dist.items():
+                            print(f"  └─ {genotype:<12}: {count:>5,} samples")
+
+            # Additional sample information
+            if hasattr(self.config, "data") and hasattr(self.config.data, "sampling"):
+                sampling = self.config.data.sampling
+                if hasattr(sampling, "sex") and sampling.sex != "both":
+                    print("\nSample Filtering:")
+                    print(f"  └─ Sex Filter:        {sampling.sex}")
+                if hasattr(sampling, "age_range"):
+                    print(f"  └─ Age Range:         {sampling.age_range}")
+
+        except Exception:
+            # If config parsing fails, silently skip additional info
+            pass
 
     def _compute_baseline_comparison(self, true_labels, predicted_classes, predictions):
         """
