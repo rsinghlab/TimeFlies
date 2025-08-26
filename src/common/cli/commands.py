@@ -858,7 +858,7 @@ def train_command(args, config) -> int:
         pipeline = PipelineManager(config)
         results = pipeline.run()
 
-        print("\n[OK] Training completed successfully!")
+        print("\n✅ Training completed successfully!")
 
         # Run analysis after training if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
@@ -885,20 +885,20 @@ def train_command(args, config) -> int:
                 print("   SKIP:  Model not saved (validation loss did not improve)")
                 print(f"   FOUND: Existing model location: {model_path}")
         else:
-            print(f"   [OK] New model saved: {model_path}")
+            relative_path = os.path.relpath(model_path, os.getcwd())
+            print(f"   📁 Model saved: {relative_path}")
 
-        print(
-            f"   DATA: Results saved to: {results.get('results_path', 'outputs/results/')}"
-        )
+        results_path = results.get("results_path", "outputs/results/")
+        relative_results = os.path.relpath(results_path, os.getcwd())
+        print(f"   📊 Results: {relative_results}")
 
         # Show best results path only if model improved
         if results.get("model_improved", False) and "best_results_path" in results:
-            print(
-                f"   BEST: Best results also saved to: {results['best_results_path']}"
-            )
+            relative_best = os.path.relpath(results["best_results_path"], os.getcwd())
+            print(f"   🏆 Best: {relative_best}")
 
         if "duration" in results:
-            print(f"   TIME:  Training duration: {results['duration']:.1f} seconds")
+            print(f"   ⏱️  {results['duration']:.1f}s")
 
         return 0
 
