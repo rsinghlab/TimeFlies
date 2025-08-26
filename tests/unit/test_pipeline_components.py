@@ -437,8 +437,7 @@ class TestCoreConfig:
         """Test complete config loading workflow."""
         from common.core.active_config import get_config_for_active_project
 
-        config_manager = get_config_for_active_project("default")
-        config = config_manager.get_config()
+        config = get_config_for_active_project("default")
 
         # Test config attributes are accessible
         assert hasattr(config, "data")

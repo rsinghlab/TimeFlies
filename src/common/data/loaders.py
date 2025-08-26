@@ -126,30 +126,41 @@ class DataLoader:
         Loads gene lists from CSV files using new project structure.
 
         This method loads lists of autosomal and sex-linked genes from CSV files
-        located in the same directory as the data files.
+        located in the same directory as the data files. If gene files are missing,
+        returns empty lists and logs a warning.
 
         Returns:
         - tuple: A tuple containing two lists, one for autosomal genes and one for sex-linked genes.
+                 Returns empty lists if gene files are not found.
         """
         # Gene lists are now in the same directory as the data files
         gene_lists_dir = Path(self.Data_dir)
 
-        # Load autosomal gene list from a CSV file
-        autosomal_genes = (
-            pd.read_csv(
-                gene_lists_dir / "autosomal_genes.csv",
-                header=None,
-                dtype=str,
-            )
-            .iloc[:, 0]
-            .tolist()
-        )
+        autosomal_genes = []
+        sex_genes = []
 
-        # Load sex-linked gene list from a CSV file
-        sex_genes = (
-            pd.read_csv(gene_lists_dir / "sex_genes.csv", header=None)
-            .iloc[:, 0]
-            .tolist()
-        )
+        # Try to load autosomal gene list from a CSV file
+        autosomal_path = gene_lists_dir / "autosomal_genes.csv"
+        try:
+            autosomal_genes = (
+                pd.read_csv(autosomal_path, header=None, dtype=str).iloc[:, 0].tolist()
+            )
+        except FileNotFoundError:
+            print(f"Warning: No gene data provided at {autosomal_path}")
+
+        # Try to load sex-linked gene list from a CSV file
+        sex_path = gene_lists_dir / "sex_genes.csv"
+        try:
+            sex_genes = pd.read_csv(sex_path, header=None).iloc[:, 0].tolist()
+        except FileNotFoundError:
+            print(f"Warning: No gene data provided at {sex_path}")
+
+        # Log status of gene filtering capability
+        if not autosomal_genes and not sex_genes:
+            print("No gene reference data available - gene filtering will be skipped")
+        elif not autosomal_genes:
+            print("No autosomal gene data - autosomal gene filtering will be skipped")
+        elif not sex_genes:
+            print("No sex gene data - sex gene filtering will be skipped")
 
         return autosomal_genes, sex_genes

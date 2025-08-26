@@ -205,12 +205,11 @@ def verify_workflow_command(args) -> int:
             )
             ConfigManager = config_module.ConfigManager
             config_manager = ConfigManager("default")
+            config = config_manager.get_config()
         else:
             active_project = get_active_project()
             print(f"   [OK] Active project detected: {active_project}")
-            config_manager = get_config_for_active_project("default")
-
-        config = config_manager.get_config()
+            config = get_config_for_active_project("default")
         print("   [OK] Project config loaded successfully")
         print(f"   [OK] Target variable: {config.data.target_variable}")
         print(f"   [OK] Model type: {config.data.model}")
@@ -503,12 +502,20 @@ def new_setup_command(args) -> int:
     For developers: just create environments.
     """
     if hasattr(args, "dev") and args.dev:
-        print("SETUP: TimeFlies Developer Setup")
-        print("=" * 50)
-        print("Setting up development environments...")
+        if hasattr(args, "update") and args.update:
+            print("SETUP: TimeFlies Developer Update")
+            print("=" * 50)
+            print("Updating development environments with latest dependencies...")
 
-        # For devs: just create the environments
-        return setup_dev_environments()
+            # For devs: update existing environments
+            return update_dev_environments()
+        else:
+            print("SETUP: TimeFlies Developer Setup")
+            print("=" * 50)
+            print("Setting up development environments...")
+
+            # For devs: just create the environments
+            return setup_dev_environments()
 
     print("LAUNCH: TimeFlies Complete Setup")
     print("=" * 50)
@@ -2013,16 +2020,35 @@ def setup_dev_environments() -> int:
         create_activation_scripts()
         print("[OK] Activation scripts created")
 
-        # Create directory structure
-        print("\nFOUND: Creating directory structure...")
-        create_project_directories()
-        print("[OK] Project directories created")
-
         print("\nSUCCESS: Development setup complete!")
         print("=" * 60)
-        print("Next steps:")
-        print("  source .activate.sh         # Activate main environment")
-        print("  source .activate_batch.sh   # Switch to batch environment")
+
+        # Auto-activate main environment for developers
+        print("🧬 Auto-activating TimeFlies development environment...")
+        activate_result = subprocess.run(
+            ["bash", "-c", "source .activate.sh && echo 'Environment activated'"],
+            capture_output=True,
+            text=True,
+        )
+
+        if activate_result.returncode == 0:
+            print("🧬 TimeFlies Development Environment Activated!")
+            print("\nDevelopment commands:")
+            print("  timeflies gui                # Launch web interface in browser")
+            print(
+                "  timeflies test --coverage    # Run full test suite with coverage report"
+            )
+            print(
+                "  timeflies verify             # Check development environment and dependencies"
+            )
+            print(
+                "  timeflies setup --dev --update  # Update environment with latest dependencies"
+            )
+        else:
+            print("Next steps:")
+            print("  source .activate.sh         # Activate main environment")
+            print("  source .activate_batch.sh   # Switch to batch environment")
+
         print("  timeflies verify            # Verify setup")
         print("  timeflies test              # Run full test suite")
 
@@ -2030,6 +2056,67 @@ def setup_dev_environments() -> int:
 
     except Exception as e:
         print(f"[ERROR] Development setup failed: {e}")
+        return 1
+
+
+def update_dev_environments() -> int:
+    """Update existing development environments with latest dependencies."""
+    from pathlib import Path
+
+    try:
+        print("UPDATE: Updating TimeFlies development environments...")
+        print("=" * 60)
+
+        # Check if environments exist
+        if not Path(".venv").exists():
+            print("[ERROR] Main environment (.venv) not found")
+            print("Run 'timeflies setup --dev' first to create environments")
+            return 1
+
+        # Update main environment dependencies
+        print("\nPYTHON: Updating main environment (.venv)...")
+        venv_pip = ".venv/bin/pip"
+
+        print("PACKAGE: Upgrading pip...")
+        subprocess.run([venv_pip, "install", "--upgrade", "pip"], check=True)
+
+        print("PACKAGE: Syncing with updated package requirements...")
+        subprocess.run([venv_pip, "install", "-e", "."], check=True)
+        subprocess.run([venv_pip, "install", "-e", ".[dev]"], check=True)
+        print("[OK] Main environment synced with latest requirements")
+
+        # Update batch environment if it exists
+        if Path(".venv_batch").exists():
+            print("\nRESEARCH: Updating batch correction environment (.venv_batch)...")
+            batch_pip = ".venv_batch/bin/pip"
+
+            print("TESTING: Upgrading pip...")
+            subprocess.run([batch_pip, "install", "--upgrade", "pip"], check=True)
+
+            print("TESTING: Syncing batch requirements...")
+            subprocess.run(
+                [batch_pip, "install", "-e", ".[batch-correction,dev]"], check=True
+            )
+            print("[OK] Batch environment synced with latest requirements")
+        else:
+            print("\nSKIP: Batch environment not found, skipping batch update")
+
+        # Refresh activation scripts with latest functionality
+        print("\nUPDATE: Refreshing activation scripts...")
+        create_activation_scripts()
+        print("[OK] Activation scripts refreshed")
+
+        print("\nSUCCESS: Environment update complete!")
+        print("=" * 60)
+        print("Next steps:")
+        print("  deactivate                  # Exit current environment")
+        print("  source .activate.sh         # Reactivate with updates")
+        print("  timeflies verify            # Verify updated setup")
+
+        return 0
+
+    except Exception as e:
+        print(f"[ERROR] Environment update failed: {e}")
         return 1
 
 

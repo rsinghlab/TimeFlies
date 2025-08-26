@@ -134,6 +134,11 @@ User Workflow:
         help="Developer setup: only create environments (.venv and .venv_batch)",
     )
     setup_parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update existing development environment with latest dependencies",
+    )
+    setup_parser.add_argument(
         "--force-split",
         action="store_true",
         help="Force recreate data splits even if they already exist",

@@ -255,12 +255,17 @@ class GeneFilter:
 
         This method filters the genes in the datasets according to the configuration
         settings, potentially removing autosomal genes, sex-linked genes, or other
-        specified gene groups.
+        specified gene groups. If no gene reference data is available, skips filtering.
 
         Returns:
         - tuple: A tuple containing the filtered AnnData objects for the main, evaluation,
                  and original datasets.
         """
+        # Check if gene reference data is available for filtering
+        if not self.autosomal_genes and not self.sex_genes:
+            print("Skipping gene filtering - no gene reference data available")
+            return self.adata, self.adata_eval, self.adata_original
+
         # Apply the gene filtering based on the config
         (
             self.adata,
