@@ -2377,7 +2377,7 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
-export CUDA_VISIBLE_DEVICES=""
+# Keep GPU access enabled - only suppress verbose logging
 export ABSL_LOG_LEVEL=ERROR
 
 # Activate virtual environment
@@ -2424,7 +2424,7 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
-export CUDA_VISIBLE_DEVICES=""
+# Keep GPU access enabled - only suppress verbose logging
 export ABSL_LOG_LEVEL=ERROR
 
 # Activate batch correction environment
