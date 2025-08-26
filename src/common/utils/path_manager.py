@@ -367,12 +367,138 @@ class PathManager:
 
     def generate_experiment_name(self) -> str:
         """
-        Generate timestamp for experiment within config directory.
+        Generate next experiment name (experiment_1, experiment_2, etc.) within config directory.
 
         Returns:
-            str: Timestamp like "2025-01-22_14-30-15"
+            str: Next experiment name like "experiment_1"
         """
-        return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # Get existing experiment directories
+        try:
+            project_root = self._get_project_root()
+            project_name = getattr(self.config, "project", "fruitfly_aging")
+            batch_correction_enabled = getattr(
+                self.config.data.batch_correction, "enabled", False
+            )
+            correction_dir = (
+                "batch_corrected" if batch_correction_enabled else "uncorrected"
+            )
+            config_key = self.get_config_key()
+
+            experiments_dir = (
+                project_root
+                / "outputs"
+                / project_name
+                / "experiments"
+                / correction_dir
+                / "all_runs"
+                / config_key
+            )
+
+            if not experiments_dir.exists():
+                return "experiment_1"
+
+            # Find highest numbered experiment
+            existing_experiments = [
+                d.name
+                for d in experiments_dir.iterdir()
+                if d.is_dir() and d.name.startswith("experiment_")
+            ]
+
+            if not existing_experiments:
+                return "experiment_1"
+
+            # Extract numbers and find next
+            experiment_numbers = []
+            for exp in existing_experiments:
+                try:
+                    num = int(exp.split("_")[1])
+                    experiment_numbers.append(num)
+                except (IndexError, ValueError):
+                    continue
+
+            next_num = max(experiment_numbers) + 1 if experiment_numbers else 1
+            return f"experiment_{next_num}"
+
+        except Exception:
+            # Fallback to timestamp if anything fails
+            return datetime.now().strftime("experiment_%Y%m%d_%H%M%S")
+
+    def get_best_experiment_name(self) -> str:
+        """
+        Find the experiment with the lowest validation loss for standalone evaluation.
+
+        Returns:
+            str: Best experiment name (e.g., "experiment_3")
+        """
+        try:
+            project_root = self._get_project_root()
+            project_name = getattr(self.config, "project", "fruitfly_aging")
+            batch_correction_enabled = getattr(
+                self.config.data.batch_correction, "enabled", False
+            )
+            correction_dir = (
+                "batch_corrected" if batch_correction_enabled else "uncorrected"
+            )
+            config_key = self.get_config_key()
+
+            experiments_dir = (
+                project_root
+                / "outputs"
+                / project_name
+                / "experiments"
+                / correction_dir
+                / "all_runs"
+                / config_key
+            )
+
+            if not experiments_dir.exists():
+                return "experiment_1"  # Will be created by training
+
+            # Find experiment with lowest validation loss
+            best_experiment = None
+            best_val_loss = float("inf")
+
+            for exp_dir in experiments_dir.iterdir():
+                if not exp_dir.is_dir() or not exp_dir.name.startswith("experiment_"):
+                    continue
+
+                metadata_file = exp_dir / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        import json
+
+                        with open(metadata_file) as f:
+                            metadata = json.load(f)
+
+                        # Check for validation loss in training data
+                        val_loss = metadata.get("training", {}).get("best_val_loss")
+                        if val_loss is not None and val_loss < best_val_loss:
+                            best_val_loss = val_loss
+                            best_experiment = exp_dir.name
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+
+            # If no valid experiments found, check symlink
+            best_symlink = (
+                project_root
+                / "outputs"
+                / project_name
+                / "experiments"
+                / correction_dir
+                / "best"
+                / config_key
+            )
+
+            if best_experiment is None and best_symlink.exists():
+                # Extract experiment name from symlink target
+                if best_symlink.is_symlink():
+                    target = best_symlink.resolve()
+                    best_experiment = target.name
+
+            return best_experiment or "experiment_1"
+
+        except Exception:
+            return "experiment_1"
 
     def get_config_key(self) -> str:
         """
@@ -495,7 +621,10 @@ class PathManager:
 
         return {
             "experiment_name": experiment_name,
-            "timestamp": datetime.now().isoformat(),
+            "created_timestamp": datetime.now().isoformat(),
+            "training_completed_at": None,  # Will be updated by training
+            "evaluation_completed_at": None,  # Will be updated by evaluation
+            "evaluation_count": 0,
             "model_type": self.model_type.upper(),
             "target": self.target_variable,
             "tissue": self.tissue,
@@ -540,6 +669,48 @@ class PathManager:
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
             metadata_path.parent.mkdir(parents=True, exist_ok=True)
 
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+    def update_metadata_training_complete(
+        self, experiment_name: str, training_data: dict
+    ):
+        """Update metadata when training completes."""
+        experiment_dir = Path(self.get_experiment_dir(experiment_name))
+        metadata_path = experiment_dir / "metadata.json"
+
+        # Load existing metadata or create new
+        if metadata_path.exists():
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+        else:
+            metadata = self.create_experiment_metadata(experiment_name)
+
+        # Update training completion info
+        metadata["training_completed_at"] = datetime.now().isoformat()
+        metadata["training"] = training_data
+
+        # Save updated metadata
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=2)
+
+    def update_metadata_evaluation_complete(self, experiment_name: str):
+        """Update metadata when evaluation completes."""
+        experiment_dir = Path(self.get_experiment_dir(experiment_name))
+        metadata_path = experiment_dir / "metadata.json"
+
+        # Load existing metadata
+        if metadata_path.exists():
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+        else:
+            metadata = self.create_experiment_metadata(experiment_name)
+
+        # Update evaluation completion info
+        metadata["evaluation_completed_at"] = datetime.now().isoformat()
+        metadata["evaluation_count"] = metadata.get("evaluation_count", 0) + 1
+
+        # Save updated metadata
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 

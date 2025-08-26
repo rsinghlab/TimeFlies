@@ -855,8 +855,8 @@ def train_command(args, config) -> int:
         # Use common PipelineManager for all projects (GPU will be configured there)
         from common.core import PipelineManager
 
-        # Initialize and run pipeline
-        pipeline = PipelineManager(config)
+        # Initialize and run pipeline in training mode
+        pipeline = PipelineManager(config, mode="training")
         results = pipeline.run()
 
         # Training completed message moved to duration display
@@ -1188,7 +1188,7 @@ def evaluate_command(args, config) -> int:
 
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
-        pipeline = PipelineManager(config)
+        pipeline = PipelineManager(config, mode="evaluation")
         pipeline.run_evaluation()
 
         # Restore original config settings if overridden
@@ -1197,9 +1197,7 @@ def evaluate_command(args, config) -> int:
         if original_viz is not None:
             config.visualizations.enabled = original_viz
 
-        print("\n" + "=" * 60)
-        print("✅ EVALUATION COMPLETED")
-        print("=" * 60)
+        print("\n✅ EVALUATION COMPLETED")
 
         # Run analysis after evaluation if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
@@ -1322,7 +1320,7 @@ def analyze_command(args, config) -> int:
             from common.core import PipelineManager
 
             # Initialize pipeline and run evaluation with analysis
-            pipeline = PipelineManager(config)
+            pipeline = PipelineManager(config, mode="evaluation")
             pipeline.run_evaluation()
 
             print("\n[OK] Analysis completed successfully!")

@@ -35,20 +35,28 @@ class PipelineManager:
         path_manager (PathManager): Manages file paths based on the configuration.
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, mode: str = "training"):
         """
         Initialize the PipelineManager class with configuration and data loader.
 
         Args:
             config: Configuration object
+            mode: "training" (creates new experiment) or "evaluation" (reuses best experiment)
         """
         self.config_instance = config
         self.data_loader = DataLoader(self.config_instance)
         self.path_manager = PathManager(self.config_instance)
         self.storage_manager = StorageManager(self.config_instance, self.path_manager)
+        self.mode = mode
 
-        # Generate experiment name for this run
-        self.experiment_name = self.path_manager.generate_experiment_name()
+        # Set experiment name based on mode
+        if mode == "training":
+            # Generate new experiment for training
+            self.experiment_name = self.path_manager.generate_experiment_name()
+        else:
+            # Reuse best experiment for standalone evaluation
+            self.experiment_name = self.path_manager.get_best_experiment_name()
+
         self.config_key = self.path_manager.get_config_key()
         # Config: {self.config_key}, Experiment: {self.experiment_name}
 
