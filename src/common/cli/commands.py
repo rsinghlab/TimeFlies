@@ -2218,7 +2218,7 @@ def create_project_directories():
             Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
-def setup_user_environment(quiet_mode=False, skip_gui_check=False):
+def setup_user_environment(quiet_mode=False):
     """Create user configuration and templates."""
     import shutil
     from pathlib import Path
@@ -2854,9 +2854,7 @@ def update_command(args) -> int:
                         )
 
             # Then ensure all required configs exist (add missing only)
-            config_copy_result = setup_user_environment(
-                skip_gui_check=True, quiet_mode=True
-            )
+            config_copy_result = setup_user_environment(quiet_mode=True)
             if config_copy_result == 0:
                 print("      [OK] Configuration files verified and updated")
             else:
