@@ -187,7 +187,7 @@ class PipelineManager:
                 self.highly_variable_genes,
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
-            # Data preprocessing complete
+            print("Training data preprocessed successfully.")
 
             # Free memory by deleting large raw data objects after preprocessing
             # (preserve evaluation data for auto-evaluation)
@@ -617,11 +617,11 @@ class PipelineManager:
             # Run evaluation metrics (post-training: save to recent always, best only if improved)
             self.run_metrics("recent")
             if self.model_improved:
-                logger.info("New best model found - saving metrics to best directory")
-                # Copy recent metrics to best directory instead of recomputing
+                # Model improved during this training session
                 self.copy_metrics_to_best()
             else:
-                logger.info("Model did not improve - skipping best directory update")
+                # Model did not improve this session
+                pass
 
             # Run visualizations for experiment
             if getattr(self.config_instance.visualizations, "enabled", False):
@@ -633,7 +633,7 @@ class PipelineManager:
             ):
                 self.run_analysis_script()
 
-            # Evaluation complete
+            print("Post-training evaluation completed successfully.")
 
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
@@ -677,7 +677,7 @@ class PipelineManager:
         Note: Model loading is handled by the dedicated run_evaluation() method.
         """
         try:
-            logger.info("Building and training model...")
+            print("Building and training model...")
             self.build_and_train_model()
             # Model built and trained successfully
         except Exception as e:
@@ -734,7 +734,7 @@ class PipelineManager:
         Set up and run visualizations for the current experiment.
         """
         if getattr(self.config_instance.visualizations, "enabled", False):
-            # Running visualizations
+            print("Running visualizations...")
 
             # Ensure SHAP attributes exist (set to None if not available)
             if not hasattr(self, "squeezed_shap_values"):
@@ -771,7 +771,7 @@ class PipelineManager:
             visualizer.set_evaluation_context(getattr(self, "experiment_name", None))
 
             visualizer.run()
-            logger.info("Visualizations completed.")
+            print("Visualizations completed.")
         else:
             logger.info("Visualization is disabled in the configuration.")
 
@@ -1047,7 +1047,7 @@ class PipelineManager:
             # Model training completed successfully
 
             # Auto-run evaluation after training using in-memory components
-            print("\nRESEARCH: Auto-evaluating trained model on holdout set...")
+            print("Auto-evaluating trained model on holdout set...")
             self.run_post_training_evaluation()
 
             end_time = time.time()
