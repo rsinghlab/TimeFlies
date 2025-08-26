@@ -857,6 +857,12 @@ def train_command(args, config) -> int:
         print(f"Batch Correction: {batch_status}")
         print("-" * 60)
 
+        # Initialize GPU early to show status in header
+        from common.utils.gpu_handler import GPUHandler
+
+        GPUHandler.configure(config)
+        print("-" * 60)
+
         # Use common PipelineManager for all projects
         from common.core import PipelineManager
 

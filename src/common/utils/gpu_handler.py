@@ -59,10 +59,43 @@ class GPUHandler:
                     # Set memory growth FIRST before any GPU operations
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    print(f"GPU ready: {len(gpus)} device(s)")
+
+                    # Try to get GPU names using nvidia-ml-py if available
+                    gpu_details = []
+                    try:
+                        import pynvml
+
+                        pynvml.nvmlInit()
+                        for i in range(len(gpus)):
+                            try:
+                                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                                name = pynvml.nvmlDeviceGetName(handle).decode("utf-8")
+                                gpu_details.append(f"{name}")
+                            except Exception:
+                                gpu_details.append(f"GPU:{i}")
+                    except ImportError:
+                        # Fallback to TensorFlow device names
+                        for i, gpu in enumerate(gpus):
+                            try:
+                                # Get GPU name from TensorFlow if available
+                                gpu_name = (
+                                    gpu.name.split("/")[-1]
+                                    if hasattr(gpu, "name") and gpu.name
+                                    else f"GPU:{i}"
+                                )
+                                gpu_details.append(gpu_name)
+                            except Exception:
+                                gpu_details.append(f"GPU:{i}")
+
+                    if len(gpus) == 1:
+                        print(f"🚀 GPU enabled: {gpu_details[0]}")
+                    else:
+                        print(
+                            f"🚀 GPU enabled: {len(gpus)} devices ({', '.join(gpu_details)})"
+                        )
+
                 except RuntimeError as e:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)
             else:
-                # GPU not found - this might be expected in CPU-only environments
-                pass  # Remove the message - CPU usage is fine
+                print("💻 CPU mode: No GPUs detected")
