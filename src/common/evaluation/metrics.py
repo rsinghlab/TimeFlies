@@ -711,8 +711,8 @@ class EvaluationMetrics:
 
             # Create a dynamic results table that adjusts to content length
             result_content = " | ".join(metric_values)
-            # Add space padding on left and right (2 spaces each side) + 2 for borders
-            table_width = len(result_content) + 6
+            # Content + 2 spaces left + 2 spaces right + 2 border characters
+            table_width = len(result_content) + 4 + 2
 
             # Top border
             print("┌" + "─" * (table_width - 2) + "┐")
