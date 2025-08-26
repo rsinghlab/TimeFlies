@@ -188,8 +188,7 @@ class EvaluationMetrics:
             project = getattr(self.config, "project", "unknown")
             split_method = getattr(self.config.data.split, "method", "random")
 
-            # Debug logging
-            logger.info(f"Project: {project}, Split method: {split_method}")
+            # Project and split method tracked internally
 
             if project == "fruitfly_alzheimers" and split_method == "genotype":
                 # Test set is Alzheimer's flies (AB42/hTau)
@@ -206,21 +205,22 @@ class EvaluationMetrics:
             predictions_df.to_csv(predictions_file, index=False)
             # Predictions saved
 
-        # Log key metrics
-        logger.info("Model Evaluation Results:")
+        # Only log regression metrics if they exist (for regression tasks)
         mae = metrics.get("mae", None)
         rmse = metrics.get("rmse", None)
         r2 = metrics.get("r2_score", None)
         pearson = metrics.get("pearson_correlation", None)
 
-        logger.info(f"  MAE: {mae:.4f}" if mae is not None else "  MAE: N/A")
-        logger.info(f"  RMSE: {rmse:.4f}" if rmse is not None else "  RMSE: N/A")
-        logger.info(f"  R² Score: {r2:.4f}" if r2 is not None else "  R² Score: N/A")
-        logger.info(
-            f"  Pearson Correlation: {pearson:.4f}"
-            if pearson is not None
-            else "  Pearson Correlation: N/A"
-        )
+        if any([mae, rmse, r2, pearson]):
+            logger.info("📊 Regression Results:")
+            if mae is not None:
+                logger.info(f"  MAE: {mae:.4f}")
+            if rmse is not None:
+                logger.info(f"  RMSE: {rmse:.4f}")
+            if r2 is not None:
+                logger.info(f"  R² Score: {r2:.4f}")
+            if pearson is not None:
+                logger.info(f"  Pearson Correlation: {pearson:.4f}")
 
         return metrics
 
