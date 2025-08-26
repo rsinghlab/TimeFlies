@@ -58,6 +58,24 @@ class GPUHandler:
             cuda_available = tf.test.is_built_with_cuda()
             gpu_available = tf.test.is_gpu_available()
 
+            # Additional diagnostic info
+            try:
+                import subprocess
+
+                nvidia_smi_result = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                nvidia_gpus = (
+                    nvidia_smi_result.stdout.strip().split("\n")
+                    if nvidia_smi_result.returncode == 0
+                    else []
+                )
+            except (subprocess.SubprocessError, FileNotFoundError):
+                nvidia_gpus = []
+
             if gpus:
                 try:
                     # Set memory growth FIRST before any GPU operations
@@ -102,12 +120,22 @@ class GPUHandler:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)
             else:
-                # More informative GPU status
+                # More informative GPU status with diagnostics
                 if cuda_available and not gpu_available:
                     print(
                         "💻 CPU mode: CUDA available but no GPUs accessible to TensorFlow"
                     )
+                    if nvidia_gpus:
+                        print(f"   🔍 nvidia-smi shows: {', '.join(nvidia_gpus)}")
+                    print("   💡 Troubleshooting steps:")
+                    print("      1. Check: nvidia-smi")
+                    print(
+                        '      2. Check TensorFlow build: python -c "import tensorflow as tf; print(tf.__version__, tf.test.is_built_with_cuda())"'
+                    )
+                    print("      3. For TF 2.12+: pip install tensorflow[and-cuda]")
+                    print("      4. For older TF: pip install tensorflow-gpu")
                 elif not cuda_available:
                     print("💻 CPU mode: TensorFlow not built with CUDA support")
+                    print("   💡 Install GPU version: pip install tensorflow[and-cuda]")
                 else:
                     print("💻 CPU mode: No GPUs detected")
