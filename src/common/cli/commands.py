@@ -2065,9 +2065,11 @@ def setup_dev_environments() -> int:
         print("=" * 60)
         print("\nTo activate the development environment:")
         print("  source .activate.sh")
-        print("\nTo switch to batch correction environment:")
+        print(
+            "\nNote: Batch correction tests will auto-switch to .venv_batch when needed."
+        )
+        print("To manually switch to batch environment:")
         print("  source .activate_batch.sh")
-        print("\nThe activation script will show available commands.")
 
         return 0
 
@@ -2397,6 +2399,8 @@ echo ""
 echo "Code quality:"
 echo "  ruff check src/              # Linting"
 echo "  ruff format src/             # Code formatting"
+echo ""
+echo "Note: Batch correction tests auto-switch to .venv_batch environment"
 """
 
     # Batch activation script
