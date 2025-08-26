@@ -83,12 +83,12 @@ model:
 
   # Metrics configuration
   metrics:
-    # Training/validation metrics (used during model training)
+    # Training/validation metrics (shown during training)
     training:
       # For classification tasks
-      classification: ["accuracy", "categorical_crossentropy"]
+      classification: ["accuracy", "precision", "recall", "f1_score"]
       # For regression tasks
-      regression: ["mse", "mae"]
+      regression: ["mse", "mae", "r2"]
 
     # Evaluation metrics (computed after training on test set)
     evaluation:
@@ -96,6 +96,14 @@ model:
       classification: ["accuracy", "f1_score", "precision", "recall", "auc", "confusion_matrix"]
       # Regression metrics for final evaluation
       regression: ["mse", "mae", "r2", "rmse", "correlation"]
+
+    # Baseline comparison settings
+    baselines:
+      enabled: true
+      # For classification: compare against random and majority class baselines
+      classification: ["random_classifier", "majority_class", "stratified_random"]
+      # For regression: compare against mean and median baselines
+      regression: ["mean_baseline", "median_baseline"]
 
   # Training parameters
   training:
