@@ -751,10 +751,8 @@ class ModelBuilder:
 
         if self.model_type == "cnn":
             model = self.create_cnn_model(num_output_units)
-            print(model.summary())
         elif self.model_type == "mlp":
             model = self.create_mlp_model(num_output_units)
-            print(model.summary())
         elif self.model_type == "logisticregression":
             model = self.create_logistic_regression()
         elif self.model_type == "randomforest":
@@ -864,14 +862,23 @@ class ModelBuilder:
         # Load the best validation loss from file
         best_val_loss = float("inf")
         model_found = False
+
+        # Debug: print the paths being tried
+        print(f"DEBUG: Trying best symlink path: {best_symlink_path}")
+        print(f"DEBUG: Trying current path: {current_path}")
+
         for path_to_try in [best_symlink_path, current_path]:
             try:
                 if os.path.exists(path_to_try):
+                    print(f"DEBUG: Found file at: {path_to_try}")
                     with open(path_to_try) as f:
                         best_val_loss = json.load(f)["best_val_loss"]
                         model_found = True
                         break
-            except (FileNotFoundError, json.JSONDecodeError):
+                else:
+                    print(f"DEBUG: File does not exist: {path_to_try}")
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                print(f"DEBUG: Error reading {path_to_try}: {e}")
                 continue
 
         if model_found:
