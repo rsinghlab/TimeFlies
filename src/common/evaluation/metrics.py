@@ -756,7 +756,15 @@ class EvaluationMetrics:
         print(f"  └─ Features (genes):  {n_features:,}")
 
         # Class distribution analysis
-        unique_labels, counts = np.unique(self.test_labels, return_counts=True)
+        # Convert one-hot encoded labels to class indices if necessary
+        if len(self.test_labels.shape) > 1 and self.test_labels.shape[1] > 1:
+            # One-hot encoded - convert to class indices
+            class_labels = np.argmax(self.test_labels, axis=1)
+        else:
+            # Already class indices
+            class_labels = self.test_labels
+
+        unique_labels, counts = np.unique(class_labels, return_counts=True)
         total_label_count = (
             counts.sum()
         )  # Use actual label count for correct percentages

@@ -225,26 +225,41 @@ class PathManager:
             # Fallback if config structure is different
             return "all-genes"
 
-    def construct_model_directory(self) -> str:
+    def construct_model_directory(self, experiment_name: str = None) -> str:
         """
         Get the experiment directory path for model storage.
+
+        Args:
+            experiment_name: Specific experiment name, or None to create new experiment
 
         Returns:
             str: The experiment directory path
         """
-        return self.get_experiment_dir()
+        return self.get_experiment_dir(experiment_name)
 
-    def get_visualization_directory(self, subfolder: str | None = None) -> str:
+    def get_visualization_directory(
+        self, subfolder: str | None = None, experiment_name: str = None
+    ) -> str:
         """
         Get the evaluation directory path for visualizations.
 
         Args:
             subfolder: Additional subfolder (e.g., 'plots')
+            experiment_name: Specific experiment name, or None to use best experiment
 
         Returns:
             str: The experiment evaluation directory path
         """
-        experiment_dir = self.get_experiment_dir()
+        if experiment_name:
+            experiment_dir = self.get_experiment_dir(experiment_name)
+        else:
+            # For evaluation, use the best trained experiment instead of creating new one
+            try:
+                best_experiment = self.get_best_experiment_name()
+                experiment_dir = self.get_experiment_dir(best_experiment)
+            except (FileNotFoundError, RuntimeError):
+                # Fallback: create new experiment if no trained models exist
+                experiment_dir = self.get_experiment_dir()
         eval_dir = os.path.join(experiment_dir, "evaluation")
 
         if subfolder:
