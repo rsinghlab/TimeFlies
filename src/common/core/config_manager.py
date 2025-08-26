@@ -193,7 +193,7 @@ class ConfigManager:
 
             # Create Config object
             self._config = Config(config_dict)
-            logger.info(
+            logger.debug(
                 f"Loaded {self.project_name} configuration from {self.config_path}"
             )
 

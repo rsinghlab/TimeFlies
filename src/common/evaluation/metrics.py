@@ -81,7 +81,7 @@ class EvaluationMetrics:
             return
 
         # Make predictions
-        predictions = self.model.predict(self.test_data)
+        predictions = self.model.predict(self.test_data, verbose=0)
 
         # For classification, get predicted classes
         if len(predictions.shape) > 1 and predictions.shape[1] > 1:
@@ -664,7 +664,9 @@ class EvaluationMetrics:
                 metric_values.append(f"{metric}={metrics[metric]:.3f}")
 
         if metric_values:
+            print("\n" + "-" * 30)
             print(f"Model Results: {' | '.join(metric_values)}")
+            print("-" * 30)
 
         return metrics
 
@@ -687,7 +689,9 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\nBaseline Metrics:")
+        print("\n" + "-" * 30)
+        print("Baseline Metrics:")
+        print("-" * 30)
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
