@@ -687,7 +687,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\\nBaseline Metrics:")
+        print("\nBaseline Metrics:")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data

@@ -821,8 +821,11 @@ class PipelineManager:
                 Path(self.path_manager.get_experiment_dir(self.experiment_name))
                 / "evaluation"
             )
+            # Get the best symlink directory
+            config_key = self.path_manager.get_config_key()
             best_dir = (
-                Path(self.path_manager.get_experiment_dir(self.experiment_name))
+                Path(self.path_manager.get_best_symlink_path())
+                / config_key
                 / "evaluation"
             )
 
