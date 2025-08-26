@@ -37,18 +37,26 @@ def run_analysis(model, config, path_manager, pipeline):
         print("\n🧬 Alzheimer's Aging Acceleration Analysis")
         print("=" * 60)
 
-        # Try to find the most recent predictions file
+        # Try to find the predictions file
         predictions_file = None
         experiment_dir = None
 
-        # First try to get experiment directory from pipeline
-        try:
-            experiment_dir = path_manager.get_experiment_dir(
-                getattr(pipeline, "experiment_name", None)
-            )
-            predictions_file = Path(experiment_dir) / "evaluation" / "predictions.csv"
-        except Exception:
-            experiment_dir = None
+        # First check if the pipeline has a specific predictions path (from CLI)
+        if hasattr(pipeline, "_analysis_predictions_path"):
+            predictions_file = Path(pipeline._analysis_predictions_path)
+            experiment_dir = predictions_file.parent.parent
+            print("🎯 Using CLI-specified predictions from best model")
+        else:
+            # Try to get experiment directory from pipeline
+            try:
+                experiment_dir = path_manager.get_experiment_dir(
+                    getattr(pipeline, "experiment_name", None)
+                )
+                predictions_file = (
+                    Path(experiment_dir) / "evaluation" / "predictions.csv"
+                )
+            except Exception:
+                experiment_dir = None
 
         # If not found, search for predictions from the best model
         if not predictions_file or not predictions_file.exists():

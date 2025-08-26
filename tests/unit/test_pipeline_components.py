@@ -131,8 +131,21 @@ class TestGPUHandler:
 
     def test_gpu_detection(self):
         """Test GPU detection functionality."""
-        with patch("tensorflow.config.list_physical_devices") as mock_tf:
-            mock_tf.return_value = [Mock(), Mock()]  # Mock 2 GPUs
+        with (
+            patch("tensorflow.config.list_physical_devices") as mock_tf,
+            patch("tensorflow.config.experimental.set_memory_growth"),
+            patch("builtins.print"),
+        ):
+            # Create proper mock GPU devices
+            mock_gpu1 = Mock()
+            mock_gpu1.device_type = "GPU"
+            mock_gpu1.name = "/physical_device:GPU:0"
+
+            mock_gpu2 = Mock()
+            mock_gpu2.device_type = "GPU"
+            mock_gpu2.name = "/physical_device:GPU:1"
+
+            mock_tf.return_value = [mock_gpu1, mock_gpu2]
 
             # GPUHandler doesn't have detect_gpus method - test configure instead
             # This tests the GPU detection logic inside configure
