@@ -50,8 +50,7 @@ class PipelineManager:
         # Generate experiment name for this run
         self.experiment_name = self.path_manager.generate_experiment_name()
         self.config_key = self.path_manager.get_config_key()
-        logger.info(f"Config: {self.config_key}")
-        logger.info(f"Experiment: {self.experiment_name}")
+        # Config: {self.config_key}, Experiment: {self.experiment_name}
 
         # Auto-inject shared analysis components
         try:
@@ -68,16 +67,16 @@ class PipelineManager:
             self.metrics_class = None
             self.visualizer_class = None
 
-        logger.info("Initializing TimeFlies pipeline...")
+        # Initializing TimeFlies pipeline
 
     def setup_gpu(self):
         """
         Configure TensorFlow GPU settings if available.
         """
         try:
-            logger.info("Setting up GPU...")
+            # Setting up GPU
             GPUHandler.configure(self.config_instance)
-            logger.info("GPU configuration successful.")
+            # GPU configuration complete
         except Exception as e:
             logger.error(f"Error configuring GPU: {e}")
             raise
@@ -87,7 +86,7 @@ class PipelineManager:
         Load data and gene lists.
         """
         try:
-            logger.info("Loading data...")
+            # Loading data
             (
                 self.adata,
                 self.adata_eval,
@@ -110,7 +109,7 @@ class PipelineManager:
                 self.adata_corrected = None
                 self.adata_eval_corrected = None
             self.autosomal_genes, self.sex_genes = self.data_loader.load_gene_lists()
-            logger.info("Data loading complete.")
+            # Data loading complete
         except Exception as e:
             logger.error(f"Error loading data: {e}")
             raise
@@ -149,7 +148,7 @@ class PipelineManager:
         Filter genes using the GeneFilter class.
         """
         try:
-            logger.info("Applying gene filtering...")
+            # Applying gene filtering
             self.gene_filter = GeneFilter(
                 self.config_instance,
                 self.adata,
@@ -163,7 +162,7 @@ class PipelineManager:
                 self.adata_eval,
                 self.adata_original,
             ) = self.gene_filter.apply_filter()
-            logger.info("Gene filtering complete.")
+            # Gene filtering complete
         except Exception as e:
             logger.error(f"Error during gene filtering: {e}")
             raise
@@ -173,7 +172,7 @@ class PipelineManager:
         Preprocess general training and test data for building or training a new model.
         """
         try:
-            logger.info("Preprocessing training data...")
+            # Preprocessing training data
             self.data_preprocessor = DataPreprocessor(
                 self.config_instance, self.adata, self.adata_corrected
             )

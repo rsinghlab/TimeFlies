@@ -885,20 +885,34 @@ def train_command(args, config) -> int:
                 print("   SKIP:  Model not saved (validation loss did not improve)")
                 print(f"   FOUND: Existing model location: {model_path}")
         else:
-            relative_path = os.path.relpath(model_path, os.getcwd())
-            print(f"   📁 Model saved: {relative_path}")
+            # Extract just the experiment timestamp
+            path_parts = model_path.split("/")
+            if len(path_parts) >= 2:
+                short_path = "/".join(path_parts[-2:])  # Get last 2 parts
+            else:
+                short_path = os.path.basename(model_path)
+            print(f"📁 Model: {short_path}")
 
         results_path = results.get("results_path", "outputs/results/")
-        relative_results = os.path.relpath(results_path, os.getcwd())
-        print(f"   📊 Results: {relative_results}")
+        path_parts = results_path.split("/")
+        if len(path_parts) >= 2:
+            short_results = "/".join(path_parts[-2:])
+        else:
+            short_results = os.path.basename(results_path)
+        print(f"📊 Results: {short_results}")
 
         # Show best results path only if model improved
         if results.get("model_improved", False) and "best_results_path" in results:
-            relative_best = os.path.relpath(results["best_results_path"], os.getcwd())
-            print(f"   🏆 Best: {relative_best}")
+            best_path = results["best_results_path"]
+            path_parts = best_path.split("/")
+            if len(path_parts) >= 2:
+                short_best = "/".join(path_parts[-2:])
+            else:
+                short_best = os.path.basename(best_path)
+            print(f"🏆 Best: {short_best}")
 
         if "duration" in results:
-            print(f"   ⏱️  {results['duration']:.1f}s")
+            print(f"⏱️  {results['duration']:.1f}s")
 
         return 0
 
