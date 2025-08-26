@@ -146,17 +146,17 @@ class DataLoader:
                 pd.read_csv(autosomal_path, header=None, dtype=str).iloc[:, 0].tolist()
             )
         except FileNotFoundError:
-            print(f"Warning: No gene data provided at {autosomal_path}")
+            pass  # Silently skip missing autosomal genes
 
         # Try to load sex-linked gene list from a CSV file
         sex_path = gene_lists_dir / "sex_genes.csv"
         try:
             sex_genes = pd.read_csv(sex_path, header=None).iloc[:, 0].tolist()
         except FileNotFoundError:
-            print(f"Warning: No gene data provided at {sex_path}")
+            pass  # Silently skip missing sex genes
 
         # Log status of gene filtering capability
         if not autosomal_genes and not sex_genes:
-            print("No gene reference data available - gene filtering will be skipped")
+            print("⚠ Gene filtering disabled (no reference data found)")
 
         return autosomal_genes, sex_genes
