@@ -31,26 +31,58 @@ def run_analysis(model, config, path_manager, pipeline):
 
     This function will be called by TimeFlies with the pipeline context.
     """
-    logger.info("Starting Alzheimer's Aging Acceleration Analysis...")
+    logger.debug("Starting Alzheimer's Aging Acceleration Analysis...")
 
     try:
         print("\n🧬 Alzheimer's Aging Acceleration Analysis")
         print("=" * 60)
 
-        # Get experiment directory
-        experiment_dir = path_manager.get_experiment_dir(
-            getattr(pipeline, "experiment_name", None)
-        )
+        # Try to find the most recent predictions file
+        predictions_file = None
+        experiment_dir = None
 
-        # Create analysis directory
+        # First try to get experiment directory from pipeline
+        try:
+            experiment_dir = path_manager.get_experiment_dir(
+                getattr(pipeline, "experiment_name", None)
+            )
+            predictions_file = Path(experiment_dir) / "evaluation" / "predictions.csv"
+        except Exception:
+            experiment_dir = None
+
+        # If not found, search for predictions from the best model
+        if not predictions_file or not predictions_file.exists():
+            # Look for predictions in the best model directory first
+            base_path = Path(path_manager.base_path) / "experiments"
+
+            # Try to find best model predictions first
+            best_pattern = "**/best/**/evaluation/predictions.csv"
+            best_prediction_files = list(base_path.glob(best_pattern))
+
+            if best_prediction_files:
+                # Use the most recent best model predictions for this config
+                predictions_file = max(
+                    best_prediction_files, key=lambda x: x.stat().st_mtime
+                )
+                experiment_dir = predictions_file.parent.parent
+                print("🏆 Using predictions from best model for this configuration")
+            else:
+                # Fallback to any predictions file
+                search_pattern = "**/evaluation/predictions.csv"
+                prediction_files = list(base_path.glob(search_pattern))
+                if prediction_files:
+                    predictions_file = max(
+                        prediction_files, key=lambda x: x.stat().st_mtime
+                    )
+                    experiment_dir = predictions_file.parent.parent
+                    print(f"📍 Using most recent predictions: {predictions_file}")
+                else:
+                    print("❌ No predictions found. Run evaluation first.")
+                    return
+
+        # Create analysis directory in the same experiment directory
         analysis_dir = Path(experiment_dir) / "alzheimers_analysis"
         analysis_dir.mkdir(exist_ok=True)
-
-        # Load predictions
-        predictions_file = Path(experiment_dir) / "evaluation" / "predictions.csv"
-        if not predictions_file.exists():
-            print("❌ No predictions found. Run evaluation first.")
-            return
 
         df = pd.read_csv(predictions_file)
         print(f"📊 Loaded {len(df)} predictions")

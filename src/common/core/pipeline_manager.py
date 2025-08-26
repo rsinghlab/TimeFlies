@@ -897,7 +897,7 @@ class PipelineManager:
                 )
                 return
 
-            logger.info("Running project-specific analysis script...")
+            logger.debug("Running project-specific analysis script...")
 
             # Auto-detect analysis script in templates folder
             project_name = getattr(self.config_instance, "project", "fruitfly_aging")
@@ -908,7 +908,7 @@ class PipelineManager:
             template_path = Path("templates") / f"{project_name}_analysis.py"
 
             if template_path.exists():
-                logger.info(f"Found project analysis script: {template_path}")
+                logger.debug(f"Found project analysis script: {template_path}")
                 self._run_custom_analysis_script(str(template_path))
             else:
                 logger.info(f"No analysis script found at {template_path}")
@@ -950,7 +950,7 @@ class PipelineManager:
                 )
                 return
 
-            logger.info(f"Running custom analysis script: {script_path}")
+            logger.debug(f"Running custom analysis script: {script_path}")
 
             # Import the custom script as a module
             spec = importlib.util.spec_from_file_location(
