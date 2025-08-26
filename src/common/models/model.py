@@ -888,9 +888,9 @@ class ModelBuilder:
                 continue
 
         if model_found:
-            print(f"Resuming training (best loss: {best_val_loss:.3f})")
+            print(f"Previous best validation loss: {best_val_loss:.3f}")
         else:
-            print("Starting fresh training session")
+            print("No previous model found - training new model")
 
         # Split data into training and validation sets
         (
@@ -944,9 +944,10 @@ class ModelBuilder:
             callbacks=[early_stopping, model_checkpoint],
         )
 
-        print("=" * 50)
-        print("Training Completed")
-        print("=" * 50)
+        print("\n" + "=" * 60)
+        print("TRAINING COMPLETED")
+        print("=" * 60)
+        print("Model training finished - starting automatic evaluation...")
 
         # Save the history object only if the model was improved and saved at least once during training
         if model_checkpoint.model_improved:

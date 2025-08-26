@@ -688,7 +688,7 @@ class PipelineManager:
         """
         try:
             print("\n" + "=" * 60)
-            print("TRAINING")
+            print("🔥 TRAINING")
             print("=" * 60)
             self.build_and_train_model()
             # Model built and trained successfully
@@ -1062,9 +1062,11 @@ class PipelineManager:
             # Model training completed successfully
 
             # Auto-run evaluation after training using in-memory components
-            print("\n" + "-" * 50)
-            print("Auto-evaluating trained model on holdout set...")
-            print("-" * 50)
+            print("\n" + "=" * 60)
+            print("🧪 AUTOMATIC EVALUATION")
+            print("=" * 60)
+            print("Evaluating model performance on holdout dataset...")
+            print("-" * 60)
             self.run_post_training_evaluation()
 
             end_time = time.time()
