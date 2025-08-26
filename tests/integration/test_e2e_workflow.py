@@ -50,8 +50,7 @@ def test_timeflies_with_correct_data_format():
     print("✅ TimeFlies-compatible data created")
 
     # Get config
-    config_manager = get_config_for_active_project("default")
-    config = config_manager.get_config()
+    config = get_config_for_active_project("default")
     config.data.model = "logistic"
 
     print("🔄 Testing DataPreprocessor with correct data format...")
@@ -188,8 +187,7 @@ def test_multiple_timeflies_models():
     X = np.random.randn(n_samples, n_features)
     y = np.array([0, 1, 2] * 10)  # 3 balanced classes
 
-    config_manager = get_config_for_active_project("default")
-    config = config_manager.get_config()
+    config = get_config_for_active_project("default")
 
     # Test fast models
     models_to_test = ["logistic", "random_forest"]

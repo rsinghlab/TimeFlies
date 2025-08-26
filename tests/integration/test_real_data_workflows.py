@@ -59,8 +59,7 @@ class TestCLIWorkflowIntegration:
         project = get_active_project()
         assert project in ["fruitfly_aging", "fruitfly_alzheimers"]
 
-        config_manager = get_config_for_active_project("default")
-        config = config_manager.get_config()
+        config = get_config_for_active_project("default")
 
         # Test that config is actually loaded and accessible
         assert hasattr(config, "data")
@@ -81,8 +80,7 @@ class TestCLIWorkflowIntegration:
             "common.core.active_config.get_active_project",
             return_value="fruitfly_aging",
         ):
-            config_manager = get_config_for_active_project("default")
-            config = config_manager.get_config()
+            config = get_config_for_active_project("default")
             assert config is not None
 
         # Test alzheimers project (if available)
@@ -91,8 +89,7 @@ class TestCLIWorkflowIntegration:
                 "common.core.active_config.get_active_project",
                 return_value="fruitfly_alzheimers",
             ):
-                config_manager = get_config_for_active_project("default")
-                config = config_manager.get_config()
+                config = get_config_for_active_project("default")
                 assert config is not None
         except Exception as e:
             # May not be implemented yet
@@ -116,8 +113,7 @@ class TestDataWorkflowIntegration:
             genotype_values.append("ctrl")
         large_sample_anndata.obs["genotype"] = genotype_values
 
-        config_manager = get_config_for_active_project("default")
-        config = config_manager.get_config()
+        config = get_config_for_active_project("default")
 
         # Test actual TimeFlies DataPreprocessor
         with patch("common.utils.path_manager.PathManager"):
