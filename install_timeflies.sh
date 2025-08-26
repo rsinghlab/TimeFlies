@@ -156,16 +156,45 @@ else
         # Clone to permanent directory for user install (needed for editable install)
         if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
             print_status "Installing dependencies (this may take a few minutes)..."
-            if cd .timeflies_src && pip install -e . >/dev/null 2>&1; then
-                print_success "Installed TimeFlies successfully"
-                cd ..
-                # Keep the source directory for editable install
-                INSTALL_SUCCESS=true
+            cd .timeflies_src
+
+            # Detect GPU capability and install appropriate version
+            print_status "Detecting GPU capability..."
+            if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+                print_success "NVIDIA GPU detected - installing with CUDA support"
+                if pip install -e . >/dev/null 2>&1; then
+                    print_success "Installed TimeFlies with GPU support"
+                    cd ..
+                    INSTALL_SUCCESS=true
+                else
+                    print_warning "GPU installation failed, trying CPU version..."
+                    if pip install -e .[cpu] >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies with CPU fallback"
+                        cd ..
+                        INSTALL_SUCCESS=true
+                    else
+                        cd .. 2>/dev/null || true
+                        rm -rf .timeflies_src 2>/dev/null || true
+                    fi
+                fi
             else
-                cd .. 2>/dev/null || true
-                rm -rf .timeflies_src 2>/dev/null || true
+                print_status "No NVIDIA GPU detected - installing CPU version"
+                if pip install -e .[cpu] >/dev/null 2>&1; then
+                    print_success "Installed TimeFlies CPU version"
+                    cd ..
+                    INSTALL_SUCCESS=true
+                else
+                    print_warning "CPU installation failed, trying default version..."
+                    if pip install -e . >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies with default dependencies"
+                        cd ..
+                        INSTALL_SUCCESS=true
+                    else
+                        cd .. 2>/dev/null || true
+                        rm -rf .timeflies_src 2>/dev/null || true
+                    fi
+                fi
             fi
-        fi
     fi
 fi
 
@@ -197,7 +226,6 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
-export CUDA_VISIBLE_DEVICES=""
 export ABSL_LOG_LEVEL=ERROR
 
 # Activate virtual environment
@@ -289,7 +317,6 @@ export TF_CPP_MIN_LOG_LEVEL=3
 export TF_ENABLE_ONEDNN_OPTS=0
 export GRPC_VERBOSITY=ERROR
 export AUTOGRAPH_VERBOSITY=0
-export CUDA_VISIBLE_DEVICES=""
 export ABSL_LOG_LEVEL=ERROR
 
 # Activate batch correction environment
@@ -389,7 +416,16 @@ else
 
         # Install PyTorch + scvi-tools + batch correction dependencies
         pip install --upgrade pip
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+        # Detect GPU for PyTorch installation
+        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+            print_status "Installing PyTorch with CUDA support for batch correction..."
+            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+        else
+            print_status "Installing PyTorch CPU version for batch correction..."
+            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+        fi
+
         pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
 
         # Deactivate batch environment
