@@ -1230,11 +1230,16 @@ def analyze_command(args, config) -> int:
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
 
     try:
-        print("RESEARCH: Starting analysis with project settings:")
-        print(f"   Project: {getattr(config, 'project', 'unknown')}")
-        print(f"   Tissue: {config.data.tissue}")
-        print(f"   Model: {config.data.model}")
-        print(f"   Target: {config.data.target_variable}")
+        print("=" * 60)
+        print("🔬 TIMEFLIES ANALYSIS")
+        print("=" * 60)
+        print(
+            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
+        )
+        print(f"Tissue: {config.data.tissue.title()}")
+        print(f"Model: {config.data.model}")
+        print(f"Target: {config.data.target_variable.title()}")
+        print("-" * 60)
 
         # Store custom analysis script path in config for pipeline manager
         if hasattr(args, "analysis_script") and args.analysis_script:
@@ -1259,15 +1264,14 @@ def analyze_command(args, config) -> int:
                     Path(best_model_dir) / "evaluation" / "predictions.csv"
                 )
                 if predictions_path.exists():
-                    print(f"[OK] Found predictions from best model: {predictions_path}")
+                    print("✅ Found predictions from best model")
                 else:
                     predictions_path = None
             except Exception:
                 predictions_path = None
 
         if predictions_path and predictions_path.exists():
-            print(f"[OK] Found existing predictions at {predictions_path}")
-            print("DATA: Running analysis on existing predictions...")
+            print("📊 Running analysis on predictions from best model...")
 
             # Just run the analysis script without reloading everything
             from common.core import PipelineManager
