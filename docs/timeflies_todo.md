@@ -92,6 +92,7 @@ Transcriptomics aging research computational tool - Updated August 2024
   - Optimize memory usage for large datasets
   - Performance profiling and optimization
   - Improve testing naming
+  - **Implement config-based logging system** - Currently logging uses hardcoded values in logging_config.py. The logging section in default.yaml is planned but not yet integrated with the actual logging system
 
 ### Advanced Features
 

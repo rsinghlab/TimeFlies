@@ -122,11 +122,19 @@ class CNNModel(BaseModel):
             self.model.add(Dropout(dropout_rate))
             self.model.add(Dense(num_classes, activation="softmax"))
 
+            # Get loss and metrics from config
+            loss = getattr(model_config, "loss", "categorical_crossentropy")
+            task_type = getattr(self.config.model, "task_type", "classification")
+            config_metrics = getattr(self.config.model, "metrics", {})
+            training_metrics = config_metrics.get("training", {}).get(
+                task_type, ["accuracy"]
+            )
+
             # Compile model
             self.model.compile(
                 optimizer=Adam(learning_rate=0.001),
-                loss="categorical_crossentropy",
-                metrics=["accuracy"],
+                loss=loss,
+                metrics=training_metrics,
             )
 
             logger.info(f"CNN model built with {self.model.count_params()} parameters")
@@ -241,11 +249,19 @@ class MLPModel(BaseModel):
             # Output layer
             self.model.add(Dense(num_classes, activation="softmax"))
 
+            # Get loss and metrics from config
+            loss = getattr(model_config, "loss", "categorical_crossentropy")
+            task_type = getattr(self.config.model, "task_type", "classification")
+            config_metrics = getattr(self.config.model, "metrics", {})
+            training_metrics = config_metrics.get("training", {}).get(
+                task_type, ["accuracy"]
+            )
+
             # Compile model
             self.model.compile(
                 optimizer=Adam(learning_rate=0.001),
-                loss="categorical_crossentropy",
-                metrics=["accuracy"],
+                loss=loss,
+                metrics=training_metrics,
             )
 
             logger.info(f"MLP model built with {self.model.count_params()} parameters")
