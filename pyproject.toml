@@ -10,9 +10,9 @@ authors = [{name = "Singh Lab"}]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    # TensorFlow with GPU support by default, fallback to CPU
-    "tensorflow[and-cuda]>=2.13.0; platform_machine != 'arm64'",
-    "tensorflow>=2.13.0; platform_machine == 'arm64'",
+    # TensorFlow with platform-specific GPU support
+    "tensorflow[and-cuda]>=2.13.0; platform_machine != 'arm64' and sys_platform != 'win32'",
+    "tensorflow>=2.13.0; platform_machine == 'arm64' or sys_platform == 'win32'",
     "scikit-learn>=1.3.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
@@ -29,9 +29,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# GPU support (default in main dependencies above)
+# GPU support (platform-specific)
 gpu = [
-    "tensorflow[and-cuda]>=2.13.0",
+    "tensorflow[and-cuda]>=2.13.0; sys_platform != 'win32'",
+    "tensorflow>=2.13.0; sys_platform == 'win32'",
 ]
 # CPU-only fallback for systems without CUDA
 cpu = [
