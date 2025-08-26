@@ -136,7 +136,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
 
             # Custom clean message instead of verbose Keras output
             print(
-                f"Epoch {epoch + 1}: val_loss improved from {self.best:.5f} to {current_val_loss:.5f}"
+                f"\nEpoch {epoch + 1}: val_loss improved from {self.best:.5f} to {current_val_loss:.5f}"
             )
 
             # Save best validation loss to a file
@@ -843,10 +843,24 @@ class ModelBuilder:
         # Try to load best validation loss from best symlink first, then current experiment
         from pathlib import Path
 
-        # Get the correct best symlink path
+        # Get the correct best symlink path: base/best/config_key/model_components/best_val_loss.json
         config_key = self.path_manager.get_config_key()
+        # Get base path and manually construct the correct best path
+        base_path = Path(self.path_manager._get_project_root()) / "outputs"
+        project_name = getattr(self.path_manager.config, "project", "fruitfly_aging")
+        batch_correction_enabled = getattr(
+            self.path_manager.config.data.batch_correction, "enabled", False
+        )
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
+        )
+
         best_symlink_path = str(
-            Path(self.path_manager.get_best_symlink_path())
+            base_path
+            / project_name
+            / "experiments"
+            / correction_dir
+            / "best"
             / config_key
             / "model_components"
             / "best_val_loss.json"

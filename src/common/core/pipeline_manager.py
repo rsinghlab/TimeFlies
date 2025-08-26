@@ -677,7 +677,7 @@ class PipelineManager:
         Note: Model loading is handled by the dedicated run_evaluation() method.
         """
         try:
-            print("Building and training model...")
+            print("\nBuilding and training model...")
             self.build_and_train_model()
             # Model built and trained successfully
         except Exception as e:

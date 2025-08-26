@@ -858,7 +858,7 @@ def train_command(args, config) -> int:
         pipeline = PipelineManager(config)
         results = pipeline.run()
 
-        print("\nTraining completed successfully!")
+        # Training completed message moved to duration display
 
         # Run analysis after training if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
@@ -912,7 +912,7 @@ def train_command(args, config) -> int:
             print(f"Best: {short_best}")
 
         if "duration" in results:
-            print(f"Duration: {results['duration']:.1f}s")
+            print(f"\nModel took {results['duration']:.1f}s to train and evaluate")
 
         return 0
 
