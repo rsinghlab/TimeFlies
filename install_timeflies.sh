@@ -35,8 +35,19 @@ detect_os() {
 }
 
 PLATFORM=$(detect_os)
-print_status "Platform: $PLATFORM"
-print_status "Working directory: $(pwd)"
+
+# Check if running in update mode
+UPDATE_MODE=false
+if [[ "$TIMEFLIES_UPDATE_MODE" == "1" ]]; then
+    UPDATE_MODE=true
+    echo "================================================"
+    echo "TimeFlies Update Mode - Refreshing Installation"
+    echo "================================================"
+    print_status "Updating existing TimeFlies installation"
+else
+    print_status "Platform: $PLATFORM"
+    print_status "Working directory: $(pwd)"
+fi
 
 # Find Python 3.12+
 PYTHON_CMD=""
@@ -69,13 +80,20 @@ if [[ -z "$PYTHON_CMD" ]]; then
 fi
 
 # Create virtual environment
-print_status "Creating Python environment..."
-if [[ -d ".venv" ]]; then
-    print_warning "Removing existing environment..."
-    rm -rf .venv
+if [[ "$UPDATE_MODE" == "true" ]]; then
+    print_status "Using existing Python environment..."
+    if [[ ! -d ".venv" ]]; then
+        print_error "Virtual environment not found - run full installation"
+        exit 1
+    fi
+else
+    print_status "Creating Python environment..."
+    if [[ -d ".venv" ]]; then
+        print_warning "Removing existing environment..."
+        rm -rf .venv
+    fi
+    $PYTHON_CMD -m venv .venv
 fi
-
-$PYTHON_CMD -m venv .venv
 
 # Activate environment
 if [[ "$PLATFORM" == "windows" ]]; then
@@ -94,24 +112,50 @@ pip install --upgrade pip
 print_success "Web-based GUI included (gradio) - no system dependencies required"
 
 # Install TimeFlies
-print_status "Installing TimeFlies..."
+if [[ "$UPDATE_MODE" == "true" ]]; then
+    print_status "Updating TimeFlies installation..."
+    INSTALL_SUCCESS=false
 
-INSTALL_SUCCESS=false
-
-if command -v git >/dev/null 2>&1; then
-    print_status "Downloading and installing TimeFlies..."
-
-    # Clone to permanent directory for user install (needed for editable install)
-    if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
-        print_status "Installing dependencies (this may take a few minutes)..."
-        if cd .timeflies_src && pip install -e . >/dev/null 2>&1; then
-            print_success "Installed TimeFlies successfully"
-            cd ..
-            # Keep the source directory for editable install
-            INSTALL_SUCCESS=true
+    if [[ -d ".timeflies_src" ]]; then
+        print_status "Updating TimeFlies source code..."
+        if cd .timeflies_src && git pull origin "$MAIN_BRANCH" >/dev/null 2>&1; then
+            print_status "Updating dependencies..."
+            if pip install -e . >/dev/null 2>&1; then
+                print_success "Updated TimeFlies successfully"
+                cd ..
+                INSTALL_SUCCESS=true
+            else
+                print_warning "Dependency update had issues but continuing"
+                cd ..
+                INSTALL_SUCCESS=true  # Continue even if some deps failed
+            fi
         else
+            print_error "Failed to update TimeFlies source"
             cd .. 2>/dev/null || true
-            rm -rf .timeflies_src 2>/dev/null || true
+        fi
+    else
+        print_error "TimeFlies source directory not found - run full installation"
+        exit 1
+    fi
+else
+    print_status "Installing TimeFlies..."
+    INSTALL_SUCCESS=false
+
+    if command -v git >/dev/null 2>&1; then
+        print_status "Downloading and installing TimeFlies..."
+
+        # Clone to permanent directory for user install (needed for editable install)
+        if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
+            print_status "Installing dependencies (this may take a few minutes)..."
+            if cd .timeflies_src && pip install -e . >/dev/null 2>&1; then
+                print_success "Installed TimeFlies successfully"
+                cd ..
+                # Keep the source directory for editable install
+                INSTALL_SUCCESS=true
+            else
+                cd .. 2>/dev/null || true
+                rm -rf .timeflies_src 2>/dev/null || true
+            fi
         fi
     fi
 fi
@@ -312,40 +356,53 @@ mkdir -p data
 # Basic project structure (user mode only)
 
 # Setup batch correction environment
-print_status "Setting up batch correction environment..."
-if [[ ! -d ".venv_batch" ]]; then
-    print_status "Creating PyTorch environment for batch correction..."
-    $PYTHON_CMD -m venv .venv_batch
-
-    # Activate batch environment
-    if [[ "$PLATFORM" == "windows" ]]; then
-        source .venv_batch/Scripts/activate
+if [[ "$UPDATE_MODE" == "true" ]]; then
+    print_status "Checking batch correction environment..."
+    if [[ -d ".venv_batch" ]]; then
+        print_success "Batch correction environment exists"
     else
-        source .venv_batch/bin/activate
+        print_warning "Batch correction environment missing - use 'timeflies setup --dev' to recreate"
     fi
-
-    # Install PyTorch + scvi-tools + batch correction dependencies
-    pip install --upgrade pip
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
-
-    # Deactivate batch environment
-    deactivate
-
-    # Reactivate main environment
-    if [[ "$PLATFORM" == "windows" ]]; then
-        source .venv/Scripts/activate
-    else
-        source .venv/bin/activate
-    fi
-
-    print_success "Batch correction environment created!"
 else
-    print_success "Batch correction environment already exists"
+    print_status "Setting up batch correction environment..."
+    if [[ ! -d ".venv_batch" ]]; then
+        print_status "Creating PyTorch environment for batch correction..."
+        $PYTHON_CMD -m venv .venv_batch
+
+        # Activate batch environment
+        if [[ "$PLATFORM" == "windows" ]]; then
+            source .venv_batch/Scripts/activate
+        else
+            source .venv_batch/bin/activate
+        fi
+
+        # Install PyTorch + scvi-tools + batch correction dependencies
+        pip install --upgrade pip
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+        pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
+
+        # Deactivate batch environment
+        deactivate
+
+        # Reactivate main environment
+        if [[ "$PLATFORM" == "windows" ]]; then
+            source .venv/Scripts/activate
+        else
+            source .venv/bin/activate
+        fi
+
+        print_success "Batch correction environment created!"
+    else
+        print_success "Batch correction environment already exists"
+    fi
 fi
 
 print_success "================================================"
-print_success "🎉 TimeFlies Installation Complete!"
+if [[ "$UPDATE_MODE" == "true" ]]; then
+    print_success "🎉 TimeFlies Update Complete!"
+else
+    print_success "🎉 TimeFlies Installation Complete!"
+fi
 print_success "================================================"
 echo ""
 
