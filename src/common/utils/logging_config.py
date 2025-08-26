@@ -94,7 +94,15 @@ def get_logger(name: str) -> logging.Logger:
     Returns:
         Logger instance
     """
-    return logging.getLogger(f"timeflies.{name}")
+    # Clean up the name to avoid duplication and use shorter names
+    if name.startswith("timeflies."):
+        name = name[10:]  # Remove "timeflies." prefix if present
+
+    # Use just the module name without full path for cleaner output
+    if "." in name:
+        name = name.split(".")[-1]  # Get just the last part (e.g., "metrics")
+
+    return logging.getLogger(name)
 
 
 class LoggerMixin:

@@ -810,7 +810,7 @@ class PipelineManager:
             result_type: "recent" (standalone evaluation) or "best" (post-training)
         """
         try:
-            logger.info("Computing evaluation metrics...")
+            # Computing evaluation metrics
             if self.metrics_class is None:
                 logger.warning(
                     "Metrics class not available, skipping metrics computation"
