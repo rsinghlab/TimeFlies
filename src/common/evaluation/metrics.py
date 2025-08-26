@@ -80,6 +80,9 @@ class EvaluationMetrics:
             logger.warning("Missing model or test data, skipping metrics computation")
             return
 
+        # Display evaluation dataset information
+        self._display_evaluation_info()
+
         # Make predictions
         predictions = self.model.predict(self.test_data, verbose=0)
 
@@ -735,6 +738,39 @@ class EvaluationMetrics:
             print("└" + "─" * (table_width - 2) + "┘")
 
         return metrics
+
+    def _display_evaluation_info(self):
+        """Display information about the evaluation dataset."""
+        print("📊 EVALUATION DATASET")
+        print("-" * 60)
+
+        # Dataset dimensions
+        n_samples, n_features = self.test_data.shape
+        print(f"Samples: {n_samples:,}")
+        print(f"Features (genes): {n_features:,}")
+
+        # Class distribution
+        unique_labels, counts = np.unique(self.test_labels, return_counts=True)
+        print("Class distribution:")
+
+        # Get class names if label encoder is available
+        if self.label_encoder and hasattr(self.label_encoder, "classes_"):
+            class_names = self.label_encoder.classes_
+            for i, (label, count) in enumerate(zip(unique_labels, counts)):
+                if i < len(class_names):
+                    class_name = class_names[int(label)]
+                    percentage = (count / n_samples) * 100
+                    print(f"  • {class_name}: {count:,} samples ({percentage:.1f}%)")
+                else:
+                    print(
+                        f"  • Class {label}: {count:,} samples ({(count / n_samples) * 100:.1f}%)"
+                    )
+        else:
+            for label, count in zip(unique_labels, counts):
+                percentage = (count / n_samples) * 100
+                print(f"  • Class {label}: {count:,} samples ({percentage:.1f}%)")
+
+        print("-" * 60)
 
     def _compute_baseline_comparison(self, true_labels, predicted_classes, predictions):
         """
