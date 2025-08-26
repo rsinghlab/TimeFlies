@@ -897,7 +897,7 @@ class ModelBuilder:
             paths["num_features_path"],
             monitor="val_loss",
             save_best_only=True,
-            verbose=1,
+            verbose=0,  # Suppress checkpoint messages
         )
         model_checkpoint.set_best_val_loss(best_val_loss)
 

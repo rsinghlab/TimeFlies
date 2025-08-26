@@ -551,15 +551,14 @@ class EvaluationMetrics:
         """
         metrics = {}
 
-        # Get task type and metrics from config
-        task_type = getattr(self.config.model, "task_type", "classification")
+        # Get metrics from config
         eval_config = getattr(self.config, "evaluation", {})
         config_metrics = eval_config.get("metrics", {})
         eval_metrics = config_metrics.get("evaluation", {}).get(
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
 
-        logger.info(f"📊 Evaluating {task_type} model...")
+        # Evaluating model
 
         # Basic classification metrics
         if "accuracy" in eval_metrics:
@@ -665,7 +664,7 @@ class EvaluationMetrics:
                 metric_values.append(f"{metric}={metrics[metric]:.3f}")
 
         if metric_values:
-            logger.info(f"📊 Classification: {' | '.join(metric_values)}")
+            print(f"📊 {' | '.join(metric_values)}")
 
         return metrics
 
@@ -688,7 +687,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        logger.info("📊 Computing baselines...")
+        # Computing baselines
 
         # Create dummy training data (we'll use the test data for simplicity)
         dummy_X = np.ones((len(true_labels), 1))  # Dummy features

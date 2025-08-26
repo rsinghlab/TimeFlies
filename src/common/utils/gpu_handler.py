@@ -32,9 +32,11 @@ class GPUHandler:
         """
         # Reduce TensorFlow verbosity
         import os
+        import warnings
 
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Only show errors
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress all logs including warnings
         tf.get_logger().setLevel("ERROR")
+        warnings.filterwarnings("ignore", category=UserWarning, module="keras")
         processor = getattr(config.hardware, "processor", "GPU")
 
         if processor == "M":
@@ -57,9 +59,10 @@ class GPUHandler:
                     # Set memory growth FIRST before any GPU operations
                     for gpu in gpus:
                         tf.config.experimental.set_memory_growth(gpu, True)
-                    print(f"GPU memory growth set successfully for {len(gpus)} GPU(s).")
+                    print(f"🚀 GPU ready: {len(gpus)} device(s)")
                 except RuntimeError as e:
                     # Catch and print exception if memory growth setting fails
                     print("Error setting GPU memory growth:", e)
             else:
-                print("No GPUs found. Running on CPU.")
+                # GPU not found - this might be expected in CPU-only environments
+                pass  # Remove the message - CPU usage is fine

@@ -97,15 +97,13 @@ class PipelineManager:
                 self.config_instance.data.batch_correction, "enabled", False
             )
             if batch_correction_enabled:
-                logger.info("Batch correction enabled - loading corrected data...")
+                # Loading batch corrected data
                 (
                     self.adata_corrected,
                     self.adata_eval_corrected,
                 ) = self.data_loader.load_corrected_data()
             else:
-                logger.info(
-                    "Batch correction disabled - skipping corrected data loading"
-                )
+                # Batch correction disabled
                 self.adata_corrected = None
                 self.adata_eval_corrected = None
             self.autosomal_genes, self.sex_genes = self.data_loader.load_gene_lists()
@@ -122,7 +120,7 @@ class PipelineManager:
             if getattr(
                 self.config_instance.data_processing, "exploratory_data_analysis", {}
             ).get("enabled", False):
-                logger.info("Running Exploratory Data Analysis (EDA)...")
+                # Running EDA
                 if self.eda_handler_class is not None:
                     eda_handler = self.eda_handler_class(
                         self.config_instance,
@@ -134,11 +132,12 @@ class PipelineManager:
                         self.adata_eval_corrected,
                     )
                     eda_handler.run_eda()
-                    logger.info("EDA completed.")
+                    # EDA completed
                 else:
                     logger.warning("EDA requested but no EDA handler available")
             else:
-                logger.info("Skipping EDA as it is disabled in the configuration.")
+                # EDA disabled
+                pass
         except Exception as e:
             logger.error(f"Error during EDA: {e}")
             raise
@@ -188,25 +187,23 @@ class PipelineManager:
                 self.highly_variable_genes,
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
-            logger.info("Training and testing data preprocessed successfully.")
+            # Data preprocessing complete
 
             # Free memory by deleting large raw data objects after preprocessing
             # (preserve evaluation data for auto-evaluation)
-            logger.info("Cleaning up raw data objects to free memory...")
+            # Cleaning up memory
             del self.adata
             # Keep adata_eval and adata_eval_corrected for auto-evaluation
             del self.adata_original
             if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
                 del self.adata_corrected
             # Keep both adata_eval and adata_eval_corrected for auto-evaluation
-            logger.info(
-                "Preserving adata_eval and adata_eval_corrected for auto-evaluation"
-            )
+            # Preserving evaluation data
 
             import gc
 
             gc.collect()  # Force garbage collection
-            logger.info("Memory cleanup complete.")
+            # Memory cleanup complete
         except Exception as e:
             logger.error(f"Error during general data preprocessing: {e}")
             raise
@@ -216,7 +213,7 @@ class PipelineManager:
         Preprocess final evaluation data to prevent data leakage.
         """
         try:
-            logger.info("Preprocessing final evaluation data...")
+            # Preprocessing evaluation data
             self.data_preprocessor = DataPreprocessor(
                 self.config_instance, self.adata, self.adata_corrected
             )
@@ -246,10 +243,10 @@ class PipelineManager:
                     self, "train_gene_names", None
                 ),  # Use training gene names if available
             )
-            logger.info("Final evaluation data preprocessed successfully.")
+            # Evaluation data ready
 
             # Preserve gene names before memory cleanup for visualization
-            logger.info("Preserving gene names for visualization...")
+            # Preserving gene names
             batch_correction_enabled = getattr(
                 self.config_instance.data.batch_correction, "enabled", False
             )
@@ -287,7 +284,7 @@ class PipelineManager:
                     self.preserved_var_names = self.adata_eval.var_names.copy()
 
             # Free memory by deleting large raw data objects after final evaluation preprocessing
-            logger.info("Cleaning up raw data objects to free memory...")
+            # Cleaning up memory
             if hasattr(self, "adata"):
                 del self.adata
             if hasattr(self, "adata_eval"):
@@ -305,7 +302,7 @@ class PipelineManager:
             import gc
 
             gc.collect()  # Force garbage collection
-            logger.info("Memory cleanup complete.")
+            # Memory cleanup complete
         except Exception as e:
             logger.error(f"Error during final evaluation data preprocessing: {e}")
             raise
@@ -520,7 +517,7 @@ class PipelineManager:
                 )
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 self.model.save(model_path)
-                logger.info("✅ Model saved")
+                # Model saved
 
                 # Update best symlink if this is a new best model
                 if self.model_improved:
@@ -615,7 +612,7 @@ class PipelineManager:
                 ),  # Use exact gene names from training
             )
 
-            logger.info("Final evaluation data preprocessed successfully.")
+            # Evaluation data ready
 
             # Run evaluation metrics (post-training: save to recent always, best only if improved)
             self.run_metrics("recent")
@@ -636,7 +633,7 @@ class PipelineManager:
             ):
                 self.run_analysis_script()
 
-            logger.info("Post-training evaluation completed successfully.")
+            # Evaluation complete
 
             # Clean up evaluation data after auto-evaluation is complete
             if hasattr(self, "adata_eval"):
@@ -649,7 +646,7 @@ class PipelineManager:
             import gc
 
             gc.collect()
-            logger.info("Evaluation data cleanup complete after auto-evaluation.")
+            # Cleanup complete
 
             # Save all results to new experiment structure
             self._save_experiment_evaluation()
@@ -737,7 +734,7 @@ class PipelineManager:
         Set up and run visualizations for the current experiment.
         """
         if getattr(self.config_instance.visualizations, "enabled", False):
-            logger.info("Running visualizations...")
+            # Running visualizations
 
             # Ensure SHAP attributes exist (set to None if not available)
             if not hasattr(self, "squeezed_shap_values"):
@@ -825,11 +822,7 @@ class PipelineManager:
                 / "evaluation"
             )
             best_dir = (
-                Path(
-                    self.path_manager.get_experiment_dir(
-                        self.experiment_name, result_type="best"
-                    )
-                )
+                Path(self.path_manager.get_experiment_dir(self.experiment_name))
                 / "evaluation"
             )
 
