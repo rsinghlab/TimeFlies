@@ -1330,10 +1330,10 @@ def analyze_command(args, config) -> int:
 
     except Exception as e:
         print(f"[ERROR] Analysis failed: {e}")
-        if hasattr(args, "verbose") and args.verbose:
-            import traceback
+        # Always print traceback for debugging
+        import traceback
 
-            traceback.print_exc()
+        traceback.print_exc()
         return 1
 
 
