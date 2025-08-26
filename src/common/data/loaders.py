@@ -42,11 +42,7 @@ class DataLoader:
         This method constructs the full paths to the h5ad data files and other relevant
         files based on the configuration provided.
         """
-        # Path to the main h5ad file (directly in tissue directory from PathManager)
-        train_template = getattr(self.config.paths.data, "train", "fly_train.h5ad")
-
-        # Map project name to file naming convention
-        # Use top-level project name, not data.project (which comes from base config)
+        # Use standard path logic based on project naming convention
         project_name = getattr(self.config, "project", "fruitfly_aging")
         if project_name == "fruitfly_aging":
             project_for_files = "aging"
@@ -55,54 +51,32 @@ class DataLoader:
         else:
             project_for_files = project_name
 
-        train_filename = train_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, "tissue", "head"),
-            species=getattr(self.config.data, "species", "drosophila"),
-        ).split("/")[-1]
+        # Standard path templates - users follow this naming convention
+        # Get config values
+        tissue = getattr(self.config.data, "tissue", "head")
+        species = getattr(self.config.data, "species", "drosophila")
+
+        # Standard path templates - users follow this naming convention
+        train_filename = f"{species}_{tissue}_{project_for_files}_train.h5ad"
         self.h5ad_file_path = os.path.join(self.Data_dir, train_filename)
 
         # Path to the evaluation h5ad file
-        eval_template = getattr(self.config.paths.data, "eval", "fly_eval.h5ad")
-        eval_filename = eval_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, "tissue", "head"),
-            species=getattr(self.config.data, "species", "drosophila"),
-        ).split("/")[-1]
+        eval_filename = f"{species}_{tissue}_{project_for_files}_eval.h5ad"
         self.h5ad_eval_file_path = os.path.join(self.Data_dir, eval_filename)
 
         # Path to the original unprocessed h5ad file
-        original_template = getattr(
-            self.config.paths.data, "original", "fly_original.h5ad"
-        )
-        original_filename = original_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, "tissue", "head"),
-            species=getattr(self.config.data, "species", "drosophila"),
-        ).split("/")[-1]
+        original_filename = f"{species}_{tissue}_{project_for_files}_original.h5ad"
         self.h5ad_file_path_original = os.path.join(self.Data_dir, original_filename)
 
         # Paths for batch-corrected data (same directory structure)
-        train_batch_template = getattr(
-            self.config.paths.batch_data, "train", "fly_train_batch.h5ad"
+        train_batch_filename = (
+            f"{species}_{tissue}_{project_for_files}_train_batch.h5ad"
         )
-        train_batch_filename = train_batch_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, "tissue", "head"),
-            species=getattr(self.config.data, "species", "drosophila"),
-        ).split("/")[-1]
         self.h5ad_file_path_corrected = os.path.join(
             self.Data_dir, train_batch_filename
         )
 
-        eval_batch_template = getattr(
-            self.config.paths.batch_data, "eval", "fly_eval_batch.h5ad"
-        )
-        eval_batch_filename = eval_batch_template.format(
-            project=project_for_files,
-            tissue=getattr(self.config.data, "tissue", "head"),
-            species=getattr(self.config.data, "species", "drosophila"),
-        ).split("/")[-1]
+        eval_batch_filename = f"{species}_{tissue}_{project_for_files}_eval_batch.h5ad"
         self.h5ad_eval_file_path_corrected = os.path.join(
             self.Data_dir, eval_batch_filename
         )
