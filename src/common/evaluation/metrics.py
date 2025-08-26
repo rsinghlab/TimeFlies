@@ -736,11 +736,19 @@ class EvaluationMetrics:
 
     def _display_evaluation_info(self):
         """Display information about the evaluation dataset."""
-        print("📊 EVALUATION DATASET")
+        print("\n📊 EVALUATION DATASET")
         print("-" * 60)
 
-        # Dataset dimensions
-        n_samples, n_features = self.test_data.shape
+        # Dataset dimensions - handle different shapes safely
+        if len(self.test_data.shape) == 2:
+            n_samples, n_features = self.test_data.shape
+        elif len(self.test_data.shape) == 1:
+            n_samples = self.test_data.shape[0]
+            n_features = 1
+        else:
+            n_samples = self.test_data.shape[0]
+            n_features = np.prod(self.test_data.shape[1:])
+
         print(f"Samples: {n_samples:,}")
         print(f"Features (genes): {n_features:,}")
 
