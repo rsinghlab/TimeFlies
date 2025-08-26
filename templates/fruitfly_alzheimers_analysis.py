@@ -69,9 +69,18 @@ def run_analysis(model, config, path_manager, pipeline):
             df["actual_age"]
         )
 
+        # Check genotype situation
+        if "genotype" in df.columns:
+            genotypes = df["genotype"].unique()
+            print(f"🧬 Found genotypes: {list(genotypes)}")
+            if len(genotypes) == 1:
+                print(f"   → Single genotype study: {genotypes[0]} vs control baseline")
+        else:
+            print("🧬 No genotype column - analyzing as single group")
+
         # Run analyses
         aging_acceleration_analysis(df, analysis_dir)
-        if "genotype" in df.columns:
+        if "genotype" in df.columns and len(df["genotype"].unique()) > 1:
             genotype_comparison_analysis(df, analysis_dir)
         age_specific_analysis(df, analysis_dir)
         create_comprehensive_visualizations(df, analysis_dir)
@@ -222,11 +231,11 @@ def create_comprehensive_visualizations(df, output_dir):
         # Determine figure layout based on available data
         has_genotype = "genotype" in df.columns and len(df["genotype"].unique()) > 1
 
-        fig, axes = plt.subplots(
-            2, 2 if has_genotype else 2, figsize=(15, 12) if has_genotype else (12, 12)
-        )
-        if not has_genotype:
-            axes = np.append(axes, [None])  # Pad for consistent indexing
+        if has_genotype:
+            fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        else:
+            fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+            # For consistent indexing, we'll use all 4 subplots even without genotype
 
         # 1. Prediction error distribution
         axes[0, 0].hist(
@@ -297,6 +306,21 @@ def create_comprehensive_visualizations(df, output_dir):
             axes[1, 1].set_ylabel("Prediction Error (days)")
             axes[1, 1].set_title("Prediction Error by Genotype")
             axes[1, 1].tick_params(axis="x", rotation=45)
+        else:
+            # Hide the 4th subplot if no genotype data
+            axes[1, 1].text(
+                0.5,
+                0.5,
+                "Single genotype\n(no comparison)",
+                ha="center",
+                va="center",
+                transform=axes[1, 1].transAxes,
+                fontsize=12,
+                color="gray",
+            )
+            axes[1, 1].set_title("Genotype Comparison")
+            axes[1, 1].set_xticks([])
+            axes[1, 1].set_yticks([])
 
         plt.tight_layout()
 
