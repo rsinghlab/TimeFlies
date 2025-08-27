@@ -615,11 +615,12 @@ class PathManager:
             # During testing or standalone operations, create new experiment
             # During training pipeline, this should not happen - experiment_name should be provided
             import warnings
+
             warnings.warn(
                 "Creating new experiment directory without explicit experiment_name. "
                 "This may cause multiple experiment directories during training.",
                 UserWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             experiment_name = self.generate_experiment_name()
 
