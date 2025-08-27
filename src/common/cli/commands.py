@@ -845,11 +845,6 @@ def train_command(args, config) -> int:
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
-        print(f"Tissue: {config.data.tissue.title()}")
-        print(f"Model: {config.data.model}")
-        print(f"Target: {config.data.target_variable.title()}")
-        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
-        print(f"Batch Correction: {batch_status}")
 
         # Use common PipelineManager for all projects (GPU will be configured there)
         from common.core import PipelineManager
