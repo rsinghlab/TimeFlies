@@ -159,7 +159,7 @@ class DataPreprocessor:
                     n=min(num_samples, train_subset.n_obs), random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
-                print(f"Applied sampling: Using {train_subset.n_obs} training cells")
+                # Sampling applied - details will be shown in training data logs
 
         else:
             # Random split method - no test_ratio, pass entire dataset
@@ -175,7 +175,7 @@ class DataPreprocessor:
                 # Keras will handle train/validation split internally
                 train_subset = dataset.copy()
                 test_subset = dataset[:0].copy()  # Empty subset
-                print(f"Training mode: {train_subset.n_obs} cells (full dataset)")
+                # Training data will be shown in detailed preprocessing logs
 
             # Apply sampling if specified (only during training)
             num_samples = getattr(config.data.sampling, "samples", None)
@@ -185,7 +185,7 @@ class DataPreprocessor:
                     n=min(num_samples, train_subset.n_obs), random_state=random_state
                 ).index
                 train_subset = train_subset[train_sample_indices, :]
-                print(f"Applied sampling: Using {train_subset.n_obs} training cells")
+                # Sampling applied - details will be shown in training data logs
 
         return train_subset, test_subset
 
@@ -391,16 +391,25 @@ class DataPreprocessor:
         print(f"Batch Size: {getattr(config.model, 'batch_size', 32)}")
         print(f"Max Epochs: {getattr(config.model, 'epochs', 100)}")
 
-        print("\nPreparing Training Data:")
+        print("\n📊 ACTUAL TRAINING DATA:")
         print("-" * 60)
         print(
-            f"Training samples: {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
+            f"Training Data (Preprocessed): {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
         )
+
+        # Check if sampling was applied
+        sampling_config = getattr(config.data, "sampling", None)
+        if sampling_config and getattr(sampling_config, "enabled", False):
+            sample_size = getattr(sampling_config, "samples", 10000)
+            if sample_size < train_subset.n_obs:
+                print(
+                    f"  └─ Sampling Applied: Random sampling to {sample_size:,} cells"
+                )
 
         # Show class distribution more cleanly with target variable name
         class_counts = train_subset.obs[encoding_var].value_counts().sort_index()
         total = class_counts.sum()
-        print(f"\n{encoding_var.title()} Distribution (Training):")
+        print(f"\n{encoding_var.title()} Distribution (Actual Training Data):")
         for key, count in class_counts.items():
             pct = (count / total) * 100
             unit = "days" if encoding_var == "age" else ""
@@ -408,8 +417,16 @@ class DataPreprocessor:
 
         if test_subset.n_obs > 0:
             print(
-                f"Testing samples: {test_subset.n_obs:,} cells, {test_subset.n_vars:,} genes"
+                f"\nHoldout Evaluation Data: {test_subset.n_obs:,} cells, {test_subset.n_vars:,} genes"
             )
+            # Show evaluation distribution
+            eval_counts = test_subset.obs[encoding_var].value_counts().sort_index()
+            eval_total = eval_counts.sum()
+            print(f"\n{encoding_var.title()} Distribution (Holdout Evaluation):")
+            for key, count in eval_counts.items():
+                pct = (count / eval_total) * 100
+                unit = "days" if encoding_var == "age" else ""
+                print(f"  └─ {key} {unit:5s}: {count:6,} samples ({pct:5.1f}%)")
 
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(

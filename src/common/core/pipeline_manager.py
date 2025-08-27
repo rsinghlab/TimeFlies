@@ -89,20 +89,29 @@ class PipelineManager:
         print(title)
         print("=" * width)
 
-    def _print_dataset_overview(self):
-        """Print comprehensive dataset overview for training and evaluation."""
+    def _print_project_and_dataset_overview(self):
+        """Print consolidated project information and actual training/evaluation data overview."""
         print("\n" + "=" * 60)
-        print("📊 DATASET OVERVIEW")
+        print(
+            f"📋 PROJECT: {self.config_instance.project.name.replace('_', ' ').title()}"
+        )
         print("=" * 60)
 
-        # Total dataset info
-        total_cells = self.adata.n_obs if hasattr(self, "adata") else 0
-        total_genes = self.adata.n_vars if hasattr(self, "adata") else 0
-        eval_cells = self.adata_eval.n_obs if hasattr(self, "adata_eval") else 0
+        # Model Architecture
+        model_type = getattr(self.config_instance.data, "model", "mlp").upper()
+        target = getattr(self.config_instance.data, "target_variable", "age")
+        tissue = getattr(self.config_instance.data, "tissue", "unknown")
+        batch_corrected = getattr(
+            self.config_instance.data.batch_correction, "enabled", False
+        )
 
-        print("Total Dataset:")
-        print(f"  └─ Samples:           {total_cells:,} cells")
-        print(f"  └─ Features (genes):  {total_genes:,}")
+        print(f"Model Architecture:     {model_type}")
+        if model_type == "CNN":
+            print("  └─ Input Shape:       (genes, 1) - Reshaped for convolution")
+            print("  └─ Convolution Type:  1D CNN")
+        print(f"Target Variable:        {target.title()}")
+        print(f"Tissue Type:            {tissue.title()}")
+        print(f"Batch Corrected:        {'Yes' if batch_corrected else 'No'}")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -110,54 +119,20 @@ class PipelineManager:
         split_config = SplitNamingUtils.extract_split_details_for_metadata(
             self.config_instance
         )
-
         if split_config:
-            print("\nSplit Configuration:")
-            print(f"  └─ Split Method:      {split_config.get('method', 'unknown')}")
+            print(
+                f"Split Method:           {split_config.get('method', 'unknown').title()}"
+            )
             if split_config.get("method") == "column":
                 print(
-                    f"  └─ Split Column:      {split_config.get('column', 'unknown')}"
+                    f"Split Column:           {split_config.get('column', 'unknown')}"
                 )
                 train_vals = split_config.get("train_values", [])
                 test_vals = split_config.get("test_values", [])
                 if train_vals:
-                    print(f"  └─ Training Values:   {', '.join(train_vals)}")
+                    print(f"Training Values:        {', '.join(train_vals)}")
                 if test_vals:
-                    print(f"  └─ Evaluation Values: {', '.join(test_vals)}")
-
-        # Training data info (will be shown after preprocessing)
-        sampling_config = getattr(self.config_instance.data, "sampling", None)
-        if sampling_config and getattr(sampling_config, "enabled", False):
-            sample_size = getattr(sampling_config, "samples", 10000)
-            print("\nTraining Data (after sampling):")
-            print(
-                f"  └─ Samples:           {sample_size:,} cells (from {total_cells:,})"
-            )
-            print(f"  └─ Features:          {total_genes:,} genes")
-            print("  └─ Sampling Method:   Random sampling")
-        else:
-            print("\nTraining Data:")
-            print(f"  └─ Samples:           {total_cells:,} cells")
-            print(f"  └─ Features:          {total_genes:,} genes")
-
-        # Target variable distribution will be shown after preprocessing
-        target_var = getattr(self.config_instance.data, "target_variable", "age")
-        print(f"\n{target_var.title()} Distribution (Training):")
-        print("  └─ Will be calculated after preprocessing...")
-
-        # Evaluation data info
-        print("\nHoldout Evaluation Data:")
-        print(f"  └─ Samples:           {eval_cells:,} cells")
-        print(f"  └─ Features:          {total_genes:,} genes")
-
-        # Evaluation target distribution
-        if hasattr(self, "adata_eval") and self.adata_eval is not None:
-            print(f"\n{target_var.title()} Distribution (Evaluation):")
-            eval_dist = self.adata_eval.obs[target_var].value_counts().sort_index()
-            total_eval = eval_dist.sum()
-            for key, count in eval_dist.items():
-                pct = (count / total_eval) * 100
-                print(f"  └─ {key:10s}: {count:6,} samples ({pct:5.1f}%)")
+                    print(f"Evaluation Values:      {', '.join(test_vals)}")
 
         print("=" * 60)
 
@@ -511,9 +486,9 @@ class PipelineManager:
         # Save outputs and create symlinks after training
         self.save_outputs(metadata=True, symlinks=True)
 
-        # Print training completion summary
-        print("\n" + "-" * 60)
-        print("✅ TRAINING COMPLETED")
+        # Print training completion summary with improvement status
+        improvement_status = "🆕 NEW BEST" if self.model_improved else "📊 BASELINE"
+        print(f"\n✅ TRAINING COMPLETED - {improvement_status}")
         print("-" * 60)
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
@@ -523,7 +498,6 @@ class PipelineManager:
                 print(f"Best Epoch: {best_epoch}")
                 print(f"Best Val Loss: {best_val_loss:.4f}")
 
-        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         print(f"Model saved to: {self.experiment_name}")
 
         # Show training duration if available
@@ -535,6 +509,7 @@ class PipelineManager:
         print("-" * 60)
 
         # Return training results
+        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         return {
             "model_path": experiment_dir,
             "experiment_name": self.experiment_name,
@@ -802,15 +777,14 @@ class PipelineManager:
         # Setup phases (once for entire pipeline)
         self._setup_pipeline()
 
-        # Show dataset overview after setup
-        self._print_dataset_overview()
+        # Show project and dataset overview after setup
+        self._print_project_and_dataset_overview()
 
         # Step 1: Training (skip setup since we already did it)
         training_results = self.run_training(skip_setup=True)
 
         # Step 2: Evaluation (skip setup since we already did it)
-        self._print_header("🧪 AUTOMATIC HOLDOUT EVALUATION")
-        print("Loading trained model for evaluation...")
+        self._print_header(f"🧪 HOLDOUT EVALUATION - {self.experiment_name}")
         print("-" * 60)
 
         try:
@@ -843,27 +817,6 @@ class PipelineManager:
         self._cleanup_memory(keep_eval_data=False, keep_vis_data=False)
         self._in_combined_pipeline = False
 
-        # Print final summary
-        print("\n" + "=" * 60)
-        print("✅ PIPELINE COMPLETED SUCCESSFULLY")
-        print("=" * 60)
-        print(f"Experiment: {self.experiment_name}")
-
-        # Show where models are saved
-        project = getattr(self.config_instance, "project", "fruitfly_aging")
-        batch_corr = (
-            "batch_corrected"
-            if self.config_instance.data.batch_correction.enabled
-            else "uncorrected"
-        )
-        config_key = self.path_manager.get_config_key()
-
-        print(
-            f"Best Model: outputs/{project}/experiments/{batch_corr}/best/{config_key}/"
-        )
-        print(
-            f"Latest Model: outputs/{project}/experiments/{batch_corr}/latest/{config_key}/"
-        )
-        print("=" * 60)
+        # Final summary section removed as requested
 
         return pipeline_results

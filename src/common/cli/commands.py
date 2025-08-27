@@ -860,6 +860,9 @@ def train_command(args, config) -> int:
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
+        # Add experiment name to header after pipeline initialization
+        print(f"Experiment: {pipeline.experiment_name}")
+        print("-" * 60)
         results = pipeline.run_pipeline()
 
         # Training completed message moved to duration display
