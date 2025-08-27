@@ -379,7 +379,7 @@ class DataPreprocessor:
 
         # Print model architecture summary
         print("MODEL ARCHITECTURE")
-        print("=" * 60)
+        print("-" * 60)
         print(
             f"Architecture:           {getattr(config.model, 'model_type', 'CNN').upper()}"
         )

@@ -908,22 +908,17 @@ class ModelBuilder:
 
         # Load the best validation loss from file
         best_val_loss = float("inf")
-        model_found = False
 
         for path_to_try in [best_symlink_path, current_path]:
             try:
                 if os.path.exists(path_to_try):
                     with open(path_to_try) as f:
                         best_val_loss = json.load(f)["best_val_loss"]
-                        model_found = True
                         break
             except (FileNotFoundError, json.JSONDecodeError):
                 continue
 
-        if model_found:
-            print(f"Previous best validation loss: {best_val_loss:.3f}")
-        else:
-            print("No previous model found - training new model")
+        # Previous model info will be shown in TRAINING PROGRESS header
 
         # Split data into training and validation sets
         (
