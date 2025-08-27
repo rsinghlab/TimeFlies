@@ -200,6 +200,7 @@ class ModelLoader:
     def __init__(
         self,
         config,
+        pipeline_mode="training",
     ):
         """
         Initializes the ModelLoader with configuration and directory structure to locate the model files.
@@ -207,6 +208,7 @@ class ModelLoader:
         Parameters:
         - config (ConfigHandler): A ConfigHandler instance containing settings for model loading, paths,
           and preprocessing components.
+        - pipeline_mode (str): "training" (train+eval) or "evaluation" (eval-only)
 
         Sets up:
         - `model_dir` by constructing the directory path from config details.
@@ -214,6 +216,7 @@ class ModelLoader:
         - `model_type` to specify the type of model (e.g., CNN, RNN) as per config.
         """
         self.config = config
+        self.pipeline_mode = pipeline_mode
         self.path_manager = PathManager(self.config)
 
         # Use best experiment for current config instead of old model directory
@@ -316,15 +319,9 @@ class ModelLoader:
                 print(
                     "  This may cause evaluation issues if configuration differs from model training"
                 )
-            else:
+            elif self.pipeline_mode == "evaluation":
+                # Only show success message during evaluation-only pipeline
                 print("✓ Configuration matches saved model")
-                if saved_split:
-                    print(
-                        f"  Split: {saved_split.get('split_name')} ({saved_split.get('method')})"
-                    )
-                    print(
-                        f"  Model: {saved_model}, Target: {saved_target}, Tissue: {saved_tissue}"
-                    )
 
         except Exception as e:
             print(f"WARNING: Could not verify split compatibility: {e}")

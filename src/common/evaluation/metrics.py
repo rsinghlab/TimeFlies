@@ -48,6 +48,7 @@ class EvaluationMetrics:
         path_manager=None,
         result_type="recent",
         output_dir=None,
+        pipeline_mode="training",
     ):
         """
         Initialize aging metrics calculator.
@@ -60,6 +61,7 @@ class EvaluationMetrics:
             label_encoder: Label encoder for predictions
             path_manager: Path manager for saving results
             result_type: "recent" (standalone) or "best" (post-training)
+            pipeline_mode: "training" (train+eval) or "evaluation" (eval-only)
         """
         self.config = config
         self.model = model
@@ -69,6 +71,7 @@ class EvaluationMetrics:
         self.path_manager = path_manager
         self.result_type = result_type
         self.output_dir = output_dir
+        self.pipeline_mode = pipeline_mode
 
     def compute_metrics(self):
         """
@@ -80,8 +83,9 @@ class EvaluationMetrics:
             logger.warning("Missing model or test data, skipping metrics computation")
             return
 
-        # Display evaluation dataset information
-        self._display_evaluation_info()
+        # Display evaluation dataset information if in eval-only pipeline
+        if self.pipeline_mode == "evaluation":
+            self._display_evaluation_info()
 
         # Make predictions
         predictions = self.model.predict(self.test_data, verbose=0)
