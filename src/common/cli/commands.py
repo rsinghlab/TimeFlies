@@ -850,18 +850,24 @@ def train_command(args, config) -> int:
         print(f"Target: {config.data.target_variable.title()}")
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
-        print("-" * 60)
-
-        print("\n⚙️ SYSTEM CONFIGURATION")
-        print("-" * 60)
 
         # Use common PipelineManager for all projects (GPU will be configured there)
         from common.core import PipelineManager
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
-        # Add experiment name to header after pipeline initialization
         print(f"Experiment: {pipeline.experiment_name}")
+
+        # Get GPU info after GPU configuration
+        import tensorflow as tf
+
+        if tf.config.list_physical_devices("GPU"):
+            gpu_name = tf.config.experimental.get_device_details(
+                tf.config.list_physical_devices("GPU")[0]
+            )["device_name"]
+            print(f"GPU: {gpu_name}")
+        else:
+            print("GPU: Not available (using CPU)")
         print("-" * 60)
         results = pipeline.run_pipeline()
 

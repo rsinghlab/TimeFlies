@@ -158,5 +158,4 @@ class DataLoader:
         # Log status of gene filtering capability
         if not autosomal_genes and not sex_genes:
             print("⚠ Gene filtering disabled (no reference data found)")
-
         return autosomal_genes, sex_genes
