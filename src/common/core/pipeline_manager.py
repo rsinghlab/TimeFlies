@@ -457,10 +457,7 @@ class PipelineManager:
                 )
                 return
 
-            # Get training directory path (created when saving visualizations)
-            training_dir = self.path_manager.get_experiment_training_dir(
-                self.experiment_name
-            )
+            # Training visualizations will be saved to experiment directory
 
             # Create visualizer with experiment training directory
             visualizer = self.visualizer_class(
@@ -477,10 +474,8 @@ class PipelineManager:
                 self.path_manager,
             )
 
-            # Set output directory to training directory
-            visualizer.training_visual_tools.output_dir = training_dir
-
-            # Generate training plots
+            # The visualizer will create training_visual_tools when needed
+            # Just call the visualization method directly
             visualizer._visualize_training_history()
             # Training visualizations saved
 
@@ -577,6 +572,114 @@ class PipelineManager:
         except Exception as e:
             logger.warning(f"Failed to save experiment evaluation: {e}")
 
+    # def run_post_training_evaluation(self):
+    #     """
+    #     Run evaluation immediately after training using in-memory model components.
+    #     Much more efficient than reloading everything.
+    #     """
+    #     try:
+    #         # Check if we have evaluation data available
+    #         if not hasattr(self, "adata_eval") or self.adata_eval is None:
+    #             logger.warning("No evaluation data available for auto-evaluation")
+    #             return
+
+    #         # Select evaluation dataset (corrected vs uncorrected)
+    #         batch_correction_enabled = getattr(
+    #             self.config_instance.data.batch_correction, "enabled", False
+    #         )
+    #         evaluation_dataset = (
+    #             self.adata_eval_corrected
+    #             if batch_correction_enabled and hasattr(self, "adata_eval_corrected")
+    #             else self.adata_eval
+    #         )
+
+    #         # Process EVALUATION data using fitted training components (no data leakage)
+    #         from common.data.preprocessing import DataPreprocessor
+
+    #         data_preprocessor = DataPreprocessor(self.config_instance, None, None)
+
+    #         (
+    #             self.test_data,
+    #             self.test_labels,
+    #             self.label_encoder,
+    #         ) = data_preprocessor.prepare_final_eval_data(
+    #             evaluation_dataset,  # Pass evaluation data (not training data)
+    #             self.label_encoder,  # Use fitted encoder from training
+    #             self.num_features,  # Use features from training
+    #             self.scaler,  # Use fitted scaler from training
+    #             self.is_scaler_fit,
+    #             self.highly_variable_genes,  # Use selected genes from training
+    #             self.mix_included,
+    #             getattr(
+    #                 self, "train_gene_names", None
+    #             ),  # Use exact gene names from training
+    #         )
+
+    #         # Evaluation data ready
+
+    #         # Run evaluation metrics (post-training: save to recent directory)
+    #         self.run_metrics("recent")
+    #         # If model improved, metrics are automatically accessible via best/ symlink
+
+    #         # Run visualizations for experiment
+    #         if getattr(self.config_instance.visualizations, "enabled", False):
+    #             self.run_visualizations()
+
+    #         # Run project-specific analysis
+    #         if getattr(
+    #             self.config_instance.analysis.run_analysis_script, "enabled", False
+    #         ):
+    #             self.run_analysis_script()
+
+    #         # Determine completion message based on what was run
+    #         components = []
+    #         if getattr(self.config_instance.visualizations, "enabled", False):
+    #             components.append("visuals saved")
+    #         if getattr(self.config_instance.interpretation.shap, "enabled", False):
+    #             components.append("SHAP analysis")
+    #         if getattr(
+    #             self.config_instance.evaluation.metrics.baselines, "enabled", True
+    #         ):
+    #             components.append("baselines computed")
+
+    #         # Pipeline completion is now handled by CLI commands
+
+    #         # Clean up evaluation data after auto-evaluation is complete
+    #         if hasattr(self, "adata_eval"):
+    #             del self.adata_eval
+    #         if (
+    #             hasattr(self, "adata_eval_corrected")
+    #             and self.adata_eval_corrected is not None
+    #         ):
+    #             del self.adata_eval_corrected
+    #         import gc
+
+    #         gc.collect()
+    #         # Cleanup complete
+
+    #         # Save all results to new experiment structure
+    #         self._save_experiment_evaluation()
+    #         self.save_experiment_outputs()
+
+    #         # Cleanup old experiments if enabled
+    #         try:
+    #             if getattr(
+    #                 self.config_instance.storage.cleanup_policy, "auto_cleanup", False
+    #             ):
+    #                 cleanup_results = self.storage_manager.cleanup_experiments()
+    #                 if cleanup_results["cleaned"] > 0:
+    #                     logger.info(
+    #                         f"Cleaned up {cleanup_results['cleaned']} old experiments"
+    #                     )
+    #         except Exception:
+    #             pass  # Cleanup is optional
+
+    #     except Exception as e:
+    #         logger.warning(f"Post-training evaluation failed: {e}")
+    #         logger.info(
+    #             "You can still run 'evaluate' command manually for full evaluation."
+    #         )
+
     def run_post_training_evaluation(self):
         """
         Run evaluation immediately after training using in-memory model components.
@@ -588,6 +691,9 @@ class PipelineManager:
                 logger.warning("No evaluation data available for auto-evaluation")
                 return
 
+            # Setup phases (mimic standalone evaluation logging)
+            # Note: GPU already configured, data already loaded from training
+
             # Select evaluation dataset (corrected vs uncorrected)
             batch_correction_enabled = getattr(
                 self.config_instance.data.batch_correction, "enabled", False
@@ -598,7 +704,13 @@ class PipelineManager:
                 else self.adata_eval
             )
 
+            # Gene filtering already done during training, skip
+
+            # Load model components - use in-memory objects (already loaded from training)
+            # Model already loaded in memory from training
+
             # Process EVALUATION data using fitted training components (no data leakage)
+            # Preprocessing evaluation data
             from common.data.preprocessing import DataPreprocessor
 
             data_preprocessor = DataPreprocessor(self.config_instance, None, None)
@@ -622,15 +734,18 @@ class PipelineManager:
 
             # Evaluation data ready
 
-            # Run evaluation metrics (post-training: save to recent directory)
+            # Run evaluation metrics (standalone evaluation: save to recent directory only)
             self.run_metrics("recent")
-            # If model improved, metrics are automatically accessible via best/ symlink
+            # No need to copy metrics - they're accessible via symlink: best/config_key/evaluation/
 
-            # Run visualizations for experiment
+            # Analysis (conditional based on config)
+            if getattr(self.config_instance.interpretation.shap, "enabled", False):
+                self.run_interpretation()
+
             if getattr(self.config_instance.visualizations, "enabled", False):
                 self.run_visualizations()
 
-            # Run project-specific analysis
+            # Run project-specific analysis script if enabled
             if getattr(
                 self.config_instance.analysis.run_analysis_script, "enabled", False
             ):
