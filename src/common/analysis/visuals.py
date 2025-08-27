@@ -609,6 +609,9 @@ class Visualizer:
         Args:
             experiment_name: Specific experiment name to use
         """
+        # Store experiment name for use in other methods
+        self.experiment_name = experiment_name
+        
         if experiment_name:
             experiment_dir = self.path_manager.get_experiment_dir(experiment_name)
         else:
@@ -647,7 +650,9 @@ class Visualizer:
         """
         # Create training visual tools only when actually needed
         if self.training_visual_tools is None:
-            training_visuals_dir = self.path_manager.get_training_visuals_dir()
+            # Use stored experiment name if available
+            experiment_name = getattr(self, 'experiment_name', None)
+            training_visuals_dir = self.path_manager.get_training_visuals_dir(experiment_name)
             self.training_visual_tools = VisualizationTools(
                 self.config, self.path_manager, training_visuals_dir
             )

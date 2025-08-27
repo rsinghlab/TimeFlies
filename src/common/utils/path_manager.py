@@ -359,18 +359,22 @@ class PathManager:
 
         return outputs_dir
 
-    def get_training_visuals_dir(self) -> str:
+    def get_training_visuals_dir(self, experiment_name: str = None) -> str:
         """
-        Get the training visuals directory within the model directory.
+        Get the training visuals directory within the experiment directory.
+
+        Args:
+            experiment_name: Specific experiment name, or None to create new experiment
 
         Returns:
             str: Path to training visuals directory
 
         Example:
-            outputs/fruitfly_alzheimers/models/uncorrected/head_cnn_age/all-genes/training/visuals/
+            outputs/fruitfly_alzheimers/experiments/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/training/visuals/
         """
-        model_dir = self.construct_model_directory()
-        training_visuals_dir = Path(model_dir) / "training" / "visuals"
+        # Use experiment directory instead of old model directory
+        experiment_dir = self.get_experiment_dir(experiment_name)
+        training_visuals_dir = Path(experiment_dir) / "training" / "visuals"
         # Create directory if it doesn't exist (skip during tests)
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
             training_visuals_dir.mkdir(parents=True, exist_ok=True)
@@ -608,6 +612,15 @@ class PathManager:
             outputs/fruitfly_alzheimers/experiments/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/
         """
         if experiment_name is None:
+            # During testing or standalone operations, create new experiment
+            # During training pipeline, this should not happen - experiment_name should be provided
+            import warnings
+            warnings.warn(
+                "Creating new experiment directory without explicit experiment_name. "
+                "This may cause multiple experiment directories during training.",
+                UserWarning,
+                stacklevel=2
+            )
             experiment_name = self.generate_experiment_name()
 
         project_root = self._get_project_root()
