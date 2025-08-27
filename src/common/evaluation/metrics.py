@@ -777,7 +777,22 @@ class EvaluationMetrics:
                         )
                         metrics[f"class_{class_id}_f1"] = float(class_f1)
 
-        # Add baseline comparison if enabled
+        # Display model performance first in a clean, simple format
+        key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]
+        metric_values = []
+        for metric in key_metrics:
+            if metric in metrics and metrics[metric] is not None:
+                capitalized_metric = metric.replace("_", " ").title()
+                metric_values.append(f"{capitalized_metric}: {metrics[metric]:.3f}")
+
+        if metric_values:
+            print("\n🎯 MODEL PERFORMANCE")
+            print("=" * 50)
+            for metric_display in metric_values:
+                print(f"  {metric_display}")
+            print("=" * 50)
+
+        # Add baseline comparison if enabled (after model performance)
         eval_config = getattr(self.config, "evaluation", {})
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         if config_baselines.get("enabled", False):
@@ -785,40 +800,6 @@ class EvaluationMetrics:
                 true_labels, predicted_classes, predictions
             )
             metrics["baselines"] = baseline_metrics
-
-        # Log key metrics in a clean single line
-        key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]
-        metric_values = []
-        for metric in key_metrics:
-            if metric in metrics and metrics[metric] is not None:
-                capitalized_metric = metric.replace("_", " ").title()
-                metric_values.append(f"{capitalized_metric} = {metrics[metric]:.3f}")
-
-        if metric_values:
-            print("\n🎯 MODEL PERFORMANCE")
-
-            # Create perfectly sized results table
-            result_content = " | ".join(metric_values)
-            content_line = f"│  {result_content}  │"
-            table_width = len(content_line)
-
-            # Top border
-            print("┌" + "─" * (table_width - 2) + "┐")
-
-            # Header
-            header = "🤖 MODEL RESULTS"
-            header_padding_left = (table_width - 2 - len(header)) // 2
-            header_padding_right = table_width - 2 - len(header) - header_padding_left
-            print(f"│{' ' * header_padding_left}{header}{' ' * header_padding_right}│")
-
-            # Middle border
-            print("├" + "─" * (table_width - 2) + "┤")
-
-            # Results content
-            print(content_line)
-
-            # Bottom border
-            print("└" + "─" * (table_width - 2) + "┘")
 
         return metrics
 
