@@ -378,8 +378,7 @@ class DataPreprocessor:
         ) = self.select_highly_variable_genes(train_subset, test_subset)
 
         # Print model architecture summary
-        print("\n" + "=" * 60)
-        print("🏗️ MODEL ARCHITECTURE")
+        print("MODEL ARCHITECTURE")
         print("=" * 60)
         print(
             f"Architecture:           {getattr(config.model, 'model_type', 'CNN').upper()}"

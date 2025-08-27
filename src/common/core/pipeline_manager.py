@@ -136,23 +136,8 @@ class PipelineManager:
 
         encoding_var = getattr(self.config_instance.data, "target_variable", "age")
 
-        print("\n📊 TRAINING DATA:")
-        print("-" * 60)
-
-        # Get training data info
-        train_cells = (
-            self.train_data.shape[0] if hasattr(self.train_data, "shape") else 0
-        )
-        train_genes = (
-            self.train_data.shape[1] if hasattr(self.train_data, "shape") else 0
-        )
-        print(
-            f"Training Data (Preprocessed): {train_cells:,} cells, {train_genes:,} genes"
-        )
-
         # Add space then show age distribution
         if hasattr(self, "train_labels") and hasattr(self, "label_encoder"):
-            print(f"\n{encoding_var.title()} Distribution (Training Data):")
             import numpy as np
 
             unique, counts = np.unique(self.train_labels, return_counts=True)
@@ -538,8 +523,8 @@ class PipelineManager:
         self._print_training_and_evaluation_data()
 
         # Model training
-        print("\nTraining Progress:")
-        print("-" * 60)
+        print("Training Progress")
+        print("=" * 60)
         import time
 
         self._training_start_time = time.time()
@@ -549,30 +534,16 @@ class PipelineManager:
         self.save_outputs(metadata=True, symlinks=True)
 
         # Print training completion summary with improvement status
-        improvement_status = "🆕 NEW BEST" if self.model_improved else "📊 BASELINE"
-        print(f"\n✅ TRAINING COMPLETED - {improvement_status}")
+        improvement_status = (
+            "New best model found"
+            if self.model_improved
+            else "No improvement over existing model found"
+        )
 
         # Training Summary section with double lines
         print("\n" + "=" * 60)
-        print("📋 TRAINING SUMMARY")
+        print("TRAINING SUMMARY: " + improvement_status)
         print("=" * 60)
-
-        # Configuration info
-        from common.utils.split_naming import SplitNamingUtils
-
-        split_config = SplitNamingUtils.extract_split_details_for_metadata(
-            self.config_instance
-        )
-        if split_config and split_config.get("method") == "column":
-            train_vals = split_config.get("train_values", [])
-            test_vals = split_config.get("test_values", [])
-            split_info = f"Split: {'-vs-'.join(train_vals + test_vals)} (column)"
-            print(split_info)
-
-        model_type = getattr(self.config_instance.data, "model", "CNN")
-        target = getattr(self.config_instance.data, "target_variable", "age")
-        tissue = getattr(self.config_instance.data, "tissue", "head")
-        print(f"Model: {model_type}, Target: {target}, Tissue: {tissue}")
 
         # Training results
         if hasattr(self, "history") and self.history:
@@ -584,7 +555,6 @@ class PipelineManager:
                 print(f"Best Val Loss: {best_val_loss:.4f}")
 
         print(f"Model saved to: {self.experiment_name}")
-        print("=" * 60)
 
         # Show training duration if available
         import time
@@ -592,7 +562,7 @@ class PipelineManager:
         if hasattr(self, "_training_start_time"):
             duration = time.time() - self._training_start_time
             print(f"Training duration: {duration:.1f} seconds")
-        print("-" * 60)
+        print("=" * 60)
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)

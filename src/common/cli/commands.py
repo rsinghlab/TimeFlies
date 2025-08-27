@@ -873,8 +873,7 @@ def train_command(args, config) -> int:
 
         if not autosomal_path.exists() and not sex_path.exists():
             print("⚠ Gene filtering disabled (no reference data found)")
-
-        print("-" * 60)
+        print("=" * 60)
         results = pipeline.run_pipeline()
 
         # Training completed message moved to duration display
