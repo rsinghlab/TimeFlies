@@ -1,3 +1,5 @@
+import gc
+import importlib.util
 import logging
 import os
 from pathlib import Path
@@ -34,91 +36,6 @@ class PipelineManager:
         data_loader (DataLoader): Instance responsible for loading data.
         path_manager (PathManager): Manages file paths based on the configuration.
     """
-
-    def _print_header(self, title: str, width: int = 60):
-        """Print a formatted header with title."""
-        print("\n" + "=" * width)
-        print(title)
-        print("=" * width)
-
-    def _with_timing(self, func, *args, **kwargs):
-        """Execute a function with timing and duration display."""
-        import time
-
-        start_time = time.time()
-        try:
-            result = func(*args, **kwargs)
-            end_time = time.time()
-            self.display_duration(start_time, end_time)
-            return result, end_time - start_time
-        except Exception:
-            end_time = time.time()
-            self.display_duration(start_time, end_time)
-            raise
-
-    def _setup_pipeline(self):
-        """Common pipeline setup: GPU, data loading, gene filtering."""
-        self.setup_gpu()
-        self.load_data()
-        self.setup_gene_filtering()
-
-    def _create_data_preprocessor(self):
-        """Create DataPreprocessor instance with current data."""
-        return DataPreprocessor(self.config_instance, self.adata, self.adata_corrected)
-
-    def _get_batch_corrected_data(self, eval_data=False):
-        """Get batch corrected data if enabled, otherwise return original."""
-        batch_correction_enabled = getattr(
-            self.config_instance.data.batch_correction, "enabled", False
-        )
-        if eval_data:
-            return (
-                self.adata_eval_corrected
-                if batch_correction_enabled and hasattr(self, "adata_eval_corrected")
-                else self.adata_eval
-            )
-        else:
-            return self.adata_corrected if batch_correction_enabled else self.adata
-
-    def _cleanup_memory(self, keep_eval_data=True):
-        """Clean up memory by deleting large data objects."""
-        import gc
-
-        # Always clean up training data after preprocessing
-        if hasattr(self, "adata"):
-            del self.adata
-        if hasattr(self, "adata_original"):
-            del self.adata_original
-        if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
-            del self.adata_corrected
-
-        # Optionally clean up evaluation data
-        if not keep_eval_data:
-            if hasattr(self, "adata_eval"):
-                del self.adata_eval
-            if (
-                hasattr(self, "adata_eval_corrected")
-                and self.adata_eval_corrected is not None
-            ):
-                del self.adata_eval_corrected
-
-        gc.collect()
-
-    def _preserve_gene_names(self):
-        """Preserve gene names for visualization before cleanup."""
-        batch_correction_enabled = getattr(
-            self.config_instance.data.batch_correction, "enabled", False
-        )
-
-        if batch_correction_enabled:
-            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
-                self.preserved_var_names = self.adata_corrected.var_names.copy()
-            elif hasattr(self, "adata") and self.adata is not None:
-                self.preserved_var_names = self.adata.var_names.copy()
-            else:
-                self.preserved_var_names = None
-        else:
-            self.preserved_var_names = None
 
     def __init__(self, config: Config, mode: str = "training"):
         """
@@ -162,140 +79,113 @@ class PipelineManager:
 
         # Initializing TimeFlies pipeline
 
-    def setup_gpu(self):
-        """
-        Configure TensorFlow GPU settings if available.
-        """
-        try:
-            # Setting up GPU
-            GPUHandler.configure(self.config_instance)
-            # GPU configuration complete
-        except Exception as e:
-            logger.error(f"Error configuring GPU: {e}")
-            raise
+    def _print_header(self, title: str, width: int = 60):
+        """Print a formatted header with title."""
+        print("\n" + "=" * width)
+        print(title)
+        print("=" * width)
 
-    def load_data(self):
-        """
-        Load data and gene lists.
-        """
-        try:
-            # Loading data
+    def _setup_pipeline(self):
+        """Common pipeline setup: GPU, data loading, gene filtering."""
+        # Setting up GPU
+        GPUHandler.configure(self.config_instance)
+
+        # Loading data
+        (
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+        ) = self.data_loader.load_data()
+
+        # Only load batch-corrected data if batch correction is enabled
+        if self.config_instance.data.batch_correction.enabled:
+            # Loading batch corrected data
             (
-                self.adata,
-                self.adata_eval,
-                self.adata_original,
-            ) = self.data_loader.load_data()
-            # Only load batch-corrected data if batch correction is enabled
-            batch_correction_enabled = getattr(
-                self.config_instance.data.batch_correction, "enabled", False
-            )
-            if batch_correction_enabled:
-                # Loading batch corrected data
-                (
-                    self.adata_corrected,
-                    self.adata_eval_corrected,
-                ) = self.data_loader.load_corrected_data()
-            else:
-                # Batch correction disabled
-                self.adata_corrected = None
-                self.adata_eval_corrected = None
-            self.autosomal_genes, self.sex_genes = self.data_loader.load_gene_lists()
-            # Data loading complete
-        except Exception as e:
-            logger.error(f"Error loading data: {e}")
-            raise
+                self.adata_corrected,
+                self.adata_eval_corrected,
+            ) = self.data_loader.load_corrected_data()
+        else:
+            # Batch correction disabled
+            self.adata_corrected = None
+            self.adata_eval_corrected = None
+        self.autosomal_genes, self.sex_genes = self.data_loader.load_gene_lists()
+
+        # Applying gene filtering
+        self.gene_filter = GeneFilter(
+            self.config_instance,
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+            self.autosomal_genes,
+            self.sex_genes,
+        )
+        (
+            self.adata,
+            self.adata_eval,
+            self.adata_original,
+        ) = self.gene_filter.apply_filter()
+
+    def _cleanup_memory(self, keep_eval_data=True):
+        """Clean up memory by deleting large data objects."""
+        # Always clean up training data after preprocessing
+        if hasattr(self, "adata"):
+            del self.adata
+        if hasattr(self, "adata_original"):
+            del self.adata_original
+        if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
+            del self.adata_corrected
+
+        # Optionally clean up evaluation data
+        if not keep_eval_data:
+            if hasattr(self, "adata_eval"):
+                del self.adata_eval
+            if (
+                hasattr(self, "adata_eval_corrected")
+                and self.adata_eval_corrected is not None
+            ):
+                del self.adata_eval_corrected
+
+        gc.collect()
 
     def run_eda(self):
         """
         Perform Exploratory Data Analysis (EDA) if specified in the config.
         """
-        try:
-            if getattr(
-                self.config_instance.data_processing, "exploratory_data_analysis", {}
-            ).get("enabled", False):
-                # Running EDA
-                if self.eda_handler_class is not None:
-                    eda_handler = self.eda_handler_class(
-                        self.config_instance,
-                        self.path_manager,
-                        self.adata,
-                        self.adata_eval,
-                        self.adata_original,
-                        self.adata_corrected,
-                        self.adata_eval_corrected,
-                    )
-                    eda_handler.run_eda()
-                    # EDA completed
-                else:
-                    logger.warning("EDA requested but no EDA handler available")
+        if self.config_instance.data_processing.exploratory_data_analysis.enabled:
+            # Running EDA
+            if self.eda_handler_class is not None:
+                eda_handler = self.eda_handler_class(
+                    self.config_instance,
+                    self.path_manager,
+                    self.adata,
+                    self.adata_eval,
+                    self.adata_original,
+                    self.adata_corrected,
+                    self.adata_eval_corrected,
+                )
+                eda_handler.run_eda()
+                # EDA completed
             else:
-                # EDA disabled
-                pass
-        except Exception as e:
-            logger.error(f"Error during EDA: {e}")
-            raise
+                logger.warning("EDA requested but no EDA handler available")
+        else:
+            # EDA disabled
+            pass
 
-    def setup_gene_filtering(self):
+    def preprocess_data(self, for_evaluation=False):
         """
-        Filter genes using the GeneFilter class.
-        """
-        try:
-            # Applying gene filtering
-            self.gene_filter = GeneFilter(
-                self.config_instance,
-                self.adata,
-                self.adata_eval,
-                self.adata_original,
-                self.autosomal_genes,
-                self.sex_genes,
-            )
-            (
-                self.adata,
-                self.adata_eval,
-                self.adata_original,
-            ) = self.gene_filter.apply_filter()
-            # Gene filtering complete
-        except Exception as e:
-            logger.error(f"Error during gene filtering: {e}")
-            raise
+        Preprocess data for training or evaluation.
 
-    def preprocess_data(self):
+        Args:
+            for_evaluation: True for evaluation data (uses fitted components),
+                          False for training data (fits new components)
         """
-        Preprocess general training and test data for building or training a new model.
-        """
-        try:
-            # Create preprocessor and prepare training data
-            self.data_preprocessor = self._create_data_preprocessor()
-            (
-                self.train_data,
-                self.test_data,
-                self.train_labels,
-                self.test_labels,
-                self.label_encoder,
-                self.reference_data,
-                self.scaler,
-                self.is_scaler_fit,
-                self.highly_variable_genes,
-                self.mix_included,
-            ) = self.data_preprocessor.prepare_data()
+        self.data_preprocessor = DataPreprocessor(
+            self.config_instance, self.adata, self.adata_corrected
+        )
 
-            # Clean up memory (preserve evaluation data for auto-evaluation)
-            self._cleanup_memory(keep_eval_data=True)
-
-        except Exception as e:
-            logger.error(f"Error during general data preprocessing: {e}")
-            raise
-
-    def preprocess_final_eval_data(self):
-        """
-        Preprocess final evaluation data to prevent data leakage.
-        """
-        try:
-            # Create preprocessor and get evaluation data
-            self.data_preprocessor = self._create_data_preprocessor()
-            adata_eval = self._get_batch_corrected_data(eval_data=True)
-
-            # Prepare evaluation data using fitted components from training
+        if for_evaluation:
+            # Evaluation: use fitted components from training to prevent data leakage
+            adata_eval = self.adata_eval_corrected or self.adata_eval
             (
                 self.test_data,
                 self.test_labels,
@@ -310,210 +200,121 @@ class PipelineManager:
                 self.mix_included,
                 getattr(self, "train_gene_names", None),
             )
-
-            # Preserve gene names before cleanup
-            self._preserve_gene_names()
-
             # Clean up all memory (evaluation is final step)
             self._cleanup_memory(keep_eval_data=False)
-
-        except Exception as e:
-            logger.error(f"Error during final evaluation data preprocessing: {e}")
-            raise
-
-    def run_preprocessing(self):
-        """
-        Preprocess training/test data for model building.
-        Note: Evaluation uses the dedicated run_evaluation() method instead.
-        """
-        try:
-            self.setup_gene_filtering()
-            self.preprocess_data()
-            logger.info("Preprocessing completed.")
-
-        except Exception as e:
-            logger.error(f"Error during data preprocessing: {e}")
-            raise
+        else:
+            # Training: fit new components and prepare training/test splits
+            (
+                self.train_data,
+                self.test_data,
+                self.train_labels,
+                self.test_labels,
+                self.label_encoder,
+                self.reference_data,
+                self.scaler,
+                self.is_scaler_fit,
+                self.highly_variable_genes,
+                self.mix_included,
+            ) = self.data_preprocessor.prepare_data()
+            # Clean up memory (preserve evaluation data for auto-evaluation)
+            self._cleanup_memory(keep_eval_data=True)
 
     def load_model(self):
         """
-        Load pre-trained model and preprocess evaluation data to prevent data leakage.
+        Load pre-trained model and all its components for evaluation.
         """
-        try:
-            # Initialize model loader if not already done
-            if not hasattr(self, "model_loader"):
-                self.model_loader = ModelLoader(self.config_instance)
+        self.model_loader = ModelLoader(self.config_instance)
 
-            # Load the pre-trained model
-            self.model = self.model_loader.load_model()
+        # Load model components
+        (
+            self.label_encoder,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.num_features,
+            self.history,
+            self.mix_included,
+            self.reference_data,
+        ) = self.model_loader.load_model_components()
 
-        except Exception as e:
-            logger.error(f"Error during model loading: {e}")
-            raise
+        # Load the actual model
+        self.model = self.model_loader.load_model()
 
-    def load_model_components(self):
-        """
-        Load pre-trained model and preprocess evaluation data to prevent data leakage.
-        """
-        try:
-            self.model_loader = ModelLoader(self.config_instance)
-
-            (
-                self.label_encoder,
-                self.scaler,
-                self.is_scaler_fit,
-                self.highly_variable_genes,
-                self.num_features,
-                self.history,
-                self.mix_included,
-                self.reference_data,
-            ) = self.model_loader.load_model_components()
-
-        except Exception as e:
-            logger.error(f"Error during model loading: {e}")
-            raise
-
-    def build_and_train_model(self):
+    def train_model(self):
         """
         Preprocess data and build/train a new model.
         """
-        try:
-            # Build and train the model
-            self.model_builder = ModelBuilder(
-                self.config_instance,
-                self.train_data,
-                self.train_labels,
-                self.label_encoder,
-                self.reference_data,
-                self.scaler,
-                self.is_scaler_fit,
-                self.highly_variable_genes,
-                self.mix_included,
-                self.experiment_name,
-            )
+        # Build and train the model
+        self.model_builder = ModelBuilder(
+            self.config_instance,
+            self.train_data,
+            self.train_labels,
+            self.label_encoder,
+            self.reference_data,
+            self.scaler,
+            self.is_scaler_fit,
+            self.highly_variable_genes,
+            self.mix_included,
+            self.experiment_name,
+        )
 
-            self.model, self.history, self.model_improved = self.model_builder.run()
-            # History and model improvement tracked internally
+        # History and model improvement tracked internally
+        self.model, self.history, self.model_improved = self.model_builder.run()
 
-            # Set num_features and gene names for auto-evaluation
-            self.num_features = self.train_data.shape[1]
-            # Store the exact gene names used in training for consistent evaluation
-            if hasattr(self.data_preprocessor, "train_gene_names"):
-                self.train_gene_names = self.data_preprocessor.train_gene_names
-            else:
-                self.train_gene_names = None
+        # Set num_features and gene names for auto-evaluation
+        self.num_features = self.train_data.shape[1]
+        # Store the exact gene names used in training for consistent evaluation
+        if hasattr(self.data_preprocessor, "train_gene_names"):
+            self.train_gene_names = self.data_preprocessor.train_gene_names
+        else:
+            self.train_gene_names = None
 
-            # Save training visuals to experiment directory
-            if getattr(self.config_instance.visualizations, "enabled", False):
-                # Generating training visualizations
-                self._save_experiment_training_visuals()
+        # Save training visuals to experiment directory
+        if self.config_instance.visualizations.enabled:
+            # Generating training visualizations
+            self.save_outputs(training_visuals=True)  # Save to experiment directory
 
-        except Exception as e:
-            logger.error(f"Error building or training model: {e}")
-            raise
-
-    def _save_training_visuals(self, result_type="recent"):
+    def save_outputs(
+        self,
+        training_visuals=False,
+        evaluation_visuals=False,
+        metadata=False,
+        symlinks=False,
+        result_type=None,
+    ):
         """
-        Save training-specific visualizations (loss curves, etc.) after model training.
+        Unified method to save various pipeline outputs.
 
         Args:
-            result_type: "recent" or "best" - where to save the training visuals
+            training_visuals: Save training visualizations (loss/accuracy curves)
+            evaluation_visuals: Save evaluation visualizations
+            metadata: Save experiment metadata
+            symlinks: Update symlinks (latest/best)
+            result_type: "recent" or "best" for symlink directories, None for experiment directory
         """
-        try:
-            if self.visualizer_class is None:
-                logger.warning(
-                    "Visualizer class not available, skipping training visualizations"
-                )
-                return
-
-            # Create visualizer for training plots only, set to evaluation context for proper directory
-            visualizer = self.visualizer_class(
-                self.config_instance,
-                self.model,
-                self.history,
-                None,  # No test data for training visuals
-                None,  # No test labels for training visuals
-                self.label_encoder,
-                None,  # No SHAP values for training visuals
-                None,  # No SHAP data for training visuals
-                None,  # No adata for training visuals
-                None,  # No adata_corrected for training visuals
-                self.path_manager,
-            )
-
-            # Set evaluation context to save to results directory
-            visualizer.set_evaluation_context(result_type)
-
-            # Generate only training-specific plots (loss curves, accuracy curves)
-            visualizer._visualize_training_history()
-            logger.info(
-                f"Training visualizations saved successfully to {result_type} directory."
-            )
-
-        except Exception as e:
-            logger.warning(f"Failed to save training visualizations: {e}")
-
-    def _save_experiment_training_visuals(self):
-        """
-        Save training visualizations to experiment directory.
-        """
-        try:
-            if self.visualizer_class is None:
-                logger.warning(
-                    "Visualizer class not available, skipping training visualizations"
-                )
-                return
-
-            # Training visualizations will be saved to experiment directory
-
-            # Create visualizer with experiment training directory
-            visualizer = self.visualizer_class(
-                self.config_instance,
-                self.model,
-                self.history,
-                None,  # No test data for training visuals
-                None,  # No test labels for training visuals
-                self.label_encoder,
-                None,  # No SHAP values for training visuals
-                None,  # No SHAP data for training visuals
-                None,  # No adata for training visuals
-                None,  # No adata_corrected for training visuals
-                self.path_manager,
-            )
-
-            # The visualizer will create training_visual_tools when needed
-            # Just call the visualization method directly
-            visualizer._visualize_training_history()
-            # Training visualizations saved
-
-        except Exception as e:
-            logger.warning(f"Failed to save experiment training visualizations: {e}")
-
-    def save_experiment_outputs(self):
-        """
-        Save all outputs to experiment directory and manage symlinks.
-        """
-        try:
-            # Save experiment metadata
+        # Save metadata if requested
+        if metadata:
             training_data = {
                 "training": {
                     "epochs_run": len(self.history.history.get("loss", [])),
-                    "best_epoch": getattr(self, "best_epoch", None),
+                    "best_epoch": self.best_epoch,
                     "best_val_loss": min(
                         self.history.history.get("val_loss", [float("inf")])
                     ),
                     "model_improved": self.model_improved,
                 },
                 "evaluation": {
-                    "mae": getattr(self, "last_mae", None),
-                    "r2": getattr(self, "last_r2", None),
-                    "pearson": getattr(self, "last_pearson", None),
+                    "mae": self.last_mae,
+                    "r2": self.last_r2,
+                    "pearson": self.last_pearson,
                 },
             }
             self.path_manager.save_experiment_metadata(
                 self.experiment_name, training_data
             )
 
+        # Save model and update symlinks if requested
+        if symlinks:
             # Save model only if it improved and policy allows
             should_save_model = self.storage_manager.should_save_model(
                 self.model_improved
@@ -524,114 +325,113 @@ class PipelineManager:
                 )
                 os.makedirs(os.path.dirname(model_path), exist_ok=True)
                 self.model.save(model_path)
-                # Model saved
 
                 # Update best symlink if this is a new best model
                 if self.model_improved:
                     self.path_manager.update_best_symlink(self.experiment_name)
-            # Model not saved if performance didn't improve
 
             # Always update latest symlink
             self.path_manager.update_latest_symlink(self.experiment_name)
 
-            # Config snapshot not needed - users can access original config.yaml
+        # Save visualizations if requested and available
+        if (
+            training_visuals or evaluation_visuals
+        ) and self.visualizer_class is not None:
+            # Determine what data to pass based on visualization type
+            test_data = self.test_data if evaluation_visuals else None
+            test_labels = self.test_labels if evaluation_visuals else None
+            shap_values = (
+                getattr(self, "squeezed_shap_values", None)
+                if evaluation_visuals
+                else None
+            )
+            shap_data = (
+                getattr(self, "squeezed_test_data", None)
+                if evaluation_visuals
+                else None
+            )
+            adata = getattr(self, "adata", None) if evaluation_visuals else None
+            adata_corrected = (
+                getattr(self, "adata_corrected", None) if evaluation_visuals else None
+            )
 
-        except Exception as e:
-            logger.error(f"Failed to save experiment outputs: {e}")
+            # Create visualizer
+            visualizer = self.visualizer_class(
+                self.config_instance,
+                self.model,
+                self.history,
+                test_data,
+                test_labels,
+                self.label_encoder,
+                shap_values,
+                shap_data,
+                adata,
+                adata_corrected,
+                self.path_manager,
+            )
 
-    def _save_experiment_evaluation(self):
-        """
-        Save evaluation results to experiment directory for post-training evaluation.
-        """
-        try:
-            # Get plots directory path (created when saving files)
-            plots_dir = self.path_manager.get_experiment_plots_dir(self.experiment_name)
-
-            # Metrics are already computed by run_metrics() call before this method
-
-            # Run visualizations if enabled
-            if getattr(self.config_instance.visualizations, "enabled", False):
-                visualizer = self.visualizer_class(
-                    self.config_instance,
-                    self.model,
-                    self.history,
-                    self.test_data,
-                    self.test_labels,
-                    self.label_encoder,
-                    None,  # No SHAP values yet
-                    None,  # No SHAP data yet
-                    None,  # No adata
-                    None,  # No adata_corrected
-                    self.path_manager,
-                )
-
-                # Set evaluation context with experiment name
+            # Set evaluation context if result_type provided (for symlinks)
+            if result_type:
+                visualizer.set_evaluation_context(result_type)
+            elif evaluation_visuals:
                 visualizer.set_evaluation_context(self.experiment_name)
 
-                # Set output directory to plots directory
-                visualizer.visual_tools.output_dir = plots_dir
+            # Generate appropriate visualizations
+            if training_visuals:
+                visualizer._visualize_training_history()
+                location = (
+                    f"{result_type} directory"
+                    if result_type
+                    else "experiment directory"
+                )
+                logger.info(
+                    f"Training visualizations saved successfully to {location}."
+                )
 
-                # Run evaluation visualizations (not training plots)
+            if evaluation_visuals:
+                # Set output directory for evaluation plots
+                plots_dir = self.path_manager.get_experiment_plots_dir(
+                    self.experiment_name
+                )
+                visualizer.visual_tools.output_dir = plots_dir
                 visualizer.run()
 
-            # Results saved
+        elif (training_visuals or evaluation_visuals) and self.visualizer_class is None:
+            logger.warning("Visualizer class not available, skipping visualizations")
 
-        except Exception as e:
-            logger.warning(f"Failed to save experiment evaluation: {e}")
-
-    def run_training(self) -> dict[str, Any]:
+    def run_training(self, skip_setup=False) -> dict[str, Any]:
         """
         Run the complete training pipeline: setup + preprocessing + model training.
 
+        Args:
+            skip_setup: Skip pipeline setup if already done (for combined pipeline)
+
         Returns:
             Dict containing training results and paths
         """
-        self._print_header("🔥 TRAINING PIPELINE")
-
-        try:
-            # Setup phases
+        if not skip_setup:
+            self._print_header("🔥 TRAINING PIPELINE")
             self._setup_pipeline()
 
-            # Run internal training logic with timing
-            training_results, duration = self._with_timing(self._run_training_internal)
-
-            # Add timing to results
-            training_results["training_duration"] = duration
-            return training_results
-
-        except Exception as e:
-            logger.error(f"Training pipeline failed: {e}")
-            raise
-
-    def _run_training_internal(self) -> dict[str, Any]:
-        """
-        Internal training logic without setup (for use by run_pipeline).
-
-        Returns:
-            Dict containing training results and paths
-        """
         # Preprocessing
         self.preprocess_data()
 
         # Model training
         print("\n🤖 Model Training...")
-        self.build_and_train_model()
+        self.train_model()
 
         # Return training results
-        experiment_dir = self.path_manager.get_experiment_dir(
-            getattr(self, "experiment_name", None)
-        )
-
+        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         return {
             "model_path": experiment_dir,
-            "experiment_name": getattr(self, "experiment_name", None),
+            "experiment_name": self.experiment_name,
         }
 
     def run_interpretation(self):
         """
         Perform SHAP interpretation for model predictions.
         """
-        if getattr(self.config_instance.interpretation.shap, "enabled", False):
+        if self.config_instance.interpretation.shap.enabled:
             try:
                 logger.info("Starting SHAP interpretation...")
                 if self.interpreter_class is None:
@@ -707,11 +507,11 @@ class PipelineManager:
                 adata,
                 adata_corrected,
                 self.path_manager,
-                preserved_var_names=getattr(self, "preserved_var_names", None),
+                preserved_var_names=None,  # Gene names preserved in model files
             )
 
             # Set the evaluation context for proper directory structure
-            visualizer.set_evaluation_context(getattr(self, "experiment_name", None))
+            visualizer.set_evaluation_context(self.experiment_name)
 
             visualizer.run()
             # Visualizations completed
@@ -725,64 +525,27 @@ class PipelineManager:
         Args:
             result_type: "recent" (standalone evaluation) or "best" (post-training)
         """
-        try:
-            # Computing evaluation metrics
-            if self.metrics_class is None:
-                logger.warning(
-                    "Metrics class not available, skipping metrics computation"
-                )
-                return
+        # Computing evaluation metrics
+        if self.metrics_class is None:
+            logger.warning("Metrics class not available, skipping metrics computation")
+            return
 
-            # Get experiment evaluation directory for this result type
-            evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
-                self.experiment_name
-            )
+        # Get experiment evaluation directory for this result type
+        evaluation_dir = self.path_manager.get_experiment_evaluation_dir(
+            self.experiment_name
+        )
 
-            metrics = self.metrics_class(
-                self.config_instance,
-                self.model,
-                self.test_data,
-                self.test_labels,
-                self.label_encoder,
-                self.path_manager,
-                result_type,
-                output_dir=evaluation_dir,
-            )
-            metrics.compute_metrics()
-            # Metrics computed - logged by the metrics class
-        except Exception as e:
-            logger.error(f"Error computing evaluation metrics: {e}")
-            raise
-
-    def display_duration(self, start_time, end_time):
-        """
-        Displays the duration of a task in a human-readable format.
-
-        Parameters:
-        - start_time (float): The start time of the task.
-        - end_time (float): The end time of the task.
-        """
-        # Task timing logged by CLI, not here
-        pass
-
-    def run_shap_interpretation(self):
-        """Run SHAP interpretation if enabled in config."""
-        try:
-            logger.info("Running SHAP interpretation...")
-            from ..evaluation.interpreter import Interpreter
-
-            interpreter = Interpreter(
-                self.config_instance,
-                self.model,
-                self.test_data,
-                self.test_labels,
-                self.path_manager,
-            )
-            interpreter.run_interpretation()
-            logger.info("SHAP interpretation completed successfully.")
-        except Exception as e:
-            logger.error(f"Error running SHAP interpretation: {e}")
-            raise
+        metrics = self.metrics_class(
+            self.config_instance,
+            self.model,
+            self.test_data,
+            self.test_labels,
+            self.label_encoder,
+            self.path_manager,
+            result_type,
+            output_dir=evaluation_dir,
+        )
+        metrics.compute_metrics()
 
     def run_analysis_script(self):
         """
@@ -799,7 +562,7 @@ class PipelineManager:
             logger.debug("Running project-specific analysis script...")
 
             # Auto-detect analysis script in templates folder
-            project_name = getattr(self.config_instance, "project", "fruitfly_aging")
+            project_name = self.config_instance.project
 
             # Look for templates/{project}_analysis.py
             from pathlib import Path
@@ -835,9 +598,6 @@ class PipelineManager:
             script_path: Path to the custom analysis Python file
         """
         try:
-            import importlib.util
-            from pathlib import Path
-
             script_path = Path(script_path)
             if not script_path.exists():
                 logger.error(f"Custom analysis script not found: {script_path}")
@@ -877,64 +637,39 @@ class PipelineManager:
             logger.error(f"Error running custom analysis script: {e}")
             # Don't raise - analysis scripts are optional
 
-    def run_evaluation(self) -> dict[str, Any]:
+    def run_evaluation(self, skip_setup=False) -> dict[str, Any]:
         """
         Run evaluation-only pipeline that uses pre-trained model on holdout data.
+
+        Args:
+            skip_setup: Skip pipeline setup if already done (for combined pipeline)
 
         Returns:
             Dict containing model path and results path
         """
-        try:
-            # Setup phases
+        if not skip_setup:
             self._setup_pipeline()
 
-            # Run internal evaluation logic with timing
-            evaluation_results, duration = self._with_timing(
-                self._run_evaluation_internal
-            )
-
-            # Add timing to results
-            evaluation_results["duration"] = duration
-            return evaluation_results
-
-        except Exception as e:
-            logger.error(f"Evaluation pipeline execution failed: {e}")
-            raise
-
-    def _run_evaluation_internal(self) -> dict[str, Any]:
-        """
-        Internal evaluation logic without setup (for use by run_pipeline).
-
-        Returns:
-            Dict containing evaluation results and paths
-        """
-        # Load model components and preprocess only eval data
-        self.load_model_components()
-        self.preprocess_final_eval_data()
-
-        # Load pre-trained model
+        # Load trained model (components + model) and preprocess only eval data
         self.load_model()
+        self.preprocess_data(for_evaluation=True)
 
         # Run evaluation metrics (standalone evaluation: save to recent directory only)
         self.run_metrics("recent")
-        # No need to copy metrics - they're accessible via symlink: best/config_key/evaluation/
 
         # Analysis (conditional based on config)
-        if getattr(self.config_instance.interpretation.shap, "enabled", False):
+        if self.config_instance.interpretation.shap.enabled:
             self.run_interpretation()
 
-        if getattr(self.config_instance.visualizations, "enabled", False):
+        if self.config_instance.visualizations.enabled:
             self.run_visualizations()
 
         # Run project-specific analysis script if enabled
-        if getattr(self.config_instance.analysis.run_analysis_script, "enabled", False):
+        if self.config_instance.analysis.run_analysis_script.enabled:
             self.run_analysis_script()
 
         # Return paths for CLI feedback
-        experiment_dir = self.path_manager.get_experiment_dir(
-            getattr(self, "experiment_name", None)
-        )
-
+        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         return {
             "model_path": experiment_dir,
             "results_path": os.path.join(experiment_dir, "evaluation"),
@@ -948,51 +683,36 @@ class PipelineManager:
         Returns:
             Dict containing model path and results path
         """
+        # Setup phases (once for entire pipeline)
+        self._setup_pipeline()
 
-        def _run_full_pipeline():
-            # Setup phases (once for entire pipeline)
-            self._setup_pipeline()
+        # Step 1: Training (skip setup since we already did it)
+        training_results = self.run_training(skip_setup=True)
 
-            # Step 1: Training (without redundant setup)
-            training_results = self._run_training_internal()
-
-            # Step 2: Evaluation (without redundant setup)
-            self._print_header("🧪 AUTOMATIC EVALUATION")
-            print("Evaluating model performance on holdout dataset...")
-            print("-" * 60)
-
-            try:
-                evaluation_results = self._run_evaluation_internal()
-            except Exception as e:
-                logger.warning(f"Automatic post-training evaluation failed: {e}")
-                logger.info("You can run 'timeflies evaluate' manually later")
-                evaluation_results = {}
-
-            # Combine results
-            pipeline_results = {
-                **training_results,
-                **evaluation_results,
-                "model_improved": getattr(self, "model_improved", False),
-            }
-
-            # Add best symlink info if model improved
-            if getattr(self, "model_improved", False):
-                pipeline_results["best_results_path"] = os.path.join(
-                    training_results.get("model_path", ""), "evaluation"
-                )
-
-            return pipeline_results
+        # Step 2: Evaluation (skip setup since we already did it)
+        self._print_header("🧪 AUTOMATIC EVALUATION")
+        print("Evaluating model performance on holdout dataset...")
+        print("-" * 60)
 
         try:
-            # Execute full pipeline with timing
-            pipeline_results, duration = self._with_timing(_run_full_pipeline)
-
-            # Add total timing to results
-            pipeline_results["total_duration"] = duration
-
-            print(f"\n✅ Complete pipeline finished in {duration:.1f}s")
-            return pipeline_results
-
+            evaluation_results = self.run_evaluation(skip_setup=True)
         except Exception as e:
-            logger.error(f"Pipeline execution failed: {e}")
-            raise
+            logger.warning(f"Automatic post-training evaluation failed: {e}")
+            logger.info("You can run 'timeflies evaluate' manually later")
+            evaluation_results = {}
+
+        # Combine results
+        pipeline_results = {
+            **training_results,
+            **evaluation_results,
+            "model_improved": self.model_improved,
+        }
+
+        # Add best symlink info if model improved
+        if self.model_improved:
+            pipeline_results["best_results_path"] = os.path.join(
+                training_results.get("model_path", ""), "evaluation"
+            )
+
+        print("\n✅ Complete pipeline finished")
+        return pipeline_results
