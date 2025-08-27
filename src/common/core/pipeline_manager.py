@@ -92,6 +92,7 @@ class PipelineManager:
     def _print_project_and_dataset_overview(self):
         """Print consolidated project information and actual training/evaluation data overview."""
         print("=" * 60)
+        print("\n")
         print("DATA OVERVIEW")
         print("-" * 60)
 
@@ -560,12 +561,11 @@ class PipelineManager:
         self._print_training_and_evaluation_data()
 
         # Model training
-        print("TRAINING PROGRESS")
+        print("\n")
+        print(f"TRAINING PROGRESS - {self._show_previous_best_loss()}")
         print("-" * 60)
 
         # Show previous best validation loss if available
-        self._show_previous_best_loss()
-        print("-" * 60)
 
         import time
 
@@ -584,6 +584,7 @@ class PipelineManager:
 
         # Training Summary section with double lines
         print("=" * 60)
+        print("\n")
         print("TRAINING SUMMARY - " + improvement_status)
         print("-" * 60)
 
