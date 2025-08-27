@@ -572,19 +572,50 @@ class PipelineManager:
         except Exception as e:
             logger.warning(f"Failed to save experiment evaluation: {e}")
 
-    def load_or_train_model(self):
+    def run_training(self) -> dict[str, Any]:
         """
-        Build and train a new model (training pipeline only).
-        Note: Model loading is handled by the dedicated run_evaluation() method.
+        Run the complete training pipeline: setup + preprocessing + model training.
+
+        Returns:
+            Dict containing training results and paths
         """
+        import time
+
+        start_time = time.time()
+
         try:
             print("\n" + "=" * 60)
-            print("🔥 TRAINING")
+            print("🔥 TRAINING PIPELINE")
             print("=" * 60)
+
+            # Setup phases
+            self.setup_gpu()
+            self.load_data()
+            self.setup_gene_filtering()
+
+            # Preprocessing
+            self.preprocess_data()
+
+            # Model training
+            print("\n🤖 Model Training...")
             self.build_and_train_model()
-            # Model built and trained successfully
+
+            end_time = time.time()
+            self.display_duration(start_time, end_time)
+
+            # Return training results
+            experiment_dir = self.path_manager.get_experiment_dir(
+                getattr(self, "experiment_name", None)
+            )
+
+            return {
+                "model_path": experiment_dir,
+                "experiment_name": getattr(self, "experiment_name", None),
+                "training_duration": end_time - start_time,
+            }
+
         except Exception as e:
-            logger.error(f"Error in model training: {e}")
+            logger.error(f"Training pipeline failed: {e}")
             raise
 
     def run_interpretation(self):
@@ -896,9 +927,9 @@ class PipelineManager:
             logger.error(f"Evaluation pipeline execution failed: {e}")
             raise
 
-    def run(self) -> dict[str, Any]:
+    def run_pipeline(self) -> dict[str, Any]:
         """
-        Run the complete pipeline and return results.
+        Run the complete pipeline: training + evaluation.
 
         Returns:
             Dict containing model path and results path
@@ -908,55 +939,49 @@ class PipelineManager:
         start_time = time.time()
 
         try:
-            # Setup phases
-            self.setup_gpu()
-            self.load_data()
-            self.setup_gene_filtering()
+            # Step 1: Training
+            training_results = self.run_training()
 
-            # Preprocessing
-            self.preprocess_data()
-
-            # Model training/loading
-            self.load_or_train_model()
-            # Model training completed successfully
-
-            # Auto-run evaluation after training using the proven evaluation pipeline
+            # Step 2: Evaluation
             print("\n" + "=" * 60)
             print("🧪 AUTOMATIC EVALUATION")
             print("=" * 60)
             print("Evaluating model performance on holdout dataset...")
             print("-" * 60)
 
-            # Use the existing, well-tested evaluation pipeline instead of duplicate logic
             try:
-                self.run_evaluation()
+                evaluation_results = self.run_evaluation()
             except Exception as e:
                 logger.warning(f"Automatic post-training evaluation failed: {e}")
                 logger.info("You can run 'timeflies evaluate' manually later")
+                evaluation_results = {}
 
             end_time = time.time()
-            self.display_duration(start_time, end_time)
 
-            # Return paths for CLI feedback
-            experiment_dir = self.path_manager.get_experiment_dir(
-                getattr(self, "experiment_name", None)
-            )
-
-            return_dict = {
-                "model_path": experiment_dir,
-                "results_path": os.path.join(experiment_dir, "evaluation"),
-                "duration": end_time - start_time,
+            # Combine results
+            pipeline_results = {
+                **training_results,
+                **evaluation_results,
+                "total_duration": end_time - start_time,
                 "model_improved": getattr(self, "model_improved", False),
             }
 
             # Add best symlink info if model improved
             if getattr(self, "model_improved", False):
-                return_dict["best_results_path"] = os.path.join(
-                    experiment_dir, "evaluation"
+                pipeline_results["best_results_path"] = os.path.join(
+                    training_results.get("model_path", ""), "evaluation"
                 )
 
-            return return_dict
+            print(f"\n✅ Complete pipeline finished in {end_time - start_time:.1f}s")
+            return pipeline_results
 
         except Exception as e:
             logger.error(f"Pipeline execution failed: {e}")
             raise
+
+    def run(self) -> dict[str, Any]:
+        """
+        Legacy method - use run_pipeline() instead.
+        """
+        logger.warning("run() is deprecated, use run_pipeline() instead")
+        return self.run_pipeline()

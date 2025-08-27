@@ -83,8 +83,8 @@ class TestPipelineManager:
                     assert hasattr(pipeline, "run_evaluation")
                     assert callable(getattr(pipeline, "run_evaluation"))
 
-    def test_load_or_train_model_method_exists(self):
-        """Test that load_or_train_model method exists."""
+    def test_run_training_method_exists(self):
+        """Test that run_training method exists."""
         from unittest.mock import patch
 
         with patch("common.core.pipeline_manager.DataLoader"):
@@ -96,17 +96,18 @@ class TestPipelineManager:
                     pipeline = PipelineManager(mock_config)
 
                     # Mock dependencies
-                    pipeline.load_model = MagicMock()
+                    pipeline.setup_gpu = MagicMock()
+                    pipeline.load_data = MagicMock()
+                    pipeline.setup_gene_filtering = MagicMock()
+                    pipeline.preprocess_data = MagicMock()
                     pipeline.build_and_train_model = MagicMock()
 
                     # Test method exists and can be called
-                    pipeline.load_or_train_model()
+                    result = pipeline.run_training()
 
-                    # At least one of the methods should be attempted
-                    assert (
-                        pipeline.load_model.called
-                        or pipeline.build_and_train_model.called
-                    )
+                    # Should return a dictionary with results
+                    assert isinstance(result, dict)
+                    assert "model_path" in result
 
     def test_preprocess_data_method_exists(self):
         """Test that preprocess_data method exists."""

@@ -857,7 +857,7 @@ def train_command(args, config) -> int:
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
-        results = pipeline.run()
+        results = pipeline.run_pipeline()
 
         # Training completed message moved to duration display
 
@@ -1301,7 +1301,7 @@ def analyze_command(args, config) -> int:
             from common.core import PipelineManager
 
             pipeline = PipelineManager(config)
-            pipeline.load_or_train_model()
+            pipeline.run_training()
             print("[OK] Model training complete!")
 
         # Enable analysis script execution in config
