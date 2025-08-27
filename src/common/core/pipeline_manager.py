@@ -585,7 +585,7 @@ class PipelineManager:
 
         try:
             print("\n" + "=" * 60)
-            print("🔥 TRAINING PIPELINE")
+            print(" TRAINING PIPELINE")
             print("=" * 60)
 
             # Setup phases
@@ -593,30 +593,43 @@ class PipelineManager:
             self.load_data()
             self.setup_gene_filtering()
 
-            # Preprocessing
-            self.preprocess_data()
-
-            # Model training
-            print("\n🤖 Model Training...")
-            self.build_and_train_model()
+            # Run internal training logic
+            training_results = self._run_training_internal()
 
             end_time = time.time()
             self.display_duration(start_time, end_time)
 
-            # Return training results
-            experiment_dir = self.path_manager.get_experiment_dir(
-                getattr(self, "experiment_name", None)
-            )
-
-            return {
-                "model_path": experiment_dir,
-                "experiment_name": getattr(self, "experiment_name", None),
-                "training_duration": end_time - start_time,
-            }
+            # Add timing to results
+            training_results["training_duration"] = end_time - start_time
+            return training_results
 
         except Exception as e:
             logger.error(f"Training pipeline failed: {e}")
             raise
+
+    def _run_training_internal(self) -> dict[str, Any]:
+        """
+        Internal training logic without setup (for use by run_pipeline).
+
+        Returns:
+            Dict containing training results and paths
+        """
+        # Preprocessing
+        self.preprocess_data()
+
+        # Model training
+        print("\n🤖 Model Training...")
+        self.build_and_train_model()
+
+        # Return training results
+        experiment_dir = self.path_manager.get_experiment_dir(
+            getattr(self, "experiment_name", None)
+        )
+
+        return {
+            "model_path": experiment_dir,
+            "experiment_name": getattr(self, "experiment_name", None),
+        }
 
     def run_interpretation(self):
         """
@@ -885,51 +898,63 @@ class PipelineManager:
             self.load_data()
             self.setup_gene_filtering()
 
-            # Load model components and preprocess only eval data
-            self.load_model_components()
-            self.preprocess_final_eval_data()
-
-            # Load pre-trained model
-            self.load_model()
-
-            # Run evaluation metrics (standalone evaluation: save to recent directory only)
-            self.run_metrics("recent")
-            # No need to copy metrics - they're accessible via symlink: best/config_key/evaluation/
-
-            # Analysis (conditional based on config)
-            if getattr(self.config_instance.interpretation.shap, "enabled", False):
-                self.run_interpretation()
-
-            if getattr(self.config_instance.visualizations, "enabled", False):
-                self.run_visualizations()
-
-            # Run project-specific analysis script if enabled
-            if getattr(
-                self.config_instance.analysis.run_analysis_script, "enabled", False
-            ):
-                self.run_analysis_script()
+            # Run internal evaluation logic
+            evaluation_results = self._run_evaluation_internal()
 
             end_time = time.time()
             self.display_duration(start_time, end_time)
 
-            # Return paths for CLI feedback
-            experiment_dir = self.path_manager.get_experiment_dir(
-                getattr(self, "experiment_name", None)
-            )
-
-            return {
-                "model_path": experiment_dir,
-                "results_path": os.path.join(experiment_dir, "evaluation"),
-                "duration": end_time - start_time,
-            }
+            # Add timing to results
+            evaluation_results["duration"] = end_time - start_time
+            return evaluation_results
 
         except Exception as e:
             logger.error(f"Evaluation pipeline execution failed: {e}")
             raise
 
+    def _run_evaluation_internal(self) -> dict[str, Any]:
+        """
+        Internal evaluation logic without setup (for use by run_pipeline).
+
+        Returns:
+            Dict containing evaluation results and paths
+        """
+        # Load model components and preprocess only eval data
+        self.load_model_components()
+        self.preprocess_final_eval_data()
+
+        # Load pre-trained model
+        self.load_model()
+
+        # Run evaluation metrics (standalone evaluation: save to recent directory only)
+        self.run_metrics("recent")
+        # No need to copy metrics - they're accessible via symlink: best/config_key/evaluation/
+
+        # Analysis (conditional based on config)
+        if getattr(self.config_instance.interpretation.shap, "enabled", False):
+            self.run_interpretation()
+
+        if getattr(self.config_instance.visualizations, "enabled", False):
+            self.run_visualizations()
+
+        # Run project-specific analysis script if enabled
+        if getattr(self.config_instance.analysis.run_analysis_script, "enabled", False):
+            self.run_analysis_script()
+
+        # Return paths for CLI feedback
+        experiment_dir = self.path_manager.get_experiment_dir(
+            getattr(self, "experiment_name", None)
+        )
+
+        return {
+            "model_path": experiment_dir,
+            "results_path": os.path.join(experiment_dir, "evaluation"),
+        }
+
     def run_pipeline(self) -> dict[str, Any]:
         """
         Run the complete pipeline: training + evaluation.
+        Handles setup once, then runs both phases efficiently.
 
         Returns:
             Dict containing model path and results path
@@ -939,10 +964,15 @@ class PipelineManager:
         start_time = time.time()
 
         try:
-            # Step 1: Training
-            training_results = self.run_training()
+            # Setup phases (once for entire pipeline)
+            self.setup_gpu()
+            self.load_data()
+            self.setup_gene_filtering()
 
-            # Step 2: Evaluation
+            # Step 1: Training (without redundant setup)
+            training_results = self._run_training_internal()
+
+            # Step 2: Evaluation (without redundant setup)
             print("\n" + "=" * 60)
             print("🧪 AUTOMATIC EVALUATION")
             print("=" * 60)
@@ -950,7 +980,7 @@ class PipelineManager:
             print("-" * 60)
 
             try:
-                evaluation_results = self.run_evaluation()
+                evaluation_results = self._run_evaluation_internal()
             except Exception as e:
                 logger.warning(f"Automatic post-training evaluation failed: {e}")
                 logger.info("You can run 'timeflies evaluate' manually later")
