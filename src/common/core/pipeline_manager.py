@@ -96,16 +96,42 @@ class PipelineManager:
         print("DATA OVERVIEW")
         print("-" * 60)
 
-        # Configuration details
-        target = getattr(self.config_instance.data, "target_variable", "age")
-        tissue = getattr(self.config_instance.data, "tissue", "unknown")
-        batch_corrected = getattr(
-            self.config_instance.data.batch_correction, "enabled", False
-        )
+        # Show training dataset size and distribution
+        if hasattr(self, "adata") and self.adata is not None:
+            train_cells = self.adata.n_obs
+            train_genes = self.adata.n_vars
+            print("Training Dataset Size:")
+            print(f"  └─ Samples:           {train_cells:,}")
+            print(f"  └─ Features (genes):  {train_genes:,}")
 
-        print(f"Target Variable:        {target.title()}")
-        print(f"Tissue Type:            {tissue.title()}")
-        print(f"Batch Corrected:        {'Yes' if batch_corrected else 'No'}")
+            # Show target distribution for training data
+            target = getattr(self.config_instance.data, "target_variable", "age")
+            if target in self.adata.obs.columns:
+                print(f"\n{target.title()} Distribution (Training):")
+                train_dist = self.adata.obs[target].value_counts().sort_index()
+                train_total = train_dist.sum()
+                for key, count in train_dist.items():
+                    pct = (count / train_total) * 100
+                    unit = "days" if target == "age" else ""
+                    print(f"  └─ {key} {unit:10s}: {count:6,} samples ({pct:5.1f}%)")
+
+        # Show evaluation dataset size and distribution
+        if hasattr(self, "adata_eval") and self.adata_eval is not None:
+            eval_cells = self.adata_eval.n_obs
+            eval_genes = self.adata_eval.n_vars
+            print("\nEvaluation Dataset Size:")
+            print(f"  └─ Samples:           {eval_cells:,}")
+            print(f"  └─ Features (genes):  {eval_genes:,}")
+
+            # Show target distribution for evaluation data
+            if target in self.adata_eval.obs.columns:
+                print(f"\n{target.title()} Distribution (Evaluation):")
+                eval_dist = self.adata_eval.obs[target].value_counts().sort_index()
+                eval_total = eval_dist.sum()
+                for key, count in eval_dist.items():
+                    pct = (count / eval_total) * 100
+                    unit = "days" if target == "age" else ""
+                    print(f"  └─ {key} {unit:10s}: {count:6,} samples ({pct:5.1f}%)")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -114,19 +140,20 @@ class PipelineManager:
             self.config_instance
         )
         if split_config:
+            print("\nSplit Configuration:")
             print(
-                f"Split Method:           {split_config.get('method', 'unknown').title()}"
+                f"  └─ Split Method:      {split_config.get('method', 'unknown').title()}"
             )
             if split_config.get("method") == "column":
                 print(
-                    f"Split Column:           {split_config.get('column', 'unknown')}"
+                    f"  └─ Split Column:      {split_config.get('column', 'unknown')}"
                 )
                 train_vals = split_config.get("train_values", [])
                 test_vals = split_config.get("test_values", [])
                 if train_vals:
-                    print(f"Training Values:        {', '.join(train_vals)}")
+                    print(f"  └─ Training Values:   {', '.join(train_vals)}")
                 if test_vals:
-                    print(f"Evaluation Values:      {', '.join(test_vals)}")
+                    print(f"  └─ Test Values:       {', '.join(test_vals)}")
 
         print("=" * 60)
 
@@ -232,6 +259,52 @@ class PipelineManager:
             return f"Previous model found with validation loss of {best_val_loss:.3f}"
         else:
             return "No previous model found"
+
+    def _get_previous_best_validation_loss(self):
+        """Get just the numerical value of previous best validation loss."""
+        import json
+        import os
+        from pathlib import Path
+
+        # Use same logic as _get_previous_best_loss_message but return just the value
+        config_key = self.path_manager.get_config_key()
+        base_path = Path(self.path_manager._get_project_root()) / "outputs"
+        project_name = getattr(self.path_manager.config, "project", "fruitfly_aging")
+        batch_correction_enabled = getattr(
+            self.path_manager.config.data.batch_correction, "enabled", False
+        )
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
+        )
+
+        best_symlink_path = str(
+            base_path
+            / project_name
+            / "experiments"
+            / correction_dir
+            / "best"
+            / config_key
+            / "model_components"
+            / "best_val_loss.json"
+        )
+
+        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+        current_path = os.path.join(experiment_dir, "components", "best_val_loss.json")
+
+        best_val_loss = float("inf")
+        model_found = False
+
+        for path_to_try in [best_symlink_path, current_path]:
+            try:
+                if os.path.exists(path_to_try):
+                    with open(path_to_try) as f:
+                        best_val_loss = json.load(f)["best_val_loss"]
+                        model_found = True
+                        break
+            except (FileNotFoundError, json.JSONDecodeError):
+                continue
+
+        return best_val_loss if model_found else None
 
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
@@ -574,9 +647,6 @@ class PipelineManager:
 
         import time
 
-        # Add separator after TensorFlow GPU messages
-        print("-" * 60)
-
         self._training_start_time = time.time()
         self.train_model()
 
@@ -597,13 +667,26 @@ class PipelineManager:
         print("-" * 60)
 
         # Training results
+        current_best_loss = None
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
             if val_losses:
                 best_epoch = val_losses.index(min(val_losses)) + 1
-                best_val_loss = min(val_losses)
+                current_best_loss = min(val_losses)
                 print(f"Best Epoch: {best_epoch}")
-                print(f"Best Val Loss: {best_val_loss:.4f}")
+                print(f"Best Val Loss (This Training): {current_best_loss:.4f}")
+
+        # Compare with previous best model
+        previous_best_loss = self._get_previous_best_validation_loss()
+        if previous_best_loss is not None and current_best_loss is not None:
+            delta = previous_best_loss - current_best_loss
+            print(f"Previous Best Val Loss: {previous_best_loss:.4f}")
+            if delta > 0:
+                print(f"Improvement: -{delta:.4f} (Better)")
+            elif delta < 0:
+                print(f"Change: +{abs(delta):.4f} (Worse)")
+            else:
+                print(f"No Change: {delta:.4f}")
 
         print(f"Model saved to: {self.experiment_name}")
 
