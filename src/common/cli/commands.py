@@ -863,6 +863,17 @@ def train_command(args, config) -> int:
             print(f"GPU: {gpu_name}")
         else:
             print("GPU: Not available (using CPU)")
+
+        # Check gene filtering status and display in header
+        from pathlib import Path
+
+        project = getattr(config, "project", "unknown")
+        autosomal_path = Path(f"data/{project}/reference_data/autosomal_genes.csv")
+        sex_path = Path(f"data/{project}/reference_data/sex_genes.csv")
+
+        if not autosomal_path.exists() and not sex_path.exists():
+            print("⚠ Gene filtering disabled (no reference data found)")
+
         print("-" * 60)
         results = pipeline.run_pipeline()
 
