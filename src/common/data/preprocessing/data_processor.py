@@ -382,17 +382,29 @@ class DataPreprocessor:
 
         # Print data summary
         encoding_var = getattr(config.data, "target_variable", "age")
-        print("\n" + "-" * 40)
-        print("📋 DATA PREPARATION")
-        print("-" * 40)
+        print("\n" + "-" * 60)
+        print("🤖 MODEL TRAINING")
+        print("-" * 60)
+        print(f"Architecture: {getattr(config.model, 'model_type', 'CNN').upper()}")
+        print("Optimizer: Adam")
+        print(f"Learning Rate: {getattr(config.model, 'learning_rate', 0.001)}")
+        print(f"Batch Size: {getattr(config.model, 'batch_size', 32)}")
+        print(f"Max Epochs: {getattr(config.model, 'epochs', 100)}")
+
+        print("\nPreparing Training Data:")
+        print("-" * 60)
         print(
             f"Training samples: {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
         )
 
-        # Show class distribution more cleanly
+        # Show class distribution more cleanly with target variable name
         class_counts = train_subset.obs[encoding_var].value_counts().sort_index()
-        class_dist = " | ".join([f"{k}: {v}" for k, v in class_counts.items()])
-        print(f"Class distribution: {class_dist}")
+        total = class_counts.sum()
+        print(f"\n{encoding_var.title()} Distribution (Training):")
+        for key, count in class_counts.items():
+            pct = (count / total) * 100
+            unit = "days" if encoding_var == "age" else ""
+            print(f"  └─ {key} {unit:5s}: {count:6,} samples ({pct:5.1f}%)")
 
         if test_subset.n_obs > 0:
             print(

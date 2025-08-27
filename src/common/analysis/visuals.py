@@ -597,7 +597,8 @@ class Visualizer:
         self.path_manager = path_manager
 
         # Initialize VisualizationTools for evaluation visuals (will be updated based on context)
-        self.visual_tools = VisualizationTools(self.config, self.path_manager)
+        # Don't create visual_tools yet - it will be created when context is set
+        self.visual_tools = None
 
         # Training visual tools will be created only when needed
         self.training_visual_tools = None
