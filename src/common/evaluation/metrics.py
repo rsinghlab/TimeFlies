@@ -511,33 +511,38 @@ class EvaluationMetrics:
         self, y_true: np.ndarray, y_pred: np.ndarray
     ) -> dict[str, float]:
         """
-        Evaluate consistency within age groups.
+        Evaluate prediction consistency for each actual age.
 
         Args:
             y_true: True age values
             y_pred: Predicted age values
 
         Returns:
-            Dictionary with age group consistency metrics
+            Dictionary with per-age consistency metrics
         """
         metrics = {}
 
-        # Define age groups
-        age_groups = {"young": (0, 15), "middle": (15, 45), "old": (45, 100)}
+        # Analyze performance for each actual age
+        unique_ages = np.unique(y_true)
 
-        for group_name, (min_age, max_age) in age_groups.items():
-            group_mask = (y_true >= min_age) & (y_true < max_age)
+        for age in unique_ages:
+            age_mask = y_true == age
+            if np.sum(age_mask) > 0:
+                age_true = y_true[age_mask]
+                age_pred = y_pred[age_mask]
 
-            if np.sum(group_mask) > 0:
-                group_true = y_true[group_mask]
-                group_pred = y_pred[group_mask]
+                age_mae = mean_absolute_error(age_true, age_pred)
 
-                group_mae = mean_absolute_error(group_true, group_pred)
-                group_r2 = r2_score(group_true, group_pred)
+                # Only compute R² if there's variation in predictions
+                if len(np.unique(age_pred)) > 1:
+                    age_r2 = r2_score(age_true, age_pred)
+                else:
+                    age_r2 = 0.0  # No variation in predictions
 
-                metrics[f"{group_name}_mae"] = group_mae
-                metrics[f"{group_name}_r2"] = group_r2
-                metrics[f"{group_name}_sample_count"] = int(np.sum(group_mask))
+                age_key = f"age_{int(age)}d"  # e.g., "age_10d", "age_20d"
+                metrics[f"{age_key}_mae"] = age_mae
+                metrics[f"{age_key}_r2"] = age_r2
+                metrics[f"{age_key}_sample_count"] = int(np.sum(age_mask))
 
         return metrics
 
@@ -608,33 +613,112 @@ class EvaluationMetrics:
 
         if "f1_score" in eval_metrics:
             # Use macro average for multiclass, binary for binary classification
-            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
-            metrics["f1_score"] = float(
-                f1_score(true_labels, predicted_classes, average=average)
-            )
+            num_classes = len(np.unique(true_labels))
+            if num_classes == 2:
+                # Binary classification in evaluation set - specify positive class dynamically
+                unique_classes = np.unique(true_labels)
+                pos_label = unique_classes[
+                    -1
+                ]  # Use the higher age as positive (older flies)
+                metrics["f1_score"] = float(
+                    f1_score(
+                        true_labels,
+                        predicted_classes,
+                        average="binary",
+                        pos_label=pos_label,
+                    )
+                )
+            else:
+                # Multiclass (3+ age groups) - use macro average
+                metrics["f1_score"] = float(
+                    f1_score(true_labels, predicted_classes, average="macro")
+                )
 
         if "precision" in eval_metrics:
-            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
-            metrics["precision"] = float(
-                precision_score(true_labels, predicted_classes, average=average)
-            )
+            num_classes = len(np.unique(true_labels))
+            if num_classes == 2:
+                # Binary classification in evaluation set - specify positive class dynamically
+                unique_classes = np.unique(true_labels)
+                pos_label = unique_classes[
+                    -1
+                ]  # Use the higher age as positive (older flies)
+                metrics["precision"] = float(
+                    precision_score(
+                        true_labels,
+                        predicted_classes,
+                        average="binary",
+                        pos_label=pos_label,
+                    )
+                )
+            else:
+                # Multiclass (3+ age groups) - use macro average
+                metrics["precision"] = float(
+                    precision_score(true_labels, predicted_classes, average="macro")
+                )
 
         if "recall" in eval_metrics:
-            average = "macro" if len(np.unique(true_labels)) > 2 else "binary"
-            metrics["recall"] = float(
-                recall_score(true_labels, predicted_classes, average=average)
-            )
+            num_classes = len(np.unique(true_labels))
+            if num_classes == 2:
+                # Binary classification in evaluation set - specify positive class dynamically
+                unique_classes = np.unique(true_labels)
+                pos_label = unique_classes[
+                    -1
+                ]  # Use the higher age as positive (older flies)
+                metrics["recall"] = float(
+                    recall_score(
+                        true_labels,
+                        predicted_classes,
+                        average="binary",
+                        pos_label=pos_label,
+                    )
+                )
+            else:
+                # Multiclass (3+ age groups) - use macro average
+                metrics["recall"] = float(
+                    recall_score(true_labels, predicted_classes, average="macro")
+                )
 
         # AUC score (requires prediction probabilities)
         if "auc" in eval_metrics and len(predictions.shape) > 1:
             try:
-                if predictions.shape[1] == 2:
-                    # Binary classification - use probability of positive class
-                    metrics["auc"] = float(
-                        roc_auc_score(true_labels, predictions[:, 1])
-                    )
+                num_eval_classes = len(np.unique(true_labels))
+                num_model_classes = predictions.shape[1]
+
+                if num_eval_classes == 2 and num_model_classes >= 2:
+                    # Binary classification in eval set (model may have been trained on more classes)
+                    unique_eval_classes = np.unique(true_labels)
+                    pos_label = unique_eval_classes[-1]  # Higher age as positive
+
+                    if self.label_encoder and hasattr(self.label_encoder, "classes_"):
+                        # Find which model output column corresponds to the positive class
+                        try:
+                            # Get the index of the positive class in the original label encoder
+                            pos_class_idx = list(self.label_encoder.classes_).index(
+                                pos_label
+                            )
+                            # Use the corresponding prediction column
+                            metrics["auc"] = float(
+                                roc_auc_score(
+                                    true_labels, predictions[:, pos_class_idx]
+                                )
+                            )
+                        except (ValueError, IndexError):
+                            # Fallback: use macro average AUC for all classes present in evaluation
+                            metrics["auc"] = float(
+                                roc_auc_score(
+                                    true_labels,
+                                    predictions,
+                                    multi_class="ovr",
+                                    average="macro",
+                                )
+                            )
+                    else:
+                        # Without label encoder, assume binary model with pos class in column 1
+                        metrics["auc"] = float(
+                            roc_auc_score(true_labels, predictions[:, 1])
+                        )
                 else:
-                    # Multiclass classification - use macro average
+                    # Multiclass evaluation (3+ classes) - use macro average
                     metrics["auc"] = float(
                         roc_auc_score(
                             true_labels, predictions, multi_class="ovr", average="macro"
@@ -761,8 +845,21 @@ class EvaluationMetrics:
             # One-hot encoded - convert to class indices
             class_labels = np.argmax(self.test_labels, axis=1)
         else:
-            # Already class indices
+            # Already class indices - but if using label encoder, convert to encoded indices
             class_labels = self.test_labels
+            if self.label_encoder and hasattr(self.label_encoder, "classes_"):
+                # Convert original labels to encoded indices for display
+                try:
+                    # Check if class_labels contains original values that need encoding
+                    original_values = np.unique(class_labels)
+                    encoded_values = np.unique(
+                        self.label_encoder.transform(class_labels)
+                    )
+                    if not np.array_equal(original_values, encoded_values):
+                        class_labels = self.label_encoder.transform(class_labels)
+                except (ValueError, AttributeError):
+                    # If transformation fails, keep original labels
+                    pass
 
         unique_labels, counts = np.unique(class_labels, return_counts=True)
         total_label_count = (
@@ -947,33 +1044,49 @@ class EvaluationMetrics:
 
                 # Compute metrics for this baseline
                 baseline_accuracy = float(accuracy_score(true_labels, baseline_pred))
-                baseline_f1 = float(
-                    f1_score(
-                        true_labels,
-                        baseline_pred,
-                        average="macro"
-                        if len(np.unique(true_labels)) > 2
-                        else "binary",
+
+                # Handle binary vs multiclass dynamically based on evaluation classes
+                num_classes = len(np.unique(true_labels))
+                if num_classes == 2:
+                    # Binary classification in evaluation set - specify positive class dynamically
+                    unique_classes = np.unique(true_labels)
+                    pos_label = unique_classes[-1]  # Higher age as positive
+
+                    baseline_f1 = float(
+                        f1_score(
+                            true_labels,
+                            baseline_pred,
+                            average="binary",
+                            pos_label=pos_label,
+                        )
                     )
-                )
-                baseline_precision = float(
-                    precision_score(
-                        true_labels,
-                        baseline_pred,
-                        average="macro"
-                        if len(np.unique(true_labels)) > 2
-                        else "binary",
+                    baseline_precision = float(
+                        precision_score(
+                            true_labels,
+                            baseline_pred,
+                            average="binary",
+                            pos_label=pos_label,
+                        )
                     )
-                )
-                baseline_recall = float(
-                    recall_score(
-                        true_labels,
-                        baseline_pred,
-                        average="macro"
-                        if len(np.unique(true_labels)) > 2
-                        else "binary",
+                    baseline_recall = float(
+                        recall_score(
+                            true_labels,
+                            baseline_pred,
+                            average="binary",
+                            pos_label=pos_label,
+                        )
                     )
-                )
+                else:
+                    # Multiclass (3+ age groups) - use macro average
+                    baseline_f1 = float(
+                        f1_score(true_labels, baseline_pred, average="macro")
+                    )
+                    baseline_precision = float(
+                        precision_score(true_labels, baseline_pred, average="macro")
+                    )
+                    baseline_recall = float(
+                        recall_score(true_labels, baseline_pred, average="macro")
+                    )
 
                 # Store baseline metrics
                 baselines[baseline_type] = {
@@ -985,15 +1098,21 @@ class EvaluationMetrics:
 
                 # Compute improvement over baseline
                 model_accuracy = float(accuracy_score(true_labels, predicted_classes))
-                model_f1 = float(
-                    f1_score(
-                        true_labels,
-                        predicted_classes,
-                        average="macro"
-                        if len(np.unique(true_labels)) > 2
-                        else "binary",
+
+                # For model F1 score, use same logic as baseline
+                if num_classes == 2:
+                    model_f1 = float(
+                        f1_score(
+                            true_labels,
+                            predicted_classes,
+                            average="binary",
+                            pos_label=pos_label,
+                        )
                     )
-                )
+                else:
+                    model_f1 = float(
+                        f1_score(true_labels, predicted_classes, average="macro")
+                    )
 
                 baselines[baseline_type]["improvement"] = {
                     "accuracy_improvement": model_accuracy - baseline_accuracy,
