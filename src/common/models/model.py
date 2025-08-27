@@ -977,11 +977,6 @@ class ModelBuilder:
             callbacks=[early_stopping, model_checkpoint],
         )
 
-        print("\n" + "=" * 60)
-        print("TRAINING COMPLETED")
-        print("=" * 60)
-        print("Model training finished - starting automatic evaluation...")
-
         # Save the history object only if the model was improved and saved at least once during training
         if model_checkpoint.model_improved:
             #  Saving training history
