@@ -35,6 +35,33 @@ class PipelineManager:
         path_manager (PathManager): Manages file paths based on the configuration.
     """
 
+    def _print_header(self, title: str, width: int = 60):
+        """Print a formatted header with title."""
+        print("\n" + "=" * width)
+        print(title)
+        print("=" * width)
+
+    def _with_timing(self, func, *args, **kwargs):
+        """Execute a function with timing and duration display."""
+        import time
+
+        start_time = time.time()
+        try:
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            self.display_duration(start_time, end_time)
+            return result, end_time - start_time
+        except Exception:
+            end_time = time.time()
+            self.display_duration(start_time, end_time)
+            raise
+
+    def _setup_pipeline(self):
+        """Common pipeline setup: GPU, data loading, gene filtering."""
+        self.setup_gpu()
+        self.load_data()
+        self.setup_gene_filtering()
+
     def __init__(self, config: Config, mode: str = "training"):
         """
         Initialize the PipelineManager class with configuration and data loader.
@@ -579,28 +606,17 @@ class PipelineManager:
         Returns:
             Dict containing training results and paths
         """
-        import time
-
-        start_time = time.time()
+        self._print_header("🔥 TRAINING PIPELINE")
 
         try:
-            print("\n" + "=" * 60)
-            print(" TRAINING PIPELINE")
-            print("=" * 60)
-
             # Setup phases
-            self.setup_gpu()
-            self.load_data()
-            self.setup_gene_filtering()
+            self._setup_pipeline()
 
-            # Run internal training logic
-            training_results = self._run_training_internal()
-
-            end_time = time.time()
-            self.display_duration(start_time, end_time)
+            # Run internal training logic with timing
+            training_results, duration = self._with_timing(self._run_training_internal)
 
             # Add timing to results
-            training_results["training_duration"] = end_time - start_time
+            training_results["training_duration"] = duration
             return training_results
 
         except Exception as e:
@@ -888,24 +904,17 @@ class PipelineManager:
         Returns:
             Dict containing model path and results path
         """
-        import time
-
-        start_time = time.time()
-
         try:
             # Setup phases
-            self.setup_gpu()
-            self.load_data()
-            self.setup_gene_filtering()
+            self._setup_pipeline()
 
-            # Run internal evaluation logic
-            evaluation_results = self._run_evaluation_internal()
-
-            end_time = time.time()
-            self.display_duration(start_time, end_time)
+            # Run internal evaluation logic with timing
+            evaluation_results, duration = self._with_timing(
+                self._run_evaluation_internal
+            )
 
             # Add timing to results
-            evaluation_results["duration"] = end_time - start_time
+            evaluation_results["duration"] = duration
             return evaluation_results
 
         except Exception as e:
@@ -959,23 +968,16 @@ class PipelineManager:
         Returns:
             Dict containing model path and results path
         """
-        import time
 
-        start_time = time.time()
-
-        try:
+        def _run_full_pipeline():
             # Setup phases (once for entire pipeline)
-            self.setup_gpu()
-            self.load_data()
-            self.setup_gene_filtering()
+            self._setup_pipeline()
 
             # Step 1: Training (without redundant setup)
             training_results = self._run_training_internal()
 
             # Step 2: Evaluation (without redundant setup)
-            print("\n" + "=" * 60)
-            print("🧪 AUTOMATIC EVALUATION")
-            print("=" * 60)
+            self._print_header("🧪 AUTOMATIC EVALUATION")
             print("Evaluating model performance on holdout dataset...")
             print("-" * 60)
 
@@ -986,13 +988,10 @@ class PipelineManager:
                 logger.info("You can run 'timeflies evaluate' manually later")
                 evaluation_results = {}
 
-            end_time = time.time()
-
             # Combine results
             pipeline_results = {
                 **training_results,
                 **evaluation_results,
-                "total_duration": end_time - start_time,
                 "model_improved": getattr(self, "model_improved", False),
             }
 
@@ -1002,16 +1001,18 @@ class PipelineManager:
                     training_results.get("model_path", ""), "evaluation"
                 )
 
-            print(f"\n✅ Complete pipeline finished in {end_time - start_time:.1f}s")
+            return pipeline_results
+
+        try:
+            # Execute full pipeline with timing
+            pipeline_results, duration = self._with_timing(_run_full_pipeline)
+
+            # Add total timing to results
+            pipeline_results["total_duration"] = duration
+
+            print(f"\n✅ Complete pipeline finished in {duration:.1f}s")
             return pipeline_results
 
         except Exception as e:
             logger.error(f"Pipeline execution failed: {e}")
             raise
-
-    def run(self) -> dict[str, Any]:
-        """
-        Legacy method - use run_pipeline() instead.
-        """
-        logger.warning("run() is deprecated, use run_pipeline() instead")
-        return self.run_pipeline()
