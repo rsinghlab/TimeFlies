@@ -129,15 +129,18 @@ class PipelineManager:
             self.adata_original,
         ) = self.gene_filter.apply_filter()
 
-    def _cleanup_memory(self, keep_eval_data=True):
+    def _cleanup_memory(self, keep_eval_data=True, keep_vis_data=False):
         """Clean up memory by deleting large data objects."""
-        # Always clean up training data after preprocessing
-        if hasattr(self, "adata"):
-            del self.adata
+        # Clean up training data, but keep visualization data if requested
+        if not keep_vis_data:
+            if hasattr(self, "adata"):
+                del self.adata
+            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
+                del self.adata_corrected
+
+        # Always clean up original data (not needed after preprocessing)
         if hasattr(self, "adata_original"):
             del self.adata_original
-        if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
-            del self.adata_corrected
 
         # Optionally clean up evaluation data
         if not keep_eval_data:
@@ -221,7 +224,11 @@ class PipelineManager:
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
             # Clean up memory (preserve evaluation data for auto-evaluation)
-            self._cleanup_memory(keep_eval_data=True)
+            # During combined pipeline, also preserve visualization data for post-training evaluation
+            is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
+            self._cleanup_memory(
+                keep_eval_data=True, keep_vis_data=is_combined_pipeline
+            )
 
     def load_model(self):
         """
@@ -691,6 +698,9 @@ class PipelineManager:
         Returns:
             Dict containing model path and results path
         """
+        # Mark this as a combined pipeline to preserve data for evaluation
+        self._in_combined_pipeline = True
+
         # Setup phases (once for entire pipeline)
         self._setup_pipeline()
 
@@ -721,6 +731,10 @@ class PipelineManager:
             pipeline_results["best_results_path"] = os.path.join(
                 training_results.get("model_path", ""), "evaluation"
             )
+
+        # Final cleanup after combined pipeline
+        self._cleanup_memory(keep_eval_data=False, keep_vis_data=False)
+        self._in_combined_pipeline = False
 
         print("\n✅ Complete pipeline finished")
         return pipeline_results
