@@ -91,9 +91,9 @@ class PipelineManager:
 
     def _print_project_and_dataset_overview(self):
         """Print consolidated project information and actual training/evaluation data overview."""
-        print("\n" + "=" * 60)
-        print("Data Overview")
         print("=" * 60)
+        print("DATA OVERVIEW")
+        print("-" * 60)
 
         # Configuration details
         target = getattr(self.config_instance.data, "target_variable", "age")
@@ -179,6 +179,50 @@ class PipelineManager:
                         )
                     except Exception:
                         pass
+
+    def _show_previous_best_loss(self):
+        """Show previous best validation loss if available."""
+        import json
+        import os
+
+        # Check for existing best validation loss
+        project = getattr(self.config_instance, "project", "unknown")
+        batch_corr = (
+            "batch_corrected"
+            if self.config_instance.data.batch_correction.enabled
+            else "uncorrected"
+        )
+        config_key = self.path_manager.get_config_key()
+
+        best_symlink_path = os.path.join(
+            "outputs",
+            project,
+            "experiments",
+            batch_corr,
+            "best",
+            config_key,
+            "components",
+            "best_val_loss.json",
+        )
+        current_path = os.path.join(
+            self.path_manager.get_experiment_components_dir(self.experiment_name),
+            "best_val_loss.json",
+        )
+
+        best_val_loss = None
+        for path_to_try in [best_symlink_path, current_path]:
+            try:
+                if os.path.exists(path_to_try):
+                    with open(path_to_try) as f:
+                        best_val_loss = json.load(f)["best_val_loss"]
+                        break
+            except (FileNotFoundError, json.JSONDecodeError):
+                continue
+
+        if best_val_loss is not None:
+            print(f"Previous best validation loss: {best_val_loss:.3f}")
+        else:
+            print("No previous model found - training new model")
 
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
@@ -482,14 +526,6 @@ class PipelineManager:
             # Generate appropriate visualizations
             if training_visuals:
                 visualizer._visualize_training_history()
-                location = (
-                    f"{result_type} directory"
-                    if result_type
-                    else "experiment directory"
-                )
-                logger.info(
-                    f"Training visualizations saved successfully to {location}."
-                )
 
             if evaluation_visuals:
                 # Set output directory for evaluation plots
@@ -523,8 +559,13 @@ class PipelineManager:
         self._print_training_and_evaluation_data()
 
         # Model training
-        print("Training Progress")
-        print("=" * 60)
+        print("TRAINING PROGRESS")
+        print("-" * 60)
+
+        # Show previous best validation loss if available
+        self._show_previous_best_loss()
+        print("-" * 60)
+
         import time
 
         self._training_start_time = time.time()
@@ -541,9 +582,9 @@ class PipelineManager:
         )
 
         # Training Summary section with double lines
-        print("\n" + "=" * 60)
-        print("TRAINING SUMMARY: " + improvement_status)
         print("=" * 60)
+        print("TRAINING SUMMARY - " + improvement_status)
+        print("-" * 60)
 
         # Training results
         if hasattr(self, "history") and self.history:
