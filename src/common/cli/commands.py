@@ -842,6 +842,12 @@ def train_command(args, config) -> int:
         print("=" * 60)
         print("🚀 TIMEFLIES TRAINING & HOLDOUT EVALUATION")
         print("-" * 60)
+
+        # Get experiment details for clearer labeling
+        target = getattr(config.data, "target_variable", "unknown")
+        tissue = getattr(config.data, "tissue", "unknown")
+        model_type = getattr(config.data, "model", "unknown")
+
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
@@ -851,7 +857,9 @@ def train_command(args, config) -> int:
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
-        print(f"Experiment: {pipeline.experiment_name}")
+        print(
+            f"Experiment: {pipeline.experiment_name} ({target.title()}-{model_type.upper()}-{tissue.title()})"
+        )
 
         # Get GPU info after GPU configuration
         import tensorflow as tf
