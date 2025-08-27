@@ -62,6 +62,64 @@ class PipelineManager:
         self.load_data()
         self.setup_gene_filtering()
 
+    def _create_data_preprocessor(self):
+        """Create DataPreprocessor instance with current data."""
+        return DataPreprocessor(self.config_instance, self.adata, self.adata_corrected)
+
+    def _get_batch_corrected_data(self, eval_data=False):
+        """Get batch corrected data if enabled, otherwise return original."""
+        batch_correction_enabled = getattr(
+            self.config_instance.data.batch_correction, "enabled", False
+        )
+        if eval_data:
+            return (
+                self.adata_eval_corrected
+                if batch_correction_enabled and hasattr(self, "adata_eval_corrected")
+                else self.adata_eval
+            )
+        else:
+            return self.adata_corrected if batch_correction_enabled else self.adata
+
+    def _cleanup_memory(self, keep_eval_data=True):
+        """Clean up memory by deleting large data objects."""
+        import gc
+
+        # Always clean up training data after preprocessing
+        if hasattr(self, "adata"):
+            del self.adata
+        if hasattr(self, "adata_original"):
+            del self.adata_original
+        if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
+            del self.adata_corrected
+
+        # Optionally clean up evaluation data
+        if not keep_eval_data:
+            if hasattr(self, "adata_eval"):
+                del self.adata_eval
+            if (
+                hasattr(self, "adata_eval_corrected")
+                and self.adata_eval_corrected is not None
+            ):
+                del self.adata_eval_corrected
+
+        gc.collect()
+
+    def _preserve_gene_names(self):
+        """Preserve gene names for visualization before cleanup."""
+        batch_correction_enabled = getattr(
+            self.config_instance.data.batch_correction, "enabled", False
+        )
+
+        if batch_correction_enabled:
+            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
+                self.preserved_var_names = self.adata_corrected.var_names.copy()
+            elif hasattr(self, "adata") and self.adata is not None:
+                self.preserved_var_names = self.adata.var_names.copy()
+            else:
+                self.preserved_var_names = None
+        else:
+            self.preserved_var_names = None
+
     def __init__(self, config: Config, mode: str = "training"):
         """
         Initialize the PipelineManager class with configuration and data loader.
@@ -206,10 +264,8 @@ class PipelineManager:
         Preprocess general training and test data for building or training a new model.
         """
         try:
-            # Preprocessing training data
-            self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_corrected
-            )
+            # Create preprocessor and prepare training data
+            self.data_preprocessor = self._create_data_preprocessor()
             (
                 self.train_data,
                 self.test_data,
@@ -223,21 +279,9 @@ class PipelineManager:
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
 
-            # Free memory by deleting large raw data objects after preprocessing
-            # (preserve evaluation data for auto-evaluation)
-            # Cleaning up memory
-            del self.adata
-            # Keep adata_eval and adata_eval_corrected for auto-evaluation
-            del self.adata_original
-            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
-                del self.adata_corrected
-            # Keep both adata_eval and adata_eval_corrected for auto-evaluation
-            # Preserving evaluation data
+            # Clean up memory (preserve evaluation data for auto-evaluation)
+            self._cleanup_memory(keep_eval_data=True)
 
-            import gc
-
-            gc.collect()  # Force garbage collection
-            # Memory cleanup complete
         except Exception as e:
             logger.error(f"Error during general data preprocessing: {e}")
             raise
@@ -247,20 +291,11 @@ class PipelineManager:
         Preprocess final evaluation data to prevent data leakage.
         """
         try:
-            # Preprocessing evaluation data
-            self.data_preprocessor = DataPreprocessor(
-                self.config_instance, self.adata, self.adata_corrected
-            )
+            # Create preprocessor and get evaluation data
+            self.data_preprocessor = self._create_data_preprocessor()
+            adata_eval = self._get_batch_corrected_data(eval_data=True)
 
-            batch_correction_enabled = getattr(
-                self.config_instance.data.batch_correction, "enabled", False
-            )
-            adata_eval = (
-                self.adata_eval_corrected
-                if batch_correction_enabled
-                else self.adata_eval
-            )
-
+            # Prepare evaluation data using fitted components from training
             (
                 self.test_data,
                 self.test_labels,
@@ -273,70 +308,15 @@ class PipelineManager:
                 self.is_scaler_fit,
                 self.highly_variable_genes,
                 self.mix_included,
-                getattr(
-                    self, "train_gene_names", None
-                ),  # Use training gene names if available
-            )
-            # Evaluation data ready
-
-            # Preserve gene names before memory cleanup for visualization
-            # Preserving gene names
-            batch_correction_enabled = getattr(
-                self.config_instance.data.batch_correction, "enabled", False
-            )
-            select_batch_genes = getattr(
-                self.config_instance.preprocessing.genes,
-                "select_batch_genes",
-                False,
+                getattr(self, "train_gene_names", None),
             )
 
-            if batch_correction_enabled or select_batch_genes:
-                if (
-                    hasattr(self, "adata_corrected")
-                    and self.adata_corrected is not None
-                ):
-                    self.preserved_var_names = self.adata_corrected.var_names.copy()
-                elif (
-                    hasattr(self, "adata_eval_corrected")
-                    and self.adata_eval_corrected is not None
-                ):
-                    self.preserved_var_names = (
-                        self.adata_eval_corrected.var_names.copy()
-                    )
-                else:
-                    self.preserved_var_names = getattr(
-                        self, "adata", getattr(self, "adata_eval", None)
-                    )
-                    if self.preserved_var_names is not None:
-                        self.preserved_var_names = (
-                            self.preserved_var_names.var_names.copy()
-                        )
-            else:
-                if hasattr(self, "adata"):
-                    self.preserved_var_names = self.adata.var_names.copy()
-                elif hasattr(self, "adata_eval"):
-                    self.preserved_var_names = self.adata_eval.var_names.copy()
+            # Preserve gene names before cleanup
+            self._preserve_gene_names()
 
-            # Free memory by deleting large raw data objects after final evaluation preprocessing
-            # Cleaning up memory
-            if hasattr(self, "adata"):
-                del self.adata
-            if hasattr(self, "adata_eval"):
-                del self.adata_eval
-            if hasattr(self, "adata_original"):
-                del self.adata_original
-            if hasattr(self, "adata_corrected") and self.adata_corrected is not None:
-                del self.adata_corrected
-            if (
-                hasattr(self, "adata_eval_corrected")
-                and self.adata_eval_corrected is not None
-            ):
-                del self.adata_eval_corrected
+            # Clean up all memory (evaluation is final step)
+            self._cleanup_memory(keep_eval_data=False)
 
-            import gc
-
-            gc.collect()  # Force garbage collection
-            # Memory cleanup complete
         except Exception as e:
             logger.error(f"Error during final evaluation data preprocessing: {e}")
             raise
@@ -348,7 +328,7 @@ class PipelineManager:
         """
         try:
             self.setup_gene_filtering()
-            self.preprocess_data()  # Always do training preprocessing
+            self.preprocess_data()
             logger.info("Preprocessing completed.")
 
         except Exception as e:
