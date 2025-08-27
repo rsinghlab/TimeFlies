@@ -89,6 +89,78 @@ class PipelineManager:
         print(title)
         print("=" * width)
 
+    def _print_dataset_overview(self):
+        """Print comprehensive dataset overview for training and evaluation."""
+        print("\n" + "=" * 60)
+        print("📊 DATASET OVERVIEW")
+        print("=" * 60)
+
+        # Total dataset info
+        total_cells = self.adata.n_obs if hasattr(self, "adata") else 0
+        total_genes = self.adata.n_vars if hasattr(self, "adata") else 0
+        eval_cells = self.adata_eval.n_obs if hasattr(self, "adata_eval") else 0
+
+        print("Total Dataset:")
+        print(f"  └─ Samples:           {total_cells:,} cells")
+        print(f"  └─ Features (genes):  {total_genes:,}")
+
+        # Split configuration
+        from common.utils.split_naming import SplitNamingUtils
+
+        split_config = SplitNamingUtils.extract_split_details_for_metadata(
+            self.config_instance
+        )
+
+        if split_config:
+            print("\nSplit Configuration:")
+            print(f"  └─ Split Method:      {split_config.get('method', 'unknown')}")
+            if split_config.get("method") == "column":
+                print(
+                    f"  └─ Split Column:      {split_config.get('column', 'unknown')}"
+                )
+                train_vals = split_config.get("train_values", [])
+                test_vals = split_config.get("test_values", [])
+                if train_vals:
+                    print(f"  └─ Training Values:   {', '.join(train_vals)}")
+                if test_vals:
+                    print(f"  └─ Evaluation Values: {', '.join(test_vals)}")
+
+        # Training data info (will be shown after preprocessing)
+        sampling_config = getattr(self.config_instance.data, "sampling", None)
+        if sampling_config and getattr(sampling_config, "enabled", False):
+            sample_size = getattr(sampling_config, "samples", 10000)
+            print("\nTraining Data (after sampling):")
+            print(
+                f"  └─ Samples:           {sample_size:,} cells (from {total_cells:,})"
+            )
+            print(f"  └─ Features:          {total_genes:,} genes")
+            print("  └─ Sampling Method:   Random sampling")
+        else:
+            print("\nTraining Data:")
+            print(f"  └─ Samples:           {total_cells:,} cells")
+            print(f"  └─ Features:          {total_genes:,} genes")
+
+        # Target variable distribution will be shown after preprocessing
+        target_var = getattr(self.config_instance.data, "target_variable", "age")
+        print(f"\n{target_var.title()} Distribution (Training):")
+        print("  └─ Will be calculated after preprocessing...")
+
+        # Evaluation data info
+        print("\nHoldout Evaluation Data:")
+        print(f"  └─ Samples:           {eval_cells:,} cells")
+        print(f"  └─ Features:          {total_genes:,} genes")
+
+        # Evaluation target distribution
+        if hasattr(self, "adata_eval") and self.adata_eval is not None:
+            print(f"\n{target_var.title()} Distribution (Evaluation):")
+            eval_dist = self.adata_eval.obs[target_var].value_counts().sort_index()
+            total_eval = eval_dist.sum()
+            for key, count in eval_dist.items():
+                pct = (count / total_eval) * 100
+                print(f"  └─ {key:10s}: {count:6,} samples ({pct:5.1f}%)")
+
+        print("=" * 60)
+
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
         # Setting up GPU
@@ -429,14 +501,40 @@ class PipelineManager:
         self.preprocess_data()
 
         # Model training
-        print("\n🤖 Model Training...")
+        print("\nTraining Progress:")
+        print("-" * 60)
+        import time
+
+        self._training_start_time = time.time()
         self.train_model()
 
         # Save outputs and create symlinks after training
         self.save_outputs(metadata=True, symlinks=True)
 
-        # Return training results
+        # Print training completion summary
+        print("\n" + "-" * 60)
+        print("✅ TRAINING COMPLETED")
+        print("-" * 60)
+        if hasattr(self, "history") and self.history:
+            val_losses = self.history.history.get("val_loss", [])
+            if val_losses:
+                best_epoch = val_losses.index(min(val_losses)) + 1
+                best_val_loss = min(val_losses)
+                print(f"Best Epoch: {best_epoch}")
+                print(f"Best Val Loss: {best_val_loss:.4f}")
+
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+        print(f"Model saved to: {self.experiment_name}")
+
+        # Show training duration if available
+        import time
+
+        if hasattr(self, "_training_start_time"):
+            duration = time.time() - self._training_start_time
+            print(f"Training duration: {duration:.1f} seconds")
+        print("-" * 60)
+
+        # Return training results
         return {
             "model_path": experiment_dir,
             "experiment_name": self.experiment_name,
@@ -704,12 +802,15 @@ class PipelineManager:
         # Setup phases (once for entire pipeline)
         self._setup_pipeline()
 
+        # Show dataset overview after setup
+        self._print_dataset_overview()
+
         # Step 1: Training (skip setup since we already did it)
         training_results = self.run_training(skip_setup=True)
 
         # Step 2: Evaluation (skip setup since we already did it)
-        self._print_header("🧪 AUTOMATIC EVALUATION")
-        print("Evaluating model performance on holdout dataset...")
+        self._print_header("🧪 AUTOMATIC HOLDOUT EVALUATION")
+        print("Loading trained model for evaluation...")
         print("-" * 60)
 
         try:
@@ -732,9 +833,37 @@ class PipelineManager:
                 training_results.get("model_path", ""), "evaluation"
             )
 
+        # Update best/latest folders again to include evaluation results
+        if evaluation_results:  # Only update if evaluation succeeded
+            if self.model_improved:
+                self.path_manager.update_best_folder(self.experiment_name)
+            self.path_manager.update_latest_folder(self.experiment_name)
+
         # Final cleanup after combined pipeline
         self._cleanup_memory(keep_eval_data=False, keep_vis_data=False)
         self._in_combined_pipeline = False
 
-        print("\n✅ Complete pipeline finished")
+        # Print final summary
+        print("\n" + "=" * 60)
+        print("✅ PIPELINE COMPLETED SUCCESSFULLY")
+        print("=" * 60)
+        print(f"Experiment: {self.experiment_name}")
+
+        # Show where models are saved
+        project = getattr(self.config_instance, "project", "fruitfly_aging")
+        batch_corr = (
+            "batch_corrected"
+            if self.config_instance.data.batch_correction.enabled
+            else "uncorrected"
+        )
+        config_key = self.path_manager.get_config_key()
+
+        print(
+            f"Best Model: outputs/{project}/experiments/{batch_corr}/best/{config_key}/"
+        )
+        print(
+            f"Latest Model: outputs/{project}/experiments/{batch_corr}/latest/{config_key}/"
+        )
+        print("=" * 60)
+
         return pipeline_results

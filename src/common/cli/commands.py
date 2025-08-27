@@ -840,7 +840,7 @@ def train_command(args, config) -> int:
                 return result
 
         print("=" * 60)
-        print("🚀 TIMEFLIES TRAINING")
+        print("🚀 TIMEFLIES TRAINING & HOLDOUT EVALUATION")
         print("=" * 60)
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
@@ -850,6 +850,9 @@ def train_command(args, config) -> int:
         print(f"Target: {config.data.target_variable.title()}")
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
+        print("-" * 60)
+
+        print("\n⚙️ SYSTEM CONFIGURATION")
         print("-" * 60)
 
         # Use common PipelineManager for all projects (GPU will be configured there)

@@ -257,41 +257,74 @@ class ModelLoader:
             with open(metadata_path) as f:
                 saved_metadata = json.load(f)
 
-            # Extract current split configuration
+            # Extract current configuration
             current_split = SplitNamingUtils.extract_split_details_for_metadata(
                 self.config
             )
 
-            # Get saved split details if they exist
-            saved_split = saved_metadata.get("split_details", {})
+            # Check all key metadata fields for compatibility
+            mismatches = []
 
+            # Check model type
+            current_model = getattr(self.config.model, "model_type", "CNN").upper()
+            saved_model = saved_metadata.get("model_type", "")
+            if current_model != saved_model:
+                mismatches.append(f"Model type: {current_model} vs {saved_model}")
+
+            # Check target variable
+            current_target = getattr(self.config.data, "target_variable", "age")
+            saved_target = saved_metadata.get("target", "")
+            if current_target != saved_target:
+                mismatches.append(f"Target: {current_target} vs {saved_target}")
+
+            # Check tissue
+            current_tissue = getattr(self.config.data, "tissue", "head")
+            saved_tissue = saved_metadata.get("tissue", "")
+            if current_tissue != saved_tissue:
+                mismatches.append(f"Tissue: {current_tissue} vs {saved_tissue}")
+
+            # Check batch correction
+            current_batch = getattr(self.config.data.batch_correction, "enabled", False)
+            saved_batch = saved_metadata.get("batch_correction", None)
+            if saved_batch is not None and current_batch != saved_batch:
+                mismatches.append(f"Batch correction: {current_batch} vs {saved_batch}")
+
+            # Check split configuration
+            saved_split = saved_metadata.get("split_config", {})
             if not saved_split:
-                print(
-                    "WARNING: No split details in saved model metadata, cannot verify compatibility"
+                mismatches.append("Split configuration missing in saved model")
+            else:
+                method_match = current_split.get("method") == saved_split.get("method")
+                split_name_match = current_split.get("split_name") == saved_split.get(
+                    "split_name"
                 )
-                return
 
-            # Compare key split parameters
-            method_match = current_split.get("method") == saved_split.get("method")
-            split_name_match = current_split.get("split_name") == saved_split.get(
-                "split_name"
-            )
+                if not method_match:
+                    mismatches.append(
+                        f"Split method: {current_split.get('method')} vs {saved_split.get('method')}"
+                    )
+                if not split_name_match:
+                    mismatches.append(
+                        f"Split name: {current_split.get('split_name')} vs {saved_split.get('split_name')}"
+                    )
 
-            if not method_match or not split_name_match:
-                print("WARNING: Split configuration mismatch!")
+            # Report results
+            if mismatches:
+                print("WARNING: Configuration mismatches detected with saved model!")
+                for mismatch in mismatches:
+                    print(f"  - {mismatch}")
                 print(
-                    f"  Current: {current_split.get('split_name')} ({current_split.get('method')})"
-                )
-                print(
-                    f"  Saved model: {saved_split.get('split_name')} ({saved_split.get('method')})"
-                )
-                print(
-                    "  This may cause evaluation issues if train/test data differs from model training"
+                    "  This may cause evaluation issues if configuration differs from model training"
                 )
             else:
-                print(
-                    f"✓ Split configuration matches saved model: {current_split.get('split_name')}"
-                )
+                print("✓ Configuration matches saved model")
+                if saved_split:
+                    print(
+                        f"  Split: {saved_split.get('split_name')} ({saved_split.get('method')})"
+                    )
+                    print(
+                        f"  Model: {saved_model}, Target: {saved_target}, Tissue: {saved_tissue}"
+                    )
 
         except Exception as e:
             print(f"WARNING: Could not verify split compatibility: {e}")
