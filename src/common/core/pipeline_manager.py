@@ -181,8 +181,8 @@ class PipelineManager:
                     except Exception:
                         pass
 
-    def _show_previous_best_loss(self):
-        """Show previous best validation loss if available."""
+    def _get_previous_best_loss_message(self):
+        """Get previous best validation loss message for header."""
         import json
         import os
 
@@ -222,9 +222,9 @@ class PipelineManager:
                 continue
 
         if best_val_loss is not None:
-            print(f"Previous best validation loss: {best_val_loss:.3f}")
+            return f"Previous model found with validation loss of {best_val_loss:.3f}"
         else:
-            print("No previous model found - training new model")
+            return "No previous model found"
 
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
@@ -562,10 +562,8 @@ class PipelineManager:
 
         # Model training
         print("\n")
-        print(f"TRAINING PROGRESS - {self._show_previous_best_loss()}")
+        print(f"TRAINING PROGRESS - {self._get_previous_best_loss_message()}")
         print("-" * 60)
-
-        # Show previous best validation loss if available
 
         import time
 
