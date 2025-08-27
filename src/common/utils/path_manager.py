@@ -497,8 +497,8 @@ class PathManager:
                     except (json.JSONDecodeError, KeyError):
                         continue
 
-            # If no valid experiments found, check symlink
-            best_symlink = (
+            # If no valid experiments found, check best folder
+            best_folder = (
                 project_root
                 / "outputs"
                 / project_name
@@ -508,11 +508,34 @@ class PathManager:
                 / config_key
             )
 
-            if best_experiment is None and best_symlink.exists():
-                # Extract experiment name from symlink target
-                if best_symlink.is_symlink():
-                    target = best_symlink.resolve()
-                    best_experiment = target.name
+            if best_experiment is None and best_folder.exists():
+                # Extract experiment name from metadata in best folder
+                metadata_file = best_folder / "metadata.json"
+                if metadata_file.exists():
+                    try:
+                        import json
+
+                        with open(metadata_file) as f:
+                            metadata = json.load(f)
+
+                        # Get experiment name from metadata
+                        best_experiment = metadata.get("experiment_name")
+                        if not best_experiment:
+                            # Fallback: get the first timestamp folder that looks like an experiment
+                            for item in best_folder.iterdir():
+                                if (
+                                    item.is_dir()
+                                    and "_" in item.name
+                                    and "-" in item.name
+                                ):
+                                    best_experiment = item.name
+                                    break
+                    except (json.JSONDecodeError, KeyError):
+                        # Fallback: get the first timestamp folder
+                        for item in best_folder.iterdir():
+                            if item.is_dir() and "_" in item.name and "-" in item.name:
+                                best_experiment = item.name
+                                break
 
             if best_experiment is None:
                 raise FileNotFoundError(
@@ -741,8 +764,8 @@ class PathManager:
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
-    def get_best_symlink_path(self) -> str:
-        """Get best symlink path within config directory."""
+    def get_best_folder_path(self) -> str:
+        """Get best model folder path within config directory."""
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
 
@@ -754,7 +777,7 @@ class PathManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        # Best symlink is inside the config directory
+        # Best folder uses consistent structure
         config_key = self.get_config_key()
 
         return str(
@@ -763,12 +786,12 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
-            / config_key
             / "best"
+            / config_key
         )
 
-    def get_latest_symlink_path(self) -> str:
-        """Get latest symlink path within correction directory."""
+    def get_latest_folder_path(self) -> str:
+        """Get latest model folder path within correction directory."""
         project_root = self._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
 
@@ -779,6 +802,7 @@ class PathManager:
         correction_dir = (
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
+        config_key = self.get_config_key()
 
         return str(
             project_root
@@ -787,31 +811,65 @@ class PathManager:
             / "experiments"
             / correction_dir
             / "latest"
+            / config_key
         )
 
-    def update_latest_symlink(self, experiment_name: str):
+    def update_latest_folder(self, experiment_name: str):
         """
-        Update 'latest' symlink to point to current experiment.
+        Update 'latest' folder with copy of current experiment.
 
         Args:
-            experiment_name: Name of experiment to link to
+            experiment_name: Name of experiment to copy to latest
         """
-        latest_path = Path(self.get_latest_symlink_path())
-        self.get_experiment_dir(experiment_name)
+        import os
+        import shutil
 
-        # Remove existing symlink
-        if latest_path.exists() or latest_path.is_symlink():
-            latest_path.unlink()
-
-        # Create new symlink pointing to all_runs/config_key/experiment_name
+        # Get paths
+        project_root = self._get_project_root()
+        project_name = getattr(self.config, "project", "fruitfly_aging")
+        correction_dir = (
+            "batch_corrected" if self.batch_correction_enabled else "uncorrected"
+        )
         config_key = self.get_config_key()
-        relative_path = Path("all_runs") / config_key / experiment_name
-        latest_path.symlink_to(relative_path)
 
-    def update_best_symlink(self, experiment_name: str):
+        # Create latest/ directory at correction level
+        latest_dir = Path(self.get_latest_folder_path())
+
+        # Source directory (the timestamped experiment)
+        source_dir = (
+            project_root
+            / "outputs"
+            / project_name
+            / "experiments"
+            / correction_dir
+            / "all_runs"
+            / config_key
+            / experiment_name
+        )
+
+        # Skip during tests
+        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+            # Remove existing latest directory if it exists
+            if latest_dir.exists():
+                shutil.rmtree(latest_dir)
+
+            # Create parent directory
+            latest_dir.parent.mkdir(parents=True, exist_ok=True)
+
+            # Copy experiment to latest folder
+            if source_dir.exists():
+                latest_dir.mkdir(parents=True, exist_ok=True)
+                for item in source_dir.iterdir():
+                    if item.is_dir():
+                        shutil.copytree(
+                            item, latest_dir / item.name, dirs_exist_ok=True
+                        )
+                    else:
+                        shutil.copy2(item, latest_dir / item.name)
+
+    def update_best_folder(self, experiment_name: str):
         """
-        Create symlink to best model experiment directory to save disk space.
-        Falls back to copying if symlinks are not supported.
+        Copy best model experiment to best folder.
 
         Args:
             experiment_name: Timestamp of experiment (e.g., "2025-01-22_14-30-15")
@@ -828,15 +886,7 @@ class PathManager:
         config_key = self.get_config_key()
 
         # Create best/ directory at correction level
-        best_dir = (
-            project_root
-            / "outputs"
-            / project_name
-            / "experiments"
-            / correction_dir
-            / "best"
-            / config_key
-        )
+        best_dir = Path(self.get_best_folder_path())
 
         # Source directory (the timestamped experiment)
         source_dir = (
@@ -850,37 +900,23 @@ class PathManager:
             / experiment_name
         )
 
-        # Create directory if it doesn't exist (skip during tests)
+        # Skip during tests
         if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            # Remove existing best model directory/symlink if it exists
-            if best_dir.exists() or best_dir.is_symlink():
-                if best_dir.is_symlink():
-                    best_dir.unlink()
-                else:
-                    shutil.rmtree(best_dir)
+            # Remove existing best model directory if it exists
+            if best_dir.exists():
+                shutil.rmtree(best_dir)
 
             # Create parent directory
             best_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            # Try to create symlink, fallback to copying if it fails
+            # Copy experiment to best folder
             if source_dir.exists():
-                try:
-                    # Create symlink to the source directory
-                    best_dir.symlink_to(source_dir)
-                    # Best model symlink created
-                except (OSError, NotImplementedError):
-                    # Symlinks not supported (e.g., Windows without dev mode), fallback to copying
-                    best_dir.mkdir(parents=True, exist_ok=True)
-                    for item in source_dir.iterdir():
-                        if item.is_dir():
-                            shutil.copytree(
-                                item, best_dir / item.name, dirs_exist_ok=True
-                            )
-                        else:
-                            shutil.copy2(item, best_dir / item.name)
-                    # Best model copied (symlink fallback)
-
-        # Best model collection updated
+                best_dir.mkdir(parents=True, exist_ok=True)
+                for item in source_dir.iterdir():
+                    if item.is_dir():
+                        shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(item, best_dir / item.name)
 
     def get_best_model_dir_for_config(self) -> str:
         """
@@ -910,20 +946,11 @@ class PathManager:
         )
 
         if best_config_dir.exists() and best_config_dir.is_dir():
-            # Get the best experiment name
-            try:
-                best_experiment_name = self.get_best_experiment_name()
-                experiment_dir = best_config_dir / best_experiment_name
-
-                if experiment_dir.exists():
-                    return str(experiment_dir.resolve())
-            except (FileNotFoundError, RuntimeError):
-                pass
-
-            # Fallback: look for any experiment directory in best/config_key/
-            for item in best_config_dir.iterdir():
-                if item.is_dir() or (item.is_symlink() and item.resolve().is_dir()):
-                    return str(item.resolve())
+            # Since we copy experiment contents directly to best/config_key/,
+            # the best_config_dir itself contains the model files
+            model_file = best_config_dir / "model.keras"
+            if model_file.exists():
+                return str(best_config_dir.resolve())
 
         # No best model exists yet for this config
         return None

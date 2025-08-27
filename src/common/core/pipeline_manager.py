@@ -57,7 +57,11 @@ class PipelineManager:
             self.experiment_name = self.path_manager.generate_experiment_name()
         else:
             # Reuse best experiment for standalone evaluation
-            self.experiment_name = self.path_manager.get_best_experiment_name()
+            try:
+                self.experiment_name = self.path_manager.get_best_experiment_name()
+            except (FileNotFoundError, RuntimeError):
+                # If no best experiment exists, this will fail later with a clear error
+                self.experiment_name = None
 
         self.config_key = self.path_manager.get_config_key()
         # Config: {self.config_key}, Experiment: {self.experiment_name}
@@ -297,41 +301,42 @@ class PipelineManager:
             training_data = {
                 "training": {
                     "epochs_run": len(self.history.history.get("loss", [])),
-                    "best_epoch": self.best_epoch,
+                    "best_epoch": getattr(self, "best_epoch", None),
                     "best_val_loss": min(
                         self.history.history.get("val_loss", [float("inf")])
                     ),
-                    "model_improved": self.model_improved,
-                },
-                "evaluation": {
-                    "mae": self.last_mae,
-                    "r2": self.last_r2,
-                    "pearson": self.last_pearson,
+                    "model_improved": getattr(self, "model_improved", False),
                 },
             }
+
+            # Only add evaluation data if it exists
+            if hasattr(self, "last_mae"):
+                training_data["evaluation"] = {
+                    "mae": self.last_mae,
+                    "r2": getattr(self, "last_r2", None),
+                    "pearson": getattr(self, "last_pearson", None),
+                }
+
             self.path_manager.save_experiment_metadata(
                 self.experiment_name, training_data
             )
 
-        # Save model and update symlinks if requested
+        # Save model and update folders if requested
         if symlinks:
-            # Save model only if it improved and policy allows
-            should_save_model = self.storage_manager.should_save_model(
-                self.model_improved
+            # For training+evaluation pipeline, always save the model
+            # For standalone, respect the storage policy
+            model_path = self.path_manager.get_experiment_model_path(
+                self.experiment_name
             )
-            if should_save_model:
-                model_path = self.path_manager.get_experiment_model_path(
-                    self.experiment_name
-                )
-                os.makedirs(os.path.dirname(model_path), exist_ok=True)
-                self.model.save(model_path)
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            self.model.save(model_path)
 
-                # Update best symlink if this is a new best model
-                if self.model_improved:
-                    self.path_manager.update_best_symlink(self.experiment_name)
+            # Update best folder if this is a new best model
+            if self.model_improved:
+                self.path_manager.update_best_folder(self.experiment_name)
 
-            # Always update latest symlink
-            self.path_manager.update_latest_symlink(self.experiment_name)
+            # Always update latest folder
+            self.path_manager.update_latest_folder(self.experiment_name)
 
         # Save visualizations if requested and available
         if (
@@ -373,7 +378,7 @@ class PipelineManager:
             # Set evaluation context if result_type provided (for symlinks)
             if result_type:
                 visualizer.set_evaluation_context(result_type)
-            elif evaluation_visuals:
+            elif evaluation_visuals or training_visuals:
                 visualizer.set_evaluation_context(self.experiment_name)
 
             # Generate appropriate visualizations
@@ -419,6 +424,9 @@ class PipelineManager:
         # Model training
         print("\n🤖 Model Training...")
         self.train_model()
+
+        # Save outputs and create symlinks after training
+        self.save_outputs(metadata=True, symlinks=True)
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
