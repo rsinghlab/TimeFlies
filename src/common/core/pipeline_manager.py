@@ -185,43 +185,50 @@ class PipelineManager:
         """Get previous best validation loss message for header."""
         import json
         import os
+        from pathlib import Path
 
-        # Check for existing best validation loss
-        project = getattr(self.config_instance, "project", "unknown")
-        batch_corr = (
-            "batch_corrected"
-            if self.config_instance.data.batch_correction.enabled
-            else "uncorrected"
-        )
+        # Duplicate exact logic from model file that was working
         config_key = self.path_manager.get_config_key()
-
-        best_symlink_path = os.path.join(
-            "outputs",
-            project,
-            "experiments",
-            batch_corr,
-            "best",
-            config_key,
-            "components",
-            "best_val_loss.json",
+        # Get base path and manually construct the correct best path
+        base_path = Path(self.path_manager._get_project_root()) / "outputs"
+        project_name = getattr(self.path_manager.config, "project", "fruitfly_aging")
+        batch_correction_enabled = getattr(
+            self.path_manager.config.data.batch_correction, "enabled", False
         )
-        current_path = os.path.join(
-            self.path_manager.get_experiment_dir(self.experiment_name),
-            "components",
-            "best_val_loss.json",
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        best_val_loss = None
+        best_symlink_path = str(
+            base_path
+            / project_name
+            / "experiments"
+            / correction_dir
+            / "best"
+            / config_key
+            / "model_components"
+            / "best_val_loss.json"
+        )
+
+        # Get current experiment components dir path
+        experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+        current_path = os.path.join(experiment_dir, "components", "best_val_loss.json")
+
+        # Load the best validation loss from file - exact duplicate from model file
+        best_val_loss = float("inf")
+        model_found = False
+
         for path_to_try in [best_symlink_path, current_path]:
             try:
                 if os.path.exists(path_to_try):
                     with open(path_to_try) as f:
                         best_val_loss = json.load(f)["best_val_loss"]
+                        model_found = True
                         break
             except (FileNotFoundError, json.JSONDecodeError):
                 continue
 
-        if best_val_loss is not None:
+        if model_found:
             return f"Previous model found with validation loss of {best_val_loss:.3f}"
         else:
             return "No previous model found"
@@ -566,6 +573,9 @@ class PipelineManager:
         print("-" * 60)
 
         import time
+
+        # Add separator after TensorFlow GPU messages
+        print("-" * 60)
 
         self._training_start_time = time.time()
         self.train_model()
