@@ -159,6 +159,11 @@ class PipelineManager:
 
     def _print_training_and_evaluation_data(self):
         """Print training and evaluation data details after preprocessing."""
+        print("=" * 60)
+        print("\n")
+        print("DATA OVERVIEW")
+        print("=" * 60)
+
         if not (hasattr(self, "train_data") and hasattr(self, "test_data")):
             return
 
@@ -207,6 +212,28 @@ class PipelineManager:
                         )
                     except Exception:
                         pass
+
+        # Split configuration
+        from common.utils.split_naming import SplitNamingUtils
+
+        split_config = SplitNamingUtils.extract_split_details_for_metadata(
+            self.config_instance
+        )
+        if split_config:
+            print("\nSplit Configuration:")
+            print(
+                f"  └─ Split Method:      {split_config.get('method', 'unknown').title()}"
+            )
+            if split_config.get("method") == "column":
+                print(
+                    f"  └─ Split Column:      {split_config.get('column', 'unknown')}"
+                )
+                train_vals = split_config.get("train_values", [])
+                test_vals = split_config.get("test_values", [])
+                if train_vals:
+                    print(f"  └─ Training Values:   {', '.join(train_vals)}")
+                if test_vals:
+                    print(f"  └─ Test Values:       {', '.join(test_vals)}")
 
     def _get_previous_best_loss_message(self):
         """Get previous best validation loss message for header."""
@@ -663,7 +690,7 @@ class PipelineManager:
         # Training Summary section with double lines
         print("=" * 60)
         print("\n")
-        print("TRAINING SUMMARY - " + improvement_status)
+        print(f"TRAINING SUMMARY ({improvement_status})")
         print("-" * 60)
 
         # Training results
@@ -966,9 +993,6 @@ class PipelineManager:
 
         # Setup phases (once for entire pipeline)
         self._setup_pipeline()
-
-        # Show project and dataset overview after setup
-        self._print_project_and_dataset_overview()
 
         # Step 1: Training (skip setup since we already did it)
         training_results = self.run_training(skip_setup=True)
