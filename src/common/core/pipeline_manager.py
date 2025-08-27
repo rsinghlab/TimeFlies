@@ -161,22 +161,41 @@ class PipelineManager:
         """Print training and evaluation data details after preprocessing."""
         print("=" * 60)
         print("\n")
-        print("DATA OVERVIEW")
+        print("PREPROCESSED DATA OVERVIEW")
         print("=" * 60)
 
         if not (hasattr(self, "train_data") and hasattr(self, "test_data")):
             return
 
+        import numpy as np
+
+        # Training data details
+        if hasattr(self, "train_data"):
+            train_shape = self.train_data.shape
+            print("Training Data:")
+            print(f"  └─ Samples:           {train_shape[0]:,}")
+            if len(train_shape) > 2:  # CNN format
+                print(
+                    f"  └─ Features:          {train_shape[1]} x {train_shape[2]:,} (reshaped)"
+                )
+            else:  # Standard format
+                print(f"  └─ Features (genes):  {train_shape[1]:,}")
+
+            # Data statistics
+            train_mean = np.mean(self.train_data)
+            train_std = np.std(self.train_data)
+            train_min = np.min(self.train_data)
+            train_max = np.max(self.train_data)
+            print(f"  └─ Data Range:        [{train_min:.3f}, {train_max:.3f}]")
+            print(f"  └─ Mean ± Std:        {train_mean:.3f} ± {train_std:.3f}")
+
+        # Training labels distribution
         encoding_var = getattr(self.config_instance.data, "target_variable", "age")
-
-        # Add space then show age distribution
         if hasattr(self, "train_labels") and hasattr(self, "label_encoder"):
-            import numpy as np
-
+            print(f"\nTraining {encoding_var.title()} Distribution:")
             unique, counts = np.unique(self.train_labels, return_counts=True)
             total = counts.sum()
             for label_encoded, count in zip(unique, counts):
-                # Decode the label if possible
                 try:
                     original_label = self.label_encoder.inverse_transform(
                         [label_encoded]
@@ -184,21 +203,34 @@ class PipelineManager:
                     pct = (count / total) * 100
                     unit = "days" if encoding_var == "age" else ""
                     print(
-                        f"  └─ {original_label} {unit:5s}: {count:6,} samples ({pct:5.1f}%)"
+                        f"  └─ {original_label} {unit:10s}: {count:6,} samples ({pct:5.1f}%)"
                     )
                 except Exception:
                     pass
 
-        # Show evaluation data if available
+        # Test/Evaluation data details
         if hasattr(self, "test_data") and self.test_data.shape[0] > 0:
-            eval_cells = self.test_data.shape[0]
-            eval_genes = self.test_data.shape[1]
-            print("\nDataset Size:")
-            print(f"  └─ Samples:           {eval_cells:,}")
-            print(f"  └─ Features (genes):  {eval_genes:,}")
+            test_shape = self.test_data.shape
+            print("\nEvaluation Data:")
+            print(f"  └─ Samples:           {test_shape[0]:,}")
+            if len(test_shape) > 2:  # CNN format
+                print(
+                    f"  └─ Features:          {test_shape[1]} x {test_shape[2]:,} (reshaped)"
+                )
+            else:  # Standard format
+                print(f"  └─ Features (genes):  {test_shape[1]:,}")
 
-            print("\nClass Distribution:")
+            # Data statistics
+            test_mean = np.mean(self.test_data)
+            test_std = np.std(self.test_data)
+            test_min = np.min(self.test_data)
+            test_max = np.max(self.test_data)
+            print(f"  └─ Data Range:        [{test_min:.3f}, {test_max:.3f}]")
+            print(f"  └─ Mean ± Std:        {test_mean:.3f} ± {test_std:.3f}")
+
+            # Test labels distribution
             if hasattr(self, "test_labels") and hasattr(self, "label_encoder"):
+                print(f"\nEvaluation {encoding_var.title()} Distribution:")
                 unique, counts = np.unique(self.test_labels, return_counts=True)
                 total = counts.sum()
                 for label_encoded, count in zip(unique, counts):
@@ -207,11 +239,28 @@ class PipelineManager:
                             [label_encoded]
                         )[0]
                         pct = (count / total) * 100
+                        unit = "days" if encoding_var == "age" else ""
                         print(
-                            f"  └─ {original_label:10s} : {count:6,} samples ({pct:5.1f}%)"
+                            f"  └─ {original_label} {unit:10s}: {count:6,} samples ({pct:5.1f}%)"
                         )
                     except Exception:
                         pass
+
+        # Preprocessing information
+        print("\nPreprocessing Applied:")
+        # Check for scaling information
+        if hasattr(self, "scaler") and self.scaler:
+            print("  └─ Feature Scaling:   Applied")
+        else:
+            print("  └─ Feature Scaling:   None")
+
+        # Check for gene filtering
+        if hasattr(self, "highly_variable_genes") and self.highly_variable_genes:
+            print(
+                f"  └─ Gene Filtering:    {len(self.highly_variable_genes):,} highly variable genes selected"
+            )
+        else:
+            print("  └─ Gene Filtering:    None")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -234,6 +283,79 @@ class PipelineManager:
                     print(f"  └─ Training Values:   {', '.join(train_vals)}")
                 if test_vals:
                     print(f"  └─ Test Values:       {', '.join(test_vals)}")
+
+    def _display_model_architecture(self):
+        """Display comprehensive model architecture information."""
+        if not hasattr(self, "model") or self.model is None:
+            return
+
+        print("\n" + "=" * 60)
+        print("MODEL ARCHITECTURE")
+        print("=" * 60)
+
+        # Get model type
+        model_type = getattr(self.config_instance.data, "model", "CNN").lower()
+        print(f"Model Type: {model_type.upper()}")
+
+        # For TensorFlow/Keras models (CNN, MLP)
+        if model_type in ["cnn", "mlp"]:
+            try:
+                import io
+                import sys
+
+                # Capture model.summary() output
+                old_stdout = sys.stdout
+                sys.stdout = buffer = io.StringIO()
+
+                self.model.summary()
+
+                sys.stdout = old_stdout
+                summary_output = buffer.getvalue()
+
+                # Print the summary with some formatting
+                print("\nModel Summary:")
+                for line in summary_output.split("\n"):
+                    if line.strip():
+                        print(f"  {line}")
+
+                # Additional model details
+                total_params = self.model.count_params()
+                trainable_params = sum(
+                    [
+                        self.model.get_layer(layer.name).count_params()
+                        for layer in self.model.layers
+                    ]
+                )
+                print("\nModel Details:")
+                print(f"  └─ Total Parameters:     {total_params:,}")
+                print(f"  └─ Trainable Parameters: {trainable_params:,}")
+                print(f"  └─ Model Layers:         {len(self.model.layers)}")
+
+                # Input/Output shapes
+                if hasattr(self.model, "input_shape"):
+                    print(f"  └─ Input Shape:          {self.model.input_shape}")
+                if hasattr(self.model, "output_shape"):
+                    print(f"  └─ Output Shape:         {self.model.output_shape}")
+
+            except Exception as e:
+                print(f"  └─ Could not display detailed architecture: {e}")
+
+        # For sklearn models (RF, LR, XGBoost)
+        elif model_type in ["randomforest", "logisticregression", "xgboost"]:
+            print("\nModel Configuration:")
+            if hasattr(self.model, "get_params"):
+                params = self.model.get_params()
+                for param_name, param_value in sorted(params.items()):
+                    if param_value is not None:
+                        print(f"  └─ {param_name:<20}: {param_value}")
+
+            # Additional details for specific models
+            if model_type == "randomforest" and hasattr(self.model, "n_estimators"):
+                print(f"  └─ Number of Trees:      {self.model.n_estimators}")
+            elif model_type == "xgboost" and hasattr(self.model, "n_estimators"):
+                print(f"  └─ Number of Boosters:   {self.model.n_estimators}")
+
+        print("=" * 60)
 
     def _get_previous_best_loss_message(self):
         """Get previous best validation loss message for header."""
@@ -516,6 +638,9 @@ class PipelineManager:
         # History and model improvement tracked internally
         self.model, self.history, self.model_improved = self.model_builder.run()
 
+        # Display model architecture after training
+        self._display_model_architecture()
+
         # Set num_features and gene names for auto-evaluation
         self.num_features = self.train_data.shape[1]
         # Store the exact gene names used in training for consistent evaluation
@@ -691,7 +816,7 @@ class PipelineManager:
         print("=" * 60)
         print("\n")
         print(f"TRAINING SUMMARY ({improvement_status})")
-        print("-" * 60)
+        print("=" * 60)
 
         # Training results
         current_best_loss = None
@@ -998,8 +1123,8 @@ class PipelineManager:
         training_results = self.run_training(skip_setup=True)
 
         # Step 2: Evaluation (skip setup since we already did it)
-        self._print_header(f"🧪 HOLDOUT EVALUATION - {self.experiment_name}")
-        print("-" * 60)
+        print(f"🧪 HOLDOUT EVALUATION - {self.experiment_name}")
+        print("=" * 60)
 
         try:
             evaluation_results = self.run_evaluation(skip_setup=True)

@@ -839,9 +839,8 @@ def train_command(args, config) -> int:
                 print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
-        print("=" * 60)
         print("🚀 TIMEFLIES TRAINING & HOLDOUT EVALUATION")
-        print("-" * 60)
+        print("=" * 60)
 
         # Get experiment details for clearer labeling
         target = getattr(config.data, "target_variable", "unknown")
