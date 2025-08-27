@@ -93,7 +93,7 @@ class PipelineManager:
         """Print consolidated project information and actual training/evaluation data overview."""
         print("\n" + "=" * 60)
         print(
-            f"📋 PROJECT: {self.config_instance.project.name.replace('_', ' ').title()}"
+            f"📋 PROJECT: {getattr(self.config_instance, 'project', 'unknown').replace('_', ' ').title()}"
         )
         print("=" * 60)
 
