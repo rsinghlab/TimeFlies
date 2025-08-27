@@ -92,23 +92,16 @@ class PipelineManager:
     def _print_project_and_dataset_overview(self):
         """Print consolidated project information and actual training/evaluation data overview."""
         print("\n" + "=" * 60)
-        print(
-            f"📋 PROJECT: {getattr(self.config_instance, 'project', 'unknown').replace('_', ' ').title()}"
-        )
+        print("Data Overview")
         print("=" * 60)
 
-        # Model Architecture
-        model_type = getattr(self.config_instance.data, "model", "mlp").upper()
+        # Configuration details
         target = getattr(self.config_instance.data, "target_variable", "age")
         tissue = getattr(self.config_instance.data, "tissue", "unknown")
         batch_corrected = getattr(
             self.config_instance.data.batch_correction, "enabled", False
         )
 
-        print(f"Model Architecture:     {model_type}")
-        if model_type == "CNN":
-            print("  └─ Input Shape:       (genes, 1) - Reshaped for convolution")
-            print("  └─ Convolution Type:  1D CNN")
         print(f"Target Variable:        {target.title()}")
         print(f"Tissue Type:            {tissue.title()}")
         print(f"Batch Corrected:        {'Yes' if batch_corrected else 'No'}")

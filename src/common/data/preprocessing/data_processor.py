@@ -147,9 +147,6 @@ class DataPreprocessor:
                     dataset.obs[column].str.lower().isin(train_values_norm)
                 ].copy()
                 test_subset = dataset[:0].copy()  # Empty subset
-                print(
-                    f"Training mode: {train_subset.n_obs} cells ({column} in {train_values})"
-                )
 
             # Apply sampling (only to training data during training)
             num_samples = getattr(config.data.sampling, "samples", None)
@@ -385,13 +382,18 @@ class DataPreprocessor:
         print("\n" + "-" * 60)
         print("🤖 MODEL TRAINING")
         print("-" * 60)
-        print(f"Architecture: {getattr(config.model, 'model_type', 'CNN').upper()}")
+        print(
+            f"Model Architecture:     {getattr(config.model, 'model_type', 'CNN').upper()}"
+        )
+        if getattr(config.model, "model_type", "CNN").upper() == "CNN":
+            print("  └─ Input Shape:       (genes, 1) - Reshaped for convolution")
+            print("  └─ Convolution Type:  1D CNN")
         print("Optimizer: Adam")
         print(f"Learning Rate: {getattr(config.model, 'learning_rate', 0.001)}")
         print(f"Batch Size: {getattr(config.model, 'batch_size', 32)}")
         print(f"Max Epochs: {getattr(config.model, 'epochs', 100)}")
 
-        print("\n📊 ACTUAL TRAINING DATA:")
+        print("\n TRAINING DATA:")
         print("-" * 60)
         print(
             f"Training Data (Preprocessed): {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
@@ -409,7 +411,7 @@ class DataPreprocessor:
         # Show class distribution more cleanly with target variable name
         class_counts = train_subset.obs[encoding_var].value_counts().sort_index()
         total = class_counts.sum()
-        print(f"\n{encoding_var.title()} Distribution (Actual Training Data):")
+        print(f"\n{encoding_var.title()} Distribution (Training Data):")
         for key, count in class_counts.items():
             pct = (count / total) * 100
             unit = "days" if encoding_var == "age" else ""
