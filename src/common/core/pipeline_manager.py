@@ -129,6 +129,72 @@ class PipelineManager:
 
         print("=" * 60)
 
+    def _print_training_and_evaluation_data(self):
+        """Print training and evaluation data details after preprocessing."""
+        if not (hasattr(self, "train_data") and hasattr(self, "test_data")):
+            return
+
+        encoding_var = getattr(self.config_instance.data, "target_variable", "age")
+
+        print("\n📊 TRAINING DATA:")
+        print("-" * 60)
+
+        # Get training data info
+        train_cells = (
+            self.train_data.shape[0] if hasattr(self.train_data, "shape") else 0
+        )
+        train_genes = (
+            self.train_data.shape[1] if hasattr(self.train_data, "shape") else 0
+        )
+        print(
+            f"Training Data (Preprocessed): {train_cells:,} cells, {train_genes:,} genes"
+        )
+
+        # Add space then show age distribution
+        if hasattr(self, "train_labels") and hasattr(self, "label_encoder"):
+            print(f"\n{encoding_var.title()} Distribution (Training Data):")
+            import numpy as np
+
+            unique, counts = np.unique(self.train_labels, return_counts=True)
+            total = counts.sum()
+            for label_encoded, count in zip(unique, counts):
+                # Decode the label if possible
+                try:
+                    original_label = self.label_encoder.inverse_transform(
+                        [label_encoded]
+                    )[0]
+                    pct = (count / total) * 100
+                    unit = "days" if encoding_var == "age" else ""
+                    print(
+                        f"  └─ {original_label} {unit:5s}: {count:6,} samples ({pct:5.1f}%)"
+                    )
+                except Exception:
+                    pass
+
+        # Show evaluation data if available
+        if hasattr(self, "test_data") and self.test_data.shape[0] > 0:
+            eval_cells = self.test_data.shape[0]
+            eval_genes = self.test_data.shape[1]
+            print("\nDataset Size:")
+            print(f"  └─ Samples:           {eval_cells:,}")
+            print(f"  └─ Features (genes):  {eval_genes:,}")
+
+            print("\nClass Distribution:")
+            if hasattr(self, "test_labels") and hasattr(self, "label_encoder"):
+                unique, counts = np.unique(self.test_labels, return_counts=True)
+                total = counts.sum()
+                for label_encoded, count in zip(unique, counts):
+                    try:
+                        original_label = self.label_encoder.inverse_transform(
+                            [label_encoded]
+                        )[0]
+                        pct = (count / total) * 100
+                        print(
+                            f"  └─ {original_label:10s} : {count:6,} samples ({pct:5.1f}%)"
+                        )
+                    except Exception:
+                        pass
+
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
         # Setting up GPU
@@ -468,6 +534,9 @@ class PipelineManager:
         # Preprocessing
         self.preprocess_data()
 
+        # Display training and evaluation data
+        self._print_training_and_evaluation_data()
+
         # Model training
         print("\nTraining Progress:")
         print("-" * 60)
@@ -482,7 +551,30 @@ class PipelineManager:
         # Print training completion summary with improvement status
         improvement_status = "🆕 NEW BEST" if self.model_improved else "📊 BASELINE"
         print(f"\n✅ TRAINING COMPLETED - {improvement_status}")
-        print("-" * 60)
+
+        # Training Summary section with double lines
+        print("\n" + "=" * 60)
+        print("📋 TRAINING SUMMARY")
+        print("=" * 60)
+
+        # Configuration info
+        from common.utils.split_naming import SplitNamingUtils
+
+        split_config = SplitNamingUtils.extract_split_details_for_metadata(
+            self.config_instance
+        )
+        if split_config and split_config.get("method") == "column":
+            train_vals = split_config.get("train_values", [])
+            test_vals = split_config.get("test_values", [])
+            split_info = f"Split: {'-vs-'.join(train_vals + test_vals)} (column)"
+            print(split_info)
+
+        model_type = getattr(self.config_instance.data, "model", "CNN")
+        target = getattr(self.config_instance.data, "target_variable", "age")
+        tissue = getattr(self.config_instance.data, "tissue", "head")
+        print(f"Model: {model_type}, Target: {target}, Tissue: {tissue}")
+
+        # Training results
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
             if val_losses:
@@ -492,6 +584,7 @@ class PipelineManager:
                 print(f"Best Val Loss: {best_val_loss:.4f}")
 
         print(f"Model saved to: {self.experiment_name}")
+        print("=" * 60)
 
         # Show training duration if available
         import time

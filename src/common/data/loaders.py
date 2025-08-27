@@ -155,7 +155,8 @@ class DataLoader:
         except FileNotFoundError:
             pass  # Silently skip missing sex genes
 
-        # Log status of gene filtering capability
+        # Store gene filtering status for header display
         if not autosomal_genes and not sex_genes:
-            print("⚠ Gene filtering disabled (no reference data found)")
+            # Gene filtering status will be shown in main header
+            pass
         return autosomal_genes, sex_genes

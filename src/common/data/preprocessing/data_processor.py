@@ -377,58 +377,23 @@ class DataPreprocessor:
             highly_variable_genes,
         ) = self.select_highly_variable_genes(train_subset, test_subset)
 
-        # Print data summary
-        encoding_var = getattr(config.data, "target_variable", "age")
-        print("\n" + "-" * 60)
-        print("🤖 MODEL TRAINING")
-        print("-" * 60)
+        # Print model architecture summary
+        print("\n" + "=" * 60)
+        print("🏗️ MODEL ARCHITECTURE")
+        print("=" * 60)
         print(
-            f"Model Architecture:     {getattr(config.model, 'model_type', 'CNN').upper()}"
+            f"Architecture:           {getattr(config.model, 'model_type', 'CNN').upper()}"
         )
         if getattr(config.model, "model_type", "CNN").upper() == "CNN":
             print("  └─ Input Shape:       (genes, 1) - Reshaped for convolution")
             print("  └─ Convolution Type:  1D CNN")
-        print("Optimizer: Adam")
-        print(f"Learning Rate: {getattr(config.model, 'learning_rate', 0.001)}")
-        print(f"Batch Size: {getattr(config.model, 'batch_size', 32)}")
-        print(f"Max Epochs: {getattr(config.model, 'epochs', 100)}")
-
-        print("\n TRAINING DATA:")
-        print("-" * 60)
+        print("Optimizer:              Adam")
         print(
-            f"Training Data (Preprocessed): {train_subset.n_obs:,} cells, {train_subset.n_vars:,} genes"
+            f"Learning Rate:          {getattr(config.model, 'learning_rate', 0.001)}"
         )
-
-        # Check if sampling was applied
-        sampling_config = getattr(config.data, "sampling", None)
-        if sampling_config and getattr(sampling_config, "enabled", False):
-            sample_size = getattr(sampling_config, "samples", 10000)
-            if sample_size < train_subset.n_obs:
-                print(
-                    f"  └─ Sampling Applied: Random sampling to {sample_size:,} cells"
-                )
-
-        # Show class distribution more cleanly with target variable name
-        class_counts = train_subset.obs[encoding_var].value_counts().sort_index()
-        total = class_counts.sum()
-        print(f"\n{encoding_var.title()} Distribution (Training Data):")
-        for key, count in class_counts.items():
-            pct = (count / total) * 100
-            unit = "days" if encoding_var == "age" else ""
-            print(f"  └─ {key} {unit:5s}: {count:6,} samples ({pct:5.1f}%)")
-
-        if test_subset.n_obs > 0:
-            print(
-                f"\nHoldout Evaluation Data: {test_subset.n_obs:,} cells, {test_subset.n_vars:,} genes"
-            )
-            # Show evaluation distribution
-            eval_counts = test_subset.obs[encoding_var].value_counts().sort_index()
-            eval_total = eval_counts.sum()
-            print(f"\n{encoding_var.title()} Distribution (Holdout Evaluation):")
-            for key, count in eval_counts.items():
-                pct = (count / eval_total) * 100
-                unit = "days" if encoding_var == "age" else ""
-                print(f"  └─ {key} {unit:5s}: {count:6,} samples ({pct:5.1f}%)")
+        print(f"Batch Size:             {getattr(config.model, 'batch_size', 32)}")
+        print(f"Max Epochs:             {getattr(config.model, 'epochs', 100)}")
+        print("=" * 60)
 
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(
