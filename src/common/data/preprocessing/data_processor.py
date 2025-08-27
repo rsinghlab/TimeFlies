@@ -378,6 +378,7 @@ class DataPreprocessor:
         ) = self.select_highly_variable_genes(train_subset, test_subset)
 
         # Print model architecture summary
+        print("\n")
         print("MODEL ARCHITECTURE")
         print("-" * 60)
         print(
