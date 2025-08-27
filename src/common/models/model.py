@@ -975,7 +975,7 @@ class ModelBuilder:
             batch_size=getattr(self.config.model.training, "batch_size", 32),
             validation_data=(val_inputs_split, val_labels_split),
             callbacks=[early_stopping, model_checkpoint],
-            verbose=0,  # Suppress Keras training progress bars
+            verbose=2,  # Show one progress line per epoch (less verbose)
         )
 
         # Save the history object only if the model was improved and saved at least once during training
