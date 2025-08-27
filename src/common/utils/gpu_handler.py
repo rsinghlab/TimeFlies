@@ -128,12 +128,7 @@ class GPUHandler:
                                 except Exception:
                                     gpu_details.append(f"GPU:{i}")
 
-                    if len(gpus) == 1:
-                        print(f"GPU enabled: {gpu_details[0]}")
-                    else:
-                        print(
-                            f"GPU enabled: {len(gpus)} devices ({', '.join(gpu_details)})"
-                        )
+                    # GPU info moved to main header - no longer printed here
 
                 except RuntimeError as e:
                     # Catch and print exception if memory growth setting fails
