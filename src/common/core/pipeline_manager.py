@@ -205,7 +205,8 @@ class PipelineManager:
             "best_val_loss.json",
         )
         current_path = os.path.join(
-            self.path_manager.get_experiment_components_dir(self.experiment_name),
+            self.path_manager.get_experiment_dir(self.experiment_name),
+            "components",
             "best_val_loss.json",
         )
 
