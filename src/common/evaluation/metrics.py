@@ -785,13 +785,6 @@ class EvaluationMetrics:
                 capitalized_metric = metric.replace("_", " ").title()
                 metric_values.append(f"{capitalized_metric}: {metrics[metric]:.3f}")
 
-        if metric_values:
-            print("\n🎯 MODEL PERFORMANCE")
-            print("=" * 50)
-            for metric_display in metric_values:
-                print(f"  {metric_display}")
-            print("=" * 50)
-
         # Add baseline comparison if enabled (after model performance)
         eval_config = getattr(self.config, "evaluation", {})
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
@@ -963,7 +956,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\n📊 BASELINE COMPARISON")
+        print("\n MODEL COMPARISON")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data

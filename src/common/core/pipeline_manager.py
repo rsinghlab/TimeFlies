@@ -405,7 +405,7 @@ class PipelineManager:
                 print(
                     f"  └─ Early Stopping Patience: {getattr(self.config_instance.model.training, 'early_stopping_patience', 10)}"
                 )
-                print("\n")
+                print()
 
             except Exception as e:
                 print(f"  └─ Could not display training config: {e}")
