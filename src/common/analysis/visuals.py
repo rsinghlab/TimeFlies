@@ -430,7 +430,7 @@ class VisualizationTools:
                     y_score_positive = y_score[:, 1]  # Use positive class column
                 else:
                     y_score_positive = y_score[:, 0]  # Use single column
-                
+
                 # For binary, y_true might be 1D or 2D
                 y_true_flat = y_true.flatten() if len(y_true.shape) > 1 else y_true
                 fpr[i], tpr[i], _ = roc_curve(y_true_flat, y_score_positive)
@@ -644,17 +644,27 @@ class Visualizer:
 
     def import_metrics(self):
         """
-        Sets y_true, y_pred, y_pred_class
+        Sets y_true, y_pred, y_pred_class (for classification) or y_true, y_pred (for regression)
         """
         model_type = getattr(self.config.data, "model", "CNN").lower()
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         if model_type in ["mlp", "cnn"]:
             self.y_pred = self.model.predict(self.test_inputs, verbose=0)
         else:
-            self.y_pred = self.model.predict_proba(self.test_inputs)
+            if task_type == "regression":
+                self.y_pred = self.model.predict(self.test_inputs)
+            else:
+                self.y_pred = self.model.predict_proba(self.test_inputs)
 
-        # Convert predictions and true labels to class indices
-        self.y_pred_class = np.argmax(self.y_pred, axis=1)
-        self.y_true_class = np.argmax(self.test_labels, axis=1)
+        if task_type == "regression":
+            # For regression, no class conversion needed
+            self.y_true = self.test_labels.flatten()
+            self.y_pred = self.y_pred.flatten() if len(self.y_pred.shape) > 1 else self.y_pred
+        else:
+            # For classification, convert predictions and true labels to class indices
+            self.y_pred_class = np.argmax(self.y_pred, axis=1)
+            self.y_true_class = np.argmax(self.test_labels, axis=1)
 
     def _visualize_training_history(self):
         """
@@ -770,21 +780,126 @@ class Visualizer:
                     "No gene names available for SHAP visualization - skipping SHAP plots"
                 )
                 return
+            # Get class names only for classification tasks
+            class_names = None
+            if self.label_encoder and hasattr(self.label_encoder, 'classes_'):
+                class_names = self.label_encoder.classes_
+
             self.visual_tools.plot_shap_summary(
                 shap_values=self.squeezed_shap_values,
                 test_data=self.squeezed_test_data,
                 feature_names=var_names,
-                class_names=self.label_encoder.classes_,
+                class_names=class_names,
                 file_name_prefix="SHAP_Summary",
             )
+
+    def _plot_regression_metrics(self):
+        """
+        Generate regression-specific plots: predicted vs actual, residuals, and distribution plots.
+        """
+        # Create a 2x2 subplot for comprehensive regression analysis
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle('Regression Model Evaluation', fontsize=16, fontweight='bold')
+
+        # 1. Predicted vs Actual scatter plot
+        ax1 = axes[0, 0]
+        ax1.scatter(self.y_true, self.y_pred, alpha=0.6, color='blue', s=30)
+
+        # Perfect prediction line (y = x)
+        min_val = min(min(self.y_true), min(self.y_pred))
+        max_val = max(max(self.y_true), max(self.y_pred))
+        ax1.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Prediction')
+
+        ax1.set_xlabel('Actual Values')
+        ax1.set_ylabel('Predicted Values')
+        ax1.set_title('Predicted vs Actual')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+
+        # Add correlation coefficient
+        correlation = np.corrcoef(self.y_true, self.y_pred)[0, 1]
+        ax1.text(0.05, 0.95, f'R = {correlation:.3f}', transform=ax1.transAxes,
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+
+        # 2. Residuals vs Predicted plot
+        ax2 = axes[0, 1]
+        residuals = self.y_pred - self.y_true
+        ax2.scatter(self.y_pred, residuals, alpha=0.6, color='green', s=30)
+        ax2.axhline(y=0, color='r', linestyle='--', linewidth=2)
+        ax2.set_xlabel('Predicted Values')
+        ax2.set_ylabel('Residuals (Predicted - Actual)')
+        ax2.set_title('Residuals vs Predicted')
+        ax2.grid(True, alpha=0.3)
+
+        # Add standard deviation lines
+        residual_std = np.std(residuals)
+        ax2.axhline(y=residual_std, color='orange', linestyle=':', alpha=0.7, label='±1 STD')
+        ax2.axhline(y=-residual_std, color='orange', linestyle=':', alpha=0.7)
+        ax2.axhline(y=2*residual_std, color='red', linestyle=':', alpha=0.7, label='±2 STD')
+        ax2.axhline(y=-2*residual_std, color='red', linestyle=':', alpha=0.7)
+        ax2.legend()
+
+        # 3. Residuals histogram
+        ax3 = axes[1, 0]
+        ax3.hist(residuals, bins=30, alpha=0.7, color='purple', edgecolor='black')
+        ax3.set_xlabel('Residuals')
+        ax3.set_ylabel('Frequency')
+        ax3.set_title('Distribution of Residuals')
+        ax3.grid(True, alpha=0.3)
+
+        # Add normal distribution overlay
+        mu, sigma = np.mean(residuals), np.std(residuals)
+        x = np.linspace(residuals.min(), residuals.max(), 100)
+        normal_dist = ((1/(sigma * np.sqrt(2 * np.pi))) *
+                      np.exp(-0.5 * ((x - mu) / sigma) ** 2))
+        # Scale to match histogram
+        normal_dist *= len(residuals) * (residuals.max() - residuals.min()) / 30
+        ax3.plot(x, normal_dist, 'r-', linewidth=2, label='Normal Distribution')
+        ax3.legend()
+
+        # 4. Q-Q plot for residuals normality
+        ax4 = axes[1, 1]
+        from scipy import stats as scipy_stats
+        scipy_stats.probplot(residuals, dist="norm", plot=ax4)
+        ax4.set_title('Q-Q Plot (Residuals Normality)')
+        ax4.grid(True, alpha=0.3)
+
+        # Add metrics text box
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+        mae = mean_absolute_error(self.y_true, self.y_pred)
+        rmse = np.sqrt(mean_squared_error(self.y_true, self.y_pred))
+        r2 = r2_score(self.y_true, self.y_pred)
+
+        metrics_text = f'MAE: {mae:.3f}\nRMSE: {rmse:.3f}\nR²: {r2:.3f}'
+        fig.text(0.02, 0.02, metrics_text, fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+
+        plt.tight_layout()
+        plt.subplots_adjust(top=0.93)  # Make room for main title
+
+        # Save the plot
+        output_file_path = os.path.join(self.visual_tools.output_dir, "regression_evaluation.png")
+        plt.savefig(output_file_path, dpi=300, bbox_inches='tight')
+        plt.close(fig)
 
     def run(self):
         """
         Run the full visualization pipeline (evaluation-only, no training plots).
         """
         self.import_metrics()
-        self._visualize_confusion_matrix()
-        self._plot_roc_curve()
+
+        # Get task type from config
+        task_type = getattr(self.config.model, "task_type", "classification")
+
+        if task_type == "classification":
+            # Classification-specific visualizations
+            self._visualize_confusion_matrix()
+            self._plot_roc_curve()
+        else:
+            # Regression-specific visualizations
+            self._plot_regression_metrics()
+
+        # SHAP summary works for both classification and regression
         self._plot_shap_summary()
 
     def run_with_training(self):

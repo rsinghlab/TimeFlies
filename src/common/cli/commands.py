@@ -430,19 +430,21 @@ def train_command(args, config) -> int:
         pipeline = PipelineManager(config, mode="training")
 
         # Handle lists for split values - create display format
-        split_train_str = (
-            "-".join(split_train).lower()
-            if isinstance(split_train, list)
-            else str(split_train).lower()
-        )
-        split_test_str = (
-            "-".join(split_test).lower()
-            if isinstance(split_test, list)
-            else str(split_test).lower()
-        )
+        # split_train_str = (
+        #     "-".join(split_train).lower()
+        #     if isinstance(split_train, list)
+        #     else str(split_train).lower()
+        # )
+        # split_test_str = (
+        #     "-".join(split_test).lower()
+        #     if isinstance(split_test, list)
+        #     else str(split_test).lower()
+        # )
 
-        # Format display like: head_cnn_age_control-vs-ab42-htau
-        display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{split_train_str}-vs-{split_test_str}"
+        # Generate proper experiment name with sex/cell type filters
+        from ..utils.split_naming import SplitNamingUtils
+        experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
+        display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
 
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
@@ -459,12 +461,12 @@ def train_command(args, config) -> int:
             print(f"GPU: {gpu_name}")
         else:
             print("GPU: Not available (using CPU)")
-        
-        
+
+
         # Simple model description with just task type
         task_type = getattr(config.model, "task_type", "classification")
         print(f"Task Type: {task_type.title()}")
-        
+
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
 
@@ -533,7 +535,7 @@ def train_command(args, config) -> int:
                     components.append("visuals")
                 if getattr(config.evaluation.baselines, "enabled", False):
                     components.append("baselines")
-                if getattr(config.evaluation.shap, "enabled", False):
+                if getattr(config.interpretation.shap, "enabled", False):
                     components.append("SHAP analysis")
             except Exception:
                 pass
@@ -764,19 +766,19 @@ def evaluate_command(args, config) -> int:
         print(f"Tissue: {config.data.tissue.title()}")
         print(f"Model: {config.data.model}")
         print(f"Target: {config.data.target_variable.title()}")
-        
+
         # Add task type and classification info
         task_type = getattr(config.model, "task_type", "classification")
         print(f"Task Type: {task_type.title()}")
-        
+
         if task_type == "classification":
             # Determine if binary or multiclass
             classification_type = config.evaluation.metrics.get("classification_type", "auto")
             if classification_type == "auto":
-                print(f"Classification: Auto-detected")
+                print("Classification: Auto-detected")
             else:
                 print(f"Classification: {classification_type.title()}")
-        
+
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
         print("-" * 60)

@@ -72,7 +72,7 @@ class EvaluationMetrics:
         self.result_type = result_type
         self.output_dir = output_dir
         self.pipeline_mode = pipeline_mode
-        
+
         # Store training classes if available for classification type determination
         self.training_classes = None
         if self.label_encoder and hasattr(self.label_encoder, 'classes_'):
@@ -94,7 +94,7 @@ class EvaluationMetrics:
 
         # Make predictions
         predictions = self.model.predict(self.test_data, verbose=0)
-        
+
         # Get task type from config
         task_type = getattr(self.config.model, "task_type", "classification")
 
@@ -203,68 +203,90 @@ class EvaluationMetrics:
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
                 os.makedirs(results_dir, exist_ok=True)
 
-            # Create predictions dataframe
+            # Get target variable name from config for column naming
+            target_variable = getattr(self.config.data, "target_variable", "target")
+
+            # Create predictions dataframe with core columns using dynamic naming
             predictions_df = pd.DataFrame(
                 {
-                    "actual_age": true_labels,
-                    "predicted_age": predicted_classes,
+                    f"actual_{target_variable}": true_labels,
+                    f"predicted_{target_variable}": predicted_classes,
                     "prediction_error": predicted_classes - true_labels,
                 }
             )
 
-            # Add genotype information - use the processed test data directly
-            try:
-                # First check if test_data is an AnnData object with genotype info
-                if (hasattr(self.test_data, 'obs') and 
-                    hasattr(self.test_data.obs, 'columns') and 
-                    "genotype" in self.test_data.obs.columns):
-                    
-                    # Use genotypes directly from the processed test data that was used for prediction
-                    individual_genotypes = self.test_data.obs["genotype"].tolist()
-                    
-                    if len(individual_genotypes) == len(predictions_df):
-                        predictions_df["genotype"] = individual_genotypes
+            # Check what additional columns to include from config
+            eval_config = getattr(self.config, "evaluation", {})
+            predictions_config = eval_config.get("predictions", {})
+            additional_columns = predictions_config.get("additional_columns", [])
+
+            # Add additional columns dynamically based on config
+            for column_name in additional_columns:
+                try:
+                    column_values = None
+
+                    # First check if test_data is an AnnData object with this column
+                    if (hasattr(self.test_data, 'obs') and
+                        hasattr(self.test_data.obs, 'columns') and
+                        column_name in self.test_data.obs.columns):
+
+                        # Use values directly from the processed test data that was used for prediction
+                        column_values = self.test_data.obs[column_name].tolist()
+
+                    elif hasattr(self, f'test_data_{column_name}'):
+                        # Use stored column info if available
+                        column_values = getattr(self, f'test_data_{column_name}')
+
                     else:
-                        predictions_df["genotype"] = "unknown"
-                        
-                elif hasattr(self, 'test_data_genotypes'):
-                    # Use stored genotype info if available
-                    predictions_df["genotype"] = self.test_data_genotypes
-                else:
-                    # Fallback: try to get from the processed evaluation data that was used
-                    from common.data.loaders import DataLoader
-                    data_loader = DataLoader(self.config)
-                    _, adata_eval, _ = data_loader.load_data()
-                    
-                    if adata_eval is not None and "genotype" in adata_eval.obs.columns:
-                        split_config = getattr(self.config.data, "split", None)
-                        if split_config and hasattr(split_config, "test"):
-                            test_values = getattr(split_config, "test", [])
-                            # Handle case mismatch
-                            test_values_lower = [str(v).lower() for v in test_values]
-                            
-                            # Create case-insensitive mask
-                            genotype_lower = adata_eval.obs["genotype"].str.lower()
-                            mask = genotype_lower.isin(test_values_lower)
-                            
-                            if mask.sum() > 0:
-                                # Get the original case genotypes that match
-                                individual_genotypes = adata_eval.obs.loc[mask, "genotype"].tolist()
-                                
-                                if len(individual_genotypes) == len(predictions_df):
-                                    predictions_df["genotype"] = individual_genotypes
+                        # Fallback: try to get from the processed evaluation data
+                        from common.data.loaders import DataLoader
+                        data_loader = DataLoader(self.config)
+                        _, adata_eval, _ = data_loader.load_data()
+
+                        if adata_eval is not None and column_name in adata_eval.obs.columns:
+                            split_config = getattr(self.config.data, "split", None)
+                            if split_config and hasattr(split_config, "method"):
+                                split_method = getattr(split_config, "method", "random")
+
+                                if split_method == "column" and hasattr(split_config, "test"):
+                                    # Column-based split - filter by test values
+                                    test_values = getattr(split_config, "test", [])
+                                    # Handle case mismatch
+                                    test_values_lower = [str(v).lower() for v in test_values]
+
+                                    # Create case-insensitive mask based on split column
+                                    split_column = getattr(split_config, "column", "genotype")
+                                    if split_column in adata_eval.obs.columns:
+                                        split_col_lower = adata_eval.obs[split_column].str.lower()
+                                        mask = split_col_lower.isin(test_values_lower)
+
+                                        if mask.sum() > 0:
+                                            # Get the values for this column that match the split criteria
+                                            column_values = adata_eval.obs.loc[mask, column_name].tolist()
                                 else:
-                                    predictions_df["genotype"] = "unknown"
+                                    # Random split - use the actual evaluation data values
+                                    column_values = adata_eval.obs[column_name].tolist()
                             else:
-                                predictions_df["genotype"] = "unknown"
+                                # No split config found, use all values from eval data
+                                column_values = adata_eval.obs[column_name].tolist()
+
+                    # Add the column to predictions_df
+                    if column_values is not None:
+                        if len(column_values) == len(predictions_df):
+                            predictions_df[column_name] = column_values
+                        elif len(column_values) >= len(predictions_df):
+                            # If we have more values than predictions, take the first N
+                            predictions_df[column_name] = column_values[:len(predictions_df)]
                         else:
-                            predictions_df["genotype"] = "unknown"
+                            # If we have fewer values, fill with "unknown"
+                            predictions_df[column_name] = "unknown"
                     else:
-                        predictions_df["genotype"] = "unknown"
-                        
-            except Exception as e:
-                print(f"Error extracting genotypes: {e}")
-                predictions_df["genotype"] = "unknown"
+                        # Column not found, fill with "unknown"
+                        predictions_df[column_name] = "unknown"
+
+                except Exception as e:
+                    print(f"Error extracting {column_name}: {e}")
+                    predictions_df[column_name] = "unknown"
 
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
@@ -280,11 +302,11 @@ class EvaluationMetrics:
     def _determine_classification_type(self, true_labels, predicted_classes):
         """
         Determine whether to use binary or multiclass metrics.
-        
+
         Args:
             true_labels: Actual labels from test data
             predicted_classes: Model predictions
-            
+
         Returns:
             "binary" or "multiclass"
         """
@@ -292,18 +314,18 @@ class EvaluationMetrics:
         eval_config = getattr(self.config, "evaluation", {})
         metrics_config = eval_config.get("metrics", {})
         classification_type_config = metrics_config.get("classification_type", "auto")
-        
+
         # Handle forced modes
         if classification_type_config == "binary":
             return "binary"
         elif classification_type_config == "multiclass":
             return "multiclass"
-        
+
         # Auto detection logic
         # Get unique classes in test data
         test_classes = set(np.unique(true_labels))
         num_test_classes = len(test_classes)
-        
+
         # Get training classes (what model learned)
         if self.training_classes is not None:
             train_classes = set(self.training_classes)
@@ -313,16 +335,16 @@ class EvaluationMetrics:
             all_predicted = set(np.unique(predicted_classes))
             train_classes = test_classes.union(all_predicted)
             num_train_classes = len(train_classes)
-        
+
         # Binary only if:
         # 1. Model was trained on exactly 2 classes
-        # 2. Test data has exactly 2 classes  
+        # 2. Test data has exactly 2 classes
         # 3. Test classes are exactly the same as training classes
         if num_train_classes == 2 and num_test_classes == 2 and test_classes == train_classes:
             return "binary"
         else:
             return "multiclass"
-    
+
     def _get_evaluation_genotypes(self, project):
         """
         Load actual genotype information from evaluation data.
@@ -404,6 +426,16 @@ class EvaluationMetrics:
         # Age group consistency
         age_group_metrics = self._evaluate_age_group_consistency(y_true, y_pred)
         metrics.update(age_group_metrics)
+
+        # Add baseline comparison if enabled (for regression tasks)
+        eval_config = getattr(self.config, "evaluation", {})
+        config_baselines = eval_config.get("metrics", {}).get("baselines", {})
+
+        if config_baselines.get("enabled", False):
+            baseline_metrics = self._compute_baseline_comparison(
+                y_true, y_pred, y_pred  # For regression, predictions are the raw values
+            )
+            metrics["baselines"] = baseline_metrics
 
         return metrics
 
@@ -717,7 +749,7 @@ class EvaluationMetrics:
                 )
             else:
                 # Multiclass - use macro average
-    
+
                 metrics["f1_score"] = float(
                     f1_score(true_labels, predicted_classes, average="macro")
                 )
@@ -755,7 +787,7 @@ class EvaluationMetrics:
         if "auc" in eval_metrics and len(predictions.shape) > 1:
             try:
                 # Multiclass AUC with proper class handling
-                
+
                 # Convert true labels to match the training classes for AUC calculation
                 if self.label_encoder and hasattr(self.label_encoder, 'classes_'):
                     # Use the label encoder to transform the eval labels to indices
@@ -764,11 +796,11 @@ class EvaluationMetrics:
                         # Convert float labels to strings to match label_encoder format
                         string_labels = [str(int(label)) if isinstance(label, float) else str(label) for label in true_labels]
                         true_indices = self.label_encoder.transform(string_labels)
-                        
+
                         metrics["auc"] = float(
                             roc_auc_score(true_indices, predictions, multi_class="ovr", average="macro")
                         )
-                    except ValueError as e:
+                    except ValueError:
                         # If label encoder fails (unknown labels), add specific AUC not
                         # Fallback to binary AUC using just the first two classes
                         if predictions.shape[1] >= 2:
@@ -785,24 +817,6 @@ class EvaluationMetrics:
                         metrics["auc"] = 0.0
 
                 # AUC calculation complete
-                    
-                    # Use only the relevant prediction columns for AUC calculation
-                    relevant_predictions = predictions[:, eval_indices]
-                    
-                    if num_eval_classes == 2:
-                        # Binary AUC - use positive class probability
-                        pos_idx = 1 if len(eval_indices) == 2 else 0
-                        metrics["auc"] = float(
-                            roc_auc_score(true_labels, relevant_predictions[:, pos_idx])
-                        )
-                    else:
-                        # Multiclass AUC
-                        metrics["auc"] = float(
-                            roc_auc_score(
-                                true_labels, relevant_predictions, 
-                                multi_class="ovr", average="macro"
-                            )
-                        )
             except Exception as e:
                 logger.warning(f"Could not compute AUC: {e}")
                 metrics["auc"] = 0.0
@@ -874,7 +888,7 @@ class EvaluationMetrics:
             )
             metrics["baselines"] = baseline_metrics
 
-    
+
         return metrics
 
     def _display_evaluation_info(self):
@@ -1036,7 +1050,7 @@ class EvaluationMetrics:
         task_type = getattr(self.config.model, "task_type", "classification")
         eval_config = getattr(self.config, "evaluation", {})
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
-        
+
         if task_type == "regression":
             baseline_types = config_baselines.get("regression", ["mean_baseline", "median_baseline"])
         else:
@@ -1044,8 +1058,8 @@ class EvaluationMetrics:
 
         print("\n MODEL COMPARISON (Holdout Evaluation)")
         print("=" * 80)
-        
-        
+
+
         # Add warning if evaluation classes don't match training classes
         if hasattr(self, 'label_encoder') and self.label_encoder and hasattr(self.label_encoder, 'classes_'):
             training_classes = set(self.label_encoder.classes_)
@@ -1053,7 +1067,7 @@ class EvaluationMetrics:
             if training_classes != eval_classes:
                 missing_in_eval = training_classes - eval_classes
                 if missing_in_eval:
-                    print("⚠️  WARNING: Model trained on {} classes but evaluation data only contains {} classes.".format(len(training_classes), len(eval_classes)))
+                    print(f"⚠️  WARNING: Model trained on {len(training_classes)} classes but evaluation data only contains {len(eval_classes)} classes.")
                     print("   Missing from evaluation: {}".format(', '.join(sorted(missing_in_eval))))
                     print("   Metrics may underestimate model performance - predictions of missing classes are marked as 'wrong'.")
                     print("   AUC calculation uses fallback method due to class mismatch.")
@@ -1076,7 +1090,7 @@ class EvaluationMetrics:
 
         # Get number of classes for classification tasks
         num_classes = len(np.unique(true_labels))
-        
+
         # Get model performance based on task type
         if task_type == "regression":
             # Regression metrics
@@ -1086,10 +1100,10 @@ class EvaluationMetrics:
         else:
             # Classification metrics
             model_accuracy = float(accuracy_score(true_labels, predicted_classes))
-            
+
             # Determine classification type for baseline metrics
             classification_type = self._determine_classification_type(true_labels, predicted_classes)
-            
+
             if classification_type == "binary":
                 unique_classes = np.unique(true_labels)
                 pos_label = unique_classes[-1]
@@ -1118,7 +1132,7 @@ class EvaluationMetrics:
                     )
                 else:
                     model_auc = 0.0
-        except Exception as e:
+        except Exception:
             model_auc = 0.0
 
         max_method_len = max(
@@ -1129,35 +1143,63 @@ class EvaluationMetrics:
             20, max_method_len + 2
         )  # At least 20, or method name + padding
 
-        # Create the table format strings - ensure header and border widths match
-        # Border widths: 7, 7, 11, 8, 8, 10, 9 (including padding)
-        header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
-        row_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
-        border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬────────┬──────────┬─────────┐"
-        border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼────────┼──────────┼─────────┤"
-        border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴────────┴──────────┴─────────┘"
+        if task_type == "regression":
+            # Regression table format
+            header_format = f"│ {{:<{method_width}}} │ {{:^8}} │ {{:^8}} │ {{:^8}} │ {{:^10}} │ {{:^10}} │ {{:^10}} │"
+            row_format = f"│ {{:<{method_width}}} │ {{:^8}} │ {{:^8}} │ {{:^8}} │ {{:^10}} │ {{:^10}} │ {{:^10}} │"
+            border_top = f"┌{'─' * (method_width + 2)}┬──────────┬──────────┬──────────┬────────────┬────────────┬────────────┐"
+            border_mid = f"├{'─' * (method_width + 2)}┼──────────┼──────────┼──────────┼────────────┼────────────┼────────────┤"
+            border_bot = f"└{'─' * (method_width + 2)}┴──────────┴──────────┴──────────┴────────────┴────────────┴────────────┘"
 
-        print(border_top)
-        print(
-            header_format.format(
-                "Method", "Acc", "F1", "Precision", "Recall", "AUC", "Δ Acc", "Δ F1"
+            print(border_top)
+            print(
+                header_format.format(
+                    "Method", "MAE", "RMSE", "R²", "Δ MAE", "Δ RMSE", "Δ R²"
+                )
             )
-        )
-        print(border_mid)
+            print(border_mid)
 
-        # Print our model row first
-        print(
-            row_format.format(
-                "**Our Model**",
-                f"{model_accuracy:.3f}",
-                f"{model_f1:.3f}",
-                f"{model_precision:.3f}",
-                f"{model_recall:.3f}",
-                f"{model_auc:.3f}",
-                "–",
-                "–",
+            # Print our model row first
+            print(
+                row_format.format(
+                    "**Our Model**",
+                    f"{model_mae:.3f}",
+                    f"{model_rmse:.3f}",
+                    f"{model_r2:.3f}",
+                    "–",
+                    "–",
+                    "–",
+                )
             )
-        )
+        else:
+            # Classification table format
+            header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+            row_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+            border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬────────┬──────────┬─────────┐"
+            border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼────────┼──────────┼─────────┤"
+            border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴────────┴──────────┴─────────┘"
+
+            print(border_top)
+            print(
+                header_format.format(
+                    "Method", "Acc", "F1", "Precision", "Recall", "AUC", "Δ Acc", "Δ F1"
+                )
+            )
+            print(border_mid)
+
+            # Print our model row first
+            print(
+                row_format.format(
+                    "**Our Model**",
+                    f"{model_accuracy:.3f}",
+                    f"{model_f1:.3f}",
+                    f"{model_precision:.3f}",
+                    f"{model_recall:.3f}",
+                    f"{model_auc:.3f}",
+                    "–",
+                    "–",
+                )
+            )
 
         for baseline_type in valid_baseline_types:
             try:
@@ -1168,17 +1210,17 @@ class EvaluationMetrics:
                         dummy_reg = DummyRegressor(strategy="mean")
                         dummy_reg.fit(test_X, true_labels)
                         baseline_pred = dummy_reg.predict(test_X)
-                    
+
                     elif baseline_type == "median_baseline":
                         # Always predict median
                         dummy_reg = DummyRegressor(strategy="median")
                         dummy_reg.fit(test_X, true_labels)
                         baseline_pred = dummy_reg.predict(test_X)
-                    
+
                     else:
                         logger.warning(f"Unknown regression baseline type: {baseline_type}")
                         continue
-                        
+
                 else:
                     # Classification baselines
                     if baseline_type == "random_classifier":
@@ -1209,21 +1251,44 @@ class EvaluationMetrics:
                     baseline_mae = float(mean_absolute_error(true_labels, baseline_pred))
                     baseline_rmse = float(np.sqrt(mean_squared_error(true_labels, baseline_pred)))
                     baseline_r2 = float(r2_score(true_labels, baseline_pred))
-                    
+
                     # Store baseline metrics
                     baselines[baseline_type] = {
                         "mae": baseline_mae,
                         "rmse": baseline_rmse,
                         "r2": baseline_r2,
                     }
-                    
+
                     # Compute improvement over baseline
                     baselines[baseline_type]["improvement"] = {
                         "mae_improvement": baseline_mae - model_mae,  # Lower is better
                         "rmse_improvement": baseline_rmse - model_rmse,  # Lower is better
                         "r2_improvement": model_r2 - baseline_r2,  # Higher is better
                     }
-                    
+
+                    # Print regression baseline row
+                    baseline_name = baseline_type.replace("_", " ").title()
+                    mae_improvement = baseline_mae - model_mae
+                    rmse_improvement = baseline_rmse - model_rmse
+                    r2_improvement = model_r2 - baseline_r2
+
+                    # Format improvements with + or - signs
+                    mae_delta = f"{-mae_improvement:+.3f}"  # Negative because lower is better
+                    rmse_delta = f"{-rmse_improvement:+.3f}"  # Negative because lower is better
+                    r2_delta = f"{r2_improvement:+.3f}"  # Positive because higher is better
+
+                    print(
+                        row_format.format(
+                            baseline_name,
+                            f"{baseline_mae:.3f}",
+                            f"{baseline_rmse:.3f}",
+                            f"{baseline_r2:.3f}",
+                            mae_delta,
+                            rmse_delta,
+                            r2_delta,
+                        )
+                    )
+
                 else:
                     # Classification metrics
                     baseline_accuracy = float(accuracy_score(true_labels, baseline_pred))
@@ -1253,78 +1318,79 @@ class EvaluationMetrics:
                             recall_score(true_labels, baseline_pred, average="macro")
                         )
 
-                # Store baseline metrics
-                baselines[baseline_type] = {
-                    "accuracy": baseline_accuracy,
-                    "f1_score": baseline_f1,
-                    "precision": baseline_precision,
-                    "recall": baseline_recall,
-                }
+                    # Store baseline metrics (classification only)
+                    baselines[baseline_type] = {
+                        "accuracy": baseline_accuracy,
+                        "f1_score": baseline_f1,
+                        "precision": baseline_precision,
+                        "recall": baseline_recall,
+                    }
 
-                # Compute improvement over baseline
-                model_accuracy = float(accuracy_score(true_labels, predicted_classes))
+                    # Compute improvement over baseline
+                    model_accuracy = float(accuracy_score(true_labels, predicted_classes))
 
-                # Always use macro average for age prediction (multiclass problem)
-                model_f1 = float(
-                        f1_score(true_labels, predicted_classes, average="macro")
-                    )
+                    # Always use macro average for age prediction (multiclass problem)
+                    model_f1 = float(
+                            f1_score(true_labels, predicted_classes, average="macro")
+                        )
 
-                baselines[baseline_type]["improvement"] = {
-                    "accuracy_improvement": model_accuracy - baseline_accuracy,
-                    "f1_improvement": model_f1 - baseline_f1,
-                    "accuracy_ratio": model_accuracy / baseline_accuracy
-                    if baseline_accuracy > 0
-                    else float("inf"),
-                    "f1_ratio": model_f1 / baseline_f1
-                    if baseline_f1 > 0
-                    else float("inf"),
-                }
+                    baselines[baseline_type]["improvement"] = {
+                        "accuracy_improvement": model_accuracy - baseline_accuracy,
+                        "f1_improvement": model_f1 - baseline_f1,
+                        "accuracy_ratio": model_accuracy / baseline_accuracy
+                        if baseline_accuracy > 0
+                        else float("inf"),
+                        "f1_ratio": model_f1 / baseline_f1
+                        if baseline_f1 > 0
+                        else float("inf"),
+                    }
 
-                baseline_name = baseline_type.replace("_", " ").title()
-                acc_improvement = model_accuracy - baseline_accuracy
-                f1_improvement = model_f1 - baseline_f1
+                    baseline_name = baseline_type.replace("_", " ").title()
+                    acc_improvement = model_accuracy - baseline_accuracy
+                    f1_improvement = model_f1 - baseline_f1
 
-                # Format improvements with + or - signs
-                acc_delta = f"{acc_improvement:+.3f}"
-                f1_delta = f"{f1_improvement:+.3f}"
+                    # Format improvements with + or - signs
+                    acc_delta = f"{acc_improvement:+.3f}"
+                    f1_delta = f"{f1_improvement:+.3f}"
 
-                # Calculate baseline AUC - use 0.5 for class mismatch scenarios
-                # Check if there's a class mismatch (training vs eval classes)
-                training_classes = set(self.label_encoder.classes_) if self.label_encoder and hasattr(self.label_encoder, 'classes_') else set()
-                eval_classes = set(str(int(label)) if isinstance(label, float) else str(label) for label in np.unique(true_labels))
-                
-                if training_classes and training_classes != eval_classes:
-                    # Class mismatch scenario - use theoretical random baseline
-                    baseline_auc = 0.5
-                else:
-                    # No class mismatch - try to calculate actual baseline AUC
-                    try:
-                        if num_classes == 2:
-                            # Binary classification
-                            binary_true = np.array(true_labels)
-                            binary_pred = np.array(baseline_pred)
-                            if len(np.unique(binary_true)) == 2:
-                                unique_vals = np.unique(binary_true)
-                                binary_true = (binary_true == unique_vals[1]).astype(int)
-                                binary_pred = (binary_pred == unique_vals[1]).astype(int)
-                            baseline_auc = float(roc_auc_score(binary_true, binary_pred))
-                        else:
-                            # For multiclass without mismatch, still use 0.5 for simplicity
-                            baseline_auc = 0.5
-                    except Exception:
+                    # Calculate baseline AUC - use 0.5 for class mismatch scenarios
+                    # Check if there's a class mismatch (training vs eval classes)
+                    training_classes = set(self.label_encoder.classes_) if self.label_encoder and hasattr(self.label_encoder, 'classes_') else set()
+                    eval_classes = set(str(int(label)) if isinstance(label, float) else str(label) for label in np.unique(true_labels))
+
+                    if training_classes and training_classes != eval_classes:
+                        # Class mismatch scenario - use theoretical random baseline
                         baseline_auc = 0.5
-                print(
-                    row_format.format(
-                        baseline_name,
-                        f"{baseline_accuracy:.3f}",
-                        f"{baseline_f1:.3f}",
-                        f"{baseline_precision:.3f}",
-                        f"{baseline_recall:.3f}",
-                        f"{baseline_auc:.3f}",
-                        acc_delta,
-                        f1_delta,
+                    else:
+                        # No class mismatch - try to calculate actual baseline AUC
+                        try:
+                            if num_classes == 2:
+                                # Binary classification
+                                binary_true = np.array(true_labels)
+                                binary_pred = np.array(baseline_pred)
+                                if len(np.unique(binary_true)) == 2:
+                                    unique_vals = np.unique(binary_true)
+                                    binary_true = (binary_true == unique_vals[1]).astype(int)
+                                    binary_pred = (binary_pred == unique_vals[1]).astype(int)
+                                baseline_auc = float(roc_auc_score(binary_true, binary_pred))
+                            else:
+                                # For multiclass without mismatch, still use 0.5 for simplicity
+                                baseline_auc = 0.5
+                        except Exception:
+                            baseline_auc = 0.5
+
+                    print(
+                        row_format.format(
+                            baseline_name,
+                            f"{baseline_accuracy:.3f}",
+                            f"{baseline_f1:.3f}",
+                            f"{baseline_precision:.3f}",
+                            f"{baseline_recall:.3f}",
+                            f"{baseline_auc:.3f}",
+                            acc_delta,
+                            f1_delta,
+                        )
                     )
-                )
 
             except Exception as e:
                 logger.warning(f"Failed to compute {baseline_type} baseline: {e}")

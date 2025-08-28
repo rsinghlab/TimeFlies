@@ -401,6 +401,10 @@ class PathManager:
             correction_dir = (
                 "batch_corrected" if batch_correction_enabled else "uncorrected"
             )
+
+            # Add task type directory level
+            task_type = getattr(self.config.model, "task_type", "classification")
+
             config_key = self.get_config_key()
 
             experiments_dir = (
@@ -409,6 +413,7 @@ class PathManager:
                 / project_name
                 / "experiments"
                 / correction_dir
+                / task_type
                 / "all_runs"
                 / config_key
             )
@@ -458,6 +463,10 @@ class PathManager:
             correction_dir = (
                 "batch_corrected" if batch_correction_enabled else "uncorrected"
             )
+
+            # Add task type directory level
+            task_type = getattr(self.config.model, "task_type", "classification")
+
             config_key = self.get_config_key()
 
             experiments_dir = (
@@ -466,6 +475,7 @@ class PathManager:
                 / project_name
                 / "experiments"
                 / correction_dir
+                / task_type
                 / "all_runs"
                 / config_key
             )
@@ -508,6 +518,7 @@ class PathManager:
                 / project_name
                 / "experiments"
                 / correction_dir
+                / task_type
                 / "best"
                 / config_key
             )
@@ -635,6 +646,9 @@ class PathManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         # Group by config key (e.g., cnn_ctrl-vs-alz)
         config_key = self.get_config_key()
 
@@ -645,6 +659,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "all_runs"
             / config_key
             / experiment_name
@@ -791,6 +806,9 @@ class PathManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         # Best folder uses consistent structure
         config_key = self.get_config_key()
 
@@ -800,6 +818,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "best"
             / config_key
         )
@@ -816,6 +835,10 @@ class PathManager:
         correction_dir = (
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
+
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         config_key = self.get_config_key()
 
         return str(
@@ -824,6 +847,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "latest"
             / config_key
         )
@@ -846,6 +870,9 @@ class PathManager:
         )
         config_key = self.get_config_key()
 
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         # Create latest/ directory at correction level
         latest_dir = Path(self.get_latest_folder_path())
 
@@ -856,6 +883,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "all_runs"
             / config_key
             / experiment_name
@@ -899,6 +927,9 @@ class PathManager:
         )
         config_key = self.get_config_key()
 
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         # Create best/ directory at correction level
         best_dir = Path(self.get_best_folder_path())
 
@@ -909,6 +940,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "all_runs"
             / config_key
             / experiment_name
@@ -946,6 +978,10 @@ class PathManager:
         correction_dir = (
             "batch_corrected" if self.batch_correction_enabled else "uncorrected"
         )
+
+        # Add task type directory level
+        task_type = getattr(self.config.model, "task_type", "classification")
+
         config_key = self.get_config_key()
 
         # Look for best directory with new structure: best/config_key/experiment_name/
@@ -955,6 +991,7 @@ class PathManager:
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "best"
             / config_key
         )

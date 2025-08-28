@@ -1,8 +1,8 @@
 """GPU configuration utilities for TensorFlow."""
 
-from typing import Any
 import os
 import sys
+from typing import Any
 
 # Aggressive TensorFlow logging suppression
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -13,6 +13,7 @@ os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 # Temporarily redirect stderr during TensorFlow import
 import contextlib
+
 
 @contextlib.contextmanager
 def suppress_stderr():

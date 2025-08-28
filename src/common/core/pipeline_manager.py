@@ -161,6 +161,59 @@ class PipelineManager:
 
         print("=" * 60)
 
+    def _get_processed_eval_data_with_metadata(self):
+        """
+        Helper function that processes evaluation data exactly like the evaluation pipeline
+        and returns both processed data and filtered metadata subset.
+
+        Returns:
+            tuple: (eval_data, eval_labels, label_encoder, eval_subset)
+        """
+        # Get evaluation data - use corrected if available, otherwise regular
+        adata_eval = self.adata_eval_corrected or self.adata_eval
+
+        if adata_eval is None:
+            return None, None, None, None
+
+        # Create filtered eval_subset for metadata display
+        if hasattr(self, 'data_preprocessor') and self.data_preprocessor is not None:
+            eval_subset = self.data_preprocessor.process_adata(adata_eval)
+        else:
+            # Fallback: create temp preprocessor
+            temp_processor = DataPreprocessor(self.config_instance, adata_eval, None)
+            eval_subset = temp_processor.process_adata(adata_eval)
+
+        # Process evaluation data with fitted components from training (exactly like evaluation pipeline)
+        if hasattr(self, 'data_preprocessor') and self.data_preprocessor is not None:
+            eval_data, eval_labels, temp_label_encoder = self.data_preprocessor.prepare_final_eval_data(
+                adata_eval,
+                getattr(self, "label_encoder", None),
+                getattr(self, "num_features", None),
+                getattr(self, "scaler", None),
+                getattr(self, "is_scaler_fit", False),
+                getattr(self, "highly_variable_genes", None),
+                getattr(self, "mix_included", False),
+                getattr(self, "train_gene_names", None),
+            )
+        else:
+            # Fallback: create temp preprocessor
+            temp_processor = DataPreprocessor(self.config_instance, adata_eval, None)
+            eval_data, eval_labels, temp_label_encoder = temp_processor.prepare_final_eval_data(
+                adata_eval, None, None, None, False, None, False, None
+            )
+
+        return eval_data, eval_labels, temp_label_encoder, eval_subset
+
+    def _print_obs_distributions(self, adata, columns):
+        """Helper to print distributions for specified obs columns."""
+        for col in columns:
+            if col in adata.obs.columns:
+                print(f"  └─ {col.replace('_', ' ').title()} Distribution:")
+                counts = adata.obs[col].value_counts().sort_index()
+                for value, count in counts.items():
+                    percentage = (count / len(adata.obs)) * 100
+                    print(f"      └─ {value:<12}: {count:6,} samples ({percentage:5.1f}%)")
+
     def _print_training_and_evaluation_data(self):
         """Print training and evaluation data details after preprocessing."""
         print("\n")
@@ -242,20 +295,25 @@ class PipelineManager:
                     except Exception as e:
                         print(f"      └─ Could not display label distribution: {e}")
 
+                # Additional distributions using helper
+                if hasattr(self, 'train_subset') and self.train_subset is not None:
+                    # Get display columns from config - only show what's explicitly listed
+                    display_columns = list(getattr(self.config_instance.data, "display_columns", ["sex", "genotype"]))
+                    self._print_obs_distributions(self.train_subset, display_columns)
+
             except Exception as e:
                 print(f"Training Data: Could not display details ({e})")
         else:
             print("Training Data: Not available")
 
-        # Check split method first to decide what eval data to show
+        # Always show processed evaluation data from separate eval dataset (final holdout)
+        self._show_processed_eval_data_preview()
+
+        # Check split method to decide whether to also show validation data
         split_method = getattr(self.config_instance.data.split, "method", "unknown")
-        
-        # For column-based splitting, show actual evaluation dataset
-        if split_method == "column":
-            # Show processed evaluation data from separate eval dataset
-            self._show_processed_eval_data_preview()
-        else:
-            # For other splitting methods, show test data from train/validation split
+
+        # For non-column splitting, also show validation data from train/test split
+        if split_method != "column":
             if hasattr(self, "test_data") and self.test_data is not None:
                 try:
                     test_shape = self.test_data.shape
@@ -441,118 +499,70 @@ class PipelineManager:
         try:
             print("\nEvaluation Data:")
 
-            # First check if we already have processed eval data (from combined pipeline)
-            if hasattr(self, 'eval_data') and self.eval_data is not None:
-                # Use already processed eval data from combined pipeline
-                eval_data = self.eval_data
-                eval_labels = self.eval_labels
-                temp_label_encoder = self.label_encoder
-            else:
-                # Need to process it now for preview
-                # Get evaluation data - use corrected if available, otherwise regular
-                adata_eval = getattr(self, "adata_eval_corrected", None) or getattr(
-                    self, "adata_eval", None
-                )
+            # Use helper function to get processed eval data exactly like evaluation pipeline
+            eval_data, eval_labels, temp_label_encoder, eval_subset = self._get_processed_eval_data_with_metadata()
 
-                # If we don't have eval data loaded, try to get it fresh from data loader
-                if adata_eval is None:
-                    print("  └─ No evaluation data loaded - attempting fresh load...")
-                    # Load evaluation data fresh for preview
-                    _, adata_eval, _ = self.data_loader.load_data()
-                    if self.config_instance.data.batch_correction.enabled:
-                        _, adata_eval_corrected = self.data_loader.load_corrected_data()
-                        adata_eval = adata_eval_corrected or adata_eval
-
-                if adata_eval is None:
-                    print("  └─ Could not load evaluation data")
-                    return
-
-                print("  └─ Processing evaluation data for preview...")
-
-                # Use the existing data preprocessor with fitted components from training
-                if (
-                    hasattr(self, "data_preprocessor")
-                    and self.data_preprocessor is not None
-                ):
-                    # Use the fitted preprocessor from training
-                    eval_data, eval_labels, temp_label_encoder = (
-                        self.data_preprocessor.prepare_final_eval_data(
-                            adata_eval,
-                            getattr(self, "label_encoder", None),
-                            getattr(self, "num_features", None),
-                            getattr(self, "scaler", None),
-                            getattr(self, "is_scaler_fit", False),
-                            getattr(self, "highly_variable_genes", None),
-                            getattr(self, "mix_included", False),
-                            getattr(self, "train_gene_names", None),
-                        )
-                    )
-                else:
-                    # Fallback: create temp preprocessor (won't be perfectly aligned with training)
-                    temp_processor = DataPreprocessor(
-                        self.config_instance, adata_eval, None
-                    )
-                    eval_data, eval_labels, temp_label_encoder = (
-                        temp_processor.prepare_final_eval_data(
-                            adata_eval, None, None, None, False, None, False, None
-                        )
-                    )
+            if eval_data is None:
+                print("  └─ Could not process evaluation data")
+                return
 
             # Display the processed evaluation data
-            if eval_data is not None:
-                eval_shape = eval_data.shape
-                print(f"  └─ Samples:           {eval_shape[0]:,}")
-                if len(eval_shape) > 2:  # CNN format
-                    print(
-                        f"  └─ Features:          {eval_shape[1]} x {eval_shape[2]:,} (reshaped)"
-                    )
-                else:  # Standard format
-                    print(f"  └─ Features (genes):  {eval_shape[1]:,}")
+            eval_shape = eval_data.shape
+            print(f"  └─ Samples:           {eval_shape[0]:,}")
+            if len(eval_shape) > 2:  # CNN format
+                print(
+                    f"  └─ Features:          {eval_shape[1]} x {eval_shape[2]:,} (reshaped)"
+                )
+            else:  # Standard format
+                print(f"  └─ Features (genes):  {eval_shape[1]:,}")
 
-                # Data statistics
-                import numpy as np
+            # Data statistics
+            import numpy as np
 
-                eval_mean = np.mean(eval_data)
-                eval_std = np.std(eval_data)
-                eval_min = np.min(eval_data)
-                eval_max = np.max(eval_data)
-                print(f"  └─ Data Range:        [{eval_min:.3f}, {eval_max:.3f}]")
-                print(f"  └─ Mean ± Std:        {eval_mean:.3f} ± {eval_std:.3f}")
+            eval_mean = np.mean(eval_data)
+            eval_std = np.std(eval_data)
+            eval_min = np.min(eval_data)
+            eval_max = np.max(eval_data)
+            print(f"  └─ Data Range:        [{eval_min:.3f}, {eval_max:.3f}]")
+            print(f"  └─ Mean ± Std:        {eval_mean:.3f} ± {eval_std:.3f}")
 
-                # Label distribution
-                if eval_labels is not None and temp_label_encoder is not None:
-                    target = getattr(
-                        self.config_instance.data, "target_variable", "age"
-                    )
-                    # Handle case where target might be a list or other non-string type
-                    target_name = target if isinstance(target, str) else str(target)
-                    print(f"  └─ {target_name.title()} Distribution:")
+            # Label distribution
+            if eval_labels is not None and temp_label_encoder is not None:
+                target = getattr(
+                    self.config_instance.data, "target_variable", "age"
+                )
+                target_name = target if isinstance(target, str) else str(target)
+                print(f"  └─ {target_name.title()} Distribution:")
 
-                    # Handle both one-hot encoded and label encoded data
-                    if len(eval_labels.shape) > 1 and eval_labels.shape[1] > 1:
-                        # One-hot encoded
-                        label_indices = np.argmax(eval_labels, axis=1)
-                    else:
-                        # Already class indices
-                        label_indices = np.array(eval_labels).flatten()
+                # Handle both one-hot encoded and label encoded data
+                if len(eval_labels.shape) > 1 and eval_labels.shape[1] > 1:
+                    # One-hot encoded
+                    label_indices = np.argmax(eval_labels, axis=1)
+                else:
+                    # Already class indices
+                    label_indices = np.array(eval_labels).flatten()
 
-                    unique, counts = np.unique(label_indices, return_counts=True)
-                    total = counts.sum()
-                    for label_encoded, count in zip(unique, counts):
-                        pct = (count / total) * 100
-                        try:
-                            original_label = temp_label_encoder.inverse_transform(
-                                [int(label_encoded)]
-                            )[0]
-                            print(
-                                f"      └─ {original_label:<12}: {count:6,} samples ({pct:5.1f}%)"
-                            )
-                        except Exception:
-                            print(
-                                f"      └─ Class {label_encoded:<7}: {count:6,} samples ({pct:5.1f}%)"
-                            )
-            else:
-                print("  └─ Could not process evaluation data")
+                unique, counts = np.unique(label_indices, return_counts=True)
+                total = counts.sum()
+                for label_encoded, count in zip(unique, counts):
+                    pct = (count / total) * 100
+                    try:
+                        original_label = temp_label_encoder.inverse_transform(
+                            [int(label_encoded)]
+                        )[0]
+                        print(
+                            f"      └─ {original_label:<12}: {count:6,} samples ({pct:5.1f}%)"
+                        )
+                    except Exception:
+                        print(
+                            f"      └─ Class {label_encoded:<7}: {count:6,} samples ({pct:5.1f}%)"
+                        )
+
+            # Display metadata distributions from eval_subset
+            if eval_subset is not None:
+                # Get display columns from config - only show what's explicitly listed
+                display_columns = list(getattr(self.config_instance.data, "display_columns", ["sex", "genotype"]))
+                self._print_obs_distributions(eval_subset, display_columns)
 
         except Exception as e:
             print(f"\nEvaluation Data: Could not process preview ({e})")
@@ -589,11 +599,14 @@ class PipelineManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
+        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+
         best_symlink_path = str(
             base_path
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "best"
             / config_key
             / "model_components"
@@ -640,16 +653,21 @@ class PipelineManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
+        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+
         best_symlink_path = str(
             base_path
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "best"
             / config_key
             / "model_components"
             / "best_val_loss.json"
         )
+
+
 
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         current_path = os.path.join(experiment_dir, "components", "best_val_loss.json")
@@ -795,7 +813,7 @@ class PipelineManager:
                 self.test_data = self.eval_data
                 self.test_labels = self.eval_labels
                 return
-                
+
             # Evaluation: use fitted components from training to prevent data leakage
             adata_eval = self.adata_eval_corrected or self.adata_eval
             (
@@ -827,8 +845,10 @@ class PipelineManager:
                 self.is_scaler_fit,
                 self.highly_variable_genes,
                 self.mix_included,
+                self.train_subset,
+                self.test_subset,
             ) = self.data_preprocessor.prepare_data()
-            
+
             # If combined pipeline, also process eval data NOW with fitted components
             is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
             if is_combined_pipeline:
@@ -852,7 +872,7 @@ class PipelineManager:
                 else:
                     self.eval_data = None
                     self.eval_labels = None
-                    
+
             # Clean up memory (preserve evaluation data for auto-evaluation)
             self._cleanup_memory(
                 keep_eval_data=True, keep_vis_data=is_combined_pipeline
