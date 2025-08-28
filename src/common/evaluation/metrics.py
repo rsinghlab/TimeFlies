@@ -963,45 +963,45 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\n📊 BASELINE COMPARISON")
+        print("📊 Model Evaluation & Comparison")
+        print()
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
 
-        # Print table header with dynamic width for baseline method names
+        # Check if baselines are configured
         if not baseline_types:
-            # No baselines configured, return early
             return {}
 
-        # Filter out empty baseline types and calculate max length
+        # Filter out empty baseline types
         valid_baseline_types = [bt for bt in baseline_types if bt and bt.strip()]
         if not valid_baseline_types:
-            # No valid baselines configured, return early
             return {}
 
-        max_method_len = max(
-            len(baseline_type.replace("_", " ").title())
-            for baseline_type in valid_baseline_types
-        )
-        method_width = max(
-            20, max_method_len + 2
-        )  # At least 20, or method name + padding
-
-        # Create the table format strings - ensure header and border widths match
-        # Border widths: 7, 7, 11, 8, 10, 9 (including padding)
-        header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
-        row_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
-        border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬──────────┬─────────┐"
-        border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼──────────┼─────────┤"
-        border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴──────────┴─────────┘"
-
-        print(border_top)
-        print(
-            header_format.format(
-                "Baseline Method", "Acc", "F1", "Precision", "Recall", "Acc Δ", "F1 Δ"
+        # Get model performance first
+        model_accuracy = float(accuracy_score(true_labels, predicted_classes))
+        num_classes = len(np.unique(true_labels))
+        if num_classes == 2:
+            unique_classes = np.unique(true_labels)
+            pos_label = unique_classes[-1]
+            model_f1 = float(
+                f1_score(
+                    true_labels,
+                    predicted_classes,
+                    average="binary",
+                    pos_label=pos_label,
+                )
             )
+        else:
+            model_f1 = float(f1_score(true_labels, predicted_classes, average="macro"))
+
+        # Create simple table format
+        print(
+            f"{'Method':<17} {'Acc':<6} {'F1':<6} {'Precision':<11} {'Recall':<8} {'Δ Acc':<8} {'Δ F1':<8}"
         )
-        print(border_mid)
+        print(
+            f"{'Our Model':<17} {model_accuracy:<6.3f} {model_f1:<6.3f} {'–':<11} {'–':<8} {'–':<8} {'–':<8}"
+        )
 
         for baseline_type in valid_baseline_types:
             try:
@@ -1114,28 +1114,17 @@ class EvaluationMetrics:
                 acc_improvement = model_accuracy - baseline_accuracy
                 f1_improvement = model_f1 - baseline_f1
 
-                # Format improvements with + or - signs (avoid double ++)
+                # Format improvements with + or - signs
                 acc_delta = f"{acc_improvement:+.3f}"
                 f1_delta = f"{f1_improvement:+.3f}"
 
-                # Use the dynamic format string for consistent alignment
-                row_format = f"│ {{:<{method_width}}} │ {{:.3f}} │ {{:.3f}} │ {{:>9.3f}} │ {{:>6.3f}} │ {{:>8s}} │ {{:>7s}} │"
+                # Print in simple table format
                 print(
-                    row_format.format(
-                        baseline_name,
-                        baseline_accuracy,
-                        baseline_f1,
-                        baseline_precision,
-                        baseline_recall,
-                        acc_delta,
-                        f1_delta,
-                    )
+                    f"{baseline_name:<17} {baseline_accuracy:<6.3f} {baseline_f1:<6.3f} {baseline_precision:<11.3f} {baseline_recall:<8.3f} {acc_delta:<8} {f1_delta:<8}"
                 )
 
             except Exception as e:
                 logger.warning(f"Failed to compute {baseline_type} baseline: {e}")
 
-        # Close the table with dynamic border
-        print(border_bot)
-
+        print()  # Add blank line after table
         return baselines

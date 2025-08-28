@@ -107,13 +107,12 @@ class PipelineManager:
             # Show target distribution for training data
             target = getattr(self.config_instance.data, "target_variable", "age")
             if target in self.adata.obs.columns:
-                print(f"\n{target.title()} Distribution (Training):")
+                print(f"\nTraining {target.title()} Distribution:")
                 train_dist = self.adata.obs[target].value_counts().sort_index()
                 train_total = train_dist.sum()
                 for key, count in train_dist.items():
                     pct = (count / train_total) * 100
-                    unit = "days" if target == "age" else ""
-                    print(f"  └─ {key} {unit:10s}: {count:6,} samples ({pct:5.1f}%)")
+                    print(f"  └─ {key:<12}: {count:6,} samples ({pct:5.1f}%)")
 
         # Show evaluation dataset size and distribution
         if hasattr(self, "adata_eval") and self.adata_eval is not None:
@@ -125,13 +124,12 @@ class PipelineManager:
 
             # Show target distribution for evaluation data
             if target in self.adata_eval.obs.columns:
-                print(f"\n{target.title()} Distribution (Evaluation):")
+                print(f"\nEvaluation {target.title()} Distribution:")
                 eval_dist = self.adata_eval.obs[target].value_counts().sort_index()
                 eval_total = eval_dist.sum()
                 for key, count in eval_dist.items():
                     pct = (count / eval_total) * 100
-                    unit = "days" if target == "age" else ""
-                    print(f"  └─ {key} {unit:10s}: {count:6,} samples ({pct:5.1f}%)")
+                    print(f"  └─ {key:<12}: {count:6,} samples ({pct:5.1f}%)")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -357,7 +355,7 @@ class PipelineManager:
                     optimizer = self.model.optimizer
                     optimizer_name = optimizer.__class__.__name__
                     if hasattr(optimizer, "learning_rate"):
-                        learning_rate = float(optimizer.learning_rate).round(3)
+                        learning_rate = round(float(optimizer.learning_rate), 3)
 
                 print(f"  └─ Optimizer:              {optimizer_name}")
                 print(f"  └─ Learning Rate:          {learning_rate}")
@@ -465,7 +463,7 @@ class PipelineManager:
                 continue
 
         if model_found:
-            return f"Previous model found with validation loss of {best_val_loss:.3f}"
+            return f"Previous best: {best_val_loss:.3f}"
         else:
             return "No previous model found"
 
@@ -852,10 +850,10 @@ class PipelineManager:
         # Display training and evaluation data
         self._print_training_and_evaluation_data()
 
+        # Display model architecture before training
         self._display_model_architecture()
 
         # Model training
-        print("\n")
         print(f"TRAINING PROGRESS ({self._get_previous_best_loss_message()})")
         print("=" * 60)
 
@@ -867,50 +865,57 @@ class PipelineManager:
         # Save outputs and create symlinks after training
         self.save_outputs(metadata=True, symlinks=True)
 
-        # Print training completion summary with improvement status
-        improvement_status = (
-            "New best model found"
-            if self.model_improved
-            else "No improvement over existing model found"
-        )
-
-        # Training Summary section with double lines
-        print("=" * 60)
-        print("\n")
-        print(f"TRAINING SUMMARY ({improvement_status})")
-        print("=" * 60)
+        # Print training completion summary in clean format
+        print("\n📝 Training Summary")
+        print()
 
         # Training results
         current_best_loss = None
+        best_epoch = None
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
             if val_losses:
                 best_epoch = val_losses.index(min(val_losses)) + 1
                 current_best_loss = min(val_losses)
-                print(f"Best Epoch: {best_epoch}")
-                print(f"Best Val Loss (This Training): {current_best_loss:.4f}")
 
-        # Compare with previous best model
+        if best_epoch:
+            print(f"Best Epoch: {best_epoch}")
+
+        # Compare with previous best model and show validation loss with comparison
         previous_best_loss = self._get_previous_best_validation_loss()
-        if previous_best_loss is not None and current_best_loss is not None:
-            delta = previous_best_loss - current_best_loss
-            print(f"Previous Best Val Loss: {previous_best_loss:.4f}")
-            if delta > 0:
-                print(f"Improvement: -{delta:.4f} (Better)")
-            elif delta < 0:
-                print(f"Change: +{abs(delta):.4f} (Worse)")
+        if current_best_loss is not None:
+            if previous_best_loss is not None:
+                delta = current_best_loss - previous_best_loss
+                if delta < 0:
+                    direction = "↓"
+                    comparison = (
+                        f"vs. previous best of {previous_best_loss:.4f} → better"
+                    )
+                elif delta > 0:
+                    direction = "↑"
+                    comparison = (
+                        f"vs. previous best of {previous_best_loss:.4f} → worse"
+                    )
+                else:
+                    direction = "="
+                    comparison = f"vs. previous best of {previous_best_loss:.4f} → same"
+                print(
+                    f"Validation Loss: {current_best_loss:.4f} ({direction} {abs(delta):+.4f} {comparison})"
+                )
             else:
-                print(f"No Change: {delta:.4f}")
+                print(f"Validation Loss: {current_best_loss:.4f} (first model)")
 
-        print(f"Model saved to: {self.experiment_name}")
+        # Model save status
+        save_status = "✅" if self.model_improved else "⚠️ (not saved - no improvement)"
+        print(f"Model Saved: {save_status} {self.experiment_name}")
 
         # Show training duration if available
-        import time
-
         if hasattr(self, "_training_start_time"):
+            import time
+
             duration = time.time() - self._training_start_time
-            print(f"Training duration: {duration:.1f} seconds")
-        print("=" * 60)
+            print(f"Training Duration: {duration:.1f} seconds")
+        print()
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
