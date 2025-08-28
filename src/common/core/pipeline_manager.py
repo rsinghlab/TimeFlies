@@ -161,30 +161,37 @@ class PipelineManager:
         print("PREPROCESSED DATA OVERVIEW")
         print("=" * 60)
 
-        if not (hasattr(self, "train_data") and hasattr(self, "test_data")):
+        # Check if we have any preprocessed data to display
+        if not (hasattr(self, "train_data") or hasattr(self, "test_data")):
+            print("No preprocessed data available to display.")
             return
 
         import numpy as np
 
         # Training data details
-        if hasattr(self, "train_data"):
-            train_shape = self.train_data.shape
-            print("Training Data:")
-            print(f"  └─ Samples:           {train_shape[0]:,}")
-            if len(train_shape) > 2:  # CNN format
-                print(
-                    f"  └─ Features:          {train_shape[1]} x {train_shape[2]:,} (reshaped)"
-                )
-            else:  # Standard format
-                print(f"  └─ Features (genes):  {train_shape[1]:,}")
+        if hasattr(self, "train_data") and self.train_data is not None:
+            try:
+                train_shape = self.train_data.shape
+                print("Training Data:")
+                print(f"  └─ Samples:           {train_shape[0]:,}")
+                if len(train_shape) > 2:  # CNN format
+                    print(
+                        f"  └─ Features:          {train_shape[1]} x {train_shape[2]:,} (reshaped)"
+                    )
+                else:  # Standard format
+                    print(f"  └─ Features (genes):  {train_shape[1]:,}")
 
-            # Data statistics
-            train_mean = np.mean(self.train_data)
-            train_std = np.std(self.train_data)
-            train_min = np.min(self.train_data)
-            train_max = np.max(self.train_data)
-            print(f"  └─ Data Range:        [{train_min:.3f}, {train_max:.3f}]")
-            print(f"  └─ Mean ± Std:        {train_mean:.3f} ± {train_std:.3f}")
+                # Data statistics
+                train_mean = np.mean(self.train_data)
+                train_std = np.std(self.train_data)
+                train_min = np.min(self.train_data)
+                train_max = np.max(self.train_data)
+                print(f"  └─ Data Range:        [{train_min:.3f}, {train_max:.3f}]")
+                print(f"  └─ Mean ± Std:        {train_mean:.3f} ± {train_std:.3f}")
+            except Exception as e:
+                print(f"Training Data: Could not display details ({e})")
+        else:
+            print("Training Data: Not available")
 
         # Training labels distribution
         if hasattr(self, "train_labels") and self.train_labels is not None:
@@ -307,6 +314,8 @@ class PipelineManager:
                             print(f"  └─ Could not display label distribution: {e}")
             except Exception as e:
                 print(f"\nEvaluation Data: Could not display details ({e})")
+        else:
+            print("\nEvaluation Data: Not available")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -927,7 +936,6 @@ class PipelineManager:
 
             duration = time.time() - self._training_start_time
             print(f"Training duration: {duration:.1f} seconds")
-        print("=" * 60)
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
