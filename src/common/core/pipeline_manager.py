@@ -357,7 +357,7 @@ class PipelineManager:
                     optimizer = self.model.optimizer
                     optimizer_name = optimizer.__class__.__name__
                     if hasattr(optimizer, "learning_rate"):
-                        learning_rate = float(optimizer.learning_rate)
+                        learning_rate = float(optimizer.learning_rate).round(3)
 
                 print(f"  └─ Optimizer:              {optimizer_name}")
                 print(f"  └─ Learning Rate:          {learning_rate}")
@@ -370,6 +370,13 @@ class PipelineManager:
 
                 print(f"  └─ Batch Size:             {batch_size}")
                 print(f"  └─ Max Epochs:             {max_epochs}")
+                print(
+                    f"  └─ Validation Split:      {getattr(self.config_instance.model.training, 'validation_split', 0.2)}"
+                )
+                print(
+                    f"  └─ Early Stopping Patience: {getattr(self.config_instance.model.training, 'early_stopping_patience', 10)}"
+                )
+                print("\n")
 
             except Exception as e:
                 print(f"  └─ Could not display training config: {e}")
@@ -409,8 +416,6 @@ class PipelineManager:
                 print(f"  └─ Number of Trees:      {self.model.n_estimators}")
             elif model_type == "xgboost" and hasattr(self.model, "n_estimators"):
                 print(f"  └─ Number of Boosters:   {self.model.n_estimators}")
-
-        print("=" * 60)
 
     def _get_previous_best_loss_message(self):
         """Get previous best validation loss message for header."""
@@ -851,8 +856,8 @@ class PipelineManager:
 
         # Model training
         print("\n")
-        print(f"TRAINING PROGRESS - {self._get_previous_best_loss_message()}")
-        print("-" * 60)
+        print(f"TRAINING PROGRESS ({self._get_previous_best_loss_message()})")
+        print("=" * 60)
 
         import time
 
@@ -1180,9 +1185,6 @@ class PipelineManager:
         training_results = self.run_training(skip_setup=True)
 
         # Step 2: Evaluation (skip setup since we already did it)
-        print(f"🧪 HOLDOUT EVALUATION - {self.experiment_name}")
-        print("=" * 60)
-
         try:
             evaluation_results = self.run_evaluation(skip_setup=True)
         except Exception as e:
