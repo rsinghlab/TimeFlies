@@ -1,18 +1,40 @@
 import os
 import sys
+import contextlib
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Suppress TensorFlow logging
+# Aggressive TensorFlow logging suppression
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_DISABLE_MKL"] = "1"
+
+# Suppress stderr during imports
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, 'w') as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
+
 import json
 
 import dill as pickle
 import numpy as np
-import tensorflow as tf
+
+# Import TensorFlow and related modules with suppressed stderr
+with suppress_stderr():
+    import tensorflow as tf
+    from tensorflow.keras.callbacks import EarlyStopping
+
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping
 
 from ..utils.path_manager import PathManager
 

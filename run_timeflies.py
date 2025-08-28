@@ -58,6 +58,9 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN custom ops message
 os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["AUTOGRAPH_VERBOSITY"] = "0"
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_DISABLE_MKL"] = "1"  # Disable Intel MKL warnings
+os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
 
 # Suppress ABSL and other warnings
 import logging
