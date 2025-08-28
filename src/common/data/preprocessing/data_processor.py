@@ -377,24 +377,6 @@ class DataPreprocessor:
             highly_variable_genes,
         ) = self.select_highly_variable_genes(train_subset, test_subset)
 
-        # Print model architecture summary
-        print("\n")
-        print("MODEL ARCHITECTURE")
-        print("-" * 60)
-        print(
-            f"Architecture:           {getattr(config.model, 'model_type', 'CNN').upper()}"
-        )
-        if getattr(config.model, "model_type", "CNN").upper() == "CNN":
-            print("  └─ Input Shape:       (genes, 1) - Reshaped for convolution")
-            print("  └─ Convolution Type:  1D CNN")
-        print("Optimizer:              Adam")
-        print(
-            f"Learning Rate:          {getattr(config.model, 'learning_rate', 0.001)}"
-        )
-        print(f"Batch Size:             {getattr(config.model, 'batch_size', 32)}")
-        print(f"Max Epochs:             {getattr(config.model, 'epochs', 100)}")
-        print("=" * 60)
-
         # Prepare labels
         train_labels, test_labels, label_encoder = self.prepare_labels(
             train_subset, test_subset
