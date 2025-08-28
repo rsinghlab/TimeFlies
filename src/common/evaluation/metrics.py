@@ -956,7 +956,7 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("\n MODEL COMPARISON")
+        print("\n MODEL COMPARISON (Holdout Evaluation)")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
@@ -1175,8 +1175,59 @@ class EvaluationMetrics:
                 acc_delta = f"{acc_improvement:+.3f}"
                 f1_delta = f"{f1_improvement:+.3f}"
 
-                # Use the dynamic format string for consistent alignment
-                baseline_auc = 0.5  # Placeholder AUC for baselines
+                # Calculate baseline AUC properly
+                try:
+                    if num_classes == 2:
+                        # Binary classification - use roc_auc_score with binary predictions
+                        # Convert to 0/1 if needed
+                        binary_true = np.array(true_labels)
+                        binary_pred = np.array(baseline_pred)
+
+                        # Ensure binary values (0,1)
+                        if len(np.unique(binary_true)) == 2:
+                            unique_vals = np.unique(binary_true)
+                            binary_true = (binary_true == unique_vals[1]).astype(int)
+                            binary_pred = (binary_pred == unique_vals[1]).astype(int)
+
+                        baseline_auc = float(roc_auc_score(binary_true, binary_pred))
+                    else:
+                        # Multi-class classification - need to convert hard predictions to probabilities
+                        # Get unique classes in the correct order
+                        unique_classes = np.unique(true_labels)
+
+                        # Create probability matrix
+                        baseline_prob = np.zeros(
+                            (len(baseline_pred), len(unique_classes))
+                        )
+
+                        for i, pred in enumerate(baseline_pred):
+                            if baseline_type == "random_classifier":
+                                # Random classifier: equal probability for all classes
+                                baseline_prob[i] = 1.0 / len(unique_classes)
+                            elif baseline_type == "majority_class":
+                                # Majority class: probability 1 for predicted class, 0 for others
+                                # Find index of predicted class
+                                if pred in unique_classes:
+                                    pred_idx = np.where(unique_classes == pred)[0][0]
+                                    baseline_prob[i, pred_idx] = 1.0
+                            elif baseline_type == "stratified_random":
+                                # Stratified random: equal probability for all classes (same as random)
+                                baseline_prob[i] = 1.0 / len(unique_classes)
+
+                        baseline_auc = float(
+                            roc_auc_score(
+                                true_labels,
+                                baseline_prob,
+                                multi_class="ovr",
+                                average="macro",
+                            )
+                        )
+                except Exception:
+                    # Fallback to theoretical baseline AUC
+                    if num_classes == 2:
+                        baseline_auc = 0.5  # Random baseline for binary classification
+                    else:
+                        baseline_auc = 0.5  # Approximate for multi-class (exact value depends on class distribution)
                 print(
                     row_format.format(
                         baseline_name,
