@@ -13,12 +13,9 @@ class SplitNamingUtils:
     Utilities for generating smart experiment names from split configurations.
     """
 
-    # Common abbreviation mappings
+    # Common abbreviation mappings (only generic terms)
     VALUE_ABBREVIATIONS = {
         "control": "ctrl",
-        "ab42": "ab42",
-        "htau": "htau",
-        "ab42htau": "ab42htau",
         "male": "m",
         "female": "f",
         "head": "h",
@@ -29,12 +26,10 @@ class SplitNamingUtils:
         "mutant": "mut",
     }
 
-    # Smart grouping for common patterns
+    # Smart grouping for common patterns (only for truly generic cases)
     GROUP_ABBREVIATIONS = {
-        frozenset(["ab42", "htau"]): "alz",
-        frozenset(["ab42", "htau", "ab42htau"]): "alz",
         frozenset(["male", "female"]): "all",
-        frozenset(["head", "body"]): "all",
+        frozenset(["head", "body"]): "all", 
         frozenset([10, 20]): "young",
         frozenset([30, 40, 50]): "old",
     }

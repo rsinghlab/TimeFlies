@@ -165,11 +165,11 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             with open(self.best_val_loss_path, "w") as f:
                 json.dump({"best_val_loss": self.best_val_loss}, f)
 
-            # Save the label encoder
+            # Save the label encoder (if exists - None for regression)
             with open(self.label_path, "wb") as label_file:
                 pickle.dump(
                     self.label_encoder, label_file
-                )  # save the label_encoder when the model improves
+                )  # save the label_encoder when the model improves (None for regression)
 
             # Save reference data
             with open(self.reference_path, "wb") as reference_file:

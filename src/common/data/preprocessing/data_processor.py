@@ -221,7 +221,7 @@ class DataPreprocessor:
 
     def prepare_labels(
         self, train_subset: AnnData, test_subset: AnnData
-    ) -> tuple[np.ndarray, np.ndarray, LabelEncoder]:
+    ) -> tuple[np.ndarray, np.ndarray, LabelEncoder | None]:
         """
         Prepare labels for training and testing data.
 
@@ -230,27 +230,43 @@ class DataPreprocessor:
         - test_subset: The testing subset.
 
         Returns:
-        - train_labels: One-hot encoded training labels.
-        - test_labels: One-hot encoded testing labels.
-        - label_encoder: The label encoder used to transform the labels.
+        - train_labels: Processed training labels (one-hot for classification, raw for regression).
+        - test_labels: Processed testing labels.
+        - label_encoder: The label encoder (classification only) or None (regression).
         """
         config = self.config
         encoding_var = getattr(config.data, "target_variable", "age")
-        label_encoder = LabelEncoder()
-
-        train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
-
-        # Handle empty test set (simplified training approach)
-        if test_subset.n_obs > 0:
-            test_labels = label_encoder.transform(test_subset.obs[encoding_var])
-            test_labels = to_categorical(test_labels)
+        task_type = getattr(config.model, "task_type", "classification")
+        
+        if task_type == "regression":
+            # For regression, keep labels as continuous values
+            train_labels = train_subset.obs[encoding_var].values.astype(np.float32)
+            if test_subset.n_obs > 0:
+                test_labels = test_subset.obs[encoding_var].values.astype(np.float32)
+            else:
+                test_labels = np.array([], dtype=np.float32)
+            
+            # Reshape to (n_samples, 1) for regression
+            train_labels = train_labels.reshape(-1, 1)
+            test_labels = test_labels.reshape(-1, 1) if len(test_labels) > 0 else test_labels.reshape(0, 1)
+            
+            return train_labels, test_labels, None
         else:
-            # Create empty test labels with correct shape
-            test_labels = np.array([]).reshape(0, len(label_encoder.classes_))
+            # For classification, use label encoding and one-hot encoding
+            label_encoder = LabelEncoder()
+            train_labels = label_encoder.fit_transform(train_subset.obs[encoding_var])
 
-        train_labels = to_categorical(train_labels)
+            # Handle empty test set (simplified training approach)
+            if test_subset.n_obs > 0:
+                test_labels = label_encoder.transform(test_subset.obs[encoding_var])
+                test_labels = to_categorical(test_labels)
+            else:
+                # Create empty test labels with correct shape
+                test_labels = np.array([]).reshape(0, len(label_encoder.classes_))
 
-        return train_labels, test_labels, label_encoder
+            train_labels = to_categorical(train_labels)
+
+            return train_labels, test_labels, label_encoder
 
     def normalize_data(
         self, train_data: np.ndarray, test_data: np.ndarray
@@ -522,10 +538,25 @@ class DataPreprocessor:
             adata = adata[:, adata.var_names[:num_features]]
             adata = adata[:, :num_features]
 
-        # Prepare the testing labels
+        # Prepare the testing labels based on task type
         encoding_var = getattr(config.data, "target_variable", "age")
-        test_labels = label_encoder.transform(adata.obs[encoding_var])
-        test_labels = to_categorical(test_labels)
+        task_type = getattr(config.model, "task_type", "classification")
+        
+        if task_type == "regression":
+            # For regression, keep as continuous values
+            test_labels = adata.obs[encoding_var].values.astype(np.float32).reshape(-1, 1)
+        else:
+            # For classification, use label encoding and one-hot encoding
+            # Handle case where evaluation data might have fewer classes than training
+            eval_classes = adata.obs[encoding_var].unique()
+            missing_classes = set(label_encoder.classes_) - set(eval_classes)
+            
+            if missing_classes:
+                print(f"Warning: Evaluation data missing classes: {missing_classes}")
+                print(f"Model will predict across full {len(label_encoder.classes_)} class space")
+            
+            test_labels = label_encoder.transform(adata.obs[encoding_var])
+            test_labels = to_categorical(test_labels, num_classes=len(label_encoder.classes_))
 
         test_data = adata.X
         if issparse(test_data):  # Convert sparse matrices to dense

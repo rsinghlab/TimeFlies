@@ -157,316 +157,6 @@ def execute_command(args) -> bool:
         return False
 
 
-def verify_workflow_command(args) -> int:
-    """Verify the complete workflow setup and data integrity."""
-    import logging
-    import os
-    import warnings
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TensorFlow logs
-
-    # Temporarily reduce logging level and suppress warnings
-    original_level = logging.getLogger().level
-    active_config_level = logging.getLogger("timeflies.common.core.active_config").level
-    config_manager_level = logging.getLogger(
-        "timeflies.projects.fruitfly_aging.core.config_manager"
-    ).level
-
-    logging.getLogger().setLevel(logging.ERROR)  # Only show errors
-    logging.getLogger("timeflies.common.core.active_config").setLevel(logging.ERROR)
-    logging.getLogger("timeflies.projects.fruitfly_aging.core.config_manager").setLevel(
-        logging.ERROR
-    )
-    warnings.filterwarnings("ignore")  # Suppress warnings like scVI
-
-    all_passed = True
-    workflow_complete = True
-
-    # 1. Test Python environment and imports
-    print("1. Testing Python environment...")
-    try:
-        import anndata
-        import numpy
-        import pandas
-        import scanpy
-
-        print("   [OK] Scientific packages (numpy, pandas, scanpy, anndata)")
-
-        import os
-
-        import sklearn
-
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-        import tensorflow
-
-        print("   [OK] Machine learning packages (tensorflow, sklearn)")
-
-        from ..core.active_config import (
-            get_active_project,
-            get_config_for_active_project,
-        )
-        from ..utils.gpu_handler import GPUHandler
-
-        print("   [OK] TimeFlies core modules")
-
-    except ImportError as e:
-        print(f"   [ERROR] Import failed: {e}")
-        all_passed = False
-
-    # 2. Test project configuration
-    print("\n2. Testing project configuration...")
-    try:
-        # Check for project override from CLI flags
-        if hasattr(args, "project") and args.project:
-            active_project = args.project
-            print(f"   PROCESS: Using CLI project override: {active_project}")
-            # Use importlib to dynamically import the project's config manager
-            import importlib
-
-            config_module = importlib.import_module(
-                f"projects.{args.project}.core.config_manager"
-            )
-            ConfigManager = config_module.ConfigManager
-            config_manager = ConfigManager("default")
-            config = config_manager.get_config()
-        else:
-            active_project = get_active_project()
-            print(f"   [OK] Active project detected: {active_project}")
-            config = get_config_for_active_project("default")
-        print("   [OK] Project config loaded successfully")
-        print(f"   [OK] Target variable: {config.data.target_variable}")
-        print(f"   [OK] Model type: {config.data.model}")
-
-    except Exception as e:
-        print(f"   [ERROR] Project config not set up: {e}")
-        print("   NOTE: Check your configs/default.yaml file")
-        all_passed = False
-
-    # 3. Test original data files (workflow step 2)
-    print("\n3. Testing original data files...")
-    try:
-        from pathlib import Path
-
-        data_root = Path("data")
-
-        if not data_root.exists():
-            print("   [ERROR] No data directory found")
-            print(
-                "   NOTE: Create data/[project]/[tissue]/ and add original H5AD files"
-            )
-            workflow_complete = False
-            all_passed = False
-        else:
-            original_files_found = []
-            for project_dir in data_root.iterdir():
-                if project_dir.is_dir() and not project_dir.name.startswith("."):
-                    for tissue_dir in project_dir.iterdir():
-                        if tissue_dir.is_dir():
-                            original_files = list(tissue_dir.glob("*_original.h5ad"))
-                            if original_files:
-                                original_files_found.extend(
-                                    [
-                                        f"{project_dir.name}/{tissue_dir.name}: {f.name}"
-                                        for f in original_files
-                                    ]
-                                )
-
-            if original_files_found:
-                print("   [OK] Original data files found:")
-                for file in original_files_found:
-                    print(f"      {file}")
-            else:
-                print("   [ERROR] No original H5AD data files found")
-                print(
-                    "   NOTE: Add your *_original.h5ad files to data/[project]/[tissue]/"
-                )
-                workflow_complete = False
-
-    except Exception as e:
-        print(f"   [ERROR] Data check failed: {e}")
-        all_passed = False
-
-    # 4. Test test data fixtures (workflow step 4)
-    print("\n4. Testing test data fixtures...")
-    try:
-        from pathlib import Path
-
-        fixtures_root = Path("tests/fixtures")
-
-        if not fixtures_root.exists():
-            print("   [ERROR] No test fixtures directory found")
-            print("   NOTE: Run: python run_timeflies.py create-test-data")
-            workflow_complete = False
-        else:
-            test_projects = []
-            for project_dir in fixtures_root.iterdir():
-                if project_dir.is_dir() and not project_dir.name.startswith("."):
-                    h5ad_files = list(project_dir.glob("test_data_*.h5ad"))
-                    stats_files = list(project_dir.glob("test_data_*_stats.json"))
-                    if h5ad_files and stats_files:
-                        test_projects.append(project_dir.name)
-
-            if test_projects:
-                print(f"   [OK] Test data available for: {', '.join(test_projects)}")
-
-                summary_file = fixtures_root / "test_data_summary.json"
-                if summary_file.exists():
-                    print("   [OK] Test data summary file exists")
-                else:
-                    print("   WARNING:  Test data summary missing")
-            else:
-                print("   [ERROR] No test data fixtures found")
-                print("   NOTE: Run: python run_timeflies.py create-test-data")
-                workflow_complete = False
-
-    except Exception as e:
-        print(f"   [ERROR] Test data check failed: {e}")
-        workflow_complete = False
-        all_passed = False
-
-    # 5. Test data splits (workflow step 5)
-    print("\n5. Testing data splits...")
-    try:
-        from pathlib import Path
-
-        data_root = Path("data")
-
-        splits_found = []
-        if data_root.exists():
-            for project_dir in data_root.iterdir():
-                if project_dir.is_dir() and not project_dir.name.startswith("."):
-                    for tissue_dir in project_dir.iterdir():
-                        if tissue_dir.is_dir():
-                            train_files = list(tissue_dir.glob("*_train.h5ad"))
-                            eval_files = list(tissue_dir.glob("*_eval.h5ad"))
-                            if train_files and eval_files:
-                                splits_found.append(
-                                    f"{project_dir.name}/{tissue_dir.name}"
-                                )
-
-        if splits_found:
-            print(f"   [OK] Data splits found for: {', '.join(splits_found)}")
-        else:
-            print("   [ERROR] No data splits (*_train.h5ad, *_eval.h5ad) found")
-            print("   NOTE: Run: python run_timeflies.py setup")
-            workflow_complete = False
-
-    except Exception as e:
-        print(f"   [ERROR] Data splits check failed: {e}")
-        workflow_complete = False
-        all_passed = False
-
-    # 6. Test batch correction (workflow step 6, optional)
-    print("\n6. Testing batch correction...")
-    try:
-        from pathlib import Path
-
-        # Check if batch environment exists
-        batch_env = Path(".venv_batch")
-        if batch_env.exists():
-            print("   [OK] Batch correction environment found")
-
-            # Check for batch corrected files
-            data_root = Path("data")
-            batch_files_found = []
-            if data_root.exists():
-                for project_dir in data_root.iterdir():
-                    if project_dir.is_dir() and not project_dir.name.startswith("."):
-                        for tissue_dir in project_dir.iterdir():
-                            if tissue_dir.is_dir():
-                                batch_files = list(tissue_dir.glob("*_batch.h5ad"))
-                                if batch_files:
-                                    batch_files_found.extend(
-                                        [
-                                            f"{project_dir.name}/{tissue_dir.name}: {f.name}"
-                                            for f in batch_files
-                                        ]
-                                    )
-
-            if batch_files_found:
-                print("   [OK] Batch corrected files found:")
-                for file in batch_files_found:
-                    print(f"      {file}")
-            else:
-                print(
-                    "   WARNING:  Batch correction environment found but no batch corrected files"
-                )
-                print(
-                    "   NOTE: Run: source activate_batch.sh && timeflies batch-correct"
-                )
-        else:
-            print("   WARNING:  No batch correction environment")
-
-    except Exception as e:
-        print(f"   WARNING:  Could not check batch correction: {e}")
-
-    # 7. Test GPU/hardware
-    print("\n7. Testing hardware configuration...")
-    try:
-        import os
-
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-        import tensorflow as tf
-
-        gpus = tf.config.list_physical_devices("GPU")
-        if gpus:
-            print(f"   [OK] GPU available: {len(gpus)} device(s)")
-        else:
-            print("   [OK] Running on CPU (GPU not required)")
-
-    except Exception as e:
-        print(f"   WARNING:  Could not check hardware: {e}")
-
-    # Summary
-    print("\n" + "=" * 60)
-    if all_passed and workflow_complete:
-        print("SUCCESS: COMPLETE WORKFLOW VERIFIED! Ready to train models.")
-    elif all_passed:
-        print("[OK] CORE SYSTEM OK - Complete the workflow steps below.")
-    else:
-        print("[ERROR] ISSUES FOUND - Fix the problems above.")
-
-    print("\nINFO: Workflow status:")
-    print(
-        "   1. [OK] Data files placed"
-        if workflow_complete
-        else "   1. [ERROR] Place original H5AD files in data/[project]/[tissue]/"
-    )
-    print(
-        "   2. [OK] Test fixtures created"
-        if workflow_complete
-        else "   2. [ERROR] Run: timeflies create-test-data"
-    )
-    print(
-        "   3. [OK] Data splits created"
-        if workflow_complete
-        else "   3. [ERROR] Run: timeflies setup"
-    )
-    print(
-        "   4. [OK] Verification complete"
-        if all_passed and workflow_complete
-        else "   4. [ERROR] Fix issues above"
-    )
-    print("   5. Next: timeflies train")
-    print("   6. Evaluate: timeflies evaluate")
-    print("   7. Analyze: timeflies analyze")
-    print("   WARNING:  Optional: timeflies batch-correct (between steps 3-4)")
-
-    print("=" * 60)
-
-    # Restore original logging level and warnings
-    logging.getLogger().setLevel(original_level)
-    logging.getLogger("timeflies.common.core.active_config").setLevel(
-        active_config_level
-    )
-    logging.getLogger("timeflies.projects.fruitfly_aging.core.config_manager").setLevel(
-        config_manager_level
-    )
-    warnings.resetwarnings()
-
-    return 0 if all_passed else 1
-
-
 def run_test_suite(args) -> int:
     """Run the test suite using test_runner.py functionality."""
     print("Running TimeFlies Test Suite...")
@@ -652,150 +342,6 @@ def split_command(args) -> int:
         return 1
 
 
-def process_data_splits(
-    file_path: Path,
-    file_type: str,
-    split_size: int,
-    encoding_var: str,
-    random_state: int,
-) -> bool:
-    """Process data splits for a single file with enhanced stratification."""
-    import anndata
-    import numpy as np
-    from sklearn.model_selection import train_test_split
-
-    try:
-        # Generate output file names
-        file_stem = file_path.stem
-
-        # Handle different source file patterns
-        if file_stem.endswith("_original_batch"):
-            # Input: drosophila_head_aging_original_batch.h5ad
-            # Output: drosophila_head_aging_train_batch.h5ad, drosophila_head_aging_eval_batch.h5ad
-            base_name = file_stem.replace("_original_batch", "")
-        elif file_stem.endswith("_original"):
-            # Input: drosophila_head_aging_original.h5ad
-            # Output: drosophila_head_aging_train.h5ad, drosophila_head_aging_eval.h5ad
-            base_name = file_stem.replace("_original", "")
-        else:
-            base_name = file_stem
-
-        data_dir = file_path.parent
-
-        if file_type == "batch":
-            train_file = data_dir / f"{base_name}_train_batch.h5ad"
-            eval_file = data_dir / f"{base_name}_eval_batch.h5ad"
-        else:
-            train_file = data_dir / f"{base_name}_train.h5ad"
-            eval_file = data_dir / f"{base_name}_eval.h5ad"
-
-        # Check if splits already exist
-        if train_file.exists() or eval_file.exists():
-            print(f"SKIP:  Splits already exist for {file_path.name} - skipping")
-            print(
-                f"   FOUND: Found: {train_file.name if train_file.exists() else ''} {eval_file.name if eval_file.exists() else ''}"
-            )
-            return True
-
-        print(f"FILE: Processing: {file_path.name}")
-
-        # Load data
-        adata = anndata.read_h5ad(file_path)
-        print(f"   DATA: Loaded: {adata.shape[0]} cells × {adata.shape[1]} genes")
-
-        # Determine stratification columns
-        stratify_cols = []
-
-        # Primary stratification: encoding variable (age/disease status)
-        if encoding_var in adata.obs.columns:
-            stratify_cols.append(encoding_var)
-            print(f"   TARGET: Primary stratification: {encoding_var}")
-
-        # Secondary stratification: sex
-        sex_cols = ["sex", "Sex", "gender", "Gender"]
-        for col in sex_cols:
-            if col in adata.obs.columns and col not in stratify_cols:
-                stratify_cols.append(col)
-                print(f"   SECONDARY:  Secondary stratification: {col}")
-                break
-
-        # Tertiary stratification: cell type
-        celltype_cols = [
-            "cell_type",
-            "celltype",
-            "Cell_Type",
-            "cluster",
-            "leiden",
-            "louvain",
-        ]
-        for col in celltype_cols:
-            if col in adata.obs.columns and col not in stratify_cols:
-                stratify_cols.append(col)
-                print(f"   DNA: Tertiary stratification: {col}")
-                break
-
-        if not stratify_cols:
-            print("   WARNING:  No stratification columns found, using random split")
-            stratify_labels = None
-        else:
-            # Create combined stratification labels
-            if len(stratify_cols) == 1:
-                stratify_labels = adata.obs[stratify_cols[0]].astype(str)
-            else:
-                stratify_labels = (
-                    adata.obs[stratify_cols].astype(str).agg("_".join, axis=1)
-                )
-
-            print(f"   METRICS: Stratification groups: {len(stratify_labels.unique())}")
-
-        # Calculate split ratio to get desired eval size
-        total_cells = adata.shape[0]
-        if split_size >= total_cells:
-            print(
-                f"   WARNING:  Split size ({split_size}) >= total cells ({total_cells}), using 20% split"
-            )
-            test_size = 0.2
-        else:
-            test_size = split_size / total_cells
-
-        print(
-            f"   ✂️  Split ratio: {test_size:.3f} ({int(total_cells * test_size)} eval cells)"
-        )
-
-        # Perform stratified split
-        indices = np.arange(adata.shape[0])
-
-        if stratify_labels is not None:
-            train_idx, eval_idx = train_test_split(
-                indices,
-                test_size=test_size,
-                stratify=stratify_labels,
-                random_state=random_state,
-            )
-        else:
-            train_idx, eval_idx = train_test_split(
-                indices, test_size=test_size, random_state=random_state
-            )
-
-        # Create splits
-        adata_train = adata[train_idx].copy()
-        adata_eval = adata[eval_idx].copy()
-
-        # Save splits
-        print(f"   SAVE: Saving: {train_file.name} ({len(adata_train)} cells)")
-        adata_train.write_h5ad(train_file)
-
-        print(f"   SAVE: Saving: {eval_file.name} ({len(adata_eval)} cells)")
-        adata_eval.write_h5ad(eval_file)
-
-        print("   [OK] Split completed successfully")
-        return True
-
-    except Exception as e:
-        print(f"   [ERROR] Error processing {file_path.name}: {e}")
-        return False
-
-
 def eda_command(args, config) -> int:
     """Run exploratory data analysis on the dataset."""
     import os
@@ -868,16 +414,12 @@ def train_command(args, config) -> int:
         print("🚀 TIMEFLIES TRAINING & HOLDOUT EVALUATION")
         print("=" * 60)
 
-        # Get experiment details for clearer labeling
+        # Get experiment details for cleaner display
         target = getattr(config.data, "target_variable", "unknown")
         tissue = getattr(config.data, "tissue", "unknown")
         model_type = getattr(config.data, "model", "unknown")
         split_train = getattr(config.data.split, "train", "unknown")
         split_test = getattr(config.data.split, "test", "unknown")
-
-        print(
-            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
-        )
 
         # Use common PipelineManager for all projects (GPU will be configured there)
         with suppress_stderr():
@@ -902,14 +444,14 @@ def train_command(args, config) -> int:
         # Format display like: head_cnn_age_control-vs-ab42-htau
         display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{split_train_str}-vs-{split_test_str}"
 
+        print(
+            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
+        )
         print(f"Experiment: {pipeline.experiment_name} ({display_format})")
-
-        # Get GPU info after GPU configuration
         import os
-
         os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         import tensorflow as tf
-
+        # Get GPU info after GPU configuration
         if tf.config.list_physical_devices("GPU"):
             gpu_name = tf.config.experimental.get_device_details(
                 tf.config.list_physical_devices("GPU")[0]
@@ -917,6 +459,14 @@ def train_command(args, config) -> int:
             print(f"GPU: {gpu_name}")
         else:
             print("GPU: Not available (using CPU)")
+        
+        
+        # Simple model description with just task type
+        task_type = getattr(config.model, "task_type", "classification")
+        print(f"Task Type: {task_type.title()}")
+        
+        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
+        print(f"Batch Correction: {batch_status}")
 
         # Check gene filtering status and display in header
         from pathlib import Path
@@ -928,6 +478,7 @@ def train_command(args, config) -> int:
         if not autosomal_path.exists() and not sex_path.exists():
             print("⚠ Gene filtering disabled (no reference data found)")
         results = pipeline.run_pipeline()
+        print("-" * 60)
 
         # Training completed message moved to duration display
 
@@ -1213,6 +764,19 @@ def evaluate_command(args, config) -> int:
         print(f"Tissue: {config.data.tissue.title()}")
         print(f"Model: {config.data.model}")
         print(f"Target: {config.data.target_variable.title()}")
+        
+        # Add task type and classification info
+        task_type = getattr(config.model, "task_type", "classification")
+        print(f"Task Type: {task_type.title()}")
+        
+        if task_type == "classification":
+            # Determine if binary or multiclass
+            classification_type = config.evaluation.metrics.get("classification_type", "auto")
+            if classification_type == "auto":
+                print(f"Classification: Auto-detected")
+            else:
+                print(f"Classification: {classification_type.title()}")
+        
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
         print("-" * 60)
@@ -2265,30 +1829,6 @@ def update_dev_environments() -> int:
     except Exception as e:
         print(f"[ERROR] Environment update failed: {e}")
         return 1
-
-
-def create_project_directories():
-    """Create necessary project directories for development."""
-    import os
-    from pathlib import Path
-
-    # Skip directory creation during tests or CI
-    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI"):
-        return
-
-    directories = [
-        "data/fruitfly_aging/head",
-        "data/fruitfly_alzheimers/head",
-        "outputs/fruitfly_aging",
-        "outputs/fruitfly_alzheimers",
-        "models",
-        "coverage",
-    ]
-
-    # Create directories if they don't exist (skip during tests)
-    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-        for dir_path in directories:
-            Path(dir_path).mkdir(parents=True, exist_ok=True)
 
 
 def setup_user_environment(quiet_mode=False):

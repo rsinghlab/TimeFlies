@@ -72,6 +72,11 @@ class EvaluationMetrics:
         self.result_type = result_type
         self.output_dir = output_dir
         self.pipeline_mode = pipeline_mode
+        
+        # Store training classes if available for classification type determination
+        self.training_classes = None
+        if self.label_encoder and hasattr(self.label_encoder, 'classes_'):
+            self.training_classes = self.label_encoder.classes_
 
     def compute_metrics(self):
         """
@@ -89,16 +94,24 @@ class EvaluationMetrics:
 
         # Make predictions
         predictions = self.model.predict(self.test_data, verbose=0)
+        
+        # Get task type from config
+        task_type = getattr(self.config.model, "task_type", "classification")
 
-        # For classification, get predicted classes
-        if len(predictions.shape) > 1 and predictions.shape[1] > 1:
-            predicted_classes = np.argmax(predictions, axis=1)
-            if self.label_encoder:
-                predicted_classes = self.label_encoder.inverse_transform(
-                    predicted_classes
-                )
-        else:
+        # Process predictions based on task type
+        if task_type == "regression":
+            # For regression, predictions are already continuous values
             predicted_classes = predictions.flatten()
+        else:
+            # For classification, get predicted classes
+            if len(predictions.shape) > 1 and predictions.shape[1] > 1:
+                predicted_classes = np.argmax(predictions, axis=1)
+                if self.label_encoder:
+                    predicted_classes = self.label_encoder.inverse_transform(
+                        predicted_classes
+                    )
+            else:
+                predicted_classes = predictions.flatten()
 
         # Get true labels - extract the actual values
         true_labels = self.test_labels
@@ -109,11 +122,17 @@ class EvaluationMetrics:
         elif hasattr(self.test_labels, "__array__"):
             true_labels = np.array(self.test_labels)
 
-        # If true_labels is 2D (one-hot encoded), get the class indices
-        if len(true_labels.shape) > 1 and true_labels.shape[1] > 1:
-            true_labels = np.argmax(true_labels, axis=1)
-            if self.label_encoder:
-                true_labels = self.label_encoder.inverse_transform(true_labels)
+        # Process true labels based on task type
+        if task_type == "regression":
+            # For regression, labels are already continuous - just flatten
+            if len(true_labels.shape) > 1:
+                true_labels = true_labels.flatten()
+        else:
+            # For classification - if true_labels is 2D (one-hot encoded), get the class indices
+            if len(true_labels.shape) > 1 and true_labels.shape[1] > 1:
+                true_labels = np.argmax(true_labels, axis=1)
+                if self.label_encoder:
+                    true_labels = self.label_encoder.inverse_transform(true_labels)
 
         # Handle categorical true labels - convert to numeric if needed
         if hasattr(true_labels, "dtype") and true_labels.dtype == "object":
@@ -129,15 +148,17 @@ class EvaluationMetrics:
 
         # Debug logging removed for cleaner output
 
-        # Compute metrics based on task type
-        if len(predictions.shape) > 1 and predictions.shape[1] > 1:
-            # Classification task - compute both classification and regression metrics
+        # Compute metrics based on task type from config
+        task_type = getattr(self.config.model, "task_type", "classification")
+        if task_type == "regression":
+            # Pure regression task - treat age as continuous
+            metrics = self.evaluate_age_prediction(true_labels, predictions.flatten())
+        else:
+            # Classification task (default) - compute both classification and regression metrics
+            # This allows for age classification while also tracking regression-style metrics
             metrics = self.evaluate_classification_and_regression(
                 true_labels, predicted_classes, predictions
             )
-        else:
-            # Pure regression task
-            metrics = self.evaluate_age_prediction(true_labels, predicted_classes)
 
         # Save metrics if path manager is available
         if self.path_manager:
@@ -191,49 +212,117 @@ class EvaluationMetrics:
                 }
             )
 
-            # Add genotype information - try to get actual genotypes from evaluation data
-            project = getattr(self.config, "project", "unknown")
-            split_method = getattr(self.config.data.split, "method", "random")
-
-            # Try to load actual genotype information from evaluation data
-            genotype_info = self._get_evaluation_genotypes(project)
-
-            if genotype_info is not None and len(genotype_info) == len(predictions_df):
-                # Use actual genotype information
-                predictions_df["genotype"] = genotype_info
-            elif project == "fruitfly_alzheimers" and split_method == "genotype":
-                # Fallback: Test set is Alzheimer's flies (AB42/hTau)
-                predictions_df["genotype"] = "alzheimers"
-            elif project == "fruitfly_alzheimers":
-                # Fallback: For Alzheimer's project with other split methods
-                predictions_df["genotype"] = "alzheimers"
-            else:
-                predictions_df["genotype"] = "control"
+            # Add genotype information - use the processed test data directly
+            try:
+                # First check if test_data is an AnnData object with genotype info
+                if (hasattr(self.test_data, 'obs') and 
+                    hasattr(self.test_data.obs, 'columns') and 
+                    "genotype" in self.test_data.obs.columns):
+                    
+                    # Use genotypes directly from the processed test data that was used for prediction
+                    individual_genotypes = self.test_data.obs["genotype"].tolist()
+                    
+                    if len(individual_genotypes) == len(predictions_df):
+                        predictions_df["genotype"] = individual_genotypes
+                    else:
+                        predictions_df["genotype"] = "unknown"
+                        
+                elif hasattr(self, 'test_data_genotypes'):
+                    # Use stored genotype info if available
+                    predictions_df["genotype"] = self.test_data_genotypes
+                else:
+                    # Fallback: try to get from the processed evaluation data that was used
+                    from common.data.loaders import DataLoader
+                    data_loader = DataLoader(self.config)
+                    _, adata_eval, _ = data_loader.load_data()
+                    
+                    if adata_eval is not None and "genotype" in adata_eval.obs.columns:
+                        split_config = getattr(self.config.data, "split", None)
+                        if split_config and hasattr(split_config, "test"):
+                            test_values = getattr(split_config, "test", [])
+                            # Handle case mismatch
+                            test_values_lower = [str(v).lower() for v in test_values]
+                            
+                            # Create case-insensitive mask
+                            genotype_lower = adata_eval.obs["genotype"].str.lower()
+                            mask = genotype_lower.isin(test_values_lower)
+                            
+                            if mask.sum() > 0:
+                                # Get the original case genotypes that match
+                                individual_genotypes = adata_eval.obs.loc[mask, "genotype"].tolist()
+                                
+                                if len(individual_genotypes) == len(predictions_df):
+                                    predictions_df["genotype"] = individual_genotypes
+                                else:
+                                    predictions_df["genotype"] = "unknown"
+                            else:
+                                predictions_df["genotype"] = "unknown"
+                        else:
+                            predictions_df["genotype"] = "unknown"
+                    else:
+                        predictions_df["genotype"] = "unknown"
+                        
+            except Exception as e:
+                print(f"Error extracting genotypes: {e}")
+                predictions_df["genotype"] = "unknown"
 
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
             predictions_df.to_csv(predictions_file, index=False)
             # Predictions saved
 
-        # Only log regression metrics if they exist (for regression tasks)
-        mae = metrics.get("mae", None)
-        rmse = metrics.get("rmse", None)
-        r2 = metrics.get("r2_score", None)
-        pearson = metrics.get("pearson_correlation", None)
-
-        if any([mae, rmse, r2, pearson]):
-            logger.info("📊 Regression Results:")
-            if mae is not None:
-                logger.info(f"  MAE: {mae:.4f}")
-            if rmse is not None:
-                logger.info(f"  RMSE: {rmse:.4f}")
-            if r2 is not None:
-                logger.info(f"  R² Score: {r2:.4f}")
-            if pearson is not None:
-                logger.info(f"  Pearson Correlation: {pearson:.4f}")
+        # Display baseline comparisons if they were computed
+        if "baselines" in metrics and metrics["baselines"]:
+            pass  # The display was already done in _compute_baseline_comparison
 
         return metrics
 
+    def _determine_classification_type(self, true_labels, predicted_classes):
+        """
+        Determine whether to use binary or multiclass metrics.
+        
+        Args:
+            true_labels: Actual labels from test data
+            predicted_classes: Model predictions
+            
+        Returns:
+            "binary" or "multiclass"
+        """
+        # Get config setting
+        eval_config = getattr(self.config, "evaluation", {})
+        metrics_config = eval_config.get("metrics", {})
+        classification_type_config = metrics_config.get("classification_type", "auto")
+        
+        # Handle forced modes
+        if classification_type_config == "binary":
+            return "binary"
+        elif classification_type_config == "multiclass":
+            return "multiclass"
+        
+        # Auto detection logic
+        # Get unique classes in test data
+        test_classes = set(np.unique(true_labels))
+        num_test_classes = len(test_classes)
+        
+        # Get training classes (what model learned)
+        if self.training_classes is not None:
+            train_classes = set(self.training_classes)
+            num_train_classes = len(train_classes)
+        else:
+            # If no label encoder, infer from predictions
+            all_predicted = set(np.unique(predicted_classes))
+            train_classes = test_classes.union(all_predicted)
+            num_train_classes = len(train_classes)
+        
+        # Binary only if:
+        # 1. Model was trained on exactly 2 classes
+        # 2. Test data has exactly 2 classes  
+        # 3. Test classes are exactly the same as training classes
+        if num_train_classes == 2 and num_test_classes == 2 and test_classes == train_classes:
+            return "binary"
+        else:
+            return "multiclass"
+    
     def _get_evaluation_genotypes(self, project):
         """
         Load actual genotype information from evaluation data.
@@ -252,24 +341,26 @@ class EvaluationMetrics:
             _, adata_eval, _ = data_loader.load_data()
 
             # Check if genotype column exists
-            if "genotype" not in adata_eval.obs.columns:
+            if adata_eval is None or "genotype" not in adata_eval.obs.columns:
                 return None
 
-            # Apply same filtering that was used during evaluation
+            # Apply same filtering that was used during evaluation to match sample order
             split_config = getattr(self.config.data, "split", None)
             if split_config and hasattr(split_config, "test"):
                 test_genotypes = getattr(split_config, "test", [])
                 if test_genotypes:
-                    # Filter to only test genotypes
+                    # Filter to only test genotypes and return individual genotypes
                     mask = adata_eval.obs["genotype"].isin(test_genotypes)
-                    filtered_genotypes = adata_eval.obs["genotype"][mask].tolist()
+                    # Return the actual individual genotypes for each sample
+                    filtered_genotypes = adata_eval.obs.loc[mask, "genotype"].tolist()
                     return filtered_genotypes
 
-            # Fallback: return all genotypes
+            # Fallback: return all genotypes (each sample gets its own genotype)
             return adata_eval.obs["genotype"].tolist()
 
-        except Exception:
-            # If we can't load genotype info, return None to use fallback
+        except Exception as e:
+            # Debug: print the error for troubleshooting
+            print(f"DEBUG: Could not load genotype info: {e}")
             return None
 
     def evaluate_age_prediction(
@@ -590,7 +681,7 @@ class EvaluationMetrics:
 
     def evaluate_classification_and_regression(
         self, true_labels, predicted_classes, predictions
-    ):
+        ):
         """
         Comprehensive evaluation for classification tasks.
 
@@ -610,134 +701,121 @@ class EvaluationMetrics:
         eval_metrics = config_metrics.get("evaluation", {}).get(
             "classification", ["accuracy", "f1_score", "precision", "recall", "auc"]
         )
-
+        # Determine classification type based on config
+        classification_type = self._determine_classification_type(true_labels, predicted_classes)
         # Basic classification metrics
         if "accuracy" in eval_metrics:
             metrics["accuracy"] = float(accuracy_score(true_labels, predicted_classes))
 
         if "f1_score" in eval_metrics:
-            # Use macro average for multiclass, binary for binary classification
-            num_classes = len(np.unique(true_labels))
-            if num_classes == 2:
-                # Binary classification in evaluation set - specify positive class dynamically
+            if classification_type == "binary":
+                # Binary classification - use binary average
                 unique_classes = np.unique(true_labels)
-                pos_label = unique_classes[
-                    -1
-                ]  # Use the higher age as positive (older flies)
+                pos_label = unique_classes[-1]  # Use higher age as positive
                 metrics["f1_score"] = float(
-                    f1_score(
-                        true_labels,
-                        predicted_classes,
-                        average="binary",
-                        pos_label=pos_label,
-                    )
+                    f1_score(true_labels, predicted_classes, average="binary", pos_label=pos_label)
                 )
             else:
-                # Multiclass (3+ age groups) - use macro average
+                # Multiclass - use macro average
+    
                 metrics["f1_score"] = float(
                     f1_score(true_labels, predicted_classes, average="macro")
                 )
 
+
         if "precision" in eval_metrics:
-            num_classes = len(np.unique(true_labels))
-            if num_classes == 2:
-                # Binary classification in evaluation set - specify positive class dynamically
+
+            if classification_type == "binary":
                 unique_classes = np.unique(true_labels)
-                pos_label = unique_classes[
-                    -1
-                ]  # Use the higher age as positive (older flies)
+                pos_label = unique_classes[-1]
                 metrics["precision"] = float(
-                    precision_score(
-                        true_labels,
-                        predicted_classes,
-                        average="binary",
-                        pos_label=pos_label,
-                    )
+                    precision_score(true_labels, predicted_classes, average="binary", pos_label=pos_label)
                 )
             else:
-                # Multiclass (3+ age groups) - use macro average
                 metrics["precision"] = float(
                     precision_score(true_labels, predicted_classes, average="macro")
                 )
 
+
         if "recall" in eval_metrics:
-            num_classes = len(np.unique(true_labels))
-            if num_classes == 2:
-                # Binary classification in evaluation set - specify positive class dynamically
+
+            if classification_type == "binary":
                 unique_classes = np.unique(true_labels)
-                pos_label = unique_classes[
-                    -1
-                ]  # Use the higher age as positive (older flies)
+                pos_label = unique_classes[-1]
                 metrics["recall"] = float(
-                    recall_score(
-                        true_labels,
-                        predicted_classes,
-                        average="binary",
-                        pos_label=pos_label,
-                    )
+                    recall_score(true_labels, predicted_classes, average="binary", pos_label=pos_label)
                 )
             else:
-                # Multiclass (3+ age groups) - use macro average
                 metrics["recall"] = float(
                     recall_score(true_labels, predicted_classes, average="macro")
                 )
 
+
         # AUC score (requires prediction probabilities)
         if "auc" in eval_metrics and len(predictions.shape) > 1:
             try:
-                num_eval_classes = len(np.unique(true_labels))
-                num_model_classes = predictions.shape[1]
-
-                if num_eval_classes == 2 and num_model_classes >= 2:
-                    # Binary classification in eval set (model may have been trained on more classes)
-                    unique_eval_classes = np.unique(true_labels)
-                    pos_label = unique_eval_classes[-1]  # Higher age as positive
-
-                    if self.label_encoder and hasattr(self.label_encoder, "classes_"):
-                        # Find which model output column corresponds to the positive class
-                        try:
-                            # Get the index of the positive class in the original label encoder
-                            pos_class_idx = list(self.label_encoder.classes_).index(
-                                pos_label
-                            )
-                            # Use the corresponding prediction column
-                            metrics["auc"] = float(
-                                roc_auc_score(
-                                    true_labels, predictions[:, pos_class_idx]
-                                )
-                            )
-                        except (ValueError, IndexError):
-                            # Fallback: use macro average AUC for all classes present in evaluation
-                            metrics["auc"] = float(
-                                roc_auc_score(
-                                    true_labels,
-                                    predictions,
-                                    multi_class="ovr",
-                                    average="macro",
-                                )
-                            )
-                    else:
-                        # Without label encoder, assume binary model with pos class in column 1
+                # Multiclass AUC with proper class handling
+                
+                # Convert true labels to match the training classes for AUC calculation
+                if self.label_encoder and hasattr(self.label_encoder, 'classes_'):
+                    # Use the label encoder to transform the eval labels to indices
+                    # This ensures consistency with training
+                    try:
+                        # Convert float labels to strings to match label_encoder format
+                        string_labels = [str(int(label)) if isinstance(label, float) else str(label) for label in true_labels]
+                        true_indices = self.label_encoder.transform(string_labels)
+                        
                         metrics["auc"] = float(
-                            roc_auc_score(true_labels, predictions[:, 1])
+                            roc_auc_score(true_indices, predictions, multi_class="ovr", average="macro")
                         )
+                    except ValueError as e:
+                        # If label encoder fails (unknown labels), add specific AUC not
+                        # Fallback to binary AUC using just the first two classes
+                        if predictions.shape[1] >= 2:
+                            metrics["auc"] = float(roc_auc_score(true_labels, predictions[:, 1]))
+                        else:
+                            metrics["auc"] = 0.0
                 else:
-                    # Multiclass evaluation (3+ classes) - use macro average
-                    metrics["auc"] = float(
-                        roc_auc_score(
-                            true_labels, predictions, multi_class="ovr", average="macro"
+                    # Fallback to binary AUC if no label encoder
+                    if predictions.shape[1] >= 2:
+                        metrics["auc"] = float(
+                            roc_auc_score(true_labels, predictions[:, 1], multi_class="raise")
                         )
-                    )
+                    else:
+                        metrics["auc"] = 0.0
+
+                # AUC calculation complete
+                    
+                    # Use only the relevant prediction columns for AUC calculation
+                    relevant_predictions = predictions[:, eval_indices]
+                    
+                    if num_eval_classes == 2:
+                        # Binary AUC - use positive class probability
+                        pos_idx = 1 if len(eval_indices) == 2 else 0
+                        metrics["auc"] = float(
+                            roc_auc_score(true_labels, relevant_predictions[:, pos_idx])
+                        )
+                    else:
+                        # Multiclass AUC
+                        metrics["auc"] = float(
+                            roc_auc_score(
+                                true_labels, relevant_predictions, 
+                                multi_class="ovr", average="macro"
+                            )
+                        )
             except Exception as e:
                 logger.warning(f"Could not compute AUC: {e}")
-                metrics["auc"] = None
+                metrics["auc"] = 0.0
+
 
         # Confusion matrix
         if "confusion_matrix" in eval_metrics:
+
             cm = confusion_matrix(true_labels, predicted_classes)
             metrics["confusion_matrix"] = (
                 cm.tolist()
             )  # Convert to list for JSON serialization
+
 
         # Additional detailed metrics
         try:
@@ -785,15 +863,18 @@ class EvaluationMetrics:
                 capitalized_metric = metric.replace("_", " ").title()
                 metric_values.append(f"{capitalized_metric}: {metrics[metric]:.3f}")
 
+
         # Add baseline comparison if enabled (after model performance)
         eval_config = getattr(self.config, "evaluation", {})
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
+
         if config_baselines.get("enabled", False):
             baseline_metrics = self._compute_baseline_comparison(
                 true_labels, predicted_classes, predictions
             )
             metrics["baselines"] = baseline_metrics
 
+    
         return metrics
 
     def _display_evaluation_info(self):
@@ -939,24 +1020,45 @@ class EvaluationMetrics:
 
     def _compute_baseline_comparison(self, true_labels, predicted_classes, predictions):
         """
-        Compute baseline comparisons for classification tasks.
+        Compute baseline comparisons for classification or regression tasks.
 
         Args:
-            true_labels: True class labels
-            predicted_classes: Model's predicted class labels
-            predictions: Model's prediction probabilities
+            true_labels: True labels/values
+            predicted_classes: Model's predicted labels/values
+            predictions: Model's prediction probabilities (for classification) or raw predictions (for regression)
 
         Returns:
             Dictionary containing baseline metrics and comparisons
         """
         baselines = {}
 
-        # Get baseline types from config
+        # Get task type and baseline types from config
+        task_type = getattr(self.config.model, "task_type", "classification")
         eval_config = getattr(self.config, "evaluation", {})
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
-        baseline_types = config_baselines.get("classification", [])
+        
+        if task_type == "regression":
+            baseline_types = config_baselines.get("regression", ["mean_baseline", "median_baseline"])
+        else:
+            baseline_types = config_baselines.get("classification", [])
 
         print("\n MODEL COMPARISON (Holdout Evaluation)")
+        print("=" * 80)
+        
+        
+        # Add warning if evaluation classes don't match training classes
+        if hasattr(self, 'label_encoder') and self.label_encoder and hasattr(self.label_encoder, 'classes_'):
+            training_classes = set(self.label_encoder.classes_)
+            eval_classes = set(str(int(label)) if isinstance(label, float) else str(label) for label in np.unique(true_labels))
+            if training_classes != eval_classes:
+                missing_in_eval = training_classes - eval_classes
+                if missing_in_eval:
+                    print("⚠️  WARNING: Model trained on {} classes but evaluation data only contains {} classes.".format(len(training_classes), len(eval_classes)))
+                    print("   Missing from evaluation: {}".format(', '.join(sorted(missing_in_eval))))
+                    print("   Metrics may underestimate model performance - predictions of missing classes are marked as 'wrong'.")
+                    print("   AUC calculation uses fallback method due to class mismatch.")
+                    print("   For accelerated aging analysis, examine the predictions.csv file instead.")
+                    print()
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
@@ -972,54 +1074,51 @@ class EvaluationMetrics:
             # No valid baselines configured, return early
             return {}
 
-        # Get model performance first for our model row
-        model_accuracy = float(accuracy_score(true_labels, predicted_classes))
+        # Get number of classes for classification tasks
         num_classes = len(np.unique(true_labels))
-        if num_classes == 2:
-            unique_classes = np.unique(true_labels)
-            pos_label = unique_classes[-1]
-            model_f1 = float(
-                f1_score(
-                    true_labels,
-                    predicted_classes,
-                    average="binary",
-                    pos_label=pos_label,
-                )
-            )
-            model_precision = float(
-                precision_score(
-                    true_labels,
-                    predicted_classes,
-                    average="binary",
-                    pos_label=pos_label,
-                )
-            )
-            model_recall = float(
-                recall_score(
-                    true_labels,
-                    predicted_classes,
-                    average="binary",
-                    pos_label=pos_label,
-                )
-            )
+        
+        # Get model performance based on task type
+        if task_type == "regression":
+            # Regression metrics
+            model_mae = float(mean_absolute_error(true_labels, predicted_classes))
+            model_rmse = float(np.sqrt(mean_squared_error(true_labels, predicted_classes)))
+            model_r2 = float(r2_score(true_labels, predicted_classes))
         else:
-            model_f1 = float(f1_score(true_labels, predicted_classes, average="macro"))
-            model_precision = float(
-                precision_score(true_labels, predicted_classes, average="macro")
-            )
-            model_recall = float(
-                recall_score(true_labels, predicted_classes, average="macro")
-            )
+            # Classification metrics
+            model_accuracy = float(accuracy_score(true_labels, predicted_classes))
+            
+            # Determine classification type for baseline metrics
+            classification_type = self._determine_classification_type(true_labels, predicted_classes)
+            
+            if classification_type == "binary":
+                unique_classes = np.unique(true_labels)
+                pos_label = unique_classes[-1]
+                model_f1 = float(f1_score(true_labels, predicted_classes, average="binary", pos_label=pos_label))
+                model_precision = float(precision_score(true_labels, predicted_classes, average="binary", pos_label=pos_label))
+                model_recall = float(recall_score(true_labels, predicted_classes, average="binary", pos_label=pos_label))
+            else:
+                model_f1 = float(f1_score(true_labels, predicted_classes, average="macro"))
+                model_precision = float(precision_score(true_labels, predicted_classes, average="macro"))
+                model_recall = float(recall_score(true_labels, predicted_classes, average="macro"))
 
         # Calculate AUC for our model
         try:
-            if num_classes == 2:
+            if num_classes == 2 and len(predictions.shape) > 1 and predictions.shape[1] > 1:
+                # Binary classification with multiple prediction columns
                 model_auc = float(roc_auc_score(true_labels, predictions[:, 1]))
+            elif num_classes == 2:
+                # Binary classification - use flattened predictions or single column
+                pred_values = predictions.flatten() if len(predictions.shape) > 1 else predictions
+                model_auc = float(roc_auc_score(true_labels, pred_values))
             else:
-                model_auc = float(
-                    roc_auc_score(true_labels, predictions, multi_class="ovr")
-                )
-        except Exception:
+                # Multiclass classification
+                if len(predictions.shape) > 1:
+                    model_auc = float(
+                        roc_auc_score(true_labels, predictions, multi_class="ovr")
+                    )
+                else:
+                    model_auc = 0.0
+        except Exception as e:
             model_auc = 0.0
 
         max_method_len = max(
@@ -1062,73 +1161,97 @@ class EvaluationMetrics:
 
         for baseline_type in valid_baseline_types:
             try:
-                if baseline_type == "random_classifier":
-                    # Uniform random predictions
-                    dummy_clf = DummyClassifier(strategy="uniform", random_state=42)
-                    dummy_clf.fit(test_X, true_labels)
-                    baseline_pred = dummy_clf.predict(test_X)
-
-                elif baseline_type == "majority_class":
-                    # Always predict the most frequent class
-                    dummy_clf = DummyClassifier(strategy="most_frequent")
-                    dummy_clf.fit(test_X, true_labels)
-                    baseline_pred = dummy_clf.predict(test_X)
-
-                elif baseline_type == "stratified_random":
-                    # Random predictions respecting class distribution
-                    dummy_clf = DummyClassifier(strategy="stratified", random_state=42)
-                    dummy_clf.fit(test_X, true_labels)
-                    baseline_pred = dummy_clf.predict(test_X)
-
+                if task_type == "regression":
+                    # Regression baselines
+                    if baseline_type == "mean_baseline":
+                        # Always predict mean
+                        dummy_reg = DummyRegressor(strategy="mean")
+                        dummy_reg.fit(test_X, true_labels)
+                        baseline_pred = dummy_reg.predict(test_X)
+                    
+                    elif baseline_type == "median_baseline":
+                        # Always predict median
+                        dummy_reg = DummyRegressor(strategy="median")
+                        dummy_reg.fit(test_X, true_labels)
+                        baseline_pred = dummy_reg.predict(test_X)
+                    
+                    else:
+                        logger.warning(f"Unknown regression baseline type: {baseline_type}")
+                        continue
+                        
                 else:
-                    logger.warning(f"Unknown baseline type: {baseline_type}")
-                    continue
+                    # Classification baselines
+                    if baseline_type == "random_classifier":
+                        # Uniform random predictions
+                        dummy_clf = DummyClassifier(strategy="uniform", random_state=42)
+                        dummy_clf.fit(test_X, true_labels)
+                        baseline_pred = dummy_clf.predict(test_X)
 
-                # Compute metrics for this baseline
-                baseline_accuracy = float(accuracy_score(true_labels, baseline_pred))
+                    elif baseline_type == "majority_class":
+                        # Always predict the most frequent class
+                        dummy_clf = DummyClassifier(strategy="most_frequent")
+                        dummy_clf.fit(test_X, true_labels)
+                        baseline_pred = dummy_clf.predict(test_X)
 
-                # Handle binary vs multiclass dynamically based on evaluation classes
-                num_classes = len(np.unique(true_labels))
-                if num_classes == 2:
-                    # Binary classification in evaluation set - specify positive class dynamically
-                    unique_classes = np.unique(true_labels)
-                    pos_label = unique_classes[-1]  # Higher age as positive
+                    elif baseline_type == "stratified_random":
+                        # Random predictions respecting class distribution
+                        dummy_clf = DummyClassifier(strategy="stratified", random_state=42)
+                        dummy_clf.fit(test_X, true_labels)
+                        baseline_pred = dummy_clf.predict(test_X)
 
-                    baseline_f1 = float(
-                        f1_score(
-                            true_labels,
-                            baseline_pred,
-                            average="binary",
-                            pos_label=pos_label,
-                        )
-                    )
-                    baseline_precision = float(
-                        precision_score(
-                            true_labels,
-                            baseline_pred,
-                            average="binary",
-                            pos_label=pos_label,
-                        )
-                    )
-                    baseline_recall = float(
-                        recall_score(
-                            true_labels,
-                            baseline_pred,
-                            average="binary",
-                            pos_label=pos_label,
-                        )
-                    )
+                    else:
+                        logger.warning(f"Unknown classification baseline type: {baseline_type}")
+                        continue
+
+                # Compute metrics for this baseline based on task type
+                if task_type == "regression":
+                    # Regression metrics
+                    baseline_mae = float(mean_absolute_error(true_labels, baseline_pred))
+                    baseline_rmse = float(np.sqrt(mean_squared_error(true_labels, baseline_pred)))
+                    baseline_r2 = float(r2_score(true_labels, baseline_pred))
+                    
+                    # Store baseline metrics
+                    baselines[baseline_type] = {
+                        "mae": baseline_mae,
+                        "rmse": baseline_rmse,
+                        "r2": baseline_r2,
+                    }
+                    
+                    # Compute improvement over baseline
+                    baselines[baseline_type]["improvement"] = {
+                        "mae_improvement": baseline_mae - model_mae,  # Lower is better
+                        "rmse_improvement": baseline_rmse - model_rmse,  # Lower is better
+                        "r2_improvement": model_r2 - baseline_r2,  # Higher is better
+                    }
+                    
                 else:
-                    # Multiclass (3+ age groups) - use macro average
-                    baseline_f1 = float(
-                        f1_score(true_labels, baseline_pred, average="macro")
-                    )
-                    baseline_precision = float(
-                        precision_score(true_labels, baseline_pred, average="macro")
-                    )
-                    baseline_recall = float(
-                        recall_score(true_labels, baseline_pred, average="macro")
-                    )
+                    # Classification metrics
+                    baseline_accuracy = float(accuracy_score(true_labels, baseline_pred))
+
+                    # Use same classification type as main model evaluation
+                    if classification_type == "binary":
+                        unique_classes = np.unique(true_labels)
+                        pos_label = unique_classes[-1]  # Higher age as positive
+                        baseline_f1 = float(
+                            f1_score(true_labels, baseline_pred, average="binary", pos_label=pos_label)
+                        )
+                        baseline_precision = float(
+                            precision_score(true_labels, baseline_pred, average="binary", pos_label=pos_label)
+                        )
+                        baseline_recall = float(
+                            recall_score(true_labels, baseline_pred, average="binary", pos_label=pos_label)
+                        )
+                    else:
+                        # Multiclass - use macro average
+                        baseline_f1 = float(
+                            f1_score(true_labels, baseline_pred, average="macro")
+                        )
+                        baseline_precision = float(
+                            precision_score(true_labels, baseline_pred, average="macro")
+                        )
+                        baseline_recall = float(
+                            recall_score(true_labels, baseline_pred, average="macro")
+                        )
 
                 # Store baseline metrics
                 baselines[baseline_type] = {
@@ -1141,18 +1264,8 @@ class EvaluationMetrics:
                 # Compute improvement over baseline
                 model_accuracy = float(accuracy_score(true_labels, predicted_classes))
 
-                # For model F1 score, use same logic as baseline
-                if num_classes == 2:
-                    model_f1 = float(
-                        f1_score(
-                            true_labels,
-                            predicted_classes,
-                            average="binary",
-                            pos_label=pos_label,
-                        )
-                    )
-                else:
-                    model_f1 = float(
+                # Always use macro average for age prediction (multiclass problem)
+                model_f1 = float(
                         f1_score(true_labels, predicted_classes, average="macro")
                     )
 
@@ -1175,59 +1288,31 @@ class EvaluationMetrics:
                 acc_delta = f"{acc_improvement:+.3f}"
                 f1_delta = f"{f1_improvement:+.3f}"
 
-                # Calculate baseline AUC properly
-                try:
-                    if num_classes == 2:
-                        # Binary classification - use roc_auc_score with binary predictions
-                        # Convert to 0/1 if needed
-                        binary_true = np.array(true_labels)
-                        binary_pred = np.array(baseline_pred)
-
-                        # Ensure binary values (0,1)
-                        if len(np.unique(binary_true)) == 2:
-                            unique_vals = np.unique(binary_true)
-                            binary_true = (binary_true == unique_vals[1]).astype(int)
-                            binary_pred = (binary_pred == unique_vals[1]).astype(int)
-
-                        baseline_auc = float(roc_auc_score(binary_true, binary_pred))
-                    else:
-                        # Multi-class classification - need to convert hard predictions to probabilities
-                        # Get unique classes in the correct order
-                        unique_classes = np.unique(true_labels)
-
-                        # Create probability matrix
-                        baseline_prob = np.zeros(
-                            (len(baseline_pred), len(unique_classes))
-                        )
-
-                        for i, pred in enumerate(baseline_pred):
-                            if baseline_type == "random_classifier":
-                                # Random classifier: equal probability for all classes
-                                baseline_prob[i] = 1.0 / len(unique_classes)
-                            elif baseline_type == "majority_class":
-                                # Majority class: probability 1 for predicted class, 0 for others
-                                # Find index of predicted class
-                                if pred in unique_classes:
-                                    pred_idx = np.where(unique_classes == pred)[0][0]
-                                    baseline_prob[i, pred_idx] = 1.0
-                            elif baseline_type == "stratified_random":
-                                # Stratified random: equal probability for all classes (same as random)
-                                baseline_prob[i] = 1.0 / len(unique_classes)
-
-                        baseline_auc = float(
-                            roc_auc_score(
-                                true_labels,
-                                baseline_prob,
-                                multi_class="ovr",
-                                average="macro",
-                            )
-                        )
-                except Exception:
-                    # Fallback to theoretical baseline AUC
-                    if num_classes == 2:
-                        baseline_auc = 0.5  # Random baseline for binary classification
-                    else:
-                        baseline_auc = 0.5  # Approximate for multi-class (exact value depends on class distribution)
+                # Calculate baseline AUC - use 0.5 for class mismatch scenarios
+                # Check if there's a class mismatch (training vs eval classes)
+                training_classes = set(self.label_encoder.classes_) if self.label_encoder and hasattr(self.label_encoder, 'classes_') else set()
+                eval_classes = set(str(int(label)) if isinstance(label, float) else str(label) for label in np.unique(true_labels))
+                
+                if training_classes and training_classes != eval_classes:
+                    # Class mismatch scenario - use theoretical random baseline
+                    baseline_auc = 0.5
+                else:
+                    # No class mismatch - try to calculate actual baseline AUC
+                    try:
+                        if num_classes == 2:
+                            # Binary classification
+                            binary_true = np.array(true_labels)
+                            binary_pred = np.array(baseline_pred)
+                            if len(np.unique(binary_true)) == 2:
+                                unique_vals = np.unique(binary_true)
+                                binary_true = (binary_true == unique_vals[1]).astype(int)
+                                binary_pred = (binary_pred == unique_vals[1]).astype(int)
+                            baseline_auc = float(roc_auc_score(binary_true, binary_pred))
+                        else:
+                            # For multiclass without mismatch, still use 0.5 for simplicity
+                            baseline_auc = 0.5
+                    except Exception:
+                        baseline_auc = 0.5
                 print(
                     row_format.format(
                         baseline_name,
