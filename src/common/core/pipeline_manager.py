@@ -159,7 +159,6 @@ class PipelineManager:
 
     def _print_training_and_evaluation_data(self):
         """Print training and evaluation data details after preprocessing."""
-        print("=" * 60)
         print("\n")
         print("PREPROCESSED DATA OVERVIEW")
         print("=" * 60)
@@ -190,77 +189,126 @@ class PipelineManager:
             print(f"  └─ Mean ± Std:        {train_mean:.3f} ± {train_std:.3f}")
 
         # Training labels distribution
-        encoding_var = getattr(self.config_instance.data, "target_variable", "age")
-        if hasattr(self, "train_labels") and hasattr(self, "label_encoder"):
+        if hasattr(self, "train_labels") and self.train_labels is not None:
+            encoding_var = getattr(
+                self.config_instance.data, "target_variable", "target"
+            )
             print(f"\nTraining {encoding_var.title()} Distribution:")
-            unique, counts = np.unique(self.train_labels, return_counts=True)
-            total = counts.sum()
-            for label_encoded, count in zip(unique, counts):
-                try:
-                    original_label = self.label_encoder.inverse_transform(
-                        [label_encoded]
-                    )[0]
-                    pct = (count / total) * 100
-                    unit = "days" if encoding_var == "age" else ""
-                    print(
-                        f"  └─ {original_label} {unit:10s}: {count:6,} samples ({pct:5.1f}%)"
-                    )
-                except Exception:
-                    pass
 
-        # Test/Evaluation data details
-        if hasattr(self, "test_data") and self.test_data.shape[0] > 0:
-            test_shape = self.test_data.shape
-            print("\nEvaluation Data:")
-            print(f"  └─ Samples:           {test_shape[0]:,}")
-            if len(test_shape) > 2:  # CNN format
-                print(
-                    f"  └─ Features:          {test_shape[1]} x {test_shape[2]:,} (reshaped)"
-                )
-            else:  # Standard format
-                print(f"  └─ Features (genes):  {test_shape[1]:,}")
+            try:
+                # Handle both one-hot encoded and label encoded data
+                if (
+                    hasattr(self.train_labels, "shape")
+                    and len(self.train_labels.shape) > 1
+                    and self.train_labels.shape[1] > 1
+                ):
+                    # One-hot encoded - convert to class indices
+                    label_indices = np.argmax(self.train_labels, axis=1)
+                else:
+                    # Already class indices or 1D array
+                    label_indices = np.array(self.train_labels).flatten()
 
-            # Data statistics
-            test_mean = np.mean(self.test_data)
-            test_std = np.std(self.test_data)
-            test_min = np.min(self.test_data)
-            test_max = np.max(self.test_data)
-            print(f"  └─ Data Range:        [{test_min:.3f}, {test_max:.3f}]")
-            print(f"  └─ Mean ± Std:        {test_mean:.3f} ± {test_std:.3f}")
-
-            # Test labels distribution
-            if hasattr(self, "test_labels") and hasattr(self, "label_encoder"):
-                print(f"\nEvaluation {encoding_var.title()} Distribution:")
-                unique, counts = np.unique(self.test_labels, return_counts=True)
+                unique, counts = np.unique(label_indices, return_counts=True)
                 total = counts.sum()
                 for label_encoded, count in zip(unique, counts):
+                    pct = (count / total) * 100
                     try:
-                        original_label = self.label_encoder.inverse_transform(
-                            [label_encoded]
-                        )[0]
-                        pct = (count / total) * 100
-                        unit = "days" if encoding_var == "age" else ""
-                        print(
-                            f"  └─ {original_label} {unit:10s}: {count:6,} samples ({pct:5.1f}%)"
-                        )
+                        if (
+                            hasattr(self, "label_encoder")
+                            and self.label_encoder is not None
+                        ):
+                            original_label = self.label_encoder.inverse_transform(
+                                [int(label_encoded)]
+                            )[0]
+                            print(
+                                f"  └─ {original_label:<12}: {count:6,} samples ({pct:.1f}%)"
+                            )
+                        else:
+                            print(
+                                f"  └─ {label_encoded:<12}: {count:6,} samples ({pct:.1f}%)"
+                            )
                     except Exception:
-                        pass
+                        # Fallback to showing encoded label
+                        print(
+                            f"  └─ Class {label_encoded:<7}: {count:6,} samples ({pct:.1f}%)"
+                        )
+            except Exception as e:
+                print(f"  └─ Could not display label distribution: {e}")
 
-        # Preprocessing information
-        print("\nPreprocessing Applied:")
-        # Check for scaling information
-        if hasattr(self, "scaler") and self.scaler:
-            print("  └─ Feature Scaling:   Applied")
-        else:
-            print("  └─ Feature Scaling:   None")
+        # Test/Evaluation data details
+        if hasattr(self, "test_data") and self.test_data is not None:
+            try:
+                test_shape = self.test_data.shape
+                if test_shape[0] > 0:  # Only show if we have samples
+                    print("\nEvaluation Data:")
+                    print(f"  └─ Samples:           {test_shape[0]:,}")
+                    if len(test_shape) > 2:  # CNN format
+                        print(
+                            f"  └─ Features:          {test_shape[1]} x {test_shape[2]:,} (reshaped)"
+                        )
+                    else:  # Standard format
+                        print(f"  └─ Features (genes):  {test_shape[1]:,}")
 
-        # Check for gene filtering
-        if hasattr(self, "highly_variable_genes") and self.highly_variable_genes:
-            print(
-                f"  └─ Gene Filtering:    {len(self.highly_variable_genes):,} highly variable genes selected"
-            )
-        else:
-            print("  └─ Gene Filtering:    None")
+                    # Data statistics
+                    test_mean = np.mean(self.test_data)
+                    test_std = np.std(self.test_data)
+                    test_min = np.min(self.test_data)
+                    test_max = np.max(self.test_data)
+                    print(f"  └─ Data Range:        [{test_min:.3f}, {test_max:.3f}]")
+                    print(f"  └─ Mean ± Std:        {test_mean:.3f} ± {test_std:.3f}")
+
+                    # Test labels distribution
+                    if hasattr(self, "test_labels") and self.test_labels is not None:
+                        encoding_var = getattr(
+                            self.config_instance.data, "target_variable", "target"
+                        )
+                        print(f"\nEvaluation {encoding_var.title()} Distribution:")
+
+                        # Handle both one-hot encoded and label encoded data
+                        try:
+                            if (
+                                hasattr(self.test_labels, "shape")
+                                and len(self.test_labels.shape) > 1
+                                and self.test_labels.shape[1] > 1
+                            ):
+                                # One-hot encoded - convert to class indices
+                                label_indices = np.argmax(self.test_labels, axis=1)
+                            else:
+                                # Already class indices or 1D array
+                                label_indices = np.array(self.test_labels).flatten()
+
+                            unique, counts = np.unique(
+                                label_indices, return_counts=True
+                            )
+                            total = counts.sum()
+                            for label_encoded, count in zip(unique, counts):
+                                pct = (count / total) * 100
+                                try:
+                                    if (
+                                        hasattr(self, "label_encoder")
+                                        and self.label_encoder is not None
+                                    ):
+                                        original_label = (
+                                            self.label_encoder.inverse_transform(
+                                                [int(label_encoded)]
+                                            )[0]
+                                        )
+                                        print(
+                                            f"  └─ {original_label:<12}: {count:6,} samples ({pct:.1f}%)"
+                                        )
+                                    else:
+                                        print(
+                                            f"  └─ {label_encoded:<12}: {count:6,} samples ({pct:.1f}%)"
+                                        )
+                                except Exception:
+                                    # Fallback to showing encoded label
+                                    print(
+                                        f"  └─ Class {label_encoded:<7}: {count:6,} samples ({pct:.1f}%)"
+                                    )
+                        except Exception as e:
+                            print(f"  └─ Could not display label distribution: {e}")
+            except Exception as e:
+                print(f"\nEvaluation Data: Could not display details ({e})")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -289,7 +337,7 @@ class PipelineManager:
         if not hasattr(self, "model") or self.model is None:
             return
 
-        print("\n" + "=" * 60)
+        print("\n")
         print("MODEL ARCHITECTURE")
         print("=" * 60)
 
@@ -299,6 +347,33 @@ class PipelineManager:
 
         # For TensorFlow/Keras models (CNN, MLP)
         if model_type in ["cnn", "mlp"]:
+            # Display training configuration first
+            print("\nTraining Configuration:")
+            try:
+                # Get optimizer info
+                optimizer_name = "Unknown"
+                learning_rate = "Unknown"
+                if hasattr(self.model, "optimizer"):
+                    optimizer = self.model.optimizer
+                    optimizer_name = optimizer.__class__.__name__
+                    if hasattr(optimizer, "learning_rate"):
+                        learning_rate = float(optimizer.learning_rate)
+
+                print(f"  └─ Optimizer:              {optimizer_name}")
+                print(f"  └─ Learning Rate:          {learning_rate}")
+
+                # Get training config from config
+                batch_size = getattr(
+                    self.config_instance.model.training, "batch_size", 32
+                )
+                max_epochs = getattr(self.config_instance.model.training, "epochs", 100)
+
+                print(f"  └─ Batch Size:             {batch_size}")
+                print(f"  └─ Max Epochs:             {max_epochs}")
+
+            except Exception as e:
+                print(f"  └─ Could not display training config: {e}")
+
             try:
                 import io
                 import sys
@@ -313,29 +388,9 @@ class PipelineManager:
                 summary_output = buffer.getvalue()
 
                 # Print the summary with some formatting
-                print("\nModel Summary:")
                 for line in summary_output.split("\n"):
                     if line.strip():
                         print(f"  {line}")
-
-                # Additional model details
-                total_params = self.model.count_params()
-                trainable_params = sum(
-                    [
-                        self.model.get_layer(layer.name).count_params()
-                        for layer in self.model.layers
-                    ]
-                )
-                print("\nModel Details:")
-                print(f"  └─ Total Parameters:     {total_params:,}")
-                print(f"  └─ Trainable Parameters: {trainable_params:,}")
-                print(f"  └─ Model Layers:         {len(self.model.layers)}")
-
-                # Input/Output shapes
-                if hasattr(self.model, "input_shape"):
-                    print(f"  └─ Input Shape:          {self.model.input_shape}")
-                if hasattr(self.model, "output_shape"):
-                    print(f"  └─ Output Shape:         {self.model.output_shape}")
 
             except Exception as e:
                 print(f"  └─ Could not display detailed architecture: {e}")
@@ -791,6 +846,8 @@ class PipelineManager:
 
         # Display training and evaluation data
         self._print_training_and_evaluation_data()
+
+        self._display_model_architecture()
 
         # Model training
         print("\n")
