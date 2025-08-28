@@ -5,6 +5,8 @@ This module contains all command-line interface commands for TimeFlies.
 Each command is implemented as a separate function with proper error handling.
 """
 
+# Suppress TensorFlow logging before any imports
+import contextlib
 import os
 import subprocess
 import sys
@@ -12,6 +14,23 @@ from pathlib import Path
 
 from ..analysis.eda import EDAHandler
 from ..core.active_config import get_config_for_active_project
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, "w") as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
+
 
 # Import batch correction class (dependencies checked at instantiation)
 try:
@@ -173,7 +192,11 @@ def verify_workflow_command(args) -> int:
 
         print("   [OK] Scientific packages (numpy, pandas, scanpy, anndata)")
 
+        import os
+
         import sklearn
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         import tensorflow
 
         print("   [OK] Machine learning packages (tensorflow, sklearn)")
@@ -380,6 +403,9 @@ def verify_workflow_command(args) -> int:
     # 7. Test GPU/hardware
     print("\n7. Testing hardware configuration...")
     try:
+        import os
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         import tensorflow as tf
 
         gpus = tf.config.list_physical_devices("GPU")
@@ -775,7 +801,7 @@ def eda_command(args, config) -> int:
     import os
     from pathlib import Path
 
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
 
     try:
         print("DATA: Starting EDA with project settings:")
@@ -846,21 +872,42 @@ def train_command(args, config) -> int:
         target = getattr(config.data, "target_variable", "unknown")
         tissue = getattr(config.data, "tissue", "unknown")
         model_type = getattr(config.data, "model", "unknown")
+        split_train = getattr(config.data.split, "train", "unknown")
+        split_test = getattr(config.data.split, "test", "unknown")
 
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
 
         # Use common PipelineManager for all projects (GPU will be configured there)
-        from common.core import PipelineManager
+        with suppress_stderr():
+            with suppress_stderr():
+                from common.core import PipelineManager
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
-        print(
-            f"Experiment: {pipeline.experiment_name} ({target.title()}-{model_type.upper()}-{tissue.title()})"
+
+        # Handle lists for split values - create display format
+        split_train_str = (
+            "-".join(split_train).lower()
+            if isinstance(split_train, list)
+            else str(split_train).lower()
+        )
+        split_test_str = (
+            "-".join(split_test).lower()
+            if isinstance(split_test, list)
+            else str(split_test).lower()
         )
 
+        # Format display like: head_cnn_age_control-vs-ab42-htau
+        display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{split_train_str}-vs-{split_test_str}"
+
+        print(f"Experiment: {pipeline.experiment_name} ({display_format})")
+
         # Get GPU info after GPU configuration
+        import os
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
         import tensorflow as tf
 
         if tf.config.list_physical_devices("GPU"):
@@ -1146,7 +1193,7 @@ def evaluate_command(args, config) -> int:
     # Suppress TensorFlow warnings for cleaner output
     import os
 
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
 
     try:
         # Run EDA first if requested
@@ -1207,7 +1254,9 @@ def evaluate_command(args, config) -> int:
             original_viz = None
 
         # Use common PipelineManager for all projects
-        from common.core import PipelineManager
+        with suppress_stderr():
+            with suppress_stderr():
+                from common.core import PipelineManager
 
         # Initialize pipeline and run evaluation-only workflow
         # (This includes metrics, interpretation, and visualizations based on config)
@@ -1246,7 +1295,7 @@ def analyze_command(args, config) -> int:
     import os
     from pathlib import Path
 
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress INFO and WARNING
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
 
     try:
         print("=" * 60)
@@ -1293,7 +1342,8 @@ def analyze_command(args, config) -> int:
             print("📊 Running analysis on predictions from best model...")
 
             # Just run the analysis script without reloading everything
-            from common.core import PipelineManager
+            with suppress_stderr():
+                from common.core import PipelineManager
 
             pipeline = PipelineManager(config)
 
@@ -1321,7 +1371,8 @@ def analyze_command(args, config) -> int:
             print("PACKAGE: Training model first...")
 
             # Run training
-            from common.core import PipelineManager
+            with suppress_stderr():
+                from common.core import PipelineManager
 
             pipeline = PipelineManager(config)
             pipeline.run_training()
@@ -1340,7 +1391,8 @@ def analyze_command(args, config) -> int:
 
         try:
             # Use common PipelineManager to load model and run analysis
-            from common.core import PipelineManager
+            with suppress_stderr():
+                from common.core import PipelineManager
 
             # Initialize pipeline and run evaluation with analysis
             pipeline = PipelineManager(config, mode="evaluation")

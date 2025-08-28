@@ -5,6 +5,11 @@ import os
 from pathlib import Path
 from typing import Any
 
+# Suppress TensorFlow and gRPC logging
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 from common.data.loaders import DataLoader
 from common.data.preprocessing.data_processor import DataPreprocessor
 from common.data.preprocessing.gene_filter import GeneFilter
@@ -106,8 +111,9 @@ class PipelineManager:
 
             # Show target distribution for training data
             target = getattr(self.config_instance.data, "target_variable", "age")
+            target_name = target if isinstance(target, str) else str(target)
             if target in self.adata.obs.columns:
-                print(f"\nTraining {target.title()} Distribution:")
+                print(f"\nTraining {target_name.title()} Distribution:")
                 train_dist = self.adata.obs[target].value_counts().sort_index()
                 train_total = train_dist.sum()
                 for key, count in train_dist.items():
@@ -315,7 +321,13 @@ class PipelineManager:
             except Exception as e:
                 print(f"\nEvaluation Data: Could not display details ({e})")
         else:
-            print("\nEvaluation Data: Not available")
+            # Check if this is expected behavior (column-based splitting)
+            split_method = getattr(self.config_instance.data.split, "method", "unknown")
+            if split_method == "column":
+                # For column-based splitting, show processed evaluation data preview
+                self._show_processed_eval_data_preview()
+            else:
+                print("\nEvaluation Data: Not available")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -339,38 +351,13 @@ class PipelineManager:
                 if test_vals:
                     print(f"  └─ Test Values:       {', '.join(test_vals)}")
 
-        # Show evaluation dataset from adata_eval if available
-        if hasattr(self, "adata_eval") and self.adata_eval is not None:
-            eval_cells = self.adata_eval.n_obs
-            eval_genes = self.adata_eval.n_vars
-            print("\nEvaluation Dataset (from adata_eval):")
-            print(f"  └─ Samples:           {eval_cells:,}")
-            print(f"  └─ Features (genes):  {eval_genes:,}")
-
-            # Show target distribution for evaluation data
-            encoding_var = getattr(
-                self.config_instance.data, "target_variable", "target"
-            )
-            if encoding_var in self.adata_eval.obs.columns:
-                print(f"\nEvaluation {encoding_var.title()} Distribution:")
-                eval_dist = (
-                    self.adata_eval.obs[encoding_var].value_counts().sort_index()
-                )
-                eval_total = eval_dist.sum()
-                for key, count in eval_dist.items():
-                    pct = (count / eval_total) * 100
-                    print(f"  └─ {key:<12}: {count:6,} samples ({pct:5.1f}%)")
-
     def _display_model_architecture(self):
         """Display comprehensive model architecture information."""
         if not hasattr(self, "model") or self.model is None:
             return
 
-        print("\n")
-        print("MODEL ARCHITECTURE")
-        print("=" * 60)
-
         # Get model type
+        print()
         model_type = getattr(self.config_instance.data, "model", "CNN").lower()
         print(f"Model Type: {model_type.upper()}")
 
@@ -446,6 +433,133 @@ class PipelineManager:
             elif model_type == "xgboost" and hasattr(self.model, "n_estimators"):
                 print(f"  └─ Number of Boosters:   {self.model.n_estimators}")
 
+    def _show_processed_eval_data_preview(self):
+        """Show preview of actual processed evaluation data."""
+        try:
+            print("\nEvaluation Data:")
+
+            # Get evaluation data - use corrected if available, otherwise regular
+            adata_eval = getattr(self, "adata_eval_corrected", None) or getattr(
+                self, "adata_eval", None
+            )
+
+            # If we don't have eval data loaded, try to get it fresh from data loader
+            if adata_eval is None:
+                print("  └─ No evaluation data loaded - attempting fresh load...")
+                # Load evaluation data fresh for preview
+                _, adata_eval, _ = self.data_loader.load_data()
+                if self.config_instance.data.batch_correction.enabled:
+                    _, adata_eval_corrected = self.data_loader.load_corrected_data()
+                    adata_eval = adata_eval_corrected or adata_eval
+
+            if adata_eval is None:
+                print("  └─ Could not load evaluation data")
+                return
+
+            print("  └─ Processing evaluation data for preview...")
+
+            # Use the existing data preprocessor with fitted components from training
+            if (
+                hasattr(self, "data_preprocessor")
+                and self.data_preprocessor is not None
+            ):
+                # Use the fitted preprocessor from training
+                eval_data, eval_labels, temp_label_encoder = (
+                    self.data_preprocessor.prepare_final_eval_data(
+                        adata_eval,
+                        getattr(self, "label_encoder", None),
+                        getattr(self, "num_features", None),
+                        getattr(self, "scaler", None),
+                        getattr(self, "is_scaler_fit", False),
+                        getattr(self, "highly_variable_genes", None),
+                        getattr(self, "mix_included", False),
+                        getattr(self, "train_gene_names", None),
+                    )
+                )
+            else:
+                # Fallback: create temp preprocessor (won't be perfectly aligned with training)
+                temp_processor = DataPreprocessor(
+                    self.config_instance, adata_eval, None
+                )
+                eval_data, eval_labels, temp_label_encoder = (
+                    temp_processor.prepare_final_eval_data(
+                        adata_eval, None, None, None, False, None, False, None
+                    )
+                )
+
+            # Display the processed evaluation data
+            if eval_data is not None:
+                eval_shape = eval_data.shape
+                print(f"  └─ Samples:           {eval_shape[0]:,}")
+                if len(eval_shape) > 2:  # CNN format
+                    print(
+                        f"  └─ Features:          {eval_shape[1]} x {eval_shape[2]:,} (reshaped)"
+                    )
+                else:  # Standard format
+                    print(f"  └─ Features (genes):  {eval_shape[1]:,}")
+
+                # Data statistics
+                import numpy as np
+
+                eval_mean = np.mean(eval_data)
+                eval_std = np.std(eval_data)
+                eval_min = np.min(eval_data)
+                eval_max = np.max(eval_data)
+                print(f"  └─ Data Range:        [{eval_min:.3f}, {eval_max:.3f}]")
+                print(f"  └─ Mean ± Std:        {eval_mean:.3f} ± {eval_std:.3f}")
+
+                # Label distribution
+                if eval_labels is not None and temp_label_encoder is not None:
+                    target = getattr(
+                        self.config_instance.data, "target_variable", "age"
+                    )
+                    # Handle case where target might be a list or other non-string type
+                    target_name = target if isinstance(target, str) else str(target)
+                    print(f"  └─ {target_name.title()} Distribution:")
+
+                    # Handle both one-hot encoded and label encoded data
+                    if len(eval_labels.shape) > 1 and eval_labels.shape[1] > 1:
+                        # One-hot encoded
+                        label_indices = np.argmax(eval_labels, axis=1)
+                    else:
+                        # Already class indices
+                        label_indices = np.array(eval_labels).flatten()
+
+                    unique, counts = np.unique(label_indices, return_counts=True)
+                    total = counts.sum()
+                    for label_encoded, count in zip(unique, counts):
+                        pct = (count / total) * 100
+                        try:
+                            original_label = temp_label_encoder.inverse_transform(
+                                [int(label_encoded)]
+                            )[0]
+                            print(
+                                f"      └─ {original_label:<12}: {count:6,} samples ({pct:5.1f}%)"
+                            )
+                        except Exception:
+                            print(
+                                f"      └─ Class {label_encoded:<7}: {count:6,} samples ({pct:5.1f}%)"
+                            )
+            else:
+                print("  └─ Could not process evaluation data")
+
+        except Exception as e:
+            print(f"\nEvaluation Data: Could not process preview ({e})")
+            # Try to show raw data info if available
+            try:
+                adata_eval = getattr(self, "adata_eval_corrected", None) or getattr(
+                    self, "adata_eval", None
+                )
+                if adata_eval is not None:
+                    eval_cells = adata_eval.n_obs
+                    eval_genes = adata_eval.n_vars
+                    print(f"  └─ Raw Samples:       {eval_cells:,}")
+                    print(f"  └─ Raw Features:      {eval_genes:,}")
+                else:
+                    print("  └─ No evaluation data available")
+            except Exception as fallback_e:
+                print(f"  └─ Could not show fallback info: {fallback_e}")
+
     def _get_previous_best_loss_message(self):
         """Get previous best validation loss message for header."""
         import json
@@ -494,7 +608,7 @@ class PipelineManager:
                 continue
 
         if model_found:
-            return f"Previous best: {best_val_loss:.3f}"
+            return f"Previous best validation loss: {best_val_loss:.3f}"
         else:
             return "No previous model found"
 
@@ -543,6 +657,22 @@ class PipelineManager:
                 continue
 
         return best_val_loss if model_found else None
+
+    def _print_final_timing_summary(self, evaluation_duration):
+        """Print timing information with training, evaluation, and total time."""
+        print()
+        print("TIMING")
+
+        # Get training duration from stored value
+        training_duration = getattr(self, "_stored_training_duration", 0)
+
+        # evaluation_duration is the pure evaluation time (after preprocessing)
+        # so we can use it directly
+        total_time = training_duration + evaluation_duration
+
+        print(f"  └─ Training Duration:         {training_duration:.1f} seconds")
+        print(f"  └─ Evaluation Duration:       {evaluation_duration:.1f} seconds")
+        print(f"  └─ Total Time:                {total_time:.1f} seconds")
 
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering."""
@@ -706,11 +836,11 @@ class PipelineManager:
         # Load the actual model
         self.model = self.model_loader.load_model()
 
-    def train_model(self):
+    def build_model(self):
         """
-        Preprocess data and build/train a new model.
+        Build the model without training it.
         """
-        # Build and train the model
+        # Build the model
         self.model_builder = ModelBuilder(
             self.config_instance,
             self.train_data,
@@ -724,11 +854,21 @@ class PipelineManager:
             self.experiment_name,
         )
 
-        # History and model improvement tracked internally
-        self.model, self.history, self.model_improved = self.model_builder.run()
+        # Build the model only (without training)
+        print("\n")
+        print("MODEL ARCHITECTURE")
+        print("=" * 60)
+        self.model = self.model_builder.build_model()
+        print("-" * 60)
 
-        # Display model architecture after training
-        self._display_model_architecture()
+    def train_model(self):
+        """
+        Train the pre-built model.
+        """
+        # Train the model using the provided training data and additional components
+        self.history, self.model, self.model_improved = self.model_builder.train_model(
+            self.model
+        )
 
         # Set num_features and gene names for auto-evaluation
         self.num_features = self.train_data.shape[1]
@@ -871,9 +1011,14 @@ class PipelineManager:
         Returns:
             Dict containing training results and paths
         """
+        import time
+
         if not skip_setup:
             self._print_header("🔥 TRAINING PIPELINE")
             self._setup_pipeline()
+
+        # Start training timer to include preprocessing
+        self._training_start_time = time.time()
 
         # Preprocessing
         self.preprocess_data()
@@ -881,13 +1026,17 @@ class PipelineManager:
         # Display training and evaluation data
         self._print_training_and_evaluation_data()
 
+        # Build model first
+        self.build_model()
+
+        # Display model architecture after building but before training
+        self._display_model_architecture()
+
         # Model training
+        print("\n")
         print(f"TRAINING PROGRESS ({self._get_previous_best_loss_message()})")
         print("=" * 60)
 
-        import time
-
-        self._training_start_time = time.time()
         self.train_model()
 
         # Save outputs and create symlinks after training
@@ -900,42 +1049,48 @@ class PipelineManager:
             else "No improvement over existing model found"
         )
 
-        # Training Summary section with double lines
-        print("=" * 60)
+        # Results section
         print("\n")
-        print(f"TRAINING SUMMARY ({improvement_status})")
+        print("RESULTS")
         print("=" * 60)
 
-        # Training results
+        # Training subsection
+        print("Training:")
         current_best_loss = None
+        previous_best_loss = self._get_previous_best_validation_loss()
+
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
             if val_losses:
                 best_epoch = val_losses.index(min(val_losses)) + 1
                 current_best_loss = min(val_losses)
-                print(f"Best Epoch: {best_epoch}")
-                print(f"Best Val Loss (This Training): {current_best_loss:.4f}")
+                print(f"  └─ Best Epoch:                {best_epoch}")
+                print(f"  └─ Best Val Loss (This Run):  {current_best_loss:.4f}")
 
-        # Compare with previous best model
-        previous_best_loss = self._get_previous_best_validation_loss()
+        # Show previous best and change in Training section
         if previous_best_loss is not None and current_best_loss is not None:
             delta = previous_best_loss - current_best_loss
-            print(f"Previous Best Val Loss: {previous_best_loss:.4f}")
+            print(f"  └─ Previous Best Val Loss:    {previous_best_loss:.4f}")
             if delta > 0:
-                print(f"Improvement: -{delta:.4f} (Better)")
+                print(f"  └─ Improvement:               -{delta:.4f} (Better)")
             elif delta < 0:
-                print(f"Change: +{abs(delta):.4f} (Worse)")
+                print(f"  └─ Change:                    +{abs(delta):.4f} (Worse)")
             else:
-                print(f"No Change: {delta:.4f}")
+                print(f"  └─ No Change:                 {delta:.4f}")
+        else:
+            print("  └─ Previous Best:             Not available")
 
-        print(f"Model saved to: {self.experiment_name}")
-
-        # Show training duration if available
+        # Show training duration in Training section
+        training_duration = 0
         if hasattr(self, "_training_start_time"):
             import time
 
-            duration = time.time() - self._training_start_time
-            print(f"Training duration: {duration:.1f} seconds")
+            training_duration = time.time() - self._training_start_time
+            # Store for later use in final summary
+            self._stored_training_duration = training_duration
+
+        print(f"  └─ Model Saved To:            {self.experiment_name}")
+        print(f"  └─ Status:                    {improvement_status}")
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
@@ -1164,12 +1319,17 @@ class PipelineManager:
         Returns:
             Dict containing model path and results path
         """
+        import time
+
         if not skip_setup:
             self._setup_pipeline()
 
         # Load trained model (components + model) and preprocess only eval data
         self.load_model()
         self.preprocess_data(for_evaluation=True)
+
+        # Start evaluation timing after data loading/preprocessing
+        evaluation_start_time = time.time()
 
         # Run evaluation metrics (standalone evaluation: save to recent directory only)
         self.run_metrics("recent")
@@ -1185,11 +1345,15 @@ class PipelineManager:
         if self.config_instance.analysis.run_analysis_script.enabled:
             self.run_analysis_script()
 
+        # Calculate evaluation duration
+        evaluation_duration = time.time() - evaluation_start_time
+
         # Return paths for CLI feedback
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
         return {
             "model_path": experiment_dir,
             "results_path": os.path.join(experiment_dir, "evaluation"),
+            "evaluation_duration": evaluation_duration,
         }
 
     def run_pipeline(self) -> dict[str, Any]:
@@ -1236,10 +1400,14 @@ class PipelineManager:
                 self.path_manager.update_best_folder(self.experiment_name)
             self.path_manager.update_latest_folder(self.experiment_name)
 
+        # Update timing information in final summary if evaluation completed
+        if evaluation_results and "evaluation_duration" in evaluation_results:
+            self._print_final_timing_summary(
+                evaluation_results.get("evaluation_duration", 0)
+            )
+
         # Final cleanup after combined pipeline
         self._cleanup_memory(keep_eval_data=False, keep_vis_data=False)
         self._in_combined_pipeline = False
-
-        # Final summary section removed as requested
 
         return pipeline_results
