@@ -1,8 +1,32 @@
 """GPU configuration utilities for TensorFlow."""
 
 from typing import Any
+import os
+import sys
 
-import tensorflow as tf
+# Aggressive TensorFlow logging suppression
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+
+# Temporarily redirect stderr during TensorFlow import
+import contextlib
+
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, 'w') as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
+
+# Import TensorFlow with stderr suppressed
+with suppress_stderr():
+    import tensorflow as tf
 
 
 class GPUHandler:

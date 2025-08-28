@@ -2,15 +2,40 @@
 
 from abc import ABC, abstractmethod
 from typing import Any
+import os
+import sys
+import contextlib
+
+# Aggressive TensorFlow logging suppression
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "3"
+os.environ["TF_DISABLE_MKL"] = "1"
+
+# Suppress stderr during imports
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, 'w') as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
 
 import numpy as np
-import tensorflow as tf
+
+# Import TensorFlow and all Keras modules with suppressed stderr
+with suppress_stderr():
+    import tensorflow as tf
+    from tensorflow.keras.layers import Conv1D, Dense, Dropout, GlobalMaxPooling1D
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.optimizers import Adam
+
 import xgboost as xgb
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from tensorflow.keras.layers import Conv1D, Dense, Dropout, GlobalMaxPooling1D
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.optimizers import Adam
 
 from ..utils.exceptions import ModelError
 from ..utils.logging_config import get_logger
