@@ -64,9 +64,9 @@ class SplitNamingUtils:
             if single_val in cls.VALUE_ABBREVIATIONS:
                 return cls.VALUE_ABBREVIATIONS[single_val]
 
-        # Fallback: use first 2 values, abbreviated if possible
+        # Fallback: use all values (up to 3), abbreviated if possible
         abbreviated_parts = []
-        for val in normalized[:2]:
+        for val in normalized[:3]:  # Include up to 3 values instead of 2
             if val in cls.VALUE_ABBREVIATIONS:
                 abbreviated_parts.append(cls.VALUE_ABBREVIATIONS[val])
             else:
