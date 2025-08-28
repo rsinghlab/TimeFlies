@@ -194,140 +194,143 @@ class PipelineManager:
                 train_max = np.max(self.train_data)
                 print(f"  └─ Data Range:        [{train_min:.3f}, {train_max:.3f}]")
                 print(f"  └─ Mean ± Std:        {train_mean:.3f} ± {train_std:.3f}")
+
+                # Training labels distribution - integrated into training data section
+                if hasattr(self, "train_labels") and self.train_labels is not None:
+                    encoding_var = getattr(
+                        self.config_instance.data, "target_variable", "target"
+                    )
+                    print(f"  └─ {encoding_var.title()} Distribution:")
+
+                    try:
+                        # Handle both one-hot encoded and label encoded data
+                        if (
+                            hasattr(self.train_labels, "shape")
+                            and len(self.train_labels.shape) > 1
+                            and self.train_labels.shape[1] > 1
+                        ):
+                            # One-hot encoded - convert to class indices
+                            label_indices = np.argmax(self.train_labels, axis=1)
+                        else:
+                            # Already class indices or 1D array
+                            label_indices = np.array(self.train_labels).flatten()
+
+                        unique, counts = np.unique(label_indices, return_counts=True)
+                        total = counts.sum()
+                        for label_encoded, count in zip(unique, counts):
+                            pct = (count / total) * 100
+                            try:
+                                if (
+                                    hasattr(self, "label_encoder")
+                                    and self.label_encoder is not None
+                                ):
+                                    original_label = self.label_encoder.inverse_transform(
+                                        [int(label_encoded)]
+                                    )[0]
+                                    print(
+                                        f"      └─ {original_label:<12}: {count:6,} samples ({pct:5.1f}%)"
+                                    )
+                                else:
+                                    print(
+                                        f"      └─ {label_encoded:<12}: {count:6,} samples ({pct:5.1f}%)"
+                                    )
+                            except Exception:
+                                # Fallback to showing encoded label
+                                print(
+                                    f"      └─ Class {label_encoded:<7}: {count:6,} samples ({pct:5.1f}%)"
+                                )
+                    except Exception as e:
+                        print(f"      └─ Could not display label distribution: {e}")
+
             except Exception as e:
                 print(f"Training Data: Could not display details ({e})")
         else:
             print("Training Data: Not available")
 
-        # Training labels distribution
-        if hasattr(self, "train_labels") and self.train_labels is not None:
-            encoding_var = getattr(
-                self.config_instance.data, "target_variable", "target"
-            )
-            print(f"\nTraining {encoding_var.title()} Distribution:")
-
-            try:
-                # Handle both one-hot encoded and label encoded data
-                if (
-                    hasattr(self.train_labels, "shape")
-                    and len(self.train_labels.shape) > 1
-                    and self.train_labels.shape[1] > 1
-                ):
-                    # One-hot encoded - convert to class indices
-                    label_indices = np.argmax(self.train_labels, axis=1)
-                else:
-                    # Already class indices or 1D array
-                    label_indices = np.array(self.train_labels).flatten()
-
-                unique, counts = np.unique(label_indices, return_counts=True)
-                total = counts.sum()
-                for label_encoded, count in zip(unique, counts):
-                    pct = (count / total) * 100
-                    try:
-                        if (
-                            hasattr(self, "label_encoder")
-                            and self.label_encoder is not None
-                        ):
-                            original_label = self.label_encoder.inverse_transform(
-                                [int(label_encoded)]
-                            )[0]
-                            print(
-                                f"  └─ {original_label:<12}: {count:6,} samples ({pct:.1f}%)"
-                            )
-                        else:
-                            print(
-                                f"  └─ {label_encoded:<12}: {count:6,} samples ({pct:.1f}%)"
-                            )
-                    except Exception:
-                        # Fallback to showing encoded label
-                        print(
-                            f"  └─ Class {label_encoded:<7}: {count:6,} samples ({pct:.1f}%)"
-                        )
-            except Exception as e:
-                print(f"  └─ Could not display label distribution: {e}")
-
-        # Test/Evaluation data details
-        if hasattr(self, "test_data") and self.test_data is not None:
-            try:
-                test_shape = self.test_data.shape
-                if test_shape[0] > 0:  # Only show if we have samples
-                    print("\nEvaluation Data:")
-                    print(f"  └─ Samples:           {test_shape[0]:,}")
-                    if len(test_shape) > 2:  # CNN format
-                        print(
-                            f"  └─ Features:          {test_shape[1]} x {test_shape[2]:,} (reshaped)"
-                        )
-                    else:  # Standard format
-                        print(f"  └─ Features (genes):  {test_shape[1]:,}")
-
-                    # Data statistics
-                    test_mean = np.mean(self.test_data)
-                    test_std = np.std(self.test_data)
-                    test_min = np.min(self.test_data)
-                    test_max = np.max(self.test_data)
-                    print(f"  └─ Data Range:        [{test_min:.3f}, {test_max:.3f}]")
-                    print(f"  └─ Mean ± Std:        {test_mean:.3f} ± {test_std:.3f}")
-
-                    # Test labels distribution
-                    if hasattr(self, "test_labels") and self.test_labels is not None:
-                        encoding_var = getattr(
-                            self.config_instance.data, "target_variable", "target"
-                        )
-                        print(f"\nEvaluation {encoding_var.title()} Distribution:")
-
-                        # Handle both one-hot encoded and label encoded data
-                        try:
-                            if (
-                                hasattr(self.test_labels, "shape")
-                                and len(self.test_labels.shape) > 1
-                                and self.test_labels.shape[1] > 1
-                            ):
-                                # One-hot encoded - convert to class indices
-                                label_indices = np.argmax(self.test_labels, axis=1)
-                            else:
-                                # Already class indices or 1D array
-                                label_indices = np.array(self.test_labels).flatten()
-
-                            unique, counts = np.unique(
-                                label_indices, return_counts=True
-                            )
-                            total = counts.sum()
-                            for label_encoded, count in zip(unique, counts):
-                                pct = (count / total) * 100
-                                try:
-                                    if (
-                                        hasattr(self, "label_encoder")
-                                        and self.label_encoder is not None
-                                    ):
-                                        original_label = (
-                                            self.label_encoder.inverse_transform(
-                                                [int(label_encoded)]
-                                            )[0]
-                                        )
-                                        print(
-                                            f"  └─ {original_label:<12}: {count:6,} samples ({pct:.1f}%)"
-                                        )
-                                    else:
-                                        print(
-                                            f"  └─ {label_encoded:<12}: {count:6,} samples ({pct:.1f}%)"
-                                        )
-                                except Exception:
-                                    # Fallback to showing encoded label
-                                    print(
-                                        f"  └─ Class {label_encoded:<7}: {count:6,} samples ({pct:.1f}%)"
-                                    )
-                        except Exception as e:
-                            print(f"  └─ Could not display label distribution: {e}")
-            except Exception as e:
-                print(f"\nEvaluation Data: Could not display details ({e})")
+        # Check split method first to decide what eval data to show
+        split_method = getattr(self.config_instance.data.split, "method", "unknown")
+        
+        # For column-based splitting, show actual evaluation dataset
+        if split_method == "column":
+            # Show processed evaluation data from separate eval dataset
+            self._show_processed_eval_data_preview()
         else:
-            # Check if this is expected behavior (column-based splitting)
-            split_method = getattr(self.config_instance.data.split, "method", "unknown")
-            if split_method == "column":
-                # For column-based splitting, show processed evaluation data preview
-                self._show_processed_eval_data_preview()
+            # For other splitting methods, show test data from train/validation split
+            if hasattr(self, "test_data") and self.test_data is not None:
+                try:
+                    test_shape = self.test_data.shape
+                    if test_shape[0] > 0:  # Only show if we have samples
+                        print("\nValidation Data:")
+                        print(f"  └─ Samples:           {test_shape[0]:,}")
+                        if len(test_shape) > 2:  # CNN format
+                            print(
+                                f"  └─ Features:          {test_shape[1]} x {test_shape[2]:,} (reshaped)"
+                            )
+                        else:  # Standard format
+                            print(f"  └─ Features (genes):  {test_shape[1]:,}")
+
+                        # Data statistics
+                        test_mean = np.mean(self.test_data)
+                        test_std = np.std(self.test_data)
+                        test_min = np.min(self.test_data)
+                        test_max = np.max(self.test_data)
+                        print(f"  └─ Data Range:        [{test_min:.3f}, {test_max:.3f}]")
+                        print(f"  └─ Mean ± Std:        {test_mean:.3f} ± {test_std:.3f}")
+
+                        # Test labels distribution
+                        if hasattr(self, "test_labels") and self.test_labels is not None:
+                            encoding_var = getattr(
+                                self.config_instance.data, "target_variable", "target"
+                            )
+                            print(f"\nValidation {encoding_var.title()} Distribution:")
+
+                            # Handle both one-hot encoded and label encoded data
+                            try:
+                                if (
+                                    hasattr(self.test_labels, "shape")
+                                    and len(self.test_labels.shape) > 1
+                                    and self.test_labels.shape[1] > 1
+                                ):
+                                    # One-hot encoded - convert to class indices
+                                    label_indices = np.argmax(self.test_labels, axis=1)
+                                else:
+                                    # Already class indices or 1D array
+                                    label_indices = np.array(self.test_labels).flatten()
+
+                                unique, counts = np.unique(
+                                    label_indices, return_counts=True
+                                )
+                                total = counts.sum()
+                                for label_encoded, count in zip(unique, counts):
+                                    pct = (count / total) * 100
+                                    try:
+                                        if (
+                                            hasattr(self, "label_encoder")
+                                            and self.label_encoder is not None
+                                        ):
+                                            original_label = (
+                                                self.label_encoder.inverse_transform(
+                                                    [int(label_encoded)]
+                                                )[0]
+                                            )
+                                            print(
+                                                f"  └─ {original_label:<12}: {count:6,} samples ({pct:.1f}%)"
+                                            )
+                                        else:
+                                            print(
+                                                f"  └─ {label_encoded:<12}: {count:6,} samples ({pct:.1f}%)"
+                                            )
+                                    except Exception:
+                                        # Fallback to showing encoded label
+                                        print(
+                                            f"  └─ Class {label_encoded:<7}: {count:6,} samples ({pct:.1f}%)"
+                                        )
+                            except Exception as e:
+                                print(f"  └─ Could not display label distribution: {e}")
+                except Exception as e:
+                    print(f"\nValidation Data: Could not display details ({e})")
             else:
-                print("\nEvaluation Data: Not available")
+                print("\nValidation Data: Not available")
 
         # Split configuration
         from common.utils.split_naming import SplitNamingUtils
@@ -438,54 +441,62 @@ class PipelineManager:
         try:
             print("\nEvaluation Data:")
 
-            # Get evaluation data - use corrected if available, otherwise regular
-            adata_eval = getattr(self, "adata_eval_corrected", None) or getattr(
-                self, "adata_eval", None
-            )
-
-            # If we don't have eval data loaded, try to get it fresh from data loader
-            if adata_eval is None:
-                print("  └─ No evaluation data loaded - attempting fresh load...")
-                # Load evaluation data fresh for preview
-                _, adata_eval, _ = self.data_loader.load_data()
-                if self.config_instance.data.batch_correction.enabled:
-                    _, adata_eval_corrected = self.data_loader.load_corrected_data()
-                    adata_eval = adata_eval_corrected or adata_eval
-
-            if adata_eval is None:
-                print("  └─ Could not load evaluation data")
-                return
-
-            print("  └─ Processing evaluation data for preview...")
-
-            # Use the existing data preprocessor with fitted components from training
-            if (
-                hasattr(self, "data_preprocessor")
-                and self.data_preprocessor is not None
-            ):
-                # Use the fitted preprocessor from training
-                eval_data, eval_labels, temp_label_encoder = (
-                    self.data_preprocessor.prepare_final_eval_data(
-                        adata_eval,
-                        getattr(self, "label_encoder", None),
-                        getattr(self, "num_features", None),
-                        getattr(self, "scaler", None),
-                        getattr(self, "is_scaler_fit", False),
-                        getattr(self, "highly_variable_genes", None),
-                        getattr(self, "mix_included", False),
-                        getattr(self, "train_gene_names", None),
-                    )
-                )
+            # First check if we already have processed eval data (from combined pipeline)
+            if hasattr(self, 'eval_data') and self.eval_data is not None:
+                # Use already processed eval data from combined pipeline
+                eval_data = self.eval_data
+                eval_labels = self.eval_labels
+                temp_label_encoder = self.label_encoder
             else:
-                # Fallback: create temp preprocessor (won't be perfectly aligned with training)
-                temp_processor = DataPreprocessor(
-                    self.config_instance, adata_eval, None
+                # Need to process it now for preview
+                # Get evaluation data - use corrected if available, otherwise regular
+                adata_eval = getattr(self, "adata_eval_corrected", None) or getattr(
+                    self, "adata_eval", None
                 )
-                eval_data, eval_labels, temp_label_encoder = (
-                    temp_processor.prepare_final_eval_data(
-                        adata_eval, None, None, None, False, None, False, None
+
+                # If we don't have eval data loaded, try to get it fresh from data loader
+                if adata_eval is None:
+                    print("  └─ No evaluation data loaded - attempting fresh load...")
+                    # Load evaluation data fresh for preview
+                    _, adata_eval, _ = self.data_loader.load_data()
+                    if self.config_instance.data.batch_correction.enabled:
+                        _, adata_eval_corrected = self.data_loader.load_corrected_data()
+                        adata_eval = adata_eval_corrected or adata_eval
+
+                if adata_eval is None:
+                    print("  └─ Could not load evaluation data")
+                    return
+
+                print("  └─ Processing evaluation data for preview...")
+
+                # Use the existing data preprocessor with fitted components from training
+                if (
+                    hasattr(self, "data_preprocessor")
+                    and self.data_preprocessor is not None
+                ):
+                    # Use the fitted preprocessor from training
+                    eval_data, eval_labels, temp_label_encoder = (
+                        self.data_preprocessor.prepare_final_eval_data(
+                            adata_eval,
+                            getattr(self, "label_encoder", None),
+                            getattr(self, "num_features", None),
+                            getattr(self, "scaler", None),
+                            getattr(self, "is_scaler_fit", False),
+                            getattr(self, "highly_variable_genes", None),
+                            getattr(self, "mix_included", False),
+                            getattr(self, "train_gene_names", None),
+                        )
                     )
-                )
+                else:
+                    # Fallback: create temp preprocessor (won't be perfectly aligned with training)
+                    temp_processor = DataPreprocessor(
+                        self.config_instance, adata_eval, None
+                    )
+                    eval_data, eval_labels, temp_label_encoder = (
+                        temp_processor.prepare_final_eval_data(
+                            adata_eval, None, None, None, False, None, False, None
+                        )
+                    )
 
             # Display the processed evaluation data
             if eval_data is not None:
@@ -659,18 +670,20 @@ class PipelineManager:
         return best_val_loss if model_found else None
 
     def _print_final_timing_summary(self, evaluation_duration):
-        """Print timing information with training, evaluation, and total time."""
+        """Print timing information with preprocessing, training, evaluation, and total time."""
         print()
         print("TIMING")
 
-        # Get training duration from stored value
+        # Get timing data from stored values
+        preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
         training_duration = getattr(self, "_stored_training_duration", 0)
 
-        # evaluation_duration is the pure evaluation time (after preprocessing)
-        # so we can use it directly
+        # Calculate actual training time (excluding preprocessing)
+        actual_training_duration = training_duration - preprocessing_duration
         total_time = training_duration + evaluation_duration
 
-        print(f"  └─ Training Duration:         {training_duration:.1f} seconds")
+        print(f"  └─ Preprocessing Duration:    {preprocessing_duration:.1f} seconds")
+        print(f"  └─ Model Training Duration:   {actual_training_duration:.1f} seconds")
         print(f"  └─ Evaluation Duration:       {evaluation_duration:.1f} seconds")
         print(f"  └─ Total Time:                {total_time:.1f} seconds")
 
@@ -776,6 +789,13 @@ class PipelineManager:
         )
 
         if for_evaluation:
+            # Skip if we already processed eval data in combined pipeline
+            if hasattr(self, 'eval_data') and self.eval_data is not None:
+                # Already processed during training phase
+                self.test_data = self.eval_data
+                self.test_labels = self.eval_labels
+                return
+                
             # Evaluation: use fitted components from training to prevent data leakage
             adata_eval = self.adata_eval_corrected or self.adata_eval
             (
@@ -808,9 +828,32 @@ class PipelineManager:
                 self.highly_variable_genes,
                 self.mix_included,
             ) = self.data_preprocessor.prepare_data()
-            # Clean up memory (preserve evaluation data for auto-evaluation)
-            # During combined pipeline, also preserve visualization data for post-training evaluation
+            
+            # If combined pipeline, also process eval data NOW with fitted components
             is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
+            if is_combined_pipeline:
+                # Process evaluation data with fitted components for display
+                adata_eval = self.adata_eval_corrected or self.adata_eval
+                if adata_eval is not None:
+                    (
+                        self.eval_data,
+                        self.eval_labels,
+                        _,  # We already have label encoder
+                    ) = self.data_preprocessor.prepare_final_eval_data(
+                        adata_eval,
+                        self.label_encoder,
+                        self.train_data.shape[1],  # num_features from training
+                        self.scaler,
+                        self.is_scaler_fit,
+                        self.highly_variable_genes,
+                        self.mix_included,
+                        getattr(self.data_preprocessor, "train_gene_names", None),
+                    )
+                else:
+                    self.eval_data = None
+                    self.eval_labels = None
+                    
+            # Clean up memory (preserve evaluation data for auto-evaluation)
             self._cleanup_memory(
                 keep_eval_data=True, keep_vis_data=is_combined_pipeline
             )
@@ -890,7 +933,7 @@ class PipelineManager:
         metadata=False,
         symlinks=False,
         result_type=None,
-    ):
+        ):
         """
         Unified method to save various pipeline outputs.
 
@@ -1020,8 +1063,10 @@ class PipelineManager:
         # Start training timer to include preprocessing
         self._training_start_time = time.time()
 
-        # Preprocessing
+        # Preprocessing with timing
+        preprocessing_start_time = time.time()
         self.preprocess_data()
+        self._preprocessing_duration = time.time() - preprocessing_start_time
 
         # Display training and evaluation data
         self._print_training_and_evaluation_data()
@@ -1036,6 +1081,9 @@ class PipelineManager:
         print("\n")
         print(f"TRAINING PROGRESS ({self._get_previous_best_loss_message()})")
         print("=" * 60)
+
+        # Store original previous best loss for comparison (before training updates it)
+        self._original_previous_best_loss = self._get_previous_best_validation_loss()
 
         self.train_model()
 
@@ -1057,7 +1105,7 @@ class PipelineManager:
         # Training subsection
         print("Training:")
         current_best_loss = None
-        previous_best_loss = self._get_previous_best_validation_loss()
+        original_previous_best_loss = getattr(self, "_original_previous_best_loss", None)
 
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
@@ -1067,10 +1115,10 @@ class PipelineManager:
                 print(f"  └─ Best Epoch:                {best_epoch}")
                 print(f"  └─ Best Val Loss (This Run):  {current_best_loss:.4f}")
 
-        # Show previous best and change in Training section
-        if previous_best_loss is not None and current_best_loss is not None:
-            delta = previous_best_loss - current_best_loss
-            print(f"  └─ Previous Best Val Loss:    {previous_best_loss:.4f}")
+        # Show previous best and change using ORIGINAL previous best (not updated one)
+        if original_previous_best_loss is not None and current_best_loss is not None:
+            delta = original_previous_best_loss - current_best_loss
+            print(f"  └─ Previous Best Val Loss:    {original_previous_best_loss:.4f}")
             if delta > 0:
                 print(f"  └─ Improvement:               -{delta:.4f} (Better)")
             elif delta < 0:

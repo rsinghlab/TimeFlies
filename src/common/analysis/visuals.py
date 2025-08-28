@@ -425,16 +425,28 @@ class VisualizationTools:
         roc_auc = dict()
         for i in range(n_classes):
             if n_classes == 2:  # Binary classification
-                y_score_positive = y_score[:, 1]
-                fpr[i], tpr[i], _ = roc_curve(y_true, y_score_positive)
-            else:  # Multi-class classification
-                y_true_class = y_true[:, i]
-                y_score_class = y_score[:, i]
-                if np.sum(y_true_class) == 0:
-                    # Avoid errors if a class is not present in y_true
-                    fpr[i], tpr[i], _ = (np.array([0, 1]), np.array([0, 1]), None)
+                # Handle case where predictions might have 1 or 2 columns
+                if y_score.shape[1] > 1:
+                    y_score_positive = y_score[:, 1]  # Use positive class column
                 else:
-                    fpr[i], tpr[i], _ = roc_curve(y_true_class, y_score_class)
+                    y_score_positive = y_score[:, 0]  # Use single column
+                
+                # For binary, y_true might be 1D or 2D
+                y_true_flat = y_true.flatten() if len(y_true.shape) > 1 else y_true
+                fpr[i], tpr[i], _ = roc_curve(y_true_flat, y_score_positive)
+            else:  # Multi-class classification
+                # Handle cases where arrays might have fewer columns than expected
+                if i < y_true.shape[1] and i < y_score.shape[1]:
+                    y_true_class = y_true[:, i]
+                    y_score_class = y_score[:, i]
+                    if np.sum(y_true_class) == 0:
+                        # Avoid errors if a class is not present in y_true
+                        fpr[i], tpr[i], _ = (np.array([0, 1]), np.array([0, 1]), None)
+                    else:
+                        fpr[i], tpr[i], _ = roc_curve(y_true_class, y_score_class)
+                else:
+                    # Skip classes that don't exist in the data
+                    fpr[i], tpr[i], _ = (np.array([0, 1]), np.array([0, 1]), None)
             roc_auc[i] = auc(fpr[i], tpr[i])
 
         # Compute macro-average ROC curve and ROC area and Aggregate all false positive rates

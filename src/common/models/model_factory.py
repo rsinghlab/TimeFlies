@@ -145,11 +145,18 @@ class CNNModel(BaseModel):
             self.model.add(Dropout(dropout_rate))
             self.model.add(Dense(128, activation=activation))
             self.model.add(Dropout(dropout_rate))
-            self.model.add(Dense(num_classes, activation="softmax"))
+            
+            # Output layer based on task type
+            task_type = getattr(self.config.model, "task_type", "classification")
+            if task_type == "regression":
+                self.model.add(Dense(1, activation="linear"))
+                default_loss = "mse"
+            else:
+                self.model.add(Dense(num_classes, activation="softmax"))
+                default_loss = "categorical_crossentropy"
 
             # Get loss and metrics from config
-            loss = getattr(model_config, "loss", "categorical_crossentropy")
-            task_type = getattr(self.config.model, "task_type", "classification")
+            loss = getattr(model_config, "loss", default_loss)
             eval_config = getattr(self.config, "evaluation", {})
             config_metrics = eval_config.get("metrics", {})
             training_metrics = config_metrics.get("training", {}).get(
@@ -220,7 +227,16 @@ class CNNModel(BaseModel):
         # Reshape data for CNN: (batch, features) -> (batch, 1, features)
         if len(X.shape) == 2:
             X = X.reshape(X.shape[0], 1, X.shape[1])
-        return np.argmax(self.model.predict(X), axis=1)
+        
+        predictions = self.model.predict(X)
+        task_type = getattr(self.config.model, "task_type", "classification")
+        
+        if task_type == "regression":
+            # For regression, return raw predictions
+            return predictions.flatten()
+        else:
+            # For classification, return class indices
+            return np.argmax(predictions, axis=1)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Get prediction probabilities from CNN model."""
@@ -272,12 +288,17 @@ class MLPModel(BaseModel):
                 self.model.add(Dense(units, activation=activation))
                 self.model.add(Dropout(dropout_rate))
 
-            # Output layer
-            self.model.add(Dense(num_classes, activation="softmax"))
+            # Output layer based on task type
+            task_type = getattr(self.config.model, "task_type", "classification")
+            if task_type == "regression":
+                self.model.add(Dense(1, activation="linear"))
+                default_loss = "mse"
+            else:
+                self.model.add(Dense(num_classes, activation="softmax"))
+                default_loss = "categorical_crossentropy"
 
             # Get loss and metrics from config
-            loss = getattr(model_config, "loss", "categorical_crossentropy")
-            task_type = getattr(self.config.model, "task_type", "classification")
+            loss = getattr(model_config, "loss", default_loss)
             eval_config = getattr(self.config, "evaluation", {})
             config_metrics = eval_config.get("metrics", {})
             training_metrics = config_metrics.get("training", {}).get(
@@ -347,7 +368,16 @@ class MLPModel(BaseModel):
             raise ModelError("Model must be trained before making predictions")
         if len(X.shape) > 2:
             X = X.reshape(X.shape[0], -1)
-        return np.argmax(self.model.predict(X), axis=1)
+        
+        predictions = self.model.predict(X)
+        task_type = getattr(self.config.model, "task_type", "classification")
+        
+        if task_type == "regression":
+            # For regression, return raw predictions
+            return predictions.flatten()
+        else:
+            # For classification, return class indices
+            return np.argmax(predictions, axis=1)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Get prediction probabilities from MLP model."""
@@ -370,22 +400,30 @@ class MLPModel(BaseModel):
 
 
 class LogisticRegressionModel(BaseModel):
-    """Logistic Regression model using scikit-learn."""
+    """Logistic/Linear Regression model using scikit-learn."""
 
     def build(self, input_shape: tuple[int, ...], num_classes: int) -> None:
-        """Build logistic regression model."""
+        """Build logistic/linear regression model."""
         try:
             random_state = getattr(self.config.general, "random_state", 42)
             logistic_config = getattr(self.config.model, "logistic", {})
-
-            self.model = LogisticRegression(
-                max_iter=getattr(logistic_config, "max_iter", 1000),
-                C=getattr(logistic_config, "C", 1.0),
-                penalty=getattr(logistic_config, "penalty", "l2"),
-                solver=getattr(logistic_config, "solver", "lbfgs"),
-                random_state=random_state,
-            )
-            logger.info("Logistic Regression model initialized")
+            task_type = getattr(self.config.model, "task_type", "classification")
+            
+            if task_type == "regression":
+                from sklearn.linear_model import LinearRegression
+                # For regression, use LinearRegression
+                self.model = LinearRegression()
+                logger.info("Linear Regression model initialized")
+            else:
+                # For classification, use LogisticRegression
+                self.model = LogisticRegression(
+                    max_iter=getattr(logistic_config, "max_iter", 1000),
+                    C=getattr(logistic_config, "C", 1.0),
+                    penalty=getattr(logistic_config, "penalty", "l2"),
+                    solver=getattr(logistic_config, "solver", "lbfgs"),
+                    random_state=random_state,
+                )
+                logger.info("Logistic Regression model initialized")
         except Exception as e:
             raise ModelError(f"Failed to build Logistic Regression model: {e}")
 
@@ -448,22 +486,37 @@ class XGBoostModel(BaseModel):
         try:
             random_state = getattr(self.config.general, "random_state", 42)
             xgb_config = getattr(self.config.model, "xgboost", {})
+            task_type = getattr(self.config.model, "task_type", "classification")
+            
+            if task_type == "regression":
+                # For regression, use XGBRegressor
+                self.model = xgb.XGBRegressor(
+                    n_estimators=getattr(xgb_config, "n_estimators", 100),
+                    max_depth=getattr(xgb_config, "max_depth", 6),
+                    learning_rate=getattr(xgb_config, "learning_rate", 0.1),
+                    subsample=getattr(xgb_config, "subsample", 0.8),
+                    colsample_bytree=getattr(xgb_config, "colsample_bytree", 0.8),
+                    random_state=random_state,
+                    eval_metric=getattr(xgb_config, "eval_metric", "rmse"),
+                )
+                logger.info("XGBoost Regressor model initialized")
+            else:
+                # For classification, use XGBClassifier
+                # Determine eval metric based on problem type
+                eval_metric = getattr(xgb_config, "eval_metric", "mlogloss")
+                if eval_metric == "mlogloss" and num_classes == 2:
+                    eval_metric = "logloss"
 
-            # Determine eval metric based on problem type
-            eval_metric = getattr(xgb_config, "eval_metric", "mlogloss")
-            if eval_metric == "mlogloss" and num_classes == 2:
-                eval_metric = "logloss"
-
-            self.model = xgb.XGBClassifier(
-                n_estimators=getattr(xgb_config, "n_estimators", 100),
-                max_depth=getattr(xgb_config, "max_depth", 6),
-                learning_rate=getattr(xgb_config, "learning_rate", 0.1),
-                subsample=getattr(xgb_config, "subsample", 0.8),
-                colsample_bytree=getattr(xgb_config, "colsample_bytree", 0.8),
-                random_state=random_state,
-                eval_metric=eval_metric,
-            )
-            logger.info("XGBoost model initialized")
+                self.model = xgb.XGBClassifier(
+                    n_estimators=getattr(xgb_config, "n_estimators", 100),
+                    max_depth=getattr(xgb_config, "max_depth", 6),
+                    learning_rate=getattr(xgb_config, "learning_rate", 0.1),
+                    subsample=getattr(xgb_config, "subsample", 0.8),
+                    colsample_bytree=getattr(xgb_config, "colsample_bytree", 0.8),
+                    random_state=random_state,
+                    eval_metric=eval_metric,
+                )
+                logger.info("XGBoost Classifier model initialized")
         except Exception as e:
             raise ModelError(f"Failed to build XGBoost model: {e}")
 
@@ -476,11 +529,19 @@ class XGBoostModel(BaseModel):
     ) -> None:
         """Train XGBoost model."""
         try:
-            # Flatten input and convert one-hot to labels
+            # Flatten input
             if len(X_train.shape) > 2:
                 X_train = X_train.reshape(X_train.shape[0], -1)
-            if len(y_train.shape) > 1:
-                y_train = np.argmax(y_train, axis=1)
+            
+            task_type = getattr(self.config.model, "task_type", "classification")
+            if task_type == "regression":
+                # For regression, just flatten if needed
+                if len(y_train.shape) > 1:
+                    y_train = y_train.flatten()
+            else:
+                # For classification, convert one-hot to labels
+                if len(y_train.shape) > 1:
+                    y_train = np.argmax(y_train, axis=1)
 
             self.model.fit(X_train, y_train)
             self.is_trained = True
@@ -526,17 +587,33 @@ class RandomForestModel(BaseModel):
         try:
             random_state = getattr(self.config.general, "random_state", 42)
             rf_config = getattr(self.config.model, "random_forest", {})
-
-            self.model = RandomForestClassifier(
-                n_estimators=getattr(rf_config, "n_estimators", 100),
-                max_depth=getattr(rf_config, "max_depth", None),
-                min_samples_split=getattr(rf_config, "min_samples_split", 2),
-                min_samples_leaf=getattr(rf_config, "min_samples_leaf", 1),
-                max_features=getattr(rf_config, "max_features", "sqrt"),
-                random_state=random_state,
-                n_jobs=-1,
-            )
-            logger.info("Random Forest model initialized")
+            task_type = getattr(self.config.model, "task_type", "classification")
+            
+            if task_type == "regression":
+                from sklearn.ensemble import RandomForestRegressor
+                # For regression, use RandomForestRegressor
+                self.model = RandomForestRegressor(
+                    n_estimators=getattr(rf_config, "n_estimators", 100),
+                    max_depth=getattr(rf_config, "max_depth", None),
+                    min_samples_split=getattr(rf_config, "min_samples_split", 2),
+                    min_samples_leaf=getattr(rf_config, "min_samples_leaf", 1),
+                    max_features=getattr(rf_config, "max_features", "sqrt"),
+                    random_state=random_state,
+                    n_jobs=-1,
+                )
+                logger.info("Random Forest Regressor model initialized")
+            else:
+                # For classification, use RandomForestClassifier
+                self.model = RandomForestClassifier(
+                    n_estimators=getattr(rf_config, "n_estimators", 100),
+                    max_depth=getattr(rf_config, "max_depth", None),
+                    min_samples_split=getattr(rf_config, "min_samples_split", 2),
+                    min_samples_leaf=getattr(rf_config, "min_samples_leaf", 1),
+                    max_features=getattr(rf_config, "max_features", "sqrt"),
+                    random_state=random_state,
+                    n_jobs=-1,
+                )
+                logger.info("Random Forest Classifier model initialized")
         except Exception as e:
             raise ModelError(f"Failed to build Random Forest model: {e}")
 
@@ -549,11 +626,19 @@ class RandomForestModel(BaseModel):
     ) -> None:
         """Train Random Forest model."""
         try:
-            # Flatten input and convert one-hot to labels
+            # Flatten input
             if len(X_train.shape) > 2:
                 X_train = X_train.reshape(X_train.shape[0], -1)
-            if len(y_train.shape) > 1:
-                y_train = np.argmax(y_train, axis=1)
+            
+            task_type = getattr(self.config.model, "task_type", "classification")
+            if task_type == "regression":
+                # For regression, just flatten if needed
+                if len(y_train.shape) > 1:
+                    y_train = y_train.flatten()
+            else:
+                # For classification, convert one-hot to labels
+                if len(y_train.shape) > 1:
+                    y_train = np.argmax(y_train, axis=1)
 
             self.model.fit(X_train, y_train)
             self.is_trained = True
