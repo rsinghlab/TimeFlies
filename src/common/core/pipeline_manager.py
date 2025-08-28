@@ -330,6 +330,28 @@ class PipelineManager:
                 if test_vals:
                     print(f"  └─ Test Values:       {', '.join(test_vals)}")
 
+        # Show evaluation dataset from adata_eval if available
+        if hasattr(self, "adata_eval") and self.adata_eval is not None:
+            eval_cells = self.adata_eval.n_obs
+            eval_genes = self.adata_eval.n_vars
+            print("\nEvaluation Dataset (from adata_eval):")
+            print(f"  └─ Samples:           {eval_cells:,}")
+            print(f"  └─ Features (genes):  {eval_genes:,}")
+
+            # Show target distribution for evaluation data
+            encoding_var = getattr(
+                self.config_instance.data, "target_variable", "target"
+            )
+            if encoding_var in self.adata_eval.obs.columns:
+                print(f"\nEvaluation {encoding_var.title()} Distribution:")
+                eval_dist = (
+                    self.adata_eval.obs[encoding_var].value_counts().sort_index()
+                )
+                eval_total = eval_dist.sum()
+                for key, count in eval_dist.items():
+                    pct = (count / eval_total) * 100
+                    print(f"  └─ {key:<12}: {count:6,} samples ({pct:5.1f}%)")
+
     def _display_model_architecture(self):
         """Display comprehensive model architecture information."""
         if not hasattr(self, "model") or self.model is None:
@@ -850,9 +872,6 @@ class PipelineManager:
         # Display training and evaluation data
         self._print_training_and_evaluation_data()
 
-        # Display model architecture before training
-        self._display_model_architecture()
-
         # Model training
         print(f"TRAINING PROGRESS ({self._get_previous_best_loss_message()})")
         print("=" * 60)
@@ -865,57 +884,50 @@ class PipelineManager:
         # Save outputs and create symlinks after training
         self.save_outputs(metadata=True, symlinks=True)
 
-        # Print training completion summary in clean format
-        print("\n📝 Training Summary")
-        print()
+        # Print training completion summary with improvement status
+        improvement_status = (
+            "New best model found"
+            if self.model_improved
+            else "No improvement over existing model found"
+        )
+
+        # Training Summary section with double lines
+        print("=" * 60)
+        print("\n")
+        print(f"TRAINING SUMMARY ({improvement_status})")
+        print("=" * 60)
 
         # Training results
         current_best_loss = None
-        best_epoch = None
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
             if val_losses:
                 best_epoch = val_losses.index(min(val_losses)) + 1
                 current_best_loss = min(val_losses)
+                print(f"Best Epoch: {best_epoch}")
+                print(f"Best Val Loss (This Training): {current_best_loss:.4f}")
 
-        if best_epoch:
-            print(f"Best Epoch: {best_epoch}")
-
-        # Compare with previous best model and show validation loss with comparison
+        # Compare with previous best model
         previous_best_loss = self._get_previous_best_validation_loss()
-        if current_best_loss is not None:
-            if previous_best_loss is not None:
-                delta = current_best_loss - previous_best_loss
-                if delta < 0:
-                    direction = "↓"
-                    comparison = (
-                        f"vs. previous best of {previous_best_loss:.4f} → better"
-                    )
-                elif delta > 0:
-                    direction = "↑"
-                    comparison = (
-                        f"vs. previous best of {previous_best_loss:.4f} → worse"
-                    )
-                else:
-                    direction = "="
-                    comparison = f"vs. previous best of {previous_best_loss:.4f} → same"
-                print(
-                    f"Validation Loss: {current_best_loss:.4f} ({direction} {abs(delta):+.4f} {comparison})"
-                )
+        if previous_best_loss is not None and current_best_loss is not None:
+            delta = previous_best_loss - current_best_loss
+            print(f"Previous Best Val Loss: {previous_best_loss:.4f}")
+            if delta > 0:
+                print(f"Improvement: -{delta:.4f} (Better)")
+            elif delta < 0:
+                print(f"Change: +{abs(delta):.4f} (Worse)")
             else:
-                print(f"Validation Loss: {current_best_loss:.4f} (first model)")
+                print(f"No Change: {delta:.4f}")
 
-        # Model save status
-        save_status = "✅" if self.model_improved else "⚠️ (not saved - no improvement)"
-        print(f"Model Saved: {save_status} {self.experiment_name}")
+        print(f"Model saved to: {self.experiment_name}")
 
         # Show training duration if available
         if hasattr(self, "_training_start_time"):
             import time
 
             duration = time.time() - self._training_start_time
-            print(f"Training Duration: {duration:.1f} seconds")
-        print()
+            print(f"Training duration: {duration:.1f} seconds")
+        print("=" * 60)
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)

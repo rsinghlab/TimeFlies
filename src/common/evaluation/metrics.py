@@ -963,22 +963,23 @@ class EvaluationMetrics:
         config_baselines = eval_config.get("metrics", {}).get("baselines", {})
         baseline_types = config_baselines.get("classification", [])
 
-        print("📊 Model Evaluation & Comparison")
-        print()
+        print("\n📊 BASELINE COMPARISON")
 
         # Use actual evaluation holdout data for baseline comparison
         test_X = self.test_data
 
-        # Check if baselines are configured
+        # Print table header with dynamic width for baseline method names
         if not baseline_types:
+            # No baselines configured, return early
             return {}
 
-        # Filter out empty baseline types
+        # Filter out empty baseline types and calculate max length
         valid_baseline_types = [bt for bt in baseline_types if bt and bt.strip()]
         if not valid_baseline_types:
+            # No valid baselines configured, return early
             return {}
 
-        # Get model performance first
+        # Get model performance first for our model row
         model_accuracy = float(accuracy_score(true_labels, predicted_classes))
         num_classes = len(np.unique(true_labels))
         if num_classes == 2:
@@ -992,15 +993,78 @@ class EvaluationMetrics:
                     pos_label=pos_label,
                 )
             )
+            model_precision = float(
+                precision_score(
+                    true_labels,
+                    predicted_classes,
+                    average="binary",
+                    pos_label=pos_label,
+                )
+            )
+            model_recall = float(
+                recall_score(
+                    true_labels,
+                    predicted_classes,
+                    average="binary",
+                    pos_label=pos_label,
+                )
+            )
         else:
             model_f1 = float(f1_score(true_labels, predicted_classes, average="macro"))
+            model_precision = float(
+                precision_score(true_labels, predicted_classes, average="macro")
+            )
+            model_recall = float(
+                recall_score(true_labels, predicted_classes, average="macro")
+            )
 
-        # Create simple table format
-        print(
-            f"{'Method':<17} {'Acc':<6} {'F1':<6} {'Precision':<11} {'Recall':<8} {'Δ Acc':<8} {'Δ F1':<8}"
+        # Calculate AUC for our model
+        try:
+            if num_classes == 2:
+                model_auc = float(roc_auc_score(true_labels, predictions[:, 1]))
+            else:
+                model_auc = float(
+                    roc_auc_score(true_labels, predictions, multi_class="ovr")
+                )
+        except Exception:
+            model_auc = 0.0
+
+        max_method_len = max(
+            len(baseline_type.replace("_", " ").title())
+            for baseline_type in valid_baseline_types + ["**Our Model**"]
         )
+        method_width = max(
+            20, max_method_len + 2
+        )  # At least 20, or method name + padding
+
+        # Create the table format strings - ensure header and border widths match
+        # Border widths: 7, 7, 11, 8, 8, 10, 9 (including padding)
+        header_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+        row_format = f"│ {{:<{method_width}}} │ {{:^5}} │ {{:^5}} │ {{:^9}} │ {{:^6}} │ {{:^6}} │ {{:^8}} │ {{:^7}} │"
+        border_top = f"┌{'─' * (method_width + 2)}┬───────┬───────┬───────────┬────────┬────────┬──────────┬─────────┐"
+        border_mid = f"├{'─' * (method_width + 2)}┼───────┼───────┼───────────┼────────┼────────┼──────────┼─────────┤"
+        border_bot = f"└{'─' * (method_width + 2)}┴───────┴───────┴───────────┴────────┴────────┴──────────┴─────────┘"
+
+        print(border_top)
         print(
-            f"{'Our Model':<17} {model_accuracy:<6.3f} {model_f1:<6.3f} {'–':<11} {'–':<8} {'–':<8} {'–':<8}"
+            header_format.format(
+                "Method", "Acc", "F1", "Precision", "Recall", "AUC", "Δ Acc", "Δ F1"
+            )
+        )
+        print(border_mid)
+
+        # Print our model row first
+        print(
+            row_format.format(
+                "**Our Model**",
+                f"{model_accuracy:.3f}",
+                f"{model_f1:.3f}",
+                f"{model_precision:.3f}",
+                f"{model_recall:.3f}",
+                f"{model_auc:.3f}",
+                "–",
+                "–",
+            )
         )
 
         for baseline_type in valid_baseline_types:
@@ -1118,13 +1182,25 @@ class EvaluationMetrics:
                 acc_delta = f"{acc_improvement:+.3f}"
                 f1_delta = f"{f1_improvement:+.3f}"
 
-                # Print in simple table format
+                # Use the dynamic format string for consistent alignment
+                baseline_auc = 0.5  # Placeholder AUC for baselines
                 print(
-                    f"{baseline_name:<17} {baseline_accuracy:<6.3f} {baseline_f1:<6.3f} {baseline_precision:<11.3f} {baseline_recall:<8.3f} {acc_delta:<8} {f1_delta:<8}"
+                    row_format.format(
+                        baseline_name,
+                        f"{baseline_accuracy:.3f}",
+                        f"{baseline_f1:.3f}",
+                        f"{baseline_precision:.3f}",
+                        f"{baseline_recall:.3f}",
+                        f"{baseline_auc:.3f}",
+                        acc_delta,
+                        f1_delta,
+                    )
                 )
 
             except Exception as e:
                 logger.warning(f"Failed to compute {baseline_type} baseline: {e}")
 
-        print()  # Add blank line after table
+        # Close the table with dynamic border
+        print(border_bot)
+
         return baselines
