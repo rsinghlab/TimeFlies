@@ -56,15 +56,24 @@ class DataPreprocessor:
         if not include_mix:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
-        # Filter based on 'sex_type' if specified
-        sex_type = getattr(config.data, "sex_type", "all").lower()
+        # Filter based on 'sex' if specified
+        sex_type = getattr(config.data, "sex", "all").lower()
         if sex_type in ["male", "female"]:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Filter based on 'cell_type' if specified
-        cell_type = getattr(config.data, "cell_type", "all")
-        if cell_type != "all":
-            adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
+        cell_filtering = getattr(config.data, "cell_filtering", None)
+        if cell_filtering:
+            cell_type = getattr(cell_filtering, "type", "all")
+            if cell_type != "all":
+                cell_type_column = getattr(cell_filtering, "column", "afca_annotation_broad")
+                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+        else:
+            # Fallback for backwards compatibility
+            cell_type = getattr(config.data, "cell_type", "all")
+            if cell_type != "all":
+                cell_type_column = getattr(config.data, "cell_type_column", "afca_annotation_broad")
+                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Shuffle genes if required
         shuffle_genes = getattr(config.preprocessing.shuffling, "shuffle_genes", False)
@@ -237,7 +246,7 @@ class DataPreprocessor:
         config = self.config
         encoding_var = getattr(config.data, "target_variable", "age")
         task_type = getattr(config.model, "task_type", "classification")
-        
+
         if task_type == "regression":
             # For regression, keep labels as continuous values
             train_labels = train_subset.obs[encoding_var].values.astype(np.float32)
@@ -245,11 +254,11 @@ class DataPreprocessor:
                 test_labels = test_subset.obs[encoding_var].values.astype(np.float32)
             else:
                 test_labels = np.array([], dtype=np.float32)
-            
+
             # Reshape to (n_samples, 1) for regression
             train_labels = train_labels.reshape(-1, 1)
             test_labels = test_labels.reshape(-1, 1) if len(test_labels) > 0 else test_labels.reshape(0, 1)
-            
+
             return train_labels, test_labels, None
         else:
             # For classification, use label encoding and one-hot encoding
@@ -440,6 +449,8 @@ class DataPreprocessor:
             is_scaler_fit,
             highly_variable_genes,
             mix_included,
+            train_subset,  # Add metadata-rich subset for display
+            test_subset,   # Add metadata-rich subset for display
         )
 
     def prepare_final_eval_data(
@@ -488,12 +499,21 @@ class DataPreprocessor:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Check if the specified cell type is 'all'
-        cell_type = getattr(config.data, "cell_type", "all").lower()
-        if cell_type != "all":
-            adata = adata[adata.obs["afca_annotation_broad"] == cell_type].copy()
+        cell_filtering = getattr(config.data, "cell_filtering", None)
+        if cell_filtering:
+            cell_type = getattr(cell_filtering, "type", "all").lower()
+            if cell_type != "all":
+                cell_type_column = getattr(cell_filtering, "column", "afca_annotation_broad")
+                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+        else:
+            # Fallback for backwards compatibility
+            cell_type = getattr(config.data, "cell_type", "all").lower()
+            if cell_type != "all":
+                cell_type_column = getattr(config.data, "cell_type_column", "afca_annotation_broad")
+                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Sex Mapping
-        sex_type = getattr(config.data, "sex_type", "all").lower()
+        sex_type = getattr(config.data, "sex", "all").lower()
         if sex_type != "all":
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
@@ -541,7 +561,7 @@ class DataPreprocessor:
         # Prepare the testing labels based on task type
         encoding_var = getattr(config.data, "target_variable", "age")
         task_type = getattr(config.model, "task_type", "classification")
-        
+
         if task_type == "regression":
             # For regression, keep as continuous values
             test_labels = adata.obs[encoding_var].values.astype(np.float32).reshape(-1, 1)
@@ -550,11 +570,11 @@ class DataPreprocessor:
             # Handle case where evaluation data might have fewer classes than training
             eval_classes = adata.obs[encoding_var].unique()
             missing_classes = set(label_encoder.classes_) - set(eval_classes)
-            
+
             if missing_classes:
                 print(f"Warning: Evaluation data missing classes: {missing_classes}")
                 print(f"Model will predict across full {len(label_encoder.classes_)} class space")
-            
+
             test_labels = label_encoder.transform(adata.obs[encoding_var])
             test_labels = to_categorical(test_labels, num_classes=len(label_encoder.classes_))
 

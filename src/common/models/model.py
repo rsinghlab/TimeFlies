@@ -1,6 +1,17 @@
+import contextlib
+import json
 import os
 import sys
-import contextlib
+
+import dill as pickle
+import numpy as np
+import xgboost as xgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+
+from ..utils.path_manager import PathManager
 
 # Aggressive TensorFlow logging suppression
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -20,23 +31,10 @@ def suppress_stderr():
         finally:
             sys.stderr = old_stderr
 
-import json
-
-import dill as pickle
-import numpy as np
-
 # Import TensorFlow and related modules with suppressed stderr
 with suppress_stderr():
     import tensorflow as tf
     from tensorflow.keras.callbacks import EarlyStopping
-
-import xgboost as xgb
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
-
-from ..utils.path_manager import PathManager
 
 
 class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
@@ -631,7 +629,16 @@ class ModelBuilder:
                 tf.keras.layers.Dense(units=units, activation=cnn_config.activation)
             )
             model.add(tf.keras.layers.Dropout(rate=cnn_config.dropout_rate))
-        model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+        # Output layer based on task type
+        task_type = getattr(self.config.model, "task_type", "classification")
+        if task_type == "regression":
+            model.add(tf.keras.layers.Dense(units=1, activation="linear"))
+            default_loss = "mse"
+            default_metrics = ["mae"]
+        else:
+            model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+            default_loss = "categorical_crossentropy"
+            default_metrics = ["accuracy", "auc"]
 
         # Determine optimizer based on computer type
         learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
@@ -642,13 +649,20 @@ class ModelBuilder:
         else:
             optimizer_instance = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
+        # Get loss from config
+        cnn_config = getattr(self.config.model, "cnn", {})
+        loss = getattr(cnn_config, "loss", default_loss)
+
+        # Get metrics from config
+        eval_config = getattr(self.config, "evaluation", {})
+        config_metrics = eval_config.get("metrics", {})
+        training_metrics = config_metrics.get("training", {}).get(task_type, default_metrics)
+
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(
-                self.config.model.training, "custom_loss", "categorical_crossentropy"
-            ),
-            metrics=getattr(self.config.model.training, "metrics", ["accuracy", "auc"]),
+            loss=loss,
+            metrics=training_metrics,
         )
 
         return model
@@ -679,8 +693,16 @@ class ModelBuilder:
             )
             model.add(tf.keras.layers.Dropout(rate=mlp_config.dropout_rate))
 
-        # Output layer
-        model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+        # Output layer based on task type
+        task_type = getattr(self.config.model, "task_type", "classification")
+        if task_type == "regression":
+            model.add(tf.keras.layers.Dense(units=1, activation="linear"))
+            default_loss = "mse"
+            default_metrics = ["mae"]
+        else:
+            model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+            default_loss = "categorical_crossentropy"
+            default_metrics = ["accuracy", "auc"]
 
         # Determine optimizer based on computer type
         if getattr(self.config.hardware, "processor", "GPU").lower() == "m":
@@ -692,57 +714,83 @@ class ModelBuilder:
                 learning_rate=mlp_config.learning_rate
             )
 
+        # Get loss from config
+        loss = getattr(mlp_config, "loss", default_loss)
+
+        # Get metrics from config
+        eval_config = getattr(self.config, "evaluation", {})
+        config_metrics = eval_config.get("metrics", {})
+        training_metrics = config_metrics.get("training", {}).get(task_type, default_metrics)
+
         # Compile model
         model.compile(
             optimizer=optimizer_instance,
-            loss=getattr(
-                self.config.model.training, "custom_loss", "categorical_crossentropy"
-            ),
-            metrics=getattr(self.config.model.training, "metrics", ["accuracy", "auc"]),
+            loss=loss,
+            metrics=training_metrics,
         )
 
         return model
 
     def create_logistic_regression(self):
         """
-        Create a logistic regression model using scikit-learn and the provided configuration.
+        Create a regression model using scikit-learn and the provided configuration.
 
         Returns:
-            lr (sklearn.linear_model.LogisticRegression): The logistic regression model.
+            lr: The regression model (linear or logistic based on task type).
         """
-        lr_config = getattr(self.config.model, "logistic_regression", {})
+        lr_config = getattr(self.config.model, "logistic", {})  # Note: using "logistic" to match config
+        task_type = getattr(self.config.model, "task_type", "classification")
 
-        lr = LogisticRegression(
-            penalty=lr_config.penalty,
-            solver=lr_config.solver,
-            l1_ratio=lr_config.l1_ratio if lr_config.penalty == "elasticnet" else None,
-            random_state=lr_config.random_state,
-            max_iter=lr_config.max_iter,
-        )
+        if task_type == "regression":
+            from sklearn.linear_model import LinearRegression
+            lr = LinearRegression()
+        else:
+            lr = LogisticRegression(
+                penalty=getattr(lr_config, "penalty", "l2"),
+                solver=getattr(lr_config, "solver", "lbfgs"),
+                max_iter=getattr(lr_config, "max_iter", 1000),
+                C=getattr(lr_config, "C", 1.0),
+                random_state=getattr(lr_config, "random_state", 42),
+            )
 
         return lr
 
     def create_random_forest(self):
         """
-        Create a random forest classifier using scikit-learn and the provided configuration.
+        Create a random forest model using scikit-learn and the provided configuration.
 
         Returns:
-            rf (sklearn.ensemble.RandomForestClassifier): The random forest classifier.
+            rf: The random forest model (classifier or regressor based on task type).
         """
         rf_config = getattr(self.config.model, "random_forest", {})
+        task_type = getattr(self.config.model, "task_type", "classification")
 
-        rf = RandomForestClassifier(
-            n_estimators=rf_config.n_estimators,
-            criterion=rf_config.criterion,
-            max_depth=rf_config.max_depth,
-            min_samples_split=rf_config.min_samples_split,
-            min_samples_leaf=rf_config.min_samples_leaf,
-            max_features=rf_config.max_features,
-            bootstrap=rf_config.bootstrap,
-            oob_score=rf_config.oob_score,
-            n_jobs=rf_config.n_jobs,
-            random_state=rf_config.random_state,
-        )
+        if task_type == "regression":
+            from sklearn.ensemble import RandomForestRegressor
+            rf = RandomForestRegressor(
+                n_estimators=rf_config.n_estimators,
+                max_depth=rf_config.max_depth,
+                min_samples_split=rf_config.min_samples_split,
+                min_samples_leaf=rf_config.min_samples_leaf,
+                max_features=rf_config.max_features,
+                bootstrap=rf_config.bootstrap,
+                oob_score=rf_config.oob_score,
+                n_jobs=rf_config.n_jobs,
+                random_state=rf_config.random_state,
+            )
+        else:
+            rf = RandomForestClassifier(
+                n_estimators=rf_config.n_estimators,
+                criterion=rf_config.criterion,
+                max_depth=rf_config.max_depth,
+                min_samples_split=rf_config.min_samples_split,
+                min_samples_leaf=rf_config.min_samples_leaf,
+                max_features=rf_config.max_features,
+                bootstrap=rf_config.bootstrap,
+                oob_score=rf_config.oob_score,
+                n_jobs=rf_config.n_jobs,
+                random_state=rf_config.random_state,
+            )
 
         return rf
 
@@ -756,14 +804,19 @@ class ModelBuilder:
         xgb_config = getattr(self.config.model, "xgboost", {})
 
         # Determine task type and set corresponding XGBoost parameters
-        if getattr(self.config.data, "target_variable", "age").lower() == "sex":
-            task_type = "binary"
-            xgb_objective = "binary:logistic"
-            eval_metric = "auc"
+        task_type = getattr(self.config.model, "task_type", "classification")
+        if task_type == "regression":
+            xgb_objective = "reg:squarederror"
+            eval_metric = getattr(xgb_config, "eval_metric", "rmse")
         else:
-            task_type = "multiclass"
-            xgb_objective = "multi:softmax"
-            eval_metric = "mlogloss"
+            # Classification - determine if binary or multiclass based on number of classes
+            num_classes = len(np.unique(self.train_labels)) if hasattr(self, 'train_labels') else 2
+            if num_classes == 2:
+                xgb_objective = "binary:logistic"
+                eval_metric = getattr(xgb_config, "eval_metric", "auc")
+            else:
+                xgb_objective = "multi:softmax"
+                eval_metric = getattr(xgb_config, "eval_metric", "mlogloss")
 
         # Basic XGBoost parameters
         xgb_params = {
@@ -780,12 +833,15 @@ class ModelBuilder:
             "predictor": xgb_config.predictor,
         }
 
-        # Adjust parameters for multiclass classification
-        if task_type == "multiclass":
-            xgb_params["num_class"] = len(np.unique(self.train_labels))
+        # Initialize XGBoost model based on task type
+        if task_type == "regression":
+            model = xgb.XGBRegressor(**xgb_params)
+        else:
+            # Adjust parameters for multiclass classification
+            if xgb_objective == "multi:softmax":
+                xgb_params["num_class"] = len(np.unique(self.train_labels))
+            model = xgb.XGBClassifier(**xgb_params)
 
-        # Initialize XGBoost model
-        model = xgb.XGBClassifier(**xgb_params)
         model.set_params(early_stopping_rounds=xgb_config.early_stopping_rounds)
 
         return model
@@ -907,11 +963,14 @@ class ModelBuilder:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
+        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+
         best_symlink_path = str(
             base_path
             / project_name
             / "experiments"
             / correction_dir
+            / task_type
             / "best"
             / config_key
             / "model_components"

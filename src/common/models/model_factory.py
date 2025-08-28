@@ -1,10 +1,10 @@
 """Model factory for creating different types of models."""
 
-from abc import ABC, abstractmethod
-from typing import Any
+import contextlib
 import os
 import sys
-import contextlib
+from abc import ABC, abstractmethod
+from typing import Any
 
 # Aggressive TensorFlow logging suppression
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -145,7 +145,7 @@ class CNNModel(BaseModel):
             self.model.add(Dropout(dropout_rate))
             self.model.add(Dense(128, activation=activation))
             self.model.add(Dropout(dropout_rate))
-            
+
             # Output layer based on task type
             task_type = getattr(self.config.model, "task_type", "classification")
             if task_type == "regression":
@@ -227,10 +227,10 @@ class CNNModel(BaseModel):
         # Reshape data for CNN: (batch, features) -> (batch, 1, features)
         if len(X.shape) == 2:
             X = X.reshape(X.shape[0], 1, X.shape[1])
-        
+
         predictions = self.model.predict(X)
         task_type = getattr(self.config.model, "task_type", "classification")
-        
+
         if task_type == "regression":
             # For regression, return raw predictions
             return predictions.flatten()
@@ -368,10 +368,10 @@ class MLPModel(BaseModel):
             raise ModelError("Model must be trained before making predictions")
         if len(X.shape) > 2:
             X = X.reshape(X.shape[0], -1)
-        
+
         predictions = self.model.predict(X)
         task_type = getattr(self.config.model, "task_type", "classification")
-        
+
         if task_type == "regression":
             # For regression, return raw predictions
             return predictions.flatten()
@@ -408,7 +408,7 @@ class LogisticRegressionModel(BaseModel):
             random_state = getattr(self.config.general, "random_state", 42)
             logistic_config = getattr(self.config.model, "logistic", {})
             task_type = getattr(self.config.model, "task_type", "classification")
-            
+
             if task_type == "regression":
                 from sklearn.linear_model import LinearRegression
                 # For regression, use LinearRegression
@@ -487,7 +487,7 @@ class XGBoostModel(BaseModel):
             random_state = getattr(self.config.general, "random_state", 42)
             xgb_config = getattr(self.config.model, "xgboost", {})
             task_type = getattr(self.config.model, "task_type", "classification")
-            
+
             if task_type == "regression":
                 # For regression, use XGBRegressor
                 self.model = xgb.XGBRegressor(
@@ -532,7 +532,7 @@ class XGBoostModel(BaseModel):
             # Flatten input
             if len(X_train.shape) > 2:
                 X_train = X_train.reshape(X_train.shape[0], -1)
-            
+
             task_type = getattr(self.config.model, "task_type", "classification")
             if task_type == "regression":
                 # For regression, just flatten if needed
@@ -588,7 +588,7 @@ class RandomForestModel(BaseModel):
             random_state = getattr(self.config.general, "random_state", 42)
             rf_config = getattr(self.config.model, "random_forest", {})
             task_type = getattr(self.config.model, "task_type", "classification")
-            
+
             if task_type == "regression":
                 from sklearn.ensemble import RandomForestRegressor
                 # For regression, use RandomForestRegressor
@@ -629,7 +629,7 @@ class RandomForestModel(BaseModel):
             # Flatten input
             if len(X_train.shape) > 2:
                 X_train = X_train.reshape(X_train.shape[0], -1)
-            
+
             task_type = getattr(self.config.model, "task_type", "classification")
             if task_type == "regression":
                 # For regression, just flatten if needed

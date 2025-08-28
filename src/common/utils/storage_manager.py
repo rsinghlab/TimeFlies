@@ -39,7 +39,14 @@ class StorageManager:
         """Get experiments directory path."""
         project_root = self.path_manager._get_project_root()
         project_name = getattr(self.config, "project", "fruitfly_aging")
-        return project_root / "outputs" / project_name / "experiments"
+        batch_correction_enabled = getattr(
+            self.config.data.batch_correction, "enabled", False
+        )
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
+        )
+        task_type = getattr(self.config.model, "task_type", "classification")
+        return project_root / "outputs" / project_name / "experiments" / correction_dir / task_type
 
     def list_experiments(self) -> list[dict[str, Any]]:
         """

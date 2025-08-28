@@ -29,7 +29,7 @@ class SplitNamingUtils:
     # Smart grouping for common patterns (only for truly generic cases)
     GROUP_ABBREVIATIONS = {
         frozenset(["male", "female"]): "all",
-        frozenset(["head", "body"]): "all", 
+        frozenset(["head", "body"]): "all",
         frozenset([10, 20]): "young",
         frozenset([30, 40, 50]): "old",
     }
@@ -132,19 +132,24 @@ class SplitNamingUtils:
             subset_parts.append("hvg")
         elif getattr(config.preprocessing.genes, "remove_sex_genes", False):
             subset_parts.append("autogenes")
-        elif getattr(config.preprocessing.genes, "only_keep_sex_genes", False):
+        elif getattr(config.preprocessing.genes, "remove_autosomal_genes", False):
             subset_parts.append("sexgenes")
 
         # Cell type filtering
-        cell_type = getattr(config.data, "cell_type", "all")
+        cell_filtering = getattr(config.data, "cell_filtering", None)
+        if cell_filtering:
+            cell_type = getattr(cell_filtering, "type", "all")
+        else:
+            # Fallback for backwards compatibility
+            cell_type = getattr(config.data, "cell_type", "all")
+
         if cell_type != "all":
             subset_parts.append(cell_type[:4])  # First 4 chars
 
         # Sex filtering
-        sex_type = getattr(config.data, "sex_type", "all")
+        sex_type = getattr(config.data, "sex", "all")
         if sex_type != "all":
-            sex_abbrev = cls.VALUE_ABBREVIATIONS.get(sex_type, sex_type[:1])
-            subset_parts.append(sex_abbrev)
+            subset_parts.append(sex_type)
 
         # Combine split name with subset
         if subset_parts:
