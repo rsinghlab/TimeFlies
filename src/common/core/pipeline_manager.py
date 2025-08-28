@@ -175,18 +175,36 @@ class PipelineManager:
         if adata_eval is None:
             return None, None, None, None
 
-        # Create filtered eval_subset for metadata display
+        # Apply split filtering first to get the correct subset for metadata display
+        split_method = getattr(self.config_instance.data.split, "method", "random").lower()
+        filtered_adata_eval = adata_eval.copy()
+        
+        if split_method == "column":
+            # Apply the same filtering logic as prepare_final_eval_data
+            column = getattr(self.config_instance.data.split, "column", None)
+            test_values = getattr(self.config_instance.data.split, "test", [])
+            
+            if column and test_values:
+                # Convert values to lowercase strings for consistent matching
+                test_values_norm = [str(v).lower() for v in test_values]
+                
+                # Filter to only test values for evaluation
+                filtered_adata_eval = filtered_adata_eval[
+                    filtered_adata_eval.obs[column].str.lower().isin(test_values_norm)
+                ].copy()
+
+        # Create eval_subset from the filtered data for accurate metadata display
         if hasattr(self, 'data_preprocessor') and self.data_preprocessor is not None:
-            eval_subset = self.data_preprocessor.process_adata(adata_eval)
+            eval_subset = self.data_preprocessor.process_adata(filtered_adata_eval)
         else:
             # Fallback: create temp preprocessor
-            temp_processor = DataPreprocessor(self.config_instance, adata_eval, None)
-            eval_subset = temp_processor.process_adata(adata_eval)
+            temp_processor = DataPreprocessor(self.config_instance, filtered_adata_eval, None)
+            eval_subset = temp_processor.process_adata(filtered_adata_eval)
 
         # Process evaluation data with fitted components from training (exactly like evaluation pipeline)
         if hasattr(self, 'data_preprocessor') and self.data_preprocessor is not None:
             eval_data, eval_labels, temp_label_encoder = self.data_preprocessor.prepare_final_eval_data(
-                adata_eval,
+                adata_eval,  # Use original adata_eval since prepare_final_eval_data does its own filtering
                 getattr(self, "label_encoder", None),
                 getattr(self, "num_features", None),
                 getattr(self, "scaler", None),
