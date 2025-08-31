@@ -178,3 +178,4 @@ class GPUHandler:
                     print("   💡 Install GPU version: pip install tensorflow[and-cuda]")
                 else:
                     print("💻 CPU mode: No GPUs detected")
+        

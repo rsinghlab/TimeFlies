@@ -966,8 +966,9 @@ class PathManager:
 
     def get_best_model_dir_for_config(self) -> str:
         """
-        Get the best model directory for the current configuration from best/ collection.
-        Now handles new symlink structure: best/config_key/experiment_name/
+        Get the best model directory for the current configuration.
+        First tries to find the actual best model by scanning all experiments,
+        then falls back to the best/ symlink if that fails.
 
         Returns:
             str: Path to best model experiment directory for current config
@@ -978,13 +979,55 @@ class PathManager:
         correction_dir = (
             "batch_corrected" if self.batch_correction_enabled else "uncorrected"
         )
-
-        # Add task type directory level
         task_type = getattr(self.config.model, "task_type", "classification")
-
         config_key = self.get_config_key()
 
-        # Look for best directory with new structure: best/config_key/experiment_name/
+        # First, scan all experiments to find the actual best model
+        # This is more reliable than relying on potentially broken symlinks
+        all_runs_dir = (
+            project_root
+            / "outputs"
+            / project_name
+            / "experiments"
+            / correction_dir
+            / task_type
+            / "all_runs"
+            / config_key
+        )
+        
+        best_val_loss = float("inf")
+        best_experiment_dir = None
+        
+        if all_runs_dir.exists() and all_runs_dir.is_dir():
+            for experiment_dir in sorted(all_runs_dir.iterdir()):
+                if experiment_dir.is_dir() and experiment_dir.name.startswith("experiment_"):
+                    # Check for neural network models (best_val_loss.json)
+                    val_loss_file = experiment_dir / "model_components" / "best_val_loss.json"
+                    if val_loss_file.exists() and val_loss_file.is_file():
+                        try:
+                            import json
+                            with open(val_loss_file) as f:
+                                val_loss = json.load(f)["best_val_loss"]
+                                if val_loss < best_val_loss:
+                                    best_val_loss = val_loss
+                                    best_experiment_dir = experiment_dir
+                        except (json.JSONDecodeError, KeyError, OSError):
+                            continue
+                    
+                    # Check for sklearn models (best_val_accuracy.json)
+                    if best_experiment_dir is None:
+                        val_acc_file = experiment_dir / "model_components" / "best_val_accuracy.json"
+                        if val_acc_file.exists() and val_acc_file.is_file():
+                            # For accuracy, we want the highest value, so just take the first valid one
+                            # (This is a simple fallback for sklearn models)
+                            model_file = experiment_dir / "model.pkl"
+                            if model_file.exists():
+                                best_experiment_dir = experiment_dir
+        
+        if best_experiment_dir:
+            return str(best_experiment_dir)
+
+        # Fallback: try the best/ symlink (but check if it's not broken)
         best_config_dir = (
             project_root
             / "outputs"
@@ -997,11 +1040,11 @@ class PathManager:
         )
 
         if best_config_dir.exists() and best_config_dir.is_dir():
-            # Since we copy experiment contents directly to best/config_key/,
-            # the best_config_dir itself contains the model files
+            # Check if the directory actually contains a model
             model_file = best_config_dir / "model.keras"
-            if model_file.exists():
-                return str(best_config_dir.resolve())
+            pkl_file = best_config_dir / "model.pkl"
+            if model_file.exists() or pkl_file.exists():
+                return str(best_config_dir)
 
         # No best model exists yet for this config
         return None

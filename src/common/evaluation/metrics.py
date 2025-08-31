@@ -88,9 +88,7 @@ class EvaluationMetrics:
             logger.warning("Missing model or test data, skipping metrics computation")
             return
 
-        # Display evaluation dataset information if in eval-only pipeline
-        if self.pipeline_mode == "evaluation":
-            self._display_evaluation_info()
+        # Dataset info is shown in pipeline manager for eval-only mode
 
         # Make predictions
         predictions = self.model.predict(self.test_data, verbose=0)
@@ -194,10 +192,8 @@ class EvaluationMetrics:
             if self.output_dir:
                 results_dir = self.output_dir
             else:
-                # Fallback to old structure
-                results_dir = self.path_manager.get_results_dir(
-                    self.result_type, "eval"
-                )
+                # Fallback to experiment evaluation directory
+                results_dir = self.path_manager.get_experiment_evaluation_dir()
 
             # Create directory if it doesn't exist (skip during tests)
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):

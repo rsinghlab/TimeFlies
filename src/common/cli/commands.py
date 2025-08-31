@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import tensorflow as tf
 
 from ..analysis.eda import EDAHandler
 from ..core.active_config import get_config_for_active_project
@@ -418,8 +419,6 @@ def train_command(args, config) -> int:
         target = getattr(config.data, "target_variable", "unknown")
         tissue = getattr(config.data, "tissue", "unknown")
         model_type = getattr(config.data, "model", "unknown")
-        split_train = getattr(config.data.split, "train", "unknown")
-        split_test = getattr(config.data.split, "test", "unknown")
 
         # Use common PipelineManager for all projects (GPU will be configured there)
         with suppress_stderr():
@@ -428,18 +427,6 @@ def train_command(args, config) -> int:
 
         # Initialize and run pipeline in training mode
         pipeline = PipelineManager(config, mode="training")
-
-        # Handle lists for split values - create display format
-        # split_train_str = (
-        #     "-".join(split_train).lower()
-        #     if isinstance(split_train, list)
-        #     else str(split_train).lower()
-        # )
-        # split_test_str = (
-        #     "-".join(split_test).lower()
-        #     if isinstance(split_test, list)
-        #     else str(split_test).lower()
-        # )
 
         # Generate proper experiment name with sex/cell type filters
         from ..utils.split_naming import SplitNamingUtils
@@ -450,9 +437,6 @@ def train_command(args, config) -> int:
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
         print(f"Experiment: {pipeline.experiment_name} ({display_format})")
-        import os
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-        import tensorflow as tf
         # Get GPU info after GPU configuration
         if tf.config.list_physical_devices("GPU"):
             gpu_name = tf.config.experimental.get_device_details(
@@ -757,31 +741,58 @@ def evaluate_command(args, config) -> int:
                 print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
+        print("TIMEFLIES EVALUATION")
         print("=" * 60)
-        print("🧪 TIMEFLIES EVALUATION")
-        print("=" * 60)
+       
+        # Get experiment details for cleaner display
+        target = getattr(config.data, "target_variable", "unknown")
+        tissue = getattr(config.data, "tissue", "unknown")
+        model_type = getattr(config.data, "model", "unknown")
+
+        # Use common PipelineManager for all projects (GPU will be configured there)
+        with suppress_stderr():
+            with suppress_stderr():
+                from common.core import PipelineManager
+
+        # Initialize and run pipeline in evaluation mode
+        pipeline = PipelineManager(config, mode="evaluation")
+
+        # Generate proper experiment name with sex/cell type filters
+        from ..utils.split_naming import SplitNamingUtils
+        experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
+        display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
+
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
-        print(f"Tissue: {config.data.tissue.title()}")
-        print(f"Model: {config.data.model}")
-        print(f"Target: {config.data.target_variable.title()}")
+        print(f"Experiment: using best model ({pipeline.experiment_name} - {display_format})")
+        # Get GPU info after GPU configuration
+        if tf.config.list_physical_devices("GPU"):
+            gpu_name = tf.config.experimental.get_device_details(
+                tf.config.list_physical_devices("GPU")[0]
+            )["device_name"]
+            print(f"GPU: {gpu_name}")
+        else:
+            print("GPU: Not available (using CPU)")
 
-        # Add task type and classification info
+
+        # Simple model description with just task type
         task_type = getattr(config.model, "task_type", "classification")
         print(f"Task Type: {task_type.title()}")
 
-        if task_type == "classification":
-            # Determine if binary or multiclass
-            classification_type = config.evaluation.metrics.get("classification_type", "auto")
-            if classification_type == "auto":
-                print("Classification: Auto-detected")
-            else:
-                print(f"Classification: {classification_type.title()}")
-
         batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
         print(f"Batch Correction: {batch_status}")
-        print("-" * 60)
+
+        # Check gene filtering status and display in header
+        from pathlib import Path
+
+        project = getattr(config, "project", "unknown")
+        autosomal_path = Path(f"data/{project}/reference_data/autosomal_genes.csv")
+        sex_path = Path(f"data/{project}/reference_data/sex_genes.csv")
+
+        if not autosomal_path.exists() and not sex_path.exists():
+            print("⚠ Gene filtering disabled (no reference data found)")
+
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:
@@ -835,7 +846,6 @@ def evaluate_command(args, config) -> int:
         if original_viz is not None:
             config.visualizations.enabled = original_viz
 
-        print("\n✅ EVALUATION COMPLETED")
 
         # Run analysis after evaluation if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
