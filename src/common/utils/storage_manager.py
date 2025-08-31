@@ -228,3 +228,125 @@ class StorageManager:
             return model_improved
         else:
             return True  # Always save if policy allows
+
+    def save_outputs(
+        self,
+        pipeline,
+        training_visuals=False,
+        evaluation_visuals=False,
+        metadata=False,
+        symlinks=False,
+        result_type=None,
+        ):
+        """
+        Unified method to save various pipeline outputs.
+
+        Args:
+            pipeline: PipelineManager instance with all the data
+            training_visuals: Save training visualizations (loss/accuracy curves)
+            evaluation_visuals: Save evaluation visualizations
+            metadata: Save experiment metadata
+            symlinks: Update symlinks (latest/best)
+            result_type: "recent" or "best" for symlink directories, None for experiment directory
+        """
+        # Save metadata if requested
+        if metadata:
+            training_data = {
+                "training": {
+                    "epochs_run": len(pipeline.history.history.get("loss", [])),
+                    "best_epoch": getattr(pipeline, "best_epoch", None),
+                    "best_val_loss": min(
+                        pipeline.history.history.get("val_loss", [float("inf")])
+                    ),
+                    "model_improved": getattr(pipeline, "model_improved", False),
+                },
+            }
+
+            # Only add evaluation data if it exists
+            if hasattr(pipeline, "last_mae"):
+                training_data["evaluation"] = {
+                    "mae": pipeline.last_mae,
+                    "r2": getattr(pipeline, "last_r2", None),
+                    "pearson": getattr(pipeline, "last_pearson", None),
+                }
+
+            pipeline.path_manager.save_experiment_metadata(
+                pipeline.experiment_name, training_data
+            )
+
+        # Save model and update folders if requested
+        if symlinks:
+            # For training+evaluation pipeline, always save the model
+            # For standalone, respect the storage policy
+            model_path = pipeline.path_manager.get_experiment_model_path(
+                pipeline.experiment_name
+            )
+            import os
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            pipeline.model.save(model_path)
+
+            # Update best folder if this is a new best model
+            if pipeline.model_improved:
+                pipeline.path_manager.update_best_folder(pipeline.experiment_name)
+
+            # Always update latest folder
+            pipeline.path_manager.update_latest_folder(pipeline.experiment_name)
+
+        # Save visualizations if requested and available
+        if (
+            training_visuals or evaluation_visuals
+        ) and pipeline.visualizer_class is not None:
+            # Determine what data to pass based on visualization type
+            test_data = pipeline.test_data if evaluation_visuals else None
+            test_labels = pipeline.test_labels if evaluation_visuals else None
+            shap_values = (
+                getattr(pipeline, "squeezed_shap_values", None)
+                if evaluation_visuals
+                else None
+            )
+            shap_data = (
+                getattr(pipeline, "squeezed_test_data", None)
+                if evaluation_visuals
+                else None
+            )
+            adata = getattr(pipeline, "adata", None) if evaluation_visuals else None
+            adata_corrected = (
+                getattr(pipeline, "adata_corrected", None) if evaluation_visuals else None
+            )
+
+            # Create visualizer
+            visualizer = pipeline.visualizer_class(
+                pipeline.config_instance,
+                pipeline.model,
+                pipeline.history,
+                test_data,
+                test_labels,
+                pipeline.label_encoder,
+                shap_values,
+                shap_data,
+                adata,
+                adata_corrected,
+                pipeline.path_manager,
+            )
+
+            # Set evaluation context if result_type provided (for symlinks)
+            if result_type:
+                visualizer.set_evaluation_context(result_type)
+            elif evaluation_visuals or training_visuals:
+                visualizer.set_evaluation_context(pipeline.experiment_name)
+
+            # Generate appropriate visualizations
+            if training_visuals:
+                visualizer._visualize_training_history()
+
+            if evaluation_visuals:
+                # Set output directory for evaluation plots
+                plots_dir = pipeline.path_manager.get_experiment_plots_dir(
+                    pipeline.experiment_name
+                )
+                visualizer.visual_tools.output_dir = plots_dir
+                visualizer.run()
+
+        elif (training_visuals or evaluation_visuals) and pipeline.visualizer_class is None:
+            logger.warning("Visualizer class not available, skipping visualizations")
+

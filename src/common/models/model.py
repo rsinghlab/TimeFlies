@@ -120,8 +120,9 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         self.num_features = num_features
         self.num_features_path = num_features_path
 
-        # Initialize a flag to indicate if the model improved during training
-        self.model_improved = False
+        # Track initial and current best validation losses
+        self.initial_best_val_loss = float("inf")  # The historical best before training
+        self.model_improved = False  # True only if final model beats historical best
 
     def set_best_val_loss(self, best_val_loss):
         """
@@ -131,7 +132,9 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             best_val_loss (float): The best validation loss.
         """
 
-        # Set the best validation loss
+        # Store the historical best before training starts
+        self.initial_best_val_loss = best_val_loss
+        # Set the current best validation loss
         self.best_val_loss = best_val_loss
         self.best = best_val_loss  # Update parent class's best variable
 
@@ -152,7 +155,10 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         # If the current validation loss is better than the best validation loss seen so far
         if current_val_loss < self.best_val_loss:
             self.best_val_loss = current_val_loss
-            self.model_improved = True
+            
+            # Only set model_improved if this beats the historical best from before training
+            if current_val_loss < self.initial_best_val_loss:
+                self.model_improved = True
 
             # Custom clean message instead of verbose Keras output
             print(
@@ -640,14 +646,9 @@ class ModelBuilder:
             default_loss = "categorical_crossentropy"
             default_metrics = ["accuracy", "auc"]
 
-        # Determine optimizer based on computer type
+        # Use standard Adam optimizer for all platforms (Keras 3 compatible)
         learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
-        if getattr(self.config.hardware, "processor", "GPU").lower() == "m":
-            optimizer_instance = tf.keras.optimizers.legacy.Adam(
-                learning_rate=learning_rate
-            )  # for M1/M2/M3 Macs
-        else:
-            optimizer_instance = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer_instance = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Get loss from config
         cnn_config = getattr(self.config.model, "cnn", {})
@@ -704,15 +705,10 @@ class ModelBuilder:
             default_loss = "categorical_crossentropy"
             default_metrics = ["accuracy", "auc"]
 
-        # Determine optimizer based on computer type
-        if getattr(self.config.hardware, "processor", "GPU").lower() == "m":
-            optimizer_instance = tf.keras.optimizers.legacy.Adam(
-                learning_rate=mlp_config.learning_rate
-            )  # for M1/M2/M3 Macs
-        else:
-            optimizer_instance = tf.keras.optimizers.Adam(
-                learning_rate=mlp_config.learning_rate
-            )
+        # Use standard Adam optimizer for all platforms (Keras 3 compatible)
+        optimizer_instance = tf.keras.optimizers.Adam(
+            learning_rate=mlp_config.learning_rate
+        )
 
         # Get loss from config
         loss = getattr(mlp_config, "loss", default_loss)
@@ -984,17 +980,50 @@ class ModelBuilder:
             else self.train_data.shape[1]
         )
 
-        # Load the best validation loss from file
+        # Load the best validation loss from all experiments
         best_val_loss = float("inf")
-
-        for path_to_try in [best_symlink_path, current_path]:
+        
+        # First, scan all experiments in all_runs to find the true historical best
+        # This is more reliable than relying on potentially broken symlinks
+        try:
+            all_runs_path = str(
+                base_path
+                / project_name
+                / "experiments"
+                / correction_dir
+                / task_type
+                / "all_runs"
+                / config_key
+            )
+            if os.path.exists(all_runs_path) and os.path.isdir(all_runs_path):
+                for experiment_dir in sorted(os.listdir(all_runs_path)):
+                    if experiment_dir.startswith("experiment_"):
+                        exp_best_val_path = os.path.join(
+                            all_runs_path, experiment_dir, "model_components", "best_val_loss.json"
+                        )
+                        # Check if file exists and is not a broken symlink
+                        if os.path.exists(exp_best_val_path) and os.path.isfile(exp_best_val_path):
+                            try:
+                                with open(exp_best_val_path) as f:
+                                    exp_val_loss = json.load(f)["best_val_loss"]
+                                    if exp_val_loss < best_val_loss:
+                                        best_val_loss = exp_val_loss
+                            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                                continue
+        except (OSError, Exception) as e:
+            # Silently continue if we can't scan the all_runs directory
+            pass
+        
+        # If we still don't have a best val loss, try the current path (but not broken symlinks)
+        if best_val_loss == float("inf") and current_path:
             try:
-                if os.path.exists(path_to_try):
-                    with open(path_to_try) as f:
-                        best_val_loss = json.load(f)["best_val_loss"]
-                        break
-            except (FileNotFoundError, json.JSONDecodeError):
-                continue
+                if os.path.exists(current_path) and os.path.isfile(current_path):
+                    with open(current_path) as f:
+                        loaded_val_loss = json.load(f)["best_val_loss"]
+                        if loaded_val_loss < best_val_loss:
+                            best_val_loss = loaded_val_loss
+            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                pass
 
         # Previous model info will be shown in TRAINING PROGRESS header
 
@@ -1108,26 +1137,95 @@ class ModelBuilder:
         val_predictions = model.predict(val_inputs_split)
         val_accuracy = accuracy_score(val_labels_split, val_predictions)
 
-        # Load the best validation accuracy from file, if it exists
-        best_val_accuracy_path = os.path.join(
+        # Load the best validation accuracy from best symlink first, then current experiment
+        from pathlib import Path
+
+        # Get the correct best symlink path: base/best/config_key/model_components/best_val_accuracy.json
+        config_key = self.path_manager.get_config_key()
+        # Get base path and manually construct the correct best path
+        base_path = Path(self.path_manager._get_project_root()) / "outputs"
+        project_name = getattr(self.path_manager.config, "project", "fruitfly_aging")
+        batch_correction_enabled = getattr(
+            self.path_manager.config.data.batch_correction, "enabled", False
+        )
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
+        )
+
+        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+
+        best_symlink_accuracy_path = str(
+            base_path
+            / project_name
+            / "experiments"
+            / correction_dir
+            / task_type
+            / "best"
+            / config_key
+            / "model_components"
+            / "best_val_accuracy.json"
+        )
+        current_accuracy_path = os.path.join(
             paths["components_dir"], "best_val_accuracy.json"
         )
 
-        try:
-            with open(best_val_accuracy_path) as f:
-                best_val_accuracy = json.load(f)["best_val_accuracy"]
-        except FileNotFoundError:
-            best_val_accuracy = 0  # Initialize if no record exists
+        # Load the best validation accuracy from file
+        best_val_accuracy = 0  # Initialize as 0 for accuracy (higher is better)
+        historical_best_accuracy = 0
 
-        # Check if the current model outperforms the best one so far
+        # First, scan all experiments in all_runs to find the true historical best
+        # This is more reliable than relying on potentially broken symlinks
+        try:
+            all_runs_path = str(
+                base_path
+                / project_name
+                / "experiments"
+                / correction_dir
+                / task_type
+                / "all_runs"
+                / config_key
+            )
+            if os.path.exists(all_runs_path) and os.path.isdir(all_runs_path):
+                for experiment_dir in sorted(os.listdir(all_runs_path)):
+                    if experiment_dir.startswith("experiment_"):
+                        exp_best_acc_path = os.path.join(
+                            all_runs_path, experiment_dir, "model_components", "best_val_accuracy.json"
+                        )
+                        # Check if file exists and is not a broken symlink
+                        if os.path.exists(exp_best_acc_path) and os.path.isfile(exp_best_acc_path):
+                            try:
+                                with open(exp_best_acc_path) as f:
+                                    exp_val_acc = json.load(f)["best_val_accuracy"]
+                                    if exp_val_acc > historical_best_accuracy:
+                                        historical_best_accuracy = exp_val_acc
+                            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                                continue
+        except (OSError, Exception) as e:
+            # Silently continue if we can't scan the all_runs directory
+            pass
+        
+        # If we still don't have a best accuracy, try the current path (but not broken symlinks)
+        if historical_best_accuracy == 0 and current_accuracy_path:
+            try:
+                if os.path.exists(current_accuracy_path) and os.path.isfile(current_accuracy_path):
+                    with open(current_accuracy_path) as f:
+                        loaded_val_acc = json.load(f)["best_val_accuracy"]
+                        if loaded_val_acc > historical_best_accuracy:
+                            historical_best_accuracy = loaded_val_acc
+            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                pass
+        
+        best_val_accuracy = historical_best_accuracy
+
+        # Check if the current model outperforms the historical best (not just current best)
         print("Validation accuracy:", val_accuracy)
-        print("Best validation accuracy so far:", best_val_accuracy)
-        model_improved = val_accuracy > best_val_accuracy
+        print("Best validation accuracy so far:", historical_best_accuracy)
+        model_improved = val_accuracy > historical_best_accuracy
         print("Model improved:", model_improved)
 
         if model_improved:
             # Update the record with the new best validation accuracy
-            with open(best_val_accuracy_path, "w") as f:
+            with open(current_accuracy_path, "w") as f:
                 json.dump({"best_val_accuracy": val_accuracy}, f)
 
             # Save selected features for reference in the future

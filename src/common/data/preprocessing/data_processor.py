@@ -482,6 +482,7 @@ class DataPreprocessor:
             test_data (ndarray): Testing data.
             test_labels (ndarray): Labels for the testing data.
             label_encoder (LabelEncoder): The label encoder used to transform the labels.
+            filtered_adata (AnnData): Filtered AnnData object for display and metrics (with original metadata)
         """
         config = self.config
 
@@ -587,9 +588,12 @@ class DataPreprocessor:
                 test_data = np.log1p(test_data)
             test_data = scaler.transform(test_data)
 
+        # Keep a copy of the filtered AnnData for display/metrics (before reshaping)
+        filtered_adata = adata.copy()
+        
         # Reshape the testing data for CNN
         model_type = getattr(config.data, "model", "mlp").lower()
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
-
-        return test_data, test_labels, label_encoder
+        
+        return test_data, test_labels, label_encoder, filtered_adata
