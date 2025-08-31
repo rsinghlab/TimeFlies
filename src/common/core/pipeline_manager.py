@@ -98,9 +98,6 @@ class PipelineManager:
         
         # Initializing TimeFlies pipeline
 
-
-
-
     def _setup_pipeline(self):
         """Common pipeline setup: GPU, data loading, gene filtering, and evaluation data preparation."""
         # Setting up GPU
@@ -163,7 +160,6 @@ class PipelineManager:
                 # Note: components will be loaded separately in run_evaluation
                 self._eval_preprocessor = eval_preprocessor
                 self._adata_eval_to_use = adata_eval_to_use
-
 
     def preprocess_data(self, for_evaluation=False):
         """
@@ -243,9 +239,6 @@ class PipelineManager:
                 self.eval_adata = None
 
             # Memory cleanup removed - causes problems
-
-
-
 
 
     def run_training(self, skip_setup=False) -> dict[str, Any]:
