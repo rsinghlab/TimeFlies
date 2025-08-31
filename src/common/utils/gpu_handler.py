@@ -17,13 +17,14 @@ import contextlib
 
 @contextlib.contextmanager
 def suppress_stderr():
-    with open(os.devnull, 'w') as devnull:
+    with open(os.devnull, "w") as devnull:
         old_stderr = sys.stderr
         sys.stderr = devnull
         try:
             yield
         finally:
             sys.stderr = old_stderr
+
 
 # Import TensorFlow with stderr suppressed
 with suppress_stderr():
@@ -178,4 +179,3 @@ class GPUHandler:
                     print("   💡 Install GPU version: pip install tensorflow[and-cuda]")
                 else:
                     print("💻 CPU mode: No GPUs detected")
-        

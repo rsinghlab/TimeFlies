@@ -6,6 +6,14 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Any
 
+import numpy as np
+import xgboost as xgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+
+from ..utils.exceptions import ModelError
+from ..utils.logging_config import get_logger
+
 # Aggressive TensorFlow logging suppression
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -13,10 +21,11 @@ os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GLOG_minloglevel"] = "3"
 os.environ["TF_DISABLE_MKL"] = "1"
 
+
 # Suppress stderr during imports
 @contextlib.contextmanager
 def suppress_stderr():
-    with open(os.devnull, 'w') as devnull:
+    with open(os.devnull, "w") as devnull:
         old_stderr = sys.stderr
         sys.stderr = devnull
         try:
@@ -24,7 +33,6 @@ def suppress_stderr():
         finally:
             sys.stderr = old_stderr
 
-import numpy as np
 
 # Import TensorFlow and all Keras modules with suppressed stderr
 with suppress_stderr():
@@ -32,13 +40,6 @@ with suppress_stderr():
     from tensorflow.keras.layers import Conv1D, Dense, Dropout, GlobalMaxPooling1D
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.optimizers import Adam
-
-import xgboost as xgb
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-
-from ..utils.exceptions import ModelError
-from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -411,6 +412,7 @@ class LogisticRegressionModel(BaseModel):
 
             if task_type == "regression":
                 from sklearn.linear_model import LinearRegression
+
                 # For regression, use LinearRegression
                 self.model = LinearRegression()
                 logger.info("Linear Regression model initialized")
@@ -591,6 +593,7 @@ class RandomForestModel(BaseModel):
 
             if task_type == "regression":
                 from sklearn.ensemble import RandomForestRegressor
+
                 # For regression, use RandomForestRegressor
                 self.model = RandomForestRegressor(
                     n_estimators=getattr(rf_config, "n_estimators", 100),

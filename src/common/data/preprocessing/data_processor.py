@@ -66,13 +66,17 @@ class DataPreprocessor:
         if cell_filtering:
             cell_type = getattr(cell_filtering, "type", "all")
             if cell_type != "all":
-                cell_type_column = getattr(cell_filtering, "column", "afca_annotation_broad")
+                cell_type_column = getattr(
+                    cell_filtering, "column", "afca_annotation_broad"
+                )
                 adata = adata[adata.obs[cell_type_column] == cell_type].copy()
         else:
             # Fallback for backwards compatibility
             cell_type = getattr(config.data, "cell_type", "all")
             if cell_type != "all":
-                cell_type_column = getattr(config.data, "cell_type_column", "afca_annotation_broad")
+                cell_type_column = getattr(
+                    config.data, "cell_type_column", "afca_annotation_broad"
+                )
                 adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Shuffle genes if required
@@ -257,7 +261,11 @@ class DataPreprocessor:
 
             # Reshape to (n_samples, 1) for regression
             train_labels = train_labels.reshape(-1, 1)
-            test_labels = test_labels.reshape(-1, 1) if len(test_labels) > 0 else test_labels.reshape(0, 1)
+            test_labels = (
+                test_labels.reshape(-1, 1)
+                if len(test_labels) > 0
+                else test_labels.reshape(0, 1)
+            )
 
             return train_labels, test_labels, None
         else:
@@ -450,7 +458,7 @@ class DataPreprocessor:
             highly_variable_genes,
             mix_included,
             train_subset,  # Add metadata-rich subset for display
-            test_subset,   # Add metadata-rich subset for display
+            test_subset,  # Add metadata-rich subset for display
         )
 
     def prepare_final_eval_data(
@@ -504,13 +512,17 @@ class DataPreprocessor:
         if cell_filtering:
             cell_type = getattr(cell_filtering, "type", "all").lower()
             if cell_type != "all":
-                cell_type_column = getattr(cell_filtering, "column", "afca_annotation_broad")
+                cell_type_column = getattr(
+                    cell_filtering, "column", "afca_annotation_broad"
+                )
                 adata = adata[adata.obs[cell_type_column] == cell_type].copy()
         else:
             # Fallback for backwards compatibility
             cell_type = getattr(config.data, "cell_type", "all").lower()
             if cell_type != "all":
-                cell_type_column = getattr(config.data, "cell_type_column", "afca_annotation_broad")
+                cell_type_column = getattr(
+                    config.data, "cell_type_column", "afca_annotation_broad"
+                )
                 adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Sex Mapping
@@ -565,7 +577,9 @@ class DataPreprocessor:
 
         if task_type == "regression":
             # For regression, keep as continuous values
-            test_labels = adata.obs[encoding_var].values.astype(np.float32).reshape(-1, 1)
+            test_labels = (
+                adata.obs[encoding_var].values.astype(np.float32).reshape(-1, 1)
+            )
         else:
             # For classification, use label encoding and one-hot encoding
             # Handle case where evaluation data might have fewer classes than training
@@ -574,10 +588,14 @@ class DataPreprocessor:
 
             if missing_classes:
                 print(f"Warning: Evaluation data missing classes: {missing_classes}")
-                print(f"Model will predict across full {len(label_encoder.classes_)} class space")
+                print(
+                    f"Model will predict across full {len(label_encoder.classes_)} class space"
+                )
 
             test_labels = label_encoder.transform(adata.obs[encoding_var])
-            test_labels = to_categorical(test_labels, num_classes=len(label_encoder.classes_))
+            test_labels = to_categorical(
+                test_labels, num_classes=len(label_encoder.classes_)
+            )
 
         test_data = adata.X
         if issparse(test_data):  # Convert sparse matrices to dense
@@ -590,10 +608,10 @@ class DataPreprocessor:
 
         # Keep a copy of the filtered AnnData for display/metrics (before reshaping)
         filtered_adata = adata.copy()
-        
+
         # Reshape the testing data for CNN
         model_type = getattr(config.data, "model", "mlp").lower()
         if model_type == "cnn":
             test_data = test_data.reshape((test_data.shape[0], 1, test_data.shape[1]))
-        
+
         return test_data, test_labels, label_encoder, filtered_adata

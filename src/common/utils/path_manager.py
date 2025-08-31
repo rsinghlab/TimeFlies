@@ -994,18 +994,23 @@ class PathManager:
             / "all_runs"
             / config_key
         )
-        
+
         best_val_loss = float("inf")
         best_experiment_dir = None
-        
+
         if all_runs_dir.exists() and all_runs_dir.is_dir():
             for experiment_dir in sorted(all_runs_dir.iterdir()):
-                if experiment_dir.is_dir() and experiment_dir.name.startswith("experiment_"):
+                if experiment_dir.is_dir() and experiment_dir.name.startswith(
+                    "experiment_"
+                ):
                     # Check for neural network models (best_val_loss.json)
-                    val_loss_file = experiment_dir / "model_components" / "best_val_loss.json"
+                    val_loss_file = (
+                        experiment_dir / "model_components" / "best_val_loss.json"
+                    )
                     if val_loss_file.exists() and val_loss_file.is_file():
                         try:
                             import json
+
                             with open(val_loss_file) as f:
                                 val_loss = json.load(f)["best_val_loss"]
                                 if val_loss < best_val_loss:
@@ -1013,17 +1018,21 @@ class PathManager:
                                     best_experiment_dir = experiment_dir
                         except (json.JSONDecodeError, KeyError, OSError):
                             continue
-                    
+
                     # Check for sklearn models (best_val_accuracy.json)
                     if best_experiment_dir is None:
-                        val_acc_file = experiment_dir / "model_components" / "best_val_accuracy.json"
+                        val_acc_file = (
+                            experiment_dir
+                            / "model_components"
+                            / "best_val_accuracy.json"
+                        )
                         if val_acc_file.exists() and val_acc_file.is_file():
                             # For accuracy, we want the highest value, so just take the first valid one
                             # (This is a simple fallback for sklearn models)
                             model_file = experiment_dir / "model.pkl"
                             if model_file.exists():
                                 best_experiment_dir = experiment_dir
-        
+
         if best_experiment_dir:
             return str(best_experiment_dir)
 

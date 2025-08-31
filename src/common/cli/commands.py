@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
 import tensorflow as tf
 
 from ..analysis.eda import EDAHandler
@@ -430,6 +431,7 @@ def train_command(args, config) -> int:
 
         # Generate proper experiment name with sex/cell type filters
         from ..utils.split_naming import SplitNamingUtils
+
         experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
         display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
 
@@ -445,7 +447,6 @@ def train_command(args, config) -> int:
             print(f"GPU: {gpu_name}")
         else:
             print("GPU: Not available (using CPU)")
-
 
         # Simple model description with just task type
         task_type = getattr(config.model, "task_type", "classification")
@@ -743,7 +744,7 @@ def evaluate_command(args, config) -> int:
 
         print("TIMEFLIES EVALUATION")
         print("=" * 60)
-       
+
         # Get experiment details for cleaner display
         target = getattr(config.data, "target_variable", "unknown")
         tissue = getattr(config.data, "tissue", "unknown")
@@ -759,13 +760,16 @@ def evaluate_command(args, config) -> int:
 
         # Generate proper experiment name with sex/cell type filters
         from ..utils.split_naming import SplitNamingUtils
+
         experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
         display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
 
         print(
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
-        print(f"Experiment: using best model ({pipeline.experiment_name} - {display_format})")
+        print(
+            f"Experiment: using best model ({pipeline.experiment_name} - {display_format})"
+        )
         # Get GPU info after GPU configuration
         if tf.config.list_physical_devices("GPU"):
             gpu_name = tf.config.experimental.get_device_details(
@@ -774,7 +778,6 @@ def evaluate_command(args, config) -> int:
             print(f"GPU: {gpu_name}")
         else:
             print("GPU: Not available (using CPU)")
-
 
         # Simple model description with just task type
         task_type = getattr(config.model, "task_type", "classification")
@@ -792,7 +795,6 @@ def evaluate_command(args, config) -> int:
 
         if not autosomal_path.exists() and not sex_path.exists():
             print("⚠ Gene filtering disabled (no reference data found)")
-
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:
@@ -845,7 +847,6 @@ def evaluate_command(args, config) -> int:
             config.interpretation.shap.enabled = original_shap
         if original_viz is not None:
             config.visualizations.enabled = original_viz
-
 
         # Run analysis after evaluation if requested
         if hasattr(args, "with_analysis") and args.with_analysis:
@@ -1632,13 +1633,14 @@ def generate_data_stats(adata, project, tissue, batch_corrected=False, tier=None
 
 def setup_dev_environments() -> int:
     """Set up complete development environments with all dependencies."""
+    import platform
     from pathlib import Path
 
     try:
         print("SETUP:  Setting up TimeFlies development environments...")
         print("=" * 60)
 
-        # Check Python version (same requirement as user install)
+        # Find or install Python 3.12+
         python_cmd = None
         for cmd in ["python3.12", "python3", "python"]:
             try:
@@ -1655,9 +1657,107 @@ def setup_dev_environments() -> int:
                 continue
 
         if not python_cmd:
-            print("[ERROR] Python 3.12+ required but not found")
-            print("Install: sudo apt install python3.12 python3.12-venv")
-            return 1
+            print("[WARNING] Python 3.12+ not found - installing it now...")
+
+            # Detect OS and install Python 3.12
+            system = platform.system().lower()
+            if system == "darwin":  # macOS
+                print("INSTALL: Installing Python 3.12 on macOS...")
+                try:
+                    # Check if brew exists
+                    subprocess.run(
+                        ["brew", "--version"], capture_output=True, check=True
+                    )
+                    print("BREW: Installing Python 3.12...")
+                    subprocess.run(["brew", "install", "python@3.12"], check=True)
+                    # Install libomp for XGBoost support
+                    print("BREW: Installing OpenMP runtime for XGBoost...")
+                    subprocess.run(["brew", "install", "libomp"], check=True)
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    print("BREW: Homebrew not found - installing it first...")
+                    subprocess.run(
+                        [
+                            "/bin/bash",
+                            "-c",
+                            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)",
+                        ],
+                        check=True,
+                    )
+                    subprocess.run(["brew", "install", "python@3.12"], check=True)
+                    subprocess.run(["brew", "install", "libomp"], check=True)
+            elif system == "linux":
+                print("INSTALL: Installing Python 3.12 on Linux...")
+                try:
+                    # Try apt-get first
+                    subprocess.run(["sudo", "apt-get", "update"], check=True)
+                    subprocess.run(
+                        [
+                            "sudo",
+                            "apt-get",
+                            "install",
+                            "-y",
+                            "python3.12",
+                            "python3.12-venv",
+                            "python3.12-dev",
+                        ],
+                        check=True,
+                    )
+                except subprocess.CalledProcessError:
+                    try:
+                        # Try dnf
+                        subprocess.run(
+                            [
+                                "sudo",
+                                "dnf",
+                                "install",
+                                "-y",
+                                "python3.12",
+                                "python3.12-devel",
+                            ],
+                            check=True,
+                        )
+                    except subprocess.CalledProcessError:
+                        try:
+                            # Try yum
+                            subprocess.run(
+                                [
+                                    "sudo",
+                                    "yum",
+                                    "install",
+                                    "-y",
+                                    "python3.12",
+                                    "python3.12-devel",
+                                ],
+                                check=True,
+                            )
+                        except subprocess.CalledProcessError:
+                            print("[ERROR] Unable to install Python 3.12 automatically")
+                            print(
+                                "Please install manually: sudo apt-get install python3.12 python3.12-venv"
+                            )
+                            return 1
+            else:
+                print("[ERROR] Unknown platform. Please install Python 3.12+ manually")
+                return 1
+
+            # Check again after installation
+            for cmd in ["python3.12", "python3", "python"]:
+                try:
+                    result = subprocess.run(
+                        [cmd, "--version"], capture_output=True, text=True, check=True
+                    )
+                    version = result.stdout.strip().split()[-1]
+                    major, minor = map(int, version.split(".")[:2])
+                    if major == 3 and minor >= 12:
+                        python_cmd = cmd
+                        print(f"[OK] Python {version} installed successfully")
+                        break
+                except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+                    continue
+
+            if not python_cmd:
+                print("[ERROR] Failed to install Python 3.12. Please install manually")
+                return 1
 
         # Create main environment
         print("\nPYTHON: Setting up main environment (.venv)...")
