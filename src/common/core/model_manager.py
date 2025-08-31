@@ -1,12 +1,13 @@
 """Model management utilities for pipeline operations."""
+
 import json
 import logging
 import os
 from pathlib import Path
 from typing import Any, Optional
 
-from common.models.model import ModelBuilder, ModelLoader
 from common.display.display_manager import DisplayManager
+from common.models.model import ModelBuilder, ModelLoader
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,9 @@ class ModelManager:
         self.path_manager = path_manager
         self.display_manager = DisplayManager(config)
 
-    def get_previous_best_loss_info(self, experiment_name: str) -> tuple[float | None, str]:
+    def get_previous_best_loss_info(
+        self, experiment_name: str
+    ) -> tuple[float | None, str]:
         """
         Get previous best validation loss and a descriptive message.
 
@@ -37,7 +40,9 @@ class ModelManager:
         )
 
         # Add task_type directory level to match current path structure
-        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+        task_type = getattr(
+            self.path_manager.config.model, "task_type", "classification"
+        )
 
         best_symlink_path = str(
             base_path
@@ -82,12 +87,13 @@ class ModelManager:
         self.display_manager.display_model_architecture(model, self.config)
         return model
 
-
-
-
-    def print_training_results(self, history, model_improved: bool,
-                             original_previous_best_loss: float | None,
-                             experiment_name: str):
+    def print_training_results(
+        self,
+        history,
+        model_improved: bool,
+        original_previous_best_loss: float | None,
+        experiment_name: str,
+    ):
         """Print training results section."""
         print("\n")
         print("RESULTS")
@@ -131,18 +137,28 @@ class ModelManager:
     def load_model_components(self, config_instance):
         """Load pre-trained model and all its components for evaluation."""
         model_loader = ModelLoader(config_instance)
-        
+
         # Load model components
         components = model_loader.load_model_components()
-        
+
         # Load the actual model
         model = model_loader.load_model()
-        
+
         return model, components, model_loader
 
-    def build_model(self, config_instance, train_data, train_labels, label_encoder, 
-                   reference_data, scaler, is_scaler_fit, highly_variable_genes, 
-                   mix_included, experiment_name):
+    def build_model(
+        self,
+        config_instance,
+        train_data,
+        train_labels,
+        label_encoder,
+        reference_data,
+        scaler,
+        is_scaler_fit,
+        highly_variable_genes,
+        mix_included,
+        experiment_name,
+    ):
         """Build the model without training it."""
         # Build the model
         model_builder = ModelBuilder(
@@ -160,14 +176,14 @@ class ModelManager:
 
         # Build the model only (without training)
         model = model_builder.build_model()
-        
+
         return model, model_builder
 
     def train_model(self, model_builder, model):
         """Train the pre-built model."""
         # Train the model using the provided training data and additional components
         history, trained_model, model_improved = model_builder.train_model(model)
-        
+
         return history, trained_model, model_improved
 
     def get_previous_best_loss_message(self, experiment_name: str) -> str:
@@ -183,7 +199,9 @@ class ModelManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+        task_type = getattr(
+            self.path_manager.config.model, "task_type", "classification"
+        )
 
         best_symlink_path = str(
             base_path
@@ -232,7 +250,9 @@ class ModelManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
+        task_type = getattr(
+            self.path_manager.config.model, "task_type", "classification"
+        )
 
         best_symlink_path = str(
             base_path

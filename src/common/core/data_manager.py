@@ -1,4 +1,5 @@
 """Data processing and display management for pipeline operations."""
+
 import logging
 from typing import Optional
 
@@ -26,7 +27,9 @@ class DataProcessingManager:
         This allows flexible display of any columns (sex, genotype, age, batch, etc.)
         without hardcoding specific column names.
         """
-        display_columns = list(getattr(self.config.data, "display_columns", ["sex", "genotype"]))
+        display_columns = list(
+            getattr(self.config.data, "display_columns", ["sex", "genotype"])
+        )
 
         # Automatically add cell type column if cell filtering is enabled
         cell_filtering = getattr(self.config.data, "cell_filtering", None)
@@ -49,7 +52,9 @@ class DataProcessingManager:
         self.display_utils.print_section_separator()
 
         # Check if we have any preprocessed data to display
-        if not (hasattr(pipeline_obj, "train_data") or hasattr(pipeline_obj, "test_data")):
+        if not (
+            hasattr(pipeline_obj, "train_data") or hasattr(pipeline_obj, "test_data")
+        ):
             print("No preprocessed data available to display.")
             return
 
@@ -65,7 +70,9 @@ class DataProcessingManager:
 
     def _display_training_data(self, pipeline_obj):
         """Display training data statistics and distributions."""
-        if not (hasattr(pipeline_obj, "train_data") and pipeline_obj.train_data is not None):
+        if not (
+            hasattr(pipeline_obj, "train_data") and pipeline_obj.train_data is not None
+        ):
             print("Training Data: Not available")
             return
 
@@ -75,21 +82,30 @@ class DataProcessingManager:
             self.display_utils.print_data_statistics(pipeline_obj.train_data)
 
             # Training labels distribution
-            if hasattr(pipeline_obj, "train_labels") and pipeline_obj.train_labels is not None:
-                encoding_var = getattr(self.config.data, "target_variable", self.constants.DEFAULT_TARGET_VARIABLE)
+            if (
+                hasattr(pipeline_obj, "train_labels")
+                and pipeline_obj.train_labels is not None
+            ):
+                encoding_var = getattr(
+                    self.config.data,
+                    "target_variable",
+                    self.constants.DEFAULT_TARGET_VARIABLE,
+                )
                 label_encoder = getattr(pipeline_obj, "label_encoder", None)
                 self.display_utils.print_label_distribution(
                     pipeline_obj.train_labels,
                     label_encoder,
-                    f"  └─ {encoding_var.title()} Distribution"
+                    f"  └─ {encoding_var.title()} Distribution",
                 )
 
             # Additional distributions if available
-            if hasattr(pipeline_obj, 'train_subset') and pipeline_obj.train_subset is not None:
+            if (
+                hasattr(pipeline_obj, "train_subset")
+                and pipeline_obj.train_subset is not None
+            ):
                 display_columns = self._get_display_columns()
                 self.display_utils.print_obs_distributions(
-                    pipeline_obj.train_subset,
-                    display_columns
+                    pipeline_obj.train_subset, display_columns
                 )
 
         except Exception as e:
@@ -97,7 +113,9 @@ class DataProcessingManager:
 
     def _display_validation_data(self, pipeline_obj):
         """Display validation/test data from train/validation split."""
-        if not (hasattr(pipeline_obj, "test_data") and pipeline_obj.test_data is not None):
+        if not (
+            hasattr(pipeline_obj, "test_data") and pipeline_obj.test_data is not None
+        ):
             print("\nValidation Data: Not available")
             return
 
@@ -109,19 +127,24 @@ class DataProcessingManager:
                 self.display_utils.print_data_statistics(pipeline_obj.test_data)
 
                 # Test labels distribution
-                if hasattr(pipeline_obj, "test_labels") and pipeline_obj.test_labels is not None:
-                    encoding_var = getattr(self.config.data, "target_variable", self.constants.DEFAULT_TARGET_VARIABLE)
+                if (
+                    hasattr(pipeline_obj, "test_labels")
+                    and pipeline_obj.test_labels is not None
+                ):
+                    encoding_var = getattr(
+                        self.config.data,
+                        "target_variable",
+                        self.constants.DEFAULT_TARGET_VARIABLE,
+                    )
                     label_encoder = getattr(pipeline_obj, "label_encoder", None)
                     self.display_utils.print_label_distribution(
                         pipeline_obj.test_labels,
                         label_encoder,
-                        f"\nValidation {encoding_var.title()} Distribution"
+                        f"\nValidation {encoding_var.title()} Distribution",
                     )
 
         except Exception as e:
             print(f"\nValidation Data: Could not display details ({e})")
-
-
 
     def _show_fallback_eval_info(self, pipeline_obj):
         """Show fallback evaluation data info if processing fails."""
@@ -143,7 +166,10 @@ class DataProcessingManager:
         """Display split configuration details."""
         try:
             from common.utils.split_naming import SplitNamingUtils
-            split_config = SplitNamingUtils.extract_split_details_for_metadata(self.config)
+
+            split_config = SplitNamingUtils.extract_split_details_for_metadata(
+                self.config
+            )
             self.display_utils.print_split_configuration(split_config)
         except Exception as e:
             logger.warning(f"Could not display split configuration: {e}")

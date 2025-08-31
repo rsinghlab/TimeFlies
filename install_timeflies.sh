@@ -36,6 +36,20 @@ detect_os() {
 
 PLATFORM=$(detect_os)
 
+# Parse command line arguments
+DEV_MODE=false
+for arg in "$@"; do
+    case $arg in
+        --dev)
+            DEV_MODE=true
+            shift
+            ;;
+        *)
+            # Unknown option
+            ;;
+    esac
+done
+
 # Check if running in update mode
 UPDATE_MODE=false
 if [[ "$TIMEFLIES_UPDATE_MODE" == "1" ]]; then
@@ -44,6 +58,13 @@ if [[ "$TIMEFLIES_UPDATE_MODE" == "1" ]]; then
     echo "TimeFlies Update Mode - Refreshing Installation"
     echo "================================================"
     print_status "Updating existing TimeFlies installation"
+elif [[ "$DEV_MODE" == "true" ]]; then
+    echo "================================================"
+    echo "TimeFlies Developer Setup"
+    echo "================================================"
+    print_status "Setting up development environments..."
+    print_status "Platform: $PLATFORM"
+    print_status "Working directory: $(pwd)"
 else
     print_status "Platform: $PLATFORM"
     print_status "Working directory: $(pwd)"
@@ -187,7 +208,32 @@ if [[ "$PLATFORM" == "macos" ]]; then
 fi
 
 # Install TimeFlies
-if [[ "$UPDATE_MODE" == "true" ]]; then
+if [[ "$DEV_MODE" == "true" ]]; then
+    print_status "Setting up development installation..."
+    INSTALL_SUCCESS=false
+
+    # For dev mode, we assume we're already in the TimeFlies repo
+    if [[ ! -f "pyproject.toml" ]]; then
+        print_error "Development mode requires being in TimeFlies repository root"
+        print_error "Make sure you're in the directory containing pyproject.toml"
+        exit 1
+    fi
+
+    print_status "Installing TimeFlies in development mode..."
+    
+    # Install with development dependencies and editable mode
+    if pip install -e .[dev] >/dev/null 2>&1; then
+        print_success "Installed TimeFlies for development"
+        INSTALL_SUCCESS=true
+    else
+        print_warning "Development installation had issues, trying fallback..."
+        if pip install -e . >/dev/null 2>&1; then
+            print_success "Installed TimeFlies with basic dependencies"
+            INSTALL_SUCCESS=true
+        fi
+    fi
+
+elif [[ "$UPDATE_MODE" == "true" ]]; then
     print_status "Updating TimeFlies installation..."
     INSTALL_SUCCESS=false
 
@@ -305,7 +351,93 @@ print_success "TimeFlies installed successfully!"
 
 # Create activation script (hidden)
 print_status "Creating activation script..."
-cat > .activate.sh << 'EOF'
+
+if [[ "$DEV_MODE" == "true" ]]; then
+    # Development activation script
+    cat > .activate.sh << 'EOF'
+#!/bin/bash
+# TimeFlies Development Environment
+
+# Suppress TensorFlow/CUDA warnings and logs for cleaner output
+export TF_CPP_MIN_LOG_LEVEL=3
+export TF_ENABLE_ONEDNN_OPTS=0
+export GRPC_VERBOSITY=ERROR
+export AUTOGRAPH_VERBOSITY=0
+export ABSL_LOG_LEVEL=ERROR
+
+# Activate virtual environment
+if [[ -f ".venv/bin/activate" ]]; then
+    source .venv/bin/activate
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv) ${PS1}"
+elif [[ -f ".venv/Scripts/activate" ]]; then
+    source .venv/Scripts/activate
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv) ${PS1}"
+else
+    echo "❌ Virtual environment not found"
+    return 1
+fi
+
+# Create helpful aliases
+alias tf="timeflies"
+alias tf-setup="timeflies setup"
+alias tf-verify="timeflies verify"
+alias tf-split="timeflies split"
+alias tf-train="timeflies train"
+alias tf-eval="timeflies evaluate"
+alias tf-analyze="timeflies analyze"
+alias tf-eda="timeflies eda"
+alias tf-tune="timeflies tune"
+alias tf-queue="timeflies queue"
+alias tf-test="timeflies test"
+alias tf-gui="timeflies gui"
+alias tf-update="timeflies update"
+
+echo "🛠️ TimeFlies Development Environment Activated!"
+echo ""
+echo "Testing commands:"
+echo "  timeflies test               # Run full test suite"
+echo "  timeflies test --coverage    # Test suite with coverage report"
+echo "  timeflies test --fast        # Unit + integration tests only"
+echo "  timeflies test --debug       # Stop on first failure with details"
+echo "  timeflies test --rerun       # Re-run only failed tests"
+echo "  timeflies test unit          # Unit tests only"
+echo "  timeflies test integration   # Integration tests only"
+echo "  timeflies test functional    # Functional tests only"
+echo ""
+echo "Development tools:"
+echo "  timeflies verify             # System verification"
+echo "  timeflies create-test-data   # Generate test fixtures (3 tiers)"
+echo "  ruff check src/              # Linting"
+echo "  ruff format src/             # Code formatting"
+echo ""
+echo "Note: Batch correction tests automatically use .venv_batch environment"
+echo "      No need to manually switch - tests handle it for you"
+EOF
+else
+    # User activation script
+    cat > .activate.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Research Environment
 
@@ -391,6 +523,7 @@ echo "  2. timeflies setup           # Setup and verify everything"
 echo "  3. timeflies train           # Train with auto-evaluation"
 echo "  4. Check results in:         outputs/project_name/"
 EOF
+fi
 
 chmod +x .activate.sh
 
@@ -535,48 +668,77 @@ fi
 print_success "================================================"
 if [[ "$UPDATE_MODE" == "true" ]]; then
     print_success "🎉 TimeFlies Update Complete!"
+elif [[ "$DEV_MODE" == "true" ]]; then
+    print_success "🎉 TimeFlies Development Setup Complete!"
 else
     print_success "🎉 TimeFlies Installation Complete!"
 fi
 print_success "================================================"
 echo ""
 
-echo -e "${GREEN}🔬 Ready for Research!${NC}"
-echo ""
-echo -e "${BLUE}Next steps:${NC}"
-echo ""
-echo -e "${BLUE}1. Activate environment:${NC}"
-echo "   source .activate.sh"
-echo ""
-echo -e "${BLUE}2. Add your research data:${NC}"
-echo "   mkdir -p data/your_project/tissue_type"
-echo "   # Copy your *_original.h5ad files there"
-echo ""
-echo -e "${BLUE}3. Complete setup:${NC}"
-echo "   timeflies setup              # Creates config, templates, outputs, GUI launcher"
-echo "   timeflies setup --batch-correct          # Include batch correction in setup"
-echo ""
-echo -e "${BLUE}4. Run analysis workflow:${NC}"
-echo "   timeflies train              # Train models with auto-evaluation"
-echo "   timeflies batch-correct              # Optional: batch correction (auto-switches env)"
-echo "   timeflies train --batch-corrected        # Train with batch-corrected data"
-echo "   timeflies evaluate           # Evaluate models on test data"
-echo "   timeflies analyze            # Project-specific analysis scripts"
-echo ""
-echo -e "${BLUE}5. View results:${NC}"
-echo "   ls outputs/           # All results, plots, model analysis"
-echo ""
-echo -e "${YELLOW}📓 For Jupyter analysis:${NC}"
-echo "   pip install jupyter"
-echo "   jupyter notebook docs/notebooks/analysis.ipynb"
-echo ""
-echo -e "${GREEN}🌐 For Web GUI Interface:${NC}"
-echo "   timeflies gui                    # Launch web interface in browser"
-echo "   timeflies gui --share            # Create public URL for remote access"
-echo ""
-echo -e "${GREEN}🛠️ For Developers:${NC}"
-echo "   git clone https://github.com/rsinghlab/TimeFlies.git"
-echo "   cd TimeFlies && timeflies setup --dev  # Create environments"
+if [[ "$DEV_MODE" == "true" ]]; then
+    echo -e "${GREEN}🛠️ Development Environment Ready!${NC}"
+    echo ""
+    echo -e "${BLUE}Next steps for development:${NC}"
+    echo ""
+    echo -e "${BLUE}1. Activate development environment:${NC}"
+    echo "   source .activate.sh"
+    echo ""
+    echo -e "${BLUE}2. Verify installation:${NC}"
+    echo "   timeflies verify             # Check system setup"
+    echo "   timeflies test --fast        # Quick test run"
+    echo ""
+    echo -e "${BLUE}3. Run test suite:${NC}"
+    echo "   timeflies test               # Full test suite"
+    echo "   timeflies test --coverage    # With coverage report"
+    echo "   timeflies test --debug       # Stop on first failure"
+    echo "   timeflies test --rerun       # Re-run failed tests"
+    echo ""
+    echo -e "${BLUE}4. Code quality:${NC}"
+    echo "   ruff check src/              # Linting"
+    echo "   ruff format src/             # Code formatting"
+    echo ""
+    echo -e "${YELLOW}📓 Note: Both .venv and .venv_batch environments are ready${NC}"
+    echo -e "${YELLOW}Batch correction tests automatically switch to .venv_batch${NC}"
+    echo -e "${YELLOW}No manual environment switching needed for testing${NC}"
+else
+    echo -e "${GREEN}🔬 Ready for Research!${NC}"
+    echo ""
+    echo -e "${BLUE}Next steps:${NC}"
+    echo ""
+    echo -e "${BLUE}1. Activate environment:${NC}"
+    echo "   source .activate.sh"
+    echo ""
+    echo -e "${BLUE}2. Add your research data:${NC}"
+    echo "   mkdir -p data/your_project/tissue_type"
+    echo "   # Copy your *_original.h5ad files there"
+    echo ""
+    echo -e "${BLUE}3. Complete setup:${NC}"
+    echo "   timeflies setup              # Creates config, templates, outputs, GUI launcher"
+    echo "   timeflies setup --batch-correct          # Include batch correction in setup"
+    echo ""
+    echo -e "${BLUE}4. Run analysis workflow:${NC}"
+    echo "   timeflies train              # Train models with auto-evaluation"
+    echo "   timeflies batch-correct              # Optional: batch correction (auto-switches env)"
+    echo "   timeflies train --batch-corrected        # Train with batch-corrected data"
+    echo "   timeflies evaluate           # Evaluate models on test data"
+    echo "   timeflies analyze            # Project-specific analysis scripts"
+    echo ""
+    echo -e "${BLUE}5. View results:${NC}"
+    echo "   ls outputs/           # All results, plots, model analysis"
+    echo ""
+    echo -e "${YELLOW}📓 For Jupyter analysis:${NC}"
+    echo "   pip install jupyter"
+    echo "   jupyter notebook docs/notebooks/analysis.ipynb"
+    echo ""
+    echo -e "${GREEN}🌐 For Web GUI Interface:${NC}"
+    echo "   timeflies gui                    # Launch web interface in browser"
+    echo "   timeflies gui --share            # Create public URL for remote access"
+    echo ""
+    echo -e "${GREEN}🛠️ For Developers:${NC}"
+    echo "   git clone https://github.com/rsinghlab/TimeFlies.git"
+    echo "   ./install_timeflies.sh --dev    # Development setup"
+fi
 
 echo ""
 echo -e "${GREEN}🔄 Updates:${NC}"

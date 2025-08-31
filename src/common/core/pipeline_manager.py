@@ -15,6 +15,7 @@ from common.data.loaders import DataLoader
 from common.data.preprocessing.data_processor import DataPreprocessor
 from common.data.preprocessing.gene_filter import GeneFilter
 from common.display.display_manager import DisplayManager
+
 # ModelBuilder, ModelLoader now handled by ModelManager
 from common.utils.gpu_handler import GPUHandler
 from common.utils.path_manager import PathManager
@@ -73,7 +74,9 @@ class PipelineManager:
                     raise RuntimeError("No best experiment name found")
             except (FileNotFoundError, RuntimeError) as e:
                 # If no best experiment exists, this will fail with a clear error
-                raise RuntimeError(f"No trained model found for evaluation. Please train a model first. Error: {e}")
+                raise RuntimeError(
+                    f"No trained model found for evaluation. Please train a model first. Error: {e}"
+                )
 
         self.config_key = self.path_manager.get_config_key()
         # Config: {self.config_key}, Experiment: {self.experiment_name}
@@ -95,7 +98,7 @@ class PipelineManager:
 
         # Initialize combined pipeline flag
         self._in_combined_pipeline = False
-        
+
         # Initializing TimeFlies pipeline
 
     def _setup_pipeline(self):
@@ -137,7 +140,7 @@ class PipelineManager:
             self.adata_eval,
             self.adata_original,
         ) = self.gene_filter.apply_filter()
-        
+
         # Always prepare evaluation data regardless of mode
         # This ensures consistent data for both training+eval and eval-only modes
         if self.adata_eval is not None:
@@ -145,10 +148,10 @@ class PipelineManager:
             eval_preprocessor = DataPreprocessor(
                 self.config_instance, self.adata, self.adata_corrected
             )
-            
+
             # Use corrected data if available, otherwise regular data
             adata_eval_to_use = self.adata_eval_corrected or self.adata_eval
-            
+
             # For training mode, we'll fit components first, then prepare eval data
             # For eval-only mode, we'll use loaded components
             if self.mode == "training":
@@ -176,7 +179,11 @@ class PipelineManager:
         if for_evaluation:
             # Skip if we already processed eval data in combined pipeline
             is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
-            if is_combined_pipeline and hasattr(self, 'eval_data') and self.eval_data is not None:
+            if (
+                is_combined_pipeline
+                and hasattr(self, "eval_data")
+                and self.eval_data is not None
+            ):
                 # Already processed during training phase
                 self.test_data = self.eval_data
                 self.test_labels = self.eval_labels
@@ -217,7 +224,10 @@ class PipelineManager:
             ) = self.data_preprocessor.prepare_data()
 
             # Always process evaluation data with fitted components from training
-            if hasattr(self, '_adata_eval_to_use') and self._adata_eval_to_use is not None:
+            if (
+                hasattr(self, "_adata_eval_to_use")
+                and self._adata_eval_to_use is not None
+            ):
                 (
                     self.eval_data,
                     self.eval_labels,
@@ -239,7 +249,6 @@ class PipelineManager:
                 self.eval_adata = None
 
             # Memory cleanup removed - causes problems
-
 
     def run_training(self, skip_setup=False) -> dict[str, Any]:
         """
@@ -268,11 +277,13 @@ class PipelineManager:
         # Show training and evaluation data using DisplayManager
         try:
             self.display_manager.print_training_and_evaluation_data(
-                getattr(self, 'train_data', None),
-                getattr(self, 'eval_data', None), 
+                getattr(self, "train_data", None),
+                getattr(self, "eval_data", None),
                 self.config_instance,
-                train_subset=getattr(self, 'train_subset', None),
-                eval_subset=getattr(self, 'eval_adata', None)  # Use the filtered and processed adata for display
+                train_subset=getattr(self, "train_subset", None),
+                eval_subset=getattr(
+                    self, "eval_adata", None
+                ),  # Use the filtered and processed adata for display
             )
         except Exception as e:
             print(f"Could not display training and evaluation data: {e}")
@@ -288,20 +299,26 @@ class PipelineManager:
             self.is_scaler_fit,
             self.highly_variable_genes,
             self.mix_included,
-            self.experiment_name
+            self.experiment_name,
         )
 
         # Display model architecture after building but before training
         self.display_manager.print_header("MODEL ARCHITECTURE")
-        self.display_manager.display_model_architecture(self.model, self.config_instance)
+        self.display_manager.display_model_architecture(
+            self.model, self.config_instance
+        )
 
         # Model training
         print("\n")
-        print(f"TRAINING PROGRESS ({self.model_manager.get_previous_best_loss_message(self.experiment_name)})")
+        print(
+            f"TRAINING PROGRESS ({self.model_manager.get_previous_best_loss_message(self.experiment_name)})"
+        )
         print("=" * 60)
 
         # Store original previous best loss for comparison (before training updates it)
-        self._original_previous_best_loss = self.model_manager.get_previous_best_validation_loss(self.experiment_name)
+        self._original_previous_best_loss = (
+            self.model_manager.get_previous_best_validation_loss(self.experiment_name)
+        )
 
         self.history, self.model, self.model_improved = self.model_manager.train_model(
             self.model_builder, self.model
@@ -318,7 +335,9 @@ class PipelineManager:
         # Save training visuals to experiment directory
         if self.config_instance.visualizations.enabled:
             # Generating training visualizations
-            self.storage_manager.save_outputs(self, training_visuals=True)  # Save to experiment directory
+            self.storage_manager.save_outputs(
+                self, training_visuals=True
+            )  # Save to experiment directory
 
         # Save outputs and create symlinks after training
         self.storage_manager.save_outputs(self, metadata=True, symlinks=True)
@@ -338,7 +357,9 @@ class PipelineManager:
         # Training subsection
         print("Training:")
         current_best_loss = None
-        original_previous_best_loss = getattr(self, "_original_previous_best_loss", None)
+        original_previous_best_loss = getattr(
+            self, "_original_previous_best_loss", None
+        )
 
         if hasattr(self, "history") and self.history:
             val_losses = self.history.history.get("val_loss", [])
@@ -364,7 +385,6 @@ class PipelineManager:
         # Show training duration in Training section
         training_duration = 0
         if hasattr(self, "_training_start_time"):
-    
             training_duration = time.time() - self._training_start_time
             # Store for later use in final summary
             self._stored_training_duration = training_duration
@@ -379,11 +399,7 @@ class PipelineManager:
             "experiment_name": self.experiment_name,
         }
 
-
-
-
-
-            # Don't raise - analysis scripts are optional
+        # Don't raise - analysis scripts are optional
 
     def run_evaluation(self, skip_setup=False, is_training=False) -> dict[str, Any]:
         """
@@ -401,13 +417,13 @@ class PipelineManager:
             # Time the preprocessing/setup phase for standalone evaluation
             preprocessing_start_time = time.time()
             self._setup_pipeline()
-            
+
             # Only load model in standalone evaluation mode
             # In combined pipeline during training, model is already in memory
             if not is_training:
                 # Load model using ModelManager
-                self.model, components, self.model_loader = self.model_manager.load_model_components(
-                    self.config_instance
+                self.model, components, self.model_loader = (
+                    self.model_manager.load_model_components(self.config_instance)
                 )
                 # Unpack components
                 (
@@ -420,9 +436,12 @@ class PipelineManager:
                     self.mix_included,
                     self.reference_data,
                 ) = components
-                
+
                 # Now prepare evaluation data with loaded components
-                if hasattr(self, '_adata_eval_to_use') and self._adata_eval_to_use is not None:
+                if (
+                    hasattr(self, "_adata_eval_to_use")
+                    and self._adata_eval_to_use is not None
+                ):
                     (
                         self.eval_data,
                         self.eval_labels,
@@ -438,20 +457,20 @@ class PipelineManager:
                         self.mix_included,
                         getattr(self._eval_preprocessor, "train_gene_names", None),
                     )
-                
+
                 # Set test_data and test_labels for compatibility with existing methods
                 self.test_data = self.eval_data
                 self.test_labels = self.eval_labels
-                
+
             # Capture preprocessing duration for standalone evaluation
             self._preprocessing_duration = time.time() - preprocessing_start_time
-        
+
         # Ensure evaluation data is properly assigned for combined pipeline
         if skip_setup and is_training:
             # In combined pipeline, use data prepared during training
-            self.test_data = getattr(self, 'eval_data', None)
-            self.test_labels = getattr(self, 'eval_labels', None)
-        elif not hasattr(self, 'test_data') or self.test_data is None:
+            self.test_data = getattr(self, "eval_data", None)
+            self.test_labels = getattr(self, "eval_labels", None)
+        elif not hasattr(self, "test_data") or self.test_data is None:
             # Fallback assignment
             self.test_data = self.eval_data
             self.test_labels = self.eval_labels
@@ -462,9 +481,9 @@ class PipelineManager:
             # Display preprocessed data overview using pre-prepared data
             try:
                 self.display_manager.print_evaluation_data(
-                    self.eval_data, 
+                    self.eval_data,
                     self.config_instance,
-                    eval_subset=getattr(self, 'eval_adata', None)
+                    eval_subset=getattr(self, "eval_adata", None),
                 )
             except Exception as e:
                 print(f"Could not display evaluation data: {e}")
@@ -472,8 +491,10 @@ class PipelineManager:
             # Display model architecture (similar to training pipeline)
             print("\n")
             self.display_manager.print_header("MODEL ARCHITECTURE")
-            self.display_manager.display_model_architecture(getattr(self, 'model', None), self.config_instance)
-  
+            self.display_manager.display_model_architecture(
+                getattr(self, "model", None), self.config_instance
+            )
+
         # Start evaluation timing after data loading/preprocessing
         evaluation_start_time = time.time()
 
@@ -499,13 +520,16 @@ class PipelineManager:
         if not skip_setup:  # Only in standalone evaluation mode
             # Always update latest folder to reflect recent activity
             self.path_manager.update_latest_folder(self.experiment_name)
-            
+
             # If this is the best model, also update best folder with new evaluation results
             try:
                 best_experiment_name = self.path_manager.get_best_experiment_name()
-                if best_experiment_name and best_experiment_name == self.experiment_name:
+                if (
+                    best_experiment_name
+                    and best_experiment_name == self.experiment_name
+                ):
                     self.path_manager.update_best_folder(self.experiment_name)
-            except Exception as e:
+            except Exception:
                 # If we can't determine best experiment, skip updating best folder
                 pass
 
@@ -514,11 +538,11 @@ class PipelineManager:
 
         # Display timing appropriate for the mode
         if not skip_setup:  # Standalone evaluation mode
-            preprocessing_duration = getattr(self, '_preprocessing_duration', 0)
+            preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
             self.display_manager.print_final_timing_summary(
-                evaluation_duration, 
+                evaluation_duration,
                 preprocessing_duration=preprocessing_duration,
-                mode="evaluation"
+                mode="evaluation",
             )
         # In combined pipeline, timing is handled by run_pipeline()
 
@@ -569,7 +593,7 @@ class PipelineManager:
         # Update best/latest folders to include evaluation results
         if evaluation_results and self.experiment_name:
             # Only update best if model actually improved (not just any training run)
-            if hasattr(self, 'model_improved') and self.model_improved:
+            if hasattr(self, "model_improved") and self.model_improved:
                 self.path_manager.update_best_folder(self.experiment_name)
             # Always update latest to reflect most recent activity
             self.path_manager.update_latest_folder(self.experiment_name)
@@ -577,24 +601,26 @@ class PipelineManager:
         # Display timing summary for combined pipeline
         print()
         self.display_manager.print_header("TIMING SUMMARY")
-        
+
         # Get stored durations from different phases
-        preprocessing_duration = getattr(self, '_preprocessing_duration', 0)
-        training_duration = getattr(self, '_stored_training_duration', 0)
-        evaluation_duration = evaluation_results.get('evaluation_duration', 0)
-        
+        preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
+        training_duration = getattr(self, "_stored_training_duration", 0)
+        evaluation_duration = evaluation_results.get("evaluation_duration", 0)
+
         print(f"Preprocessing:        {self._format_duration(preprocessing_duration)}")
         print(f"Training:             {self._format_duration(training_duration)}")
         print(f"Evaluation:           {self._format_duration(evaluation_duration)}")
-        
-        total_duration = preprocessing_duration + training_duration + evaluation_duration
+
+        total_duration = (
+            preprocessing_duration + training_duration + evaluation_duration
+        )
         print(f"Total Duration:       {self._format_duration(total_duration)}")
 
         # Memory cleanup removed - causes problems
         self._in_combined_pipeline = False
 
         return pipeline_results
-    
+
     def _format_duration(self, seconds):
         """Format duration for display."""
         if seconds < 60:
@@ -609,21 +635,23 @@ class PipelineManager:
     def run_metrics(self, result_type="recent"):
         """
         Run evaluation metrics using the Metrics class.
-        
+
         Args:
             result_type: "recent" or "best" for output directory selection
         """
         if self.metrics_class is None:
             logger.warning("Metrics class not available, skipping metrics evaluation")
             return
-        
+
         # Determine pipeline mode - don't show eval info if this is combined pipeline
         is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
         pipeline_mode = "training" if is_combined_pipeline else "evaluation"
-        
+
         # Get the correct output directory for this experiment
-        evaluation_output_dir = self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
-        
+        evaluation_output_dir = self.path_manager.get_experiment_evaluation_dir(
+            self.experiment_name
+        )
+
         # Create metrics evaluator
         metrics_evaluator = self.metrics_class(
             config=self.config_instance,
@@ -636,26 +664,28 @@ class PipelineManager:
             output_dir=evaluation_output_dir,  # Pass the specific experiment evaluation directory
             pipeline_mode=pipeline_mode,
         )
-        
+
         # Run metrics evaluation
-        if hasattr(metrics_evaluator, 'compute_metrics'):
+        if hasattr(metrics_evaluator, "compute_metrics"):
             metrics_evaluator.compute_metrics()
-        elif hasattr(metrics_evaluator, 'run_evaluation'):
+        elif hasattr(metrics_evaluator, "run_evaluation"):
             metrics_evaluator.run_evaluation()
-        elif hasattr(metrics_evaluator, 'run'):
+        elif hasattr(metrics_evaluator, "run"):
             metrics_evaluator.run()
         else:
             logger.warning("Metrics evaluator does not have a run method")
-            
+
     def run_interpretation(self):
         """Run SHAP interpretation if enabled and available."""
         if self.interpreter_class is None:
             logger.warning("Interpreter class not available, skipping interpretation")
             return
-            
+
         # Get the correct output directory for this experiment
-        evaluation_output_dir = self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
-        
+        evaluation_output_dir = self.path_manager.get_experiment_evaluation_dir(
+            self.experiment_name
+        )
+
         # Create interpreter with specific output directory
         interpreter = self.interpreter_class(
             config=self.config_instance,
@@ -666,37 +696,34 @@ class PipelineManager:
             path_manager=self.path_manager,
             output_dir=evaluation_output_dir,
         )
-            
+
         # Run interpretation
-        if hasattr(interpreter, 'run'):
+        if hasattr(interpreter, "run"):
             interpreter.run()
         else:
             logger.warning("Interpreter does not have a run method")
-            
+
     def run_visualizations(self):
         """Run visualizations if enabled and available."""
         if self.visualizer_class is None:
             logger.warning("Visualizer class not available, skipping visualizations")
             return
-            
+
         # Use storage manager to handle visualizations
-        self.storage_manager.save_outputs(
-            self,
-            evaluation_visuals=True
-        )
-            
+        self.storage_manager.save_outputs(self, evaluation_visuals=True)
+
     def run_analysis_script(self):
         """Run custom analysis script if enabled."""
-        if not hasattr(self.config_instance.analysis, 'run_analysis_script'):
+        if not hasattr(self.config_instance.analysis, "run_analysis_script"):
             return
-            
+
         script_config = self.config_instance.analysis.run_analysis_script
-        if not getattr(script_config, 'enabled', False):
+        if not getattr(script_config, "enabled", False):
             return
-        
+
         # Use custom path if provided, otherwise default to 'analysis.py'
-        script_path = getattr(script_config, 'script_path', 'analysis.py')
-        
+        script_path = getattr(script_config, "script_path", "analysis.py")
+
         try:
             script_path = Path(script_path)
             if not script_path.exists():

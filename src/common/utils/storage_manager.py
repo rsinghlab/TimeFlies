@@ -46,7 +46,14 @@ class StorageManager:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
         task_type = getattr(self.config.model, "task_type", "classification")
-        return project_root / "outputs" / project_name / "experiments" / correction_dir / task_type
+        return (
+            project_root
+            / "outputs"
+            / project_name
+            / "experiments"
+            / correction_dir
+            / task_type
+        )
 
     def list_experiments(self) -> list[dict[str, Any]]:
         """
@@ -237,7 +244,7 @@ class StorageManager:
         metadata=False,
         symlinks=False,
         result_type=None,
-        ):
+    ):
         """
         Unified method to save various pipeline outputs.
 
@@ -282,6 +289,7 @@ class StorageManager:
                 pipeline.experiment_name
             )
             import os
+
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             pipeline.model.save(model_path)
 
@@ -311,7 +319,9 @@ class StorageManager:
             )
             adata = getattr(pipeline, "adata", None) if evaluation_visuals else None
             adata_corrected = (
-                getattr(pipeline, "adata_corrected", None) if evaluation_visuals else None
+                getattr(pipeline, "adata_corrected", None)
+                if evaluation_visuals
+                else None
             )
 
             # Create visualizer
@@ -347,6 +357,7 @@ class StorageManager:
                 visualizer.visual_tools.output_dir = plots_dir
                 visualizer.run()
 
-        elif (training_visuals or evaluation_visuals) and pipeline.visualizer_class is None:
+        elif (
+            training_visuals or evaluation_visuals
+        ) and pipeline.visualizer_class is None:
             logger.warning("Visualizer class not available, skipping visualizations")
-

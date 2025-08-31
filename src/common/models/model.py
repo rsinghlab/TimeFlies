@@ -20,16 +20,18 @@ os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GLOG_minloglevel"] = "3"
 os.environ["TF_DISABLE_MKL"] = "1"
 
+
 # Suppress stderr during imports
 @contextlib.contextmanager
 def suppress_stderr():
-    with open(os.devnull, 'w') as devnull:
+    with open(os.devnull, "w") as devnull:
         old_stderr = sys.stderr
         sys.stderr = devnull
         try:
             yield
         finally:
             sys.stderr = old_stderr
+
 
 # Import TensorFlow and related modules with suppressed stderr
 with suppress_stderr():
@@ -155,7 +157,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         # If the current validation loss is better than the best validation loss seen so far
         if current_val_loss < self.best_val_loss:
             self.best_val_loss = current_val_loss
-            
+
             # Only set model_improved if this beats the historical best from before training
             if current_val_loss < self.initial_best_val_loss:
                 self.model_improved = True
@@ -642,7 +644,9 @@ class ModelBuilder:
             default_loss = "mse"
             default_metrics = ["mae"]
         else:
-            model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+            model.add(
+                tf.keras.layers.Dense(units=num_output_units, activation="softmax")
+            )
             default_loss = "categorical_crossentropy"
             default_metrics = ["accuracy", "auc"]
 
@@ -657,7 +661,9 @@ class ModelBuilder:
         # Get metrics from config
         eval_config = getattr(self.config, "evaluation", {})
         config_metrics = eval_config.get("metrics", {})
-        training_metrics = config_metrics.get("training", {}).get(task_type, default_metrics)
+        training_metrics = config_metrics.get("training", {}).get(
+            task_type, default_metrics
+        )
 
         # Compile model
         model.compile(
@@ -701,7 +707,9 @@ class ModelBuilder:
             default_loss = "mse"
             default_metrics = ["mae"]
         else:
-            model.add(tf.keras.layers.Dense(units=num_output_units, activation="softmax"))
+            model.add(
+                tf.keras.layers.Dense(units=num_output_units, activation="softmax")
+            )
             default_loss = "categorical_crossentropy"
             default_metrics = ["accuracy", "auc"]
 
@@ -716,7 +724,9 @@ class ModelBuilder:
         # Get metrics from config
         eval_config = getattr(self.config, "evaluation", {})
         config_metrics = eval_config.get("metrics", {})
-        training_metrics = config_metrics.get("training", {}).get(task_type, default_metrics)
+        training_metrics = config_metrics.get("training", {}).get(
+            task_type, default_metrics
+        )
 
         # Compile model
         model.compile(
@@ -734,11 +744,14 @@ class ModelBuilder:
         Returns:
             lr: The regression model (linear or logistic based on task type).
         """
-        lr_config = getattr(self.config.model, "logistic", {})  # Note: using "logistic" to match config
+        lr_config = getattr(
+            self.config.model, "logistic", {}
+        )  # Note: using "logistic" to match config
         task_type = getattr(self.config.model, "task_type", "classification")
 
         if task_type == "regression":
             from sklearn.linear_model import LinearRegression
+
             lr = LinearRegression()
         else:
             lr = LogisticRegression(
@@ -763,6 +776,7 @@ class ModelBuilder:
 
         if task_type == "regression":
             from sklearn.ensemble import RandomForestRegressor
+
             rf = RandomForestRegressor(
                 n_estimators=rf_config.n_estimators,
                 max_depth=rf_config.max_depth,
@@ -806,7 +820,11 @@ class ModelBuilder:
             eval_metric = getattr(xgb_config, "eval_metric", "rmse")
         else:
             # Classification - determine if binary or multiclass based on number of classes
-            num_classes = len(np.unique(self.train_labels)) if hasattr(self, 'train_labels') else 2
+            num_classes = (
+                len(np.unique(self.train_labels))
+                if hasattr(self, "train_labels")
+                else 2
+            )
             if num_classes == 2:
                 xgb_objective = "binary:logistic"
                 eval_metric = getattr(xgb_config, "eval_metric", "auc")
@@ -959,19 +977,11 @@ class ModelBuilder:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
-
-        best_symlink_path = str(
-            base_path
-            / project_name
-            / "experiments"
-            / correction_dir
-            / task_type
-            / "best"
-            / config_key
-            / "model_components"
-            / "best_val_loss.json"
+        task_type = getattr(
+            self.path_manager.config.model, "task_type", "classification"
         )
+
+        # best_symlink_path variable removed - was unused
         current_path = os.path.join(paths["components_dir"], "best_val_loss.json")
 
         self.num_features = (
@@ -982,7 +992,7 @@ class ModelBuilder:
 
         # Load the best validation loss from all experiments
         best_val_loss = float("inf")
-        
+
         # First, scan all experiments in all_runs to find the true historical best
         # This is more reliable than relying on potentially broken symlinks
         try:
@@ -999,10 +1009,15 @@ class ModelBuilder:
                 for experiment_dir in sorted(os.listdir(all_runs_path)):
                     if experiment_dir.startswith("experiment_"):
                         exp_best_val_path = os.path.join(
-                            all_runs_path, experiment_dir, "model_components", "best_val_loss.json"
+                            all_runs_path,
+                            experiment_dir,
+                            "model_components",
+                            "best_val_loss.json",
                         )
                         # Check if file exists and is not a broken symlink
-                        if os.path.exists(exp_best_val_path) and os.path.isfile(exp_best_val_path):
+                        if os.path.exists(exp_best_val_path) and os.path.isfile(
+                            exp_best_val_path
+                        ):
                             try:
                                 with open(exp_best_val_path) as f:
                                     exp_val_loss = json.load(f)["best_val_loss"]
@@ -1010,10 +1025,10 @@ class ModelBuilder:
                                         best_val_loss = exp_val_loss
                             except (FileNotFoundError, json.JSONDecodeError, OSError):
                                 continue
-        except (OSError, Exception) as e:
+        except (OSError, Exception):
             # Silently continue if we can't scan the all_runs directory
             pass
-        
+
         # If we still don't have a best val loss, try the current path (but not broken symlinks)
         if best_val_loss == float("inf") and current_path:
             try:
@@ -1152,25 +1167,16 @@ class ModelBuilder:
             "batch_corrected" if batch_correction_enabled else "uncorrected"
         )
 
-        task_type = getattr(self.path_manager.config.model, "task_type", "classification")
-
-        best_symlink_accuracy_path = str(
-            base_path
-            / project_name
-            / "experiments"
-            / correction_dir
-            / task_type
-            / "best"
-            / config_key
-            / "model_components"
-            / "best_val_accuracy.json"
+        task_type = getattr(
+            self.path_manager.config.model, "task_type", "classification"
         )
+
+        # best_symlink_accuracy_path variable removed - was unused
         current_accuracy_path = os.path.join(
             paths["components_dir"], "best_val_accuracy.json"
         )
 
         # Load the best validation accuracy from file
-        best_val_accuracy = 0  # Initialize as 0 for accuracy (higher is better)
         historical_best_accuracy = 0
 
         # First, scan all experiments in all_runs to find the true historical best
@@ -1189,10 +1195,15 @@ class ModelBuilder:
                 for experiment_dir in sorted(os.listdir(all_runs_path)):
                     if experiment_dir.startswith("experiment_"):
                         exp_best_acc_path = os.path.join(
-                            all_runs_path, experiment_dir, "model_components", "best_val_accuracy.json"
+                            all_runs_path,
+                            experiment_dir,
+                            "model_components",
+                            "best_val_accuracy.json",
                         )
                         # Check if file exists and is not a broken symlink
-                        if os.path.exists(exp_best_acc_path) and os.path.isfile(exp_best_acc_path):
+                        if os.path.exists(exp_best_acc_path) and os.path.isfile(
+                            exp_best_acc_path
+                        ):
                             try:
                                 with open(exp_best_acc_path) as f:
                                     exp_val_acc = json.load(f)["best_val_accuracy"]
@@ -1200,22 +1211,24 @@ class ModelBuilder:
                                         historical_best_accuracy = exp_val_acc
                             except (FileNotFoundError, json.JSONDecodeError, OSError):
                                 continue
-        except (OSError, Exception) as e:
+        except (OSError, Exception):
             # Silently continue if we can't scan the all_runs directory
             pass
-        
+
         # If we still don't have a best accuracy, try the current path (but not broken symlinks)
         if historical_best_accuracy == 0 and current_accuracy_path:
             try:
-                if os.path.exists(current_accuracy_path) and os.path.isfile(current_accuracy_path):
+                if os.path.exists(current_accuracy_path) and os.path.isfile(
+                    current_accuracy_path
+                ):
                     with open(current_accuracy_path) as f:
                         loaded_val_acc = json.load(f)["best_val_accuracy"]
                         if loaded_val_acc > historical_best_accuracy:
                             historical_best_accuracy = loaded_val_acc
             except (FileNotFoundError, json.JSONDecodeError, OSError):
                 pass
-        
-        best_val_accuracy = historical_best_accuracy
+
+        # best_val_accuracy variable removed - was unused
 
         # Check if the current model outperforms the historical best (not just current best)
         print("Validation accuracy:", val_accuracy)
