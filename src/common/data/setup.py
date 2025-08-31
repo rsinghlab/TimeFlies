@@ -213,14 +213,29 @@ class DataSetupManager:
 
             # Use setup.yaml for split configuration
             split_config = setup_config.get("train_test_split", {})
-            split_size = split_config.get("split_size", 5000)
-            stratify_by = split_config.get("stratify_by", ["age"])
+            
+            # Check for project-specific overrides
+            project_name = getattr(self.config.data, "project", "fruitfly_aging")
+            project_overrides = setup_config.get("project_overrides", {})
+            if project_name in project_overrides:
+                # Apply project-specific overrides
+                project_config = project_overrides[project_name]
+                split_size = project_config.get("split_size", split_config.get("split_size", 5000))
+                stratify_by = project_config.get("stratify_by", split_config.get("stratify_by", ["age"]))
+                fallback_ratio = project_config.get("fallback_ratio", split_config.get("fallback_ratio", 0.2))
+                random_state = project_config.get("random_state", split_config.get("random_state", 42))
+                logger.info(f"SPLIT: Using project override for '{project_name}'")
+            else:
+                # Use base configuration
+                split_size = split_config.get("split_size", 5000)
+                stratify_by = split_config.get("stratify_by", ["age"])
+                fallback_ratio = split_config.get("fallback_ratio", 0.2)
+                random_state = split_config.get("random_state", 42)
+                logger.info("SPLIT: Using base configuration from configs/setup.yaml")
+            
             # Handle both string and list format
             if isinstance(stratify_by, str):
                 stratify_by = [stratify_by]
-            fallback_ratio = split_config.get("fallback_ratio", 0.2)
-            random_state = split_config.get("random_state", 42)
-            logger.info("SPLIT: Loading split parameters from configs/setup.yaml")
             logger.info(
                 f"SPLIT: split_size={split_size}, stratify_by={stratify_by}, random_state={random_state}"
             )
