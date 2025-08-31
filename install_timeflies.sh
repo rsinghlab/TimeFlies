@@ -54,14 +54,11 @@ PYTHON_CMD=""
 for cmd in python3.12 python3 python; do
     if command -v "$cmd" >/dev/null 2>&1; then
         VERSION=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-        if [[ $(echo "$VERSION >= 3.12" | python3 -c "
-import sys
-try:
-    v1, v2 = '$VERSION', '3.12'
-    print(1 if float(v1) >= float(v2) else 0)
-except:
-    print(0)
-" 2>/dev/null || echo "0") == "1" ]]; then
+        MAJOR=$(echo "$VERSION" | cut -d. -f1)
+        MINOR=$(echo "$VERSION" | cut -d. -f2)
+        
+        # Check if version is 3.12 or higher
+        if [[ "$MAJOR" -eq 3 && "$MINOR" -ge 12 ]]; then
             PYTHON_CMD="$cmd"
             print_success "Found Python $VERSION"
             break
@@ -70,13 +67,75 @@ except:
 done
 
 if [[ -z "$PYTHON_CMD" ]]; then
-    print_error "Python 3.12+ required but not found"
+    print_warning "Python 3.12+ not found - installing it now..."
+    
     case $PLATFORM in
-        linux) echo "Install: sudo apt install python3.12 python3.12-venv" ;;
-        macos) echo "Install: brew install python@3.12" ;;
-        windows) echo "Install from: https://www.python.org/downloads/" ;;
+        linux)
+            print_status "Installing Python 3.12 on Linux..."
+            if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y python3.12 python3.12-devel
+            elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y python3.12 python3.12-devel
+            else
+                print_error "Unable to install Python 3.12 automatically. Please install manually:"
+                echo "  sudo apt-get install python3.12 python3.12-venv"
+                exit 1
+            fi
+            ;;
+        macos)
+            print_status "Installing Python 3.12 on macOS..."
+            if command -v brew >/dev/null 2>&1; then
+                brew install python@3.12
+                # Install libomp for XGBoost support
+                print_status "Installing OpenMP runtime for XGBoost..."
+                brew install libomp
+            else
+                print_status "Homebrew not found - installing it first..."
+                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                brew install python@3.12
+                # Install libomp for XGBoost support
+                print_status "Installing OpenMP runtime for XGBoost..."
+                brew install libomp
+            fi
+            ;;
+        windows)
+            print_status "Installing Python 3.12 on Windows..."
+            # For Windows, download and install Python using PowerShell
+            powershell -Command "
+                \$url = 'https://www.python.org/ftp/python/3.12.0/python-3.12.0-amd64.exe'
+                \$output = '\$env:TEMP\python-3.12.0-amd64.exe'
+                Invoke-WebRequest -Uri \$url -OutFile \$output
+                Start-Process -FilePath \$output -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait
+            "
+            ;;
+        *)
+            print_error "Unknown platform. Please install Python 3.12 manually"
+            exit 1
+            ;;
     esac
-    exit 1
+    
+    # Check again after installation
+    for cmd in python3.12 python3 python; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            VERSION=$($cmd --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            
+            if [[ "$MAJOR" -eq 3 && "$MINOR" -ge 12 ]]; then
+                PYTHON_CMD="$cmd"
+                print_success "Python $VERSION installed successfully"
+                break
+            fi
+        fi
+    done
+    
+    if [[ -z "$PYTHON_CMD" ]]; then
+        print_error "Failed to install Python 3.12. Please install it manually and run this script again"
+        exit 1
+    fi
 fi
 
 # Create virtual environment
@@ -110,6 +169,22 @@ pip install --upgrade pip
 
 # GUI support is now web-based (gradio) - no system dependencies needed
 print_success "Web-based GUI included (gradio) - no system dependencies required"
+
+# Check for libomp on macOS (required for XGBoost)
+if [[ "$PLATFORM" == "macos" ]]; then
+    if ! brew list libomp >/dev/null 2>&1; then
+        print_status "Installing OpenMP runtime for XGBoost support..."
+        if command -v brew >/dev/null 2>&1; then
+            brew install libomp
+            print_success "OpenMP runtime installed"
+        else
+            print_warning "Homebrew not found - XGBoost may not work properly"
+            print_warning "To fix: Install Homebrew and run 'brew install libomp'"
+        fi
+    else
+        print_success "OpenMP runtime already installed"
+    fi
+fi
 
 # Install TimeFlies
 if [[ "$UPDATE_MODE" == "true" ]]; then
@@ -178,20 +253,32 @@ else
                     fi
                 fi
             else
-                print_status "No NVIDIA GPU detected - installing CPU version"
-                if pip install -e .[cpu] >/dev/null 2>&1; then
-                    print_success "Installed TimeFlies CPU version"
-                    cd ..
-                    INSTALL_SUCCESS=true
-                else
-                    print_warning "CPU installation failed, trying default version..."
+                if [[ "$PLATFORM" == "macos" ]]; then
+                    print_status "Installing TimeFlies for macOS (CPU/Metal acceleration)"
                     if pip install -e . >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies with default dependencies"
+                        print_success "Installed TimeFlies for macOS"
                         cd ..
                         INSTALL_SUCCESS=true
                     else
                         cd .. 2>/dev/null || true
                         rm -rf .timeflies_src 2>/dev/null || true
+                    fi
+                else
+                    print_status "No NVIDIA GPU detected - installing CPU version"
+                    if pip install -e .[cpu] >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies CPU version"
+                        cd ..
+                        INSTALL_SUCCESS=true
+                    else
+                        print_warning "CPU installation failed, trying default version..."
+                        if pip install -e . >/dev/null 2>&1; then
+                            print_success "Installed TimeFlies with default dependencies"
+                            cd ..
+                            INSTALL_SUCCESS=true
+                        else
+                            cd .. 2>/dev/null || true
+                            rm -rf .timeflies_src 2>/dev/null || true
+                        fi
                     fi
                 fi
             fi
