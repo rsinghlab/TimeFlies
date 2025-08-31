@@ -1,4 +1,5 @@
-# Data files
+# Data files and directories
+data/
 *.h5ad
 *.npy
 
@@ -34,6 +35,7 @@ coverage/
 .mypy_cache/
 .ruff_cache/
 .claude/
+.benchmarks/
 
 # IDE
 .vscode/
