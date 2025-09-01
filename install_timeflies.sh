@@ -166,12 +166,21 @@ if [[ "$UPDATE_MODE" == "true" ]]; then
         exit 1
     fi
 else
-    print_status "Creating Python environment..."
-    if [[ -d ".venv" ]]; then
-        print_warning "Removing existing environment..."
-        rm -rf .venv
+    if [[ "$DEV_MODE" == "true" ]]; then
+        print_status "Creating Python development environment (.venv)..."
+        if [[ -d ".venv" ]]; then
+            print_warning "Removing existing development environment..."
+            rm -rf .venv
+        fi
+        $PYTHON_CMD -m venv .venv
+    else
+        print_status "Creating Python environment..."
+        if [[ -d ".venv" ]]; then
+            print_warning "Removing existing environment..."
+            rm -rf .venv
+        fi
+        $PYTHON_CMD -m venv .venv
     fi
-    $PYTHON_CMD -m venv .venv
 fi
 
 # Activate environment
@@ -256,24 +265,61 @@ else
             # Detect GPU capability and install appropriate version
             print_status "Detecting GPU capability..."
             if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-                print_success "NVIDIA GPU detected - installing with CUDA support"
-                if pip install -e . >/dev/null 2>&1; then
-                    print_success "Installed TimeFlies with GPU support"
-                    cd ..
-                    INSTALL_SUCCESS=true
-                else
-                    print_warning "GPU installation failed, trying CPU version..."
-                    if pip install -e .[cpu] >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies with CPU fallback"
+                if [[ "$DEV_MODE" == "true" ]]; then
+                    print_success "NVIDIA GPU detected - installing TimeFlies with dev dependencies"
+                    if pip install -e ".[dev]" >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies with dev dependencies"
                         cd ..
                         INSTALL_SUCCESS=true
                     else
-                        cd .. 2>/dev/null || true
-                        rm -rf .timeflies_src 2>/dev/null || true
+                        print_warning "Dev installation failed, trying base installation..."
+                        if pip install -e . >/dev/null 2>&1; then
+                            print_warning "Installed TimeFlies base (dev dependencies may be missing)"
+                            cd ..
+                            INSTALL_SUCCESS=true
+                        else
+                            cd .. 2>/dev/null || true
+                            rm -rf .timeflies_src 2>/dev/null || true
+                        fi
+                    fi
+                else
+                    print_success "NVIDIA GPU detected - installing with CUDA support"
+                    if pip install -e . >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies with GPU support"
+                        cd ..
+                        INSTALL_SUCCESS=true
+                    else
+                        print_warning "GPU installation failed, trying CPU version..."
+                        if pip install -e .[cpu] >/dev/null 2>&1; then
+                            print_success "Installed TimeFlies with CPU fallback"
+                            cd ..
+                            INSTALL_SUCCESS=true
+                        else
+                            cd .. 2>/dev/null || true
+                            rm -rf .timeflies_src 2>/dev/null || true
+                        fi
                     fi
                 fi
             else
                 if [[ "$PLATFORM" == "macos" ]]; then
+                if [[ "$DEV_MODE" == "true" ]]; then
+                    print_status "Installing TimeFlies for development on macOS"
+                    if pip install -e ".[dev]" >/dev/null 2>&1; then
+                        print_success "Installed TimeFlies for development on macOS"
+                        cd ..
+                        INSTALL_SUCCESS=true
+                    else
+                        print_warning "Dev installation failed, trying base installation..."
+                        if pip install -e . >/dev/null 2>&1; then
+                            print_warning "Installed TimeFlies base for macOS (dev dependencies may be missing)"
+                            cd ..
+                            INSTALL_SUCCESS=true
+                        else
+                            cd .. 2>/dev/null || true
+                            rm -rf .timeflies_src 2>/dev/null || true
+                        fi
+                    fi
+                else
                     print_status "Installing TimeFlies for macOS (CPU/Metal acceleration)"
                     if pip install -e . >/dev/null 2>&1; then
                         print_success "Installed TimeFlies for macOS"
@@ -283,21 +329,41 @@ else
                         cd .. 2>/dev/null || true
                         rm -rf .timeflies_src 2>/dev/null || true
                     fi
+                fi
                 else
-                    print_status "No NVIDIA GPU detected - installing CPU version"
-                    if pip install -e .[cpu] >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies CPU version"
-                        cd ..
-                        INSTALL_SUCCESS=true
-                    else
-                        print_warning "CPU installation failed, trying default version..."
-                        if pip install -e . >/dev/null 2>&1; then
-                            print_success "Installed TimeFlies with default dependencies"
+                    if [[ "$DEV_MODE" == "true" ]]; then
+                        print_status "No NVIDIA GPU detected - installing dev version"
+                        if pip install -e ".[dev]" >/dev/null 2>&1; then
+                            print_success "Installed TimeFlies with dev dependencies"
                             cd ..
                             INSTALL_SUCCESS=true
                         else
-                            cd .. 2>/dev/null || true
-                            rm -rf .timeflies_src 2>/dev/null || true
+                            print_warning "Dev installation failed, trying base installation..."
+                            if pip install -e . >/dev/null 2>&1; then
+                                print_warning "Installed TimeFlies base (dev dependencies may be missing)"
+                                cd ..
+                                INSTALL_SUCCESS=true
+                            else
+                                cd .. 2>/dev/null || true
+                                rm -rf .timeflies_src 2>/dev/null || true
+                            fi
+                        fi
+                    else
+                        print_status "No NVIDIA GPU detected - installing CPU version"
+                        if pip install -e .[cpu] >/dev/null 2>&1; then
+                            print_success "Installed TimeFlies CPU version"
+                            cd ..
+                            INSTALL_SUCCESS=true
+                        else
+                            print_warning "CPU installation failed, trying default version..."
+                            if pip install -e . >/dev/null 2>&1; then
+                                print_success "Installed TimeFlies with default dependencies"
+                                cd ..
+                                INSTALL_SUCCESS=true
+                            else
+                                cd .. 2>/dev/null || true
+                                rm -rf .timeflies_src 2>/dev/null || true
+                            fi
                         fi
                     fi
                 fi
@@ -324,8 +390,106 @@ fi
 print_success "TimeFlies installed successfully!"
 
 # Create activation script (hidden)
-print_status "Creating activation script..."
-cat > .activate.sh << 'EOF'
+if [[ "$DEV_MODE" == "true" ]]; then
+    print_status "Creating development activation script..."
+    cat > .activate.sh << 'EOF'
+#!/bin/bash
+# TimeFlies Development Environment
+
+# Suppress TensorFlow/CUDA warnings and logs for cleaner output
+export TF_CPP_MIN_LOG_LEVEL=3
+export TF_ENABLE_ONEDNN_OPTS=0
+export GRPC_VERBOSITY=ERROR
+export AUTOGRAPH_VERBOSITY=0
+export ABSL_LOG_LEVEL=ERROR
+
+# Activate virtual environment
+if [[ -f ".venv/bin/activate" ]]; then
+    source .venv/bin/activate
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv) ${PS1}"
+elif [[ -f ".venv/Scripts/activate" ]]; then
+    source .venv/Scripts/activate
+    # Clean up prompt - remove any existing venv indicators
+    PS1="${PS1//(.venv) /}"
+    PS1="${PS1//(.venv)/}"
+    PS1="${PS1//((.venv) )/}"
+    PS1="${PS1//((.venv))/}"
+    PS1="${PS1//() /}"
+    PS1="${PS1//()/}"
+    PS1="${PS1//( ) /}"
+    PS1="${PS1//( )/}"
+    # Remove any trailing spaces
+    PS1="${PS1% }"
+    export PS1="(.venv) ${PS1}"
+else
+    echo "❌ Virtual environment not found"
+    return 1
+fi
+
+# Create helpful aliases for development
+alias tf="timeflies"
+alias tf-setup="timeflies setup"
+alias tf-verify="timeflies verify"
+alias tf-split="timeflies split"
+alias tf-train="timeflies train"
+alias tf-eval="timeflies evaluate"
+alias tf-analyze="timeflies analyze"
+alias tf-eda="timeflies eda"
+alias tf-tune="timeflies tune"
+alias tf-queue="timeflies queue"
+alias tf-test="timeflies test"
+alias tf-gui="timeflies gui"
+alias tf-uninstall="timeflies uninstall"
+
+echo "🧬 TimeFlies Development Environment Activated!"
+echo ""
+echo "Testing commands:"
+echo "  timeflies test               # Run full test suite"
+echo "  pytest                       # Run pytest directly"
+echo "  pytest -v                    # Verbose test output"
+echo "  pytest -k test_name          # Run specific tests"
+echo ""
+echo "Code quality tools:"
+echo "  ruff check                   # Check code style and errors"
+echo "  ruff check --fix             # Auto-fix code issues"
+echo "  ruff format                  # Format code"
+echo "  mypy src/                    # Type checking"
+echo ""
+echo "Development commands:"
+echo "  timeflies create-test-data   # Generate test fixtures"
+echo "  timeflies setup              # Setup test data and configs"
+echo "  timeflies train              # Test ML training pipeline"
+echo "  timeflies evaluate           # Test evaluation pipeline"
+echo "  timeflies split              # Test data splitting"
+echo "  timeflies batch-correct      # Test batch correction"
+echo "  timeflies eda                # Test EDA pipeline"
+echo "  timeflies analyze            # Test analysis pipeline"
+echo ""
+echo "Development environments:"
+echo "  Main: .venv (TimeFlies + dev dependencies + testing tools)"
+echo "  Batch: .venv_batch (batch correction + dev dependencies)"
+echo ""
+echo "Development workflow:"
+echo "  1. ruff check                # Check code quality"
+echo "  2. timeflies test            # Run full test suite"
+echo "  3. Make your code changes"
+echo "  4. ruff check --fix          # Fix any style issues"
+echo "  5. pytest                    # Test your changes"
+EOF
+else
+    print_status "Creating user activation script..."
+    cat > .activate.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Research Environment
 
@@ -411,6 +575,7 @@ echo "  2. timeflies setup           # Setup and verify everything"
 echo "  3. timeflies train           # Train with auto-evaluation"
 echo "  4. Check results in:         outputs/project_name/"
 EOF
+fi
 
 chmod +x .activate.sh
 
@@ -503,8 +668,8 @@ if [[ "$DEV_MODE" != "true" ]]; then
 fi
 
 # Setup batch correction environment 
-if [[ "$DEV_MODE" == "true" ]]; then
-    print_status "Creating batch correction environment for development..."
+if [[ "$DEV_MODE" == "true" ]] || [[ "$UPDATE_MODE" != "true" ]]; then
+    print_status "Creating batch correction environment..."
     if [[ ! -d ".venv_batch" ]]; then
         print_status "Creating PyTorch environment for batch correction..."
         $PYTHON_CMD -m venv .venv_batch
@@ -516,19 +681,21 @@ if [[ "$DEV_MODE" == "true" ]]; then
             source .venv_batch/bin/activate
         fi
 
-        # Install PyTorch + scvi-tools + batch correction dependencies
+        # Install batch correction dependencies
         pip install --upgrade pip
-
-        # Detect GPU for PyTorch installation
-        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-            print_status "Installing PyTorch with CUDA support for batch correction..."
-            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+        
+        # Install TimeFlies with batch-correction and dev extras for dev mode
+        if [[ "$DEV_MODE" == "true" ]]; then
+            print_status "Installing TimeFlies with batch correction and dev dependencies..."
+            cd .timeflies_src
+            pip install -e ".[batch-correction,dev]" >/dev/null 2>&1
+            cd ..
         else
-            print_status "Installing PyTorch CPU version for batch correction..."
-            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+            print_status "Installing TimeFlies with batch correction dependencies..."
+            cd .timeflies_src
+            pip install -e ".[batch-correction]" >/dev/null 2>&1
+            cd ..
         fi
-
-        pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
 
         # Deactivate batch environment
         deactivate
@@ -549,48 +716,7 @@ elif [[ "$UPDATE_MODE" == "true" ]]; then
     if [[ -d ".venv_batch" ]]; then
         print_success "Batch correction environment exists"
     else
-        print_warning "Batch correction environment missing - use 'timeflies setup --dev' to recreate"
-    fi
-else
-    print_status "Setting up batch correction environment..."
-    if [[ ! -d ".venv_batch" ]]; then
-        print_status "Creating PyTorch environment for batch correction..."
-        $PYTHON_CMD -m venv .venv_batch
-
-        # Activate batch environment
-        if [[ "$PLATFORM" == "windows" ]]; then
-            source .venv_batch/Scripts/activate
-        else
-            source .venv_batch/bin/activate
-        fi
-
-        # Install PyTorch + scvi-tools + batch correction dependencies
-        pip install --upgrade pip
-
-        # Detect GPU for PyTorch installation
-        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-            print_status "Installing PyTorch with CUDA support for batch correction..."
-            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-        else
-            print_status "Installing PyTorch CPU version for batch correction..."
-            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-        fi
-
-        pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
-
-        # Deactivate batch environment
-        deactivate
-
-        # Reactivate main environment
-        if [[ "$PLATFORM" == "windows" ]]; then
-            source .venv/Scripts/activate
-        else
-            source .venv/bin/activate
-        fi
-
-        print_success "Batch correction environment created!"
-    else
-        print_success "Batch correction environment already exists"
+        print_warning "Batch correction environment missing - use './install_timeflies.sh --dev' to recreate"
     fi
 fi
 
@@ -617,8 +743,8 @@ if [[ "$DEV_MODE" == "true" ]]; then
     echo ""
     echo -e "${BLUE}2. Start developing:${NC}"
     echo "   # Your development environments are ready"
-    echo "   # Main: .venv (TimeFlies + ML dependencies)"
-    echo "   # Batch: .venv_batch (PyTorch + scvi-tools)"
+    echo "   # Main: .venv (TimeFlies + dev dependencies)"
+    echo "   # Batch: .venv_batch (TimeFlies + batch-correction + dev dependencies)"
     echo ""
     echo -e "${BLUE}3. Development commands:${NC}"
     echo "   timeflies test               # Run test suite"
