@@ -707,9 +707,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "all_runs"
             / config_key
             / experiment_name
@@ -868,6 +868,7 @@ class PathManager:
             / project_name
             / correction_dir
             / task_type
+            / "experiments"
             / "best"
             / config_key
         )
@@ -896,6 +897,7 @@ class PathManager:
             / project_name
             / correction_dir
             / task_type
+            / "experiments"
             / "latest"
             / config_key
         )
@@ -957,9 +959,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "all_runs"
             / config_key
             / experiment_name
@@ -1014,9 +1016,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "all_runs"
             / config_key
             / experiment_name
@@ -1067,9 +1069,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "all_runs"
             / config_key
         )
@@ -1120,9 +1122,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "best"
             / config_key
         )
