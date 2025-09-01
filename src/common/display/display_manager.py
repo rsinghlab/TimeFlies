@@ -16,11 +16,6 @@ class DisplayManager:
     def __init__(self, config=None):
         self.config = config
 
-    def print_header(self, title: str, width: int = 60):
-        """Print a formatted header with title."""
-        print(title.upper())
-        print("=" * width)
-
     def print_project_and_dataset_overview(self, config, adata, adata_eval=None):
         """Print project information and dataset overview."""
         print(f"Project: {config.project.replace('_', ' ').title()}")
@@ -51,24 +46,11 @@ class DisplayManager:
         ):
             print("⚠ Gene filtering disabled (no reference data found)")
 
-    def print_obs_distributions(self, adata, columns: list[str]):
-        """Print distribution information for specified columns."""
-        for column in columns:
-            if column in adata.obs.columns:
-                print(f"  └─ {column.title()} Distribution:")
-                value_counts = adata.obs[column].value_counts()
-                total = len(adata.obs)
-                for value, count in value_counts.items():
-                    percentage = (count / total) * 100
-                    print(
-                        f"      └─ {value:10} : {count:6,} samples ({percentage:5.1f}%)"
-                    )
-
     def print_training_and_evaluation_data(
         self, train_data, eval_data, config, train_subset=None, eval_subset=None
         ):
         """Print comprehensive overview of both training and evaluation datasets."""
-        self.print_header("PREPROCESSED DATA OVERVIEW")
+        self._print_header("PREPROCESSED DATA OVERVIEW")
 
         # Training data info
         print("Training Data:")
@@ -88,7 +70,7 @@ class DisplayManager:
         # Distribution info for training
         if train_subset is not None:
             target_var = getattr(config.data, "target_variable", "age")
-            self.print_obs_distributions(train_subset, [target_var, "sex"])
+            self._print_obs_distributions(train_subset, [target_var, "sex"])
 
         print()
 
@@ -110,7 +92,7 @@ class DisplayManager:
         # Distribution info for evaluation
         if eval_subset is not None:
             target_var = getattr(config.data, "target_variable", "age")
-            self.print_obs_distributions(eval_subset, [target_var, "sex"])
+            self._print_obs_distributions(eval_subset, [target_var, "sex"])
 
         # Split configuration
         split_method = getattr(config.data.split, "method", "unknown")
@@ -120,7 +102,7 @@ class DisplayManager:
 
     def print_evaluation_data(self, eval_data, config, eval_subset=None):
         """Print evaluation dataset overview."""
-        self.print_header("EVALUATION DATASET OVERVIEW")
+        self._print_header("EVALUATION DATASET OVERVIEW")
 
         if eval_data is not None:
             print("Evaluation Data:")
@@ -142,7 +124,7 @@ class DisplayManager:
         # Distribution info from eval_subset AnnData
         if eval_subset is not None:
             target_var = getattr(config.data, "target_variable", "age")
-            self.print_obs_distributions(eval_subset, [target_var, "sex"])
+            self._print_obs_distributions(eval_subset, [target_var, "sex"])
 
         # Split configuration
         split_method = getattr(config.data.split, "method", "unknown")
@@ -152,7 +134,7 @@ class DisplayManager:
 
     def display_model_architecture(self, model, config):
         """Display model architecture and training configuration."""
-        self.print_header("MODEL ARCHITECTURE")
+        self._print_header("MODEL ARCHITECTURE")
 
         model_type = getattr(config.data, "model", "Unknown")
         print(f"Model Type: {model_type}")
@@ -198,25 +180,14 @@ class DisplayManager:
             logger.debug(f"Could not get previous best loss: {e}")
             return "Could not determine previous validation loss"
 
-    def format_duration(self, seconds):
-        """Format duration for display."""
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        elif seconds < 3600:
-            minutes = seconds / 60
-            return f"{minutes:.1f}m"
-        else:
-            hours = seconds / 3600
-            return f"{hours:.1f}h"
-
     def print_training_progress_header(self, previous_best_msg):
         """Print training progress header with previous best loss info."""
-        self.print_header(f"TRAINING PROGRESS ({previous_best_msg})")
+        self._print_header(f"TRAINING PROGRESS ({previous_best_msg})")
     
     def print_training_results(self, history, original_previous_best_loss, 
                               experiment_name, improvement_status):
         """Print training results section."""
-        self.print_header("TRAINING RESULTS")
+        self._print_header("TRAINING RESULTS")
         current_best_loss = None
         
         if history:
@@ -246,16 +217,47 @@ class DisplayManager:
     def print_timing_summary(self, preprocessing_duration=0, training_duration=0, 
                             evaluation_duration=0):
         """Print timing summary for any pipeline mode."""
-        self.print_header("TIMING SUMMARY")
+        self._print_header("TIMING SUMMARY")
         
         # Show only the durations that are non-zero
         if preprocessing_duration > 0:
-            print(f"Preprocessing:        {self.format_duration(preprocessing_duration)}")
+            print(f"Preprocessing:        {self._format_duration(preprocessing_duration)}")
         if training_duration > 0:
-            print(f"Training:             {self.format_duration(training_duration)}")
+            print(f"Training:             {self._format_duration(training_duration)}")
         if evaluation_duration > 0:
-            print(f"Evaluation:           {self.format_duration(evaluation_duration)}")
+            print(f"Evaluation:           {self._format_duration(evaluation_duration)}")
         
         total_duration = preprocessing_duration + training_duration + evaluation_duration
         if total_duration > 0:
-            print(f"Total Duration:       {self.format_duration(total_duration)}")
+            print(f"Total Duration:       {self._format_duration(total_duration)}")
+
+    def _print_header(self, title: str, width: int = 60):
+        """Print a formatted header with title."""
+        print()
+        print(title.upper())
+        print("=" * width)
+
+    def _format_duration(self, seconds):
+        """Format duration for display."""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}m"
+        else:
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+
+    def _print_obs_distributions(self, adata, columns: list[str]):
+        """Print distribution information for specified columns."""
+        for column in columns:
+            if column in adata.obs.columns:
+                print(f"  └─ {column.title()} Distribution:")
+                value_counts = adata.obs[column].value_counts()
+                total = len(adata.obs)
+                for value, count in value_counts.items():
+                    percentage = (count / total) * 100
+                    print(
+                        f"      └─ {value:10} : {count:6,} samples ({percentage:5.1f}%)"
+                    )
+    

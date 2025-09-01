@@ -2386,7 +2386,7 @@ def update_command(args) -> int:
                     pass
 
             # Clone the latest version
-            repo_url = "git@github.com:rsinghlab/TimeFlies.git"
+            repo_url = "https://github.com/rsinghlab/TimeFlies.git"
             clone_result = subprocess.run(
                 [
                     "git",
