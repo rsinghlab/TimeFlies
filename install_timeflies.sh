@@ -36,8 +36,11 @@ detect_os() {
 
 PLATFORM=$(detect_os)
 
-# Parse command line arguments
+# Check command line arguments
 DEV_MODE=false
+UPDATE_MODE=false
+
+# Parse command line arguments
 for arg in "$@"; do
     case $arg in
         --dev)
@@ -50,8 +53,6 @@ for arg in "$@"; do
     esac
 done
 
-# Check if running in update mode
-UPDATE_MODE=false
 if [[ "$TIMEFLIES_UPDATE_MODE" == "1" ]]; then
     UPDATE_MODE=true
     echo "================================================"
@@ -60,11 +61,9 @@ if [[ "$TIMEFLIES_UPDATE_MODE" == "1" ]]; then
     print_status "Updating existing TimeFlies installation"
 elif [[ "$DEV_MODE" == "true" ]]; then
     echo "================================================"
-    echo "TimeFlies Developer Setup"
+    echo "TimeFlies Developer Mode - Minimal Installation"
     echo "================================================"
-    print_status "Setting up development environments..."
-    print_status "Platform: $PLATFORM"
-    print_status "Working directory: $(pwd)"
+    print_status "Installing TimeFlies for development"
 else
     print_status "Platform: $PLATFORM"
     print_status "Working directory: $(pwd)"
@@ -208,32 +207,7 @@ if [[ "$PLATFORM" == "macos" ]]; then
 fi
 
 # Install TimeFlies
-if [[ "$DEV_MODE" == "true" ]]; then
-    print_status "Setting up development installation..."
-    INSTALL_SUCCESS=false
-
-    # For dev mode, we assume we're already in the TimeFlies repo
-    if [[ ! -f "pyproject.toml" ]]; then
-        print_error "Development mode requires being in TimeFlies repository root"
-        print_error "Make sure you're in the directory containing pyproject.toml"
-        exit 1
-    fi
-
-    print_status "Installing TimeFlies in development mode..."
-    
-    # Install with development dependencies and editable mode
-    if pip install -e .[dev] >/dev/null 2>&1; then
-        print_success "Installed TimeFlies for development"
-        INSTALL_SUCCESS=true
-    else
-        print_warning "Development installation had issues, trying fallback..."
-        if pip install -e . >/dev/null 2>&1; then
-            print_success "Installed TimeFlies with basic dependencies"
-            INSTALL_SUCCESS=true
-        fi
-    fi
-
-elif [[ "$UPDATE_MODE" == "true" ]]; then
+if [[ "$UPDATE_MODE" == "true" ]]; then
     print_status "Updating TimeFlies installation..."
     INSTALL_SUCCESS=false
 
@@ -351,93 +325,7 @@ print_success "TimeFlies installed successfully!"
 
 # Create activation script (hidden)
 print_status "Creating activation script..."
-
-if [[ "$DEV_MODE" == "true" ]]; then
-    # Development activation script
-    cat > .activate.sh << 'EOF'
-#!/bin/bash
-# TimeFlies Development Environment
-
-# Suppress TensorFlow/CUDA warnings and logs for cleaner output
-export TF_CPP_MIN_LOG_LEVEL=3
-export TF_ENABLE_ONEDNN_OPTS=0
-export GRPC_VERBOSITY=ERROR
-export AUTOGRAPH_VERBOSITY=0
-export ABSL_LOG_LEVEL=ERROR
-
-# Activate virtual environment
-if [[ -f ".venv/bin/activate" ]]; then
-    source .venv/bin/activate
-    # Clean up prompt - remove any existing venv indicators
-    PS1="${PS1//(.venv) /}"
-    PS1="${PS1//(.venv)/}"
-    PS1="${PS1//((.venv) )/}"
-    PS1="${PS1//((.venv))/}"
-    PS1="${PS1//() /}"
-    PS1="${PS1//()/}"
-    PS1="${PS1//( ) /}"
-    PS1="${PS1//( )/}"
-    # Remove any trailing spaces
-    PS1="${PS1% }"
-    export PS1="(.venv) ${PS1}"
-elif [[ -f ".venv/Scripts/activate" ]]; then
-    source .venv/Scripts/activate
-    # Clean up prompt - remove any existing venv indicators
-    PS1="${PS1//(.venv) /}"
-    PS1="${PS1//(.venv)/}"
-    PS1="${PS1//((.venv) )/}"
-    PS1="${PS1//((.venv))/}"
-    PS1="${PS1//() /}"
-    PS1="${PS1//()/}"
-    PS1="${PS1//( ) /}"
-    PS1="${PS1//( )/}"
-    # Remove any trailing spaces
-    PS1="${PS1% }"
-    export PS1="(.venv) ${PS1}"
-else
-    echo "❌ Virtual environment not found"
-    return 1
-fi
-
-# Create helpful aliases
-alias tf="timeflies"
-alias tf-setup="timeflies setup"
-alias tf-verify="timeflies verify"
-alias tf-split="timeflies split"
-alias tf-train="timeflies train"
-alias tf-eval="timeflies evaluate"
-alias tf-analyze="timeflies analyze"
-alias tf-eda="timeflies eda"
-alias tf-tune="timeflies tune"
-alias tf-queue="timeflies queue"
-alias tf-test="timeflies test"
-alias tf-gui="timeflies gui"
-alias tf-update="timeflies update"
-
-echo "🛠️ TimeFlies Development Environment Activated!"
-echo ""
-echo "Testing commands:"
-echo "  timeflies test               # Run full test suite"
-echo "  timeflies test --coverage    # Test suite with coverage report"
-echo "  timeflies test --fast        # Unit + integration tests only"
-echo "  timeflies test --debug       # Stop on first failure with details"
-echo "  timeflies test --rerun       # Re-run only failed tests"
-echo "  timeflies test unit          # Unit tests only"
-echo "  timeflies test integration   # Integration tests only"
-echo "  timeflies test functional    # Functional tests only"
-echo ""
-echo "Development tools:"
-echo "  timeflies verify             # System verification"
-echo "  timeflies create-test-data   # Generate test fixtures (3 tiers)"
-echo "  ruff check src/              # Linting"
-echo "  ruff format src/             # Code formatting"
-echo ""
-echo "Note: Batch correction tests automatically use .venv_batch environment"
-echo "      No need to manually switch - tests handle it for you"
-EOF
-else
-    # User activation script
-    cat > .activate.sh << 'EOF'
+cat > .activate.sh << 'EOF'
 #!/bin/bash
 # TimeFlies Research Environment
 
@@ -523,7 +411,6 @@ echo "  2. timeflies setup           # Setup and verify everything"
 echo "  3. timeflies train           # Train with auto-evaluation"
 echo "  4. Check results in:         outputs/project_name/"
 EOF
-fi
 
 chmod +x .activate.sh
 
@@ -608,14 +495,56 @@ else
     print_warning "CLI test had warnings (this is normal)"
 fi
 
-# Create basic directory structure
-print_status "Setting up project structure..."
-mkdir -p data
+# Create basic directory structure (skip in dev mode)
+if [[ "$DEV_MODE" != "true" ]]; then
+    print_status "Setting up project structure..."
+    mkdir -p data
+    # Basic project structure (user mode only)
+fi
 
-# Basic project structure (user mode only)
+# Setup batch correction environment 
+if [[ "$DEV_MODE" == "true" ]]; then
+    print_status "Creating batch correction environment for development..."
+    if [[ ! -d ".venv_batch" ]]; then
+        print_status "Creating PyTorch environment for batch correction..."
+        $PYTHON_CMD -m venv .venv_batch
 
-# Setup batch correction environment
-if [[ "$UPDATE_MODE" == "true" ]]; then
+        # Activate batch environment
+        if [[ "$PLATFORM" == "windows" ]]; then
+            source .venv_batch/Scripts/activate
+        else
+            source .venv_batch/bin/activate
+        fi
+
+        # Install PyTorch + scvi-tools + batch correction dependencies
+        pip install --upgrade pip
+
+        # Detect GPU for PyTorch installation
+        if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+            print_status "Installing PyTorch with CUDA support for batch correction..."
+            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+        else
+            print_status "Installing PyTorch CPU version for batch correction..."
+            pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+        fi
+
+        pip install scvi-tools scanpy pandas numpy matplotlib seaborn scib shap
+
+        # Deactivate batch environment
+        deactivate
+
+        # Reactivate main environment
+        if [[ "$PLATFORM" == "windows" ]]; then
+            source .venv/Scripts/activate
+        else
+            source .venv/bin/activate
+        fi
+
+        print_success "Batch correction environment created!"
+    else
+        print_success "Batch correction environment already exists"
+    fi
+elif [[ "$UPDATE_MODE" == "true" ]]; then
     print_status "Checking batch correction environment..."
     if [[ -d ".venv_batch" ]]; then
         print_success "Batch correction environment exists"
@@ -669,41 +598,33 @@ print_success "================================================"
 if [[ "$UPDATE_MODE" == "true" ]]; then
     print_success "🎉 TimeFlies Update Complete!"
 elif [[ "$DEV_MODE" == "true" ]]; then
-    print_success "🎉 TimeFlies Development Setup Complete!"
+    print_success "🎉 TimeFlies Developer Installation Complete!"
 else
     print_success "🎉 TimeFlies Installation Complete!"
 fi
 print_success "================================================"
 echo ""
 
+# No need to run timeflies setup --dev anymore - everything is handled above
+
+echo -e "${GREEN}🔬 Ready for Research!${NC}"
+echo ""
 if [[ "$DEV_MODE" == "true" ]]; then
-    echo -e "${GREEN}🛠️ Development Environment Ready!${NC}"
+    echo -e "${BLUE}Developer Mode - Next steps:${NC}"
     echo ""
-    echo -e "${BLUE}Next steps for development:${NC}"
-    echo ""
-    echo -e "${BLUE}1. Activate development environment:${NC}"
+    echo -e "${BLUE}1. Activate environment:${NC}"
     echo "   source .activate.sh"
     echo ""
-    echo -e "${BLUE}2. Verify installation:${NC}"
-    echo "   timeflies verify             # Check system setup"
-    echo "   timeflies test --fast        # Quick test run"
+    echo -e "${BLUE}2. Start developing:${NC}"
+    echo "   # Your development environments are ready"
+    echo "   # Main: .venv (TimeFlies + ML dependencies)"
+    echo "   # Batch: .venv_batch (PyTorch + scvi-tools)"
     echo ""
-    echo -e "${BLUE}3. Run test suite:${NC}"
-    echo "   timeflies test               # Full test suite"
-    echo "   timeflies test --coverage    # With coverage report"
-    echo "   timeflies test --debug       # Stop on first failure"
-    echo "   timeflies test --rerun       # Re-run failed tests"
-    echo ""
-    echo -e "${BLUE}4. Code quality:${NC}"
-    echo "   ruff check src/              # Linting"
-    echo "   ruff format src/             # Code formatting"
-    echo ""
-    echo -e "${YELLOW}📓 Note: Both .venv and .venv_batch environments are ready${NC}"
-    echo -e "${YELLOW}Batch correction tests automatically switch to .venv_batch${NC}"
-    echo -e "${YELLOW}No manual environment switching needed for testing${NC}"
+    echo -e "${BLUE}3. Development commands:${NC}"
+    echo "   timeflies test               # Run test suite"
+    echo "   timeflies verify             # System verification"
+    echo "   timeflies update             # Update installation"
 else
-    echo -e "${GREEN}🔬 Ready for Research!${NC}"
-    echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo ""
     echo -e "${BLUE}1. Activate environment:${NC}"
@@ -737,7 +658,7 @@ else
     echo ""
     echo -e "${GREEN}🛠️ For Developers:${NC}"
     echo "   git clone https://github.com/rsinghlab/TimeFlies.git"
-    echo "   ./install_timeflies.sh --dev    # Development setup"
+    echo "   cd TimeFlies && timeflies setup --dev  # Create environments"
 fi
 
 echo ""
