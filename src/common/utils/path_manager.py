@@ -606,29 +606,6 @@ class PathManager:
 
         return "_".join(parts)
     
-    def _create_models_symlink(self, experiment_dir):
-        """Create symlink from all_runs experiment to models/ folder."""
-        import os
-        
-        # Get models directory path
-        models_dir = Path(self.get_models_folder_path())
-        models_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create symlink inside the experiment directory pointing to models/
-        symlink_path = experiment_dir / "model_components_shared" 
-        
-        # Remove existing symlink if it exists
-        if symlink_path.exists() or symlink_path.is_symlink():
-            symlink_path.unlink()
-            
-        # Create relative symlink to models/ folder
-        try:
-            # Create relative path from experiment to models folder
-            relative_models_path = os.path.relpath(models_dir, experiment_dir)
-            symlink_path.symlink_to(relative_models_path)
-        except (OSError, NotImplementedError):
-            # On systems that don't support symlinks, skip
-            pass
     
     def get_training_key(self) -> str:
         """
@@ -976,16 +953,37 @@ class PathManager:
             # Create parent directory
             latest_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            # Copy experiment to latest folder
+            # Copy experiment to latest folder (excluding model_components)
             if source_dir.exists():
                 latest_dir.mkdir(parents=True, exist_ok=True)
                 for item in source_dir.iterdir():
+                    # Skip model_components - will be linked from models/ instead
+                    if item.name == "model_components":
+                        continue
                     if item.is_dir():
                         shutil.copytree(
                             item, latest_dir / item.name, dirs_exist_ok=True
                         )
                     else:
                         shutil.copy2(item, latest_dir / item.name)
+                        
+                # Create model_components as symlink to models/ folder
+                models_dir = Path(self.get_models_folder_path())
+                model_components_link = latest_dir / "model_components"
+                if models_dir.exists():
+                    # Remove existing link/dir
+                    if model_components_link.exists():
+                        if model_components_link.is_symlink():
+                            model_components_link.unlink()
+                        else:
+                            shutil.rmtree(model_components_link)
+                    # Create relative symlink
+                    try:
+                        relative_models_path = os.path.relpath(models_dir, latest_dir)
+                        model_components_link.symlink_to(relative_models_path)
+                    except (OSError, NotImplementedError):
+                        # Fallback: copy if symlinks not supported
+                        shutil.copytree(models_dir, model_components_link, dirs_exist_ok=True)
 
     def update_best_folder(self, experiment_name: str):
         """
@@ -1033,17 +1031,36 @@ class PathManager:
             # Create parent directory
             best_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            # Copy experiment to best folder
+            # Copy experiment to best folder (excluding model_components)
             if source_dir.exists():
                 best_dir.mkdir(parents=True, exist_ok=True)
                 for item in source_dir.iterdir():
+                    # Skip model_components - will be linked from models/ instead
+                    if item.name == "model_components":
+                        continue
                     if item.is_dir():
                         shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
                     else:
                         shutil.copy2(item, best_dir / item.name)
                         
-                # Create symlink from all_runs experiment to models/ folder
-                self._create_models_symlink(source_dir)
+                # Create model_components as symlink to models/ folder
+                models_dir = Path(self.get_models_folder_path())
+                model_components_link = best_dir / "model_components"
+                if models_dir.exists():
+                    # Remove existing link/dir
+                    if model_components_link.exists():
+                        if model_components_link.is_symlink():
+                            model_components_link.unlink()
+                        else:
+                            shutil.rmtree(model_components_link)
+                    # Create relative symlink
+                    try:
+                        relative_models_path = os.path.relpath(models_dir, best_dir)
+                        model_components_link.symlink_to(relative_models_path)
+                    except (OSError, NotImplementedError):
+                        # Fallback: copy if symlinks not supported
+                        shutil.copytree(models_dir, model_components_link, dirs_exist_ok=True)
+                        
 
     def get_best_model_dir_for_config(self) -> str:
         """
