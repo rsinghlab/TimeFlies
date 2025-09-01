@@ -48,9 +48,9 @@ class ModelManager:
         best_symlink_path = str(
             base_path
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "best"
             / config_key
             / "model_components"
@@ -207,9 +207,9 @@ class ModelManager:
         best_symlink_path = str(
             base_path
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "best"
             / config_key
             / "model_components"
@@ -258,9 +258,9 @@ class ModelManager:
         best_symlink_path = str(
             base_path
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
             / "best"
             / config_key
             / "model_components"

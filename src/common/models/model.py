@@ -1046,9 +1046,9 @@ class ModelBuilder:
             all_runs_path = str(
                 base_path
                 / project_name
-                / "experiments"
                 / correction_dir
                 / task_type
+                / "experiments"
                 / "all_runs"
                 / config_key
             )
@@ -1233,9 +1233,9 @@ class ModelBuilder:
             all_runs_path = str(
                 base_path
                 / project_name
-                / "experiments"
                 / correction_dir
                 / task_type
+                / "experiments"
                 / "all_runs"
                 / config_key
             )
