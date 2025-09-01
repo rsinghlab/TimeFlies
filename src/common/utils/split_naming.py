@@ -197,3 +197,55 @@ class SplitNamingUtils:
             )
 
         return split_details
+    
+    @classmethod
+    def generate_training_suffix(cls, config) -> str:
+        """
+        Generate training-only suffix (excludes evaluation/split info).
+        
+        Args:
+            config: Configuration object
+            
+        Returns:
+            Training suffix for model naming (only includes training data characteristics)
+        """
+        subset_parts = []
+        
+        # Get training data only (not test data)
+        split_method = getattr(config.data.split, "method", "random")
+        if split_method == "column":
+            train_values = getattr(config.data.split, "train", [])
+            if train_values:
+                train_abbrev = cls.abbreviate_values(train_values)
+                subset_parts.append(f"train-{train_abbrev}")
+        
+        # Gene filtering (affects training data)
+        if getattr(config.preprocessing.genes, "highly_variable_genes", False):
+            subset_parts.append("hvg")
+        elif getattr(config.preprocessing.genes, "remove_sex_genes", False):
+            subset_parts.append("autogenes")
+        elif getattr(config.preprocessing.genes, "remove_autosomal_genes", False):
+            subset_parts.append("sexgenes")
+        
+        # Cell type filtering (affects training data)
+        cell_filtering = getattr(config.data, "cell_filtering", None)
+        if cell_filtering:
+            cell_type = getattr(cell_filtering, "type", "all")
+        else:
+            cell_type = getattr(config.data, "cell_type", "all")
+        
+        if cell_type != "all":
+            subset_parts.append(cell_type[:4])
+        
+        # Sex filtering (affects training data)
+        sex_filtering = getattr(config.data, "sex_filtering", None)
+        if sex_filtering:
+            sex_values = getattr(sex_filtering, "values", ["male", "female"])
+        else:
+            sex_values = getattr(config.data, "sex", ["male", "female"])
+        
+        if sex_values and len(sex_values) < 2:  # Not all sexes
+            sex_abbrev = cls.abbreviate_values(sex_values)
+            subset_parts.append(sex_abbrev)
+        
+        return "_".join(subset_parts) if subset_parts else "all"

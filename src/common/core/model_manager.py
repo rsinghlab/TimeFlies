@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 class ModelManager:
     """Handles model loading, building, training, and validation loss tracking."""
 
-    def __init__(self, config, path_manager):
+    def __init__(self, config, path_manager, mode="training"):
         self.config = config
         self.path_manager = path_manager
+        self.mode = mode
         self.display_manager = DisplayManager(config)
 
     def get_previous_best_loss_info(
@@ -136,7 +137,7 @@ class ModelManager:
 
     def load_model_components(self, config_instance):
         """Load pre-trained model and all its components for evaluation."""
-        model_loader = ModelLoader(config_instance)
+        model_loader = ModelLoader(config_instance, pipeline_mode=self.mode)
 
         # Load model components
         components = model_loader.load_model_components()
