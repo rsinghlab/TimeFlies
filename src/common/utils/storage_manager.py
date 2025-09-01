@@ -50,9 +50,9 @@ class StorageManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
+            / "experiments"
         )
 
     def list_experiments(self) -> list[dict[str, Any]]:
