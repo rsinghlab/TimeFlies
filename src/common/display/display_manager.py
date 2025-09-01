@@ -16,20 +16,22 @@ class DisplayManager:
     def __init__(self, config=None):
         self.config = config
 
-    def print_timeflies_header(self, training_mode=True):
-        """Print TimeFlies header."""
-        if training_mode:
+    def print_project_and_dataset_overview(self, config, pipeline=None, display_format=None, mode="training"):
+        """Print project information and dataset overview."""
+        # Print appropriate header first
+        if mode == "training":
             self._print_header("TIMEFLIES TRAINING & HOLDOUT EVALUATION")
         else:
             self._print_header("TIMEFLIES EVALUATION")
-
-    def print_project_and_dataset_overview(self, config, pipeline=None, display_format=None):
-        """Print project information and dataset overview."""
+            
         print(f"Project: {config.project.replace('_', ' ').title()}")
         
         # Show experiment name with display format if provided
         if pipeline and display_format:
-            print(f"Experiment: {pipeline.experiment_name} ({display_format})")
+            if mode == "training":
+                print(f"Experiment: {pipeline.experiment_name} ({display_format})")
+            else:  # evaluation mode
+                print(f"Experiment: Found best model - {pipeline.experiment_name} - ({display_format})")
         else:
             print(
                 f"Experiment: {getattr(config, 'experiment_name', 'Unknown')} ({getattr(config, 'run_name', 'Unknown')})"

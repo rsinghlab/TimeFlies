@@ -16,6 +16,7 @@ import tensorflow as tf
 
 from ..analysis.eda import EDAHandler
 from ..core.active_config import get_config_for_active_project
+from ..display.display_manager import DisplayManager
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["GRPC_VERBOSITY"] = "ERROR"
@@ -351,202 +352,111 @@ def eda_command(args, config) -> int:
 
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
 
-    try:
-        print("DATA: Starting EDA with project settings:")
-        print(f"   Project: {getattr(config, 'project', 'unknown')}")
-        print(f"   Tissue: {config.data.tissue}")
-        print(f"   Batch corrected: {getattr(args, 'batch_corrected', False)}")
-        print(f"   Split: {getattr(args, 'split', 'all')}")
+    print("DATA: Starting EDA with project settings:")
+    print(f"   Project: {getattr(config, 'project', 'unknown')}")
+    print(f"   Tissue: {config.data.tissue}")
+    print(f"   Batch corrected: {getattr(args, 'batch_corrected', False)}")
+    print(f"   Split: {getattr(args, 'split', 'all')}")
 
-        # Apply CLI overrides to config
-        if hasattr(args, "batch_corrected") and args.batch_corrected:
-            config.data.batch_correction.enabled = True
-        if hasattr(args, "tissue") and args.tissue:
-            config.data.tissue = args.tissue
+    # Apply CLI overrides to config
+    if hasattr(args, "batch_corrected") and args.batch_corrected:
+        config.data.batch_correction.enabled = True
+    if hasattr(args, "tissue") and args.tissue:
+        config.data.tissue = args.tissue
 
-        # Create EDA output directory structure
-        project = getattr(config, "project", "fruitfly_alzheimers")
-        tissue = config.data.tissue
-        correction = (
-            "batch_corrected" if config.data.batch_correction.enabled else "uncorrected"
-        )
+    # Create EDA output directory structure
+    project = getattr(config, "project", "fruitfly_alzheimers")
+    tissue = config.data.tissue
+    correction = (
+        "batch_corrected" if config.data.batch_correction.enabled else "uncorrected"
+    )
 
-        # EDA analyzes full dataset - simple path structure
-        eda_dir = Path(f"outputs/{project}/eda/{correction}/{tissue}")
-        # Create directory if it doesn't exist (skip during tests)
-        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            eda_dir.mkdir(parents=True, exist_ok=True)
+    # EDA analyzes full dataset - simple path structure
+    eda_dir = Path(f"outputs/{project}/eda/{correction}/{tissue}")
+    # Create directory if it doesn't exist (skip during tests)
+    if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
+        eda_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize EDA handler with output directory
-        eda_handler = EDAHandler(config, output_dir=str(eda_dir))
+    # Initialize EDA handler with output directory
+    eda_handler = EDAHandler(config, output_dir=str(eda_dir))
 
-        # Run comprehensive EDA on full dataset
-        eda_handler.run_comprehensive_eda()
+    # Run comprehensive EDA on full dataset
+    eda_handler.run_comprehensive_eda()
 
-        # Generate HTML report if requested
-        if hasattr(args, "save_report") and args.save_report:
-            report_path = eda_dir / "eda_report.html"
-            eda_handler.generate_html_report(report_path)
-            print(f"   DOC: HTML report saved to: {report_path}")
+    # Generate HTML report if requested
+    if hasattr(args, "save_report") and args.save_report:
+        report_path = eda_dir / "eda_report.html"
+        eda_handler.generate_html_report(report_path)
+        print(f"   DOC: HTML report saved to: {report_path}")
 
-        print("\n[OK] EDA completed successfully!")
-        print(f"   Results saved to: {eda_dir}")
-        return 0
+    print("\n[OK] EDA completed successfully!")
+    print(f"   Results saved to: {eda_dir}")
+    return 0
 
-    except Exception as e:
-        print(f"[ERROR] EDA failed: {e}")
-        if hasattr(args, "verbose") and args.verbose:
-            import traceback
-
-            traceback.print_exc()
-        return 1
 
 
 def train_command(args, config) -> int:
     """Train a model using project configuration settings."""
-    try:
-        # Run EDA first if requested
-        if hasattr(args, "with_eda") and args.with_eda:
-            print("\nDATA: Running EDA before training...")
-            result = eda_command(args, config)
-            if result != 0:
-                print("[ERROR] EDA failed, stopping pipeline")
-                return result
+    # Run EDA first if requested
+    if hasattr(args, "with_eda") and args.with_eda:
+        print("\nDATA: Running EDA before training...")
+        result = eda_command(args, config)
+        if result != 0:
+            print("[ERROR] EDA failed, stopping pipeline")
+            return result
 
-        print("🚀 TIMEFLIES TRAINING & HOLDOUT EVALUATION")
-        print("=" * 60)
+    # Get experiment details for cleaner display
+    target = getattr(config.data, "target_variable", "unknown")
+    tissue = getattr(config.data, "tissue", "unknown")
+    model_type = getattr(config.data, "model", "unknown")
 
-        # Get experiment details for cleaner display
-        target = getattr(config.data, "target_variable", "unknown")
-        tissue = getattr(config.data, "tissue", "unknown")
-        model_type = getattr(config.data, "model", "unknown")
-
-        # Use common PipelineManager for all projects (GPU will be configured there)
+    # Use common PipelineManager for all projects (GPU will be configured there)
+    with suppress_stderr():
         with suppress_stderr():
-            with suppress_stderr():
-                from common.core import PipelineManager
+            from common.core import PipelineManager
 
-        # Initialize and run pipeline in training mode
-        pipeline = PipelineManager(config, mode="training")
+    # Generate proper experiment name with sex/cell type filters
+    from ..utils.split_naming import SplitNamingUtils
 
-        # Generate proper experiment name with sex/cell type filters
-        from ..utils.split_naming import SplitNamingUtils
+    experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
+    display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
 
-        experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
-        display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
+    # Initialize and run pipeline in training mode
+    pipeline = PipelineManager(config, mode="training")
+    display_manager = DisplayManager(config)
+    display_manager.print_project_and_dataset_overview(config, pipeline, display_format, mode="training")
+    results = pipeline.run_pipeline()
 
-        print(
-            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
-        )
-        print(f"Experiment: {pipeline.experiment_name} ({display_format})")
-        # Get GPU info after GPU configuration
-        if tf.config.list_physical_devices("GPU"):
-            gpu_name = tf.config.experimental.get_device_details(
-                tf.config.list_physical_devices("GPU")[0]
-            )["device_name"]
-            print(f"GPU: {gpu_name}")
+    # Training completed message moved to duration display
+
+    # Run analysis after training if requested
+    if hasattr(args, "with_analysis") and args.with_analysis:
+        print("\nRESEARCH: Running analysis after training...")
+        result = analyze_command(args, config)
+        if result != 0:
+            print("WARNING:  Analysis failed but training was successful")
+
+    # Check if model was actually saved (based on validation loss improvement)
+    model_path = results.get("model_path", "outputs/models/")
+    import os
+
+    model_file = os.path.join(model_path, "best_model.h5")
+
+    # Check if model was updated by comparing file modification time with start time
+    if os.path.exists(model_file):
+        import time
+
+        file_mod_time = os.path.getmtime(model_file)
+        # If file was modified in the last 5 minutes, it was likely updated
+        if time.time() - file_mod_time < 300:
+            print(f"   [OK] Model saved (validation loss improved): {model_path}")
         else:
-            print("GPU: Not available (using CPU)")
+            print("   SKIP:  Model not saved (validation loss did not improve)")
+            print(f"   FOUND: Existing model location: {model_path}")
+    else:
+        pass  # Model status will be shown in completion summary
 
-        # Simple model description with just task type
-        task_type = getattr(config.model, "task_type", "classification")
-        print(f"Task Type: {task_type.title()}")
-
-        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
-        print(f"Batch Correction: {batch_status}")
-
-        # Check gene filtering status and display in header
-        from pathlib import Path
-
-        project = getattr(config, "project", "unknown")
-        autosomal_path = Path(f"data/{project}/reference_data/autosomal_genes.csv")
-        sex_path = Path(f"data/{project}/reference_data/sex_genes.csv")
-
-        if not autosomal_path.exists() and not sex_path.exists():
-            print("⚠ Gene filtering disabled (no reference data found)")
-        results = pipeline.run_pipeline()
-        print("-" * 60)
-
-        # Training completed message moved to duration display
-
-        # Run analysis after training if requested
-        if hasattr(args, "with_analysis") and args.with_analysis:
-            print("\nRESEARCH: Running analysis after training...")
-            result = analyze_command(args, config)
-            if result != 0:
-                print("WARNING:  Analysis failed but training was successful")
-
-        # Check if model was actually saved (based on validation loss improvement)
-        model_path = results.get("model_path", "outputs/models/")
-        import os
-
-        model_file = os.path.join(model_path, "best_model.h5")
-
-        # Check if model was updated by comparing file modification time with start time
-        if os.path.exists(model_file):
-            import time
-
-            file_mod_time = os.path.getmtime(model_file)
-            # If file was modified in the last 5 minutes, it was likely updated
-            if time.time() - file_mod_time < 300:
-                print(f"   [OK] Model saved (validation loss improved): {model_path}")
-            else:
-                print("   SKIP:  Model not saved (validation loss did not improve)")
-                print(f"   FOUND: Existing model location: {model_path}")
-        else:
-            pass  # Model status will be shown in completion summary
-
-        if "duration" in results:
-            # Create completion summary
-            print("\n" + "=" * 60)
-            print("🏁 TRAINING & EVALUATION SUMMARY")
-            print("=" * 60)
-
-            # Model status with emoji
-            if results.get("model_improved", False):
-                print("🎉 Best model updated (validation loss improved)")
-            else:
-                print("📋 Best model not updated (validation loss did not improve)")
-
-            # Duration and components
-            components = []
-            from common.core.config_manager import get_config_manager
-
-            try:
-                config_manager = get_config_manager()
-                config = config_manager.get_active_config()
-
-                if getattr(config.visualizations, "enabled", False):
-                    components.append("visuals")
-                if getattr(config.evaluation.baselines, "enabled", False):
-                    components.append("baselines")
-                if getattr(config.interpretation.shap, "enabled", False):
-                    components.append("SHAP analysis")
-            except Exception:
-                pass
-
-            print(f"⏱️ Training duration: {results['duration']:.1f}s")
-            if components:
-                component_icons = {
-                    "visuals": "📊",
-                    "baselines": "📏",
-                    "SHAP analysis": "🔍",
-                }
-                component_list = [
-                    f"{component_icons.get(comp, '•')} {comp}" for comp in components
-                ]
-                print(f"📦 Additional outputs: {', '.join(component_list)}")
-            print("=" * 60)
-
-        return 0
-
-    except Exception as e:
-        print(f"[ERROR] Training failed: {e}")
-        if hasattr(args, "verbose") and args.verbose:
-            import traceback
-
-            traceback.print_exc()
-        return 1
+    return 0
 
 
 def batch_command(args) -> int:
@@ -742,9 +652,6 @@ def evaluate_command(args, config) -> int:
                 print("[ERROR] EDA failed, stopping pipeline")
                 return result
 
-        print("TIMEFLIES EVALUATION")
-        print("=" * 60)
-
         # Get experiment details for cleaner display
         target = getattr(config.data, "target_variable", "unknown")
         tissue = getattr(config.data, "tissue", "unknown")
@@ -755,46 +662,16 @@ def evaluate_command(args, config) -> int:
             with suppress_stderr():
                 from common.core import PipelineManager
 
-        # Initialize and run pipeline in evaluation mode
-        pipeline = PipelineManager(config, mode="evaluation")
-
         # Generate proper experiment name with sex/cell type filters
         from ..utils.split_naming import SplitNamingUtils
 
         experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
         display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
 
-        print(
-            f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
-        )
-        print(
-            f"Experiment: Using best model ({pipeline.experiment_name} - {display_format})"
-        )
-        # Get GPU info after GPU configuration
-        if tf.config.list_physical_devices("GPU"):
-            gpu_name = tf.config.experimental.get_device_details(
-                tf.config.list_physical_devices("GPU")[0]
-            )["device_name"]
-            print(f"GPU: {gpu_name}")
-        else:
-            print("GPU: Not available (using CPU)")
-
-        # Simple model description with just task type
-        task_type = getattr(config.model, "task_type", "classification")
-        print(f"Task Type: {task_type.title()}")
-
-        batch_status = "Enabled" if config.data.batch_correction.enabled else "Disabled"
-        print(f"Batch Correction: {batch_status}")
-
-        # Check gene filtering status and display in header
-        from pathlib import Path
-
-        project = getattr(config, "project", "unknown")
-        autosomal_path = Path(f"data/{project}/reference_data/autosomal_genes.csv")
-        sex_path = Path(f"data/{project}/reference_data/sex_genes.csv")
-
-        if not autosomal_path.exists() and not sex_path.exists():
-            print("⚠ Gene filtering disabled (no reference data found)")
+        # Initialize and run pipeline in evaluation mode
+        pipeline = PipelineManager(config, mode="evaluation")
+        display_manager = DisplayManager(config)
+        display_manager.print_project_and_dataset_overview(config, pipeline, display_format, mode="evaluation")
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:

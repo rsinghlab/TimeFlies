@@ -216,19 +216,19 @@ class DataSetupManager:
             
             # Check for project-specific overrides
             project_name = getattr(self.config.data, "project", "fruitfly_aging")
-            project_overrides = setup_config.get("project_overrides", {})
+            project_overrides = setup_config.get("project_overrides", {}) or {}
             if project_name in project_overrides:
                 # Apply project-specific overrides
                 project_config = project_overrides[project_name]
                 split_size = project_config.get("split_size", split_config.get("split_size", 5000))
-                stratify_by = project_config.get("stratify_by", split_config.get("stratify_by", ["age"]))
+                stratify_by = project_config.get("stratify_by") or split_config.get("stratify_by")
                 fallback_ratio = project_config.get("fallback_ratio", split_config.get("fallback_ratio", 0.2))
                 random_state = project_config.get("random_state", split_config.get("random_state", 42))
                 logger.info(f"SPLIT: Using project override for '{project_name}'")
             else:
                 # Use base configuration
                 split_size = split_config.get("split_size", 5000)
-                stratify_by = split_config.get("stratify_by", ["age"])
+                stratify_by = split_config.get("stratify_by")
                 fallback_ratio = split_config.get("fallback_ratio", 0.2)
                 random_state = split_config.get("random_state", 42)
                 logger.info("SPLIT: Using base configuration from configs/setup.yaml")
@@ -242,7 +242,7 @@ class DataSetupManager:
         else:
             # Fallback to defaults
             split_size = 5000
-            stratify_by = ["age"]
+            stratify_by = None
             fallback_ratio = 0.2
             random_state = 42
             logger.warning("configs/setup.yaml not found, using defaults")
@@ -251,6 +251,8 @@ class DataSetupManager:
         from sklearn.model_selection import train_test_split
 
         # Get stratification labels
+        if stratify_by is None:
+            raise ValueError("Stratification columns cannot be None - check configs/setup.yaml")
         missing_cols = [col for col in stratify_by if col not in adata.obs.columns]
         if missing_cols:
             raise ValueError(

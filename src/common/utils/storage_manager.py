@@ -280,6 +280,19 @@ class StorageManager:
             pipeline.path_manager.save_experiment_metadata(
                 pipeline.experiment_name, training_data
             )
+            
+            # Copy metadata to models/ folder if model improved
+            if hasattr(pipeline, 'model_improved') and pipeline.model_improved:
+                import os
+                import shutil
+                models_dir = pipeline.path_manager.get_models_folder_path()
+                os.makedirs(models_dir, exist_ok=True)
+                
+                metadata_source = os.path.join(pipeline.path_manager.get_experiment_dir(pipeline.experiment_name), "metadata.json")
+                metadata_dest = os.path.join(models_dir, "metadata.json")
+                
+                if os.path.exists(metadata_source):
+                    shutil.copy2(metadata_source, metadata_dest)
 
         # Save model and update folders if requested
         if symlinks:
