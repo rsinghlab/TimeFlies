@@ -6,9 +6,6 @@ Extracted from PipelineManager to reduce complexity and improve maintainability.
 """
 
 import logging
-from typing import Any, Optional
-
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +18,6 @@ class DisplayManager:
 
     def print_header(self, title: str, width: int = 60):
         """Print a formatted header with title."""
-        print("=" * width)
         print(title.upper())
         print("=" * width)
 
@@ -70,7 +66,7 @@ class DisplayManager:
 
     def print_training_and_evaluation_data(
         self, train_data, eval_data, config, train_subset=None, eval_subset=None
-    ):
+        ):
         """Print comprehensive overview of both training and evaluation datasets."""
         self.print_header("PREPROCESSED DATA OVERVIEW")
 
@@ -157,8 +153,6 @@ class DisplayManager:
     def display_model_architecture(self, model, config):
         """Display model architecture and training configuration."""
         self.print_header("MODEL ARCHITECTURE")
-        print("-" * 60)
-        print()
 
         model_type = getattr(config.data, "model", "Unknown")
         print(f"Model Type: {model_type}")
@@ -192,20 +186,6 @@ class DisplayManager:
         if hasattr(model, "summary"):
             model.summary()
 
-    def show_processed_eval_data_preview(self, adata_eval):
-        """Show a preview of the processed evaluation data."""
-        if adata_eval is None:
-            print("⚠️  No evaluation data available")
-            return
-
-        print("\nEVALUATION DATA PREVIEW")
-        print("-" * 40)
-        print(f"Shape: {adata_eval.shape}")
-
-        if hasattr(adata_eval, "obs"):
-            print(f"Observations: {adata_eval.obs.shape[0]:,}")
-            print(f"Features: {adata_eval.shape[1]:,}")
-
     def get_previous_best_loss_message(self, path_manager):
         """Get formatted message about previous best validation loss."""
         try:
@@ -218,38 +198,64 @@ class DisplayManager:
             logger.debug(f"Could not get previous best loss: {e}")
             return "Could not determine previous validation loss"
 
-    def print_final_timing_summary(
-        self,
-        evaluation_duration: float,
-        preprocessing_duration: float = 0,
-        mode: str = "evaluation",
-    ):
-        """Print final timing summary."""
-
-        def format_duration(seconds):
-            if seconds < 60:
-                return f"{seconds:.1f}s"
-            elif seconds < 3600:
-                minutes = seconds / 60
-                return f"{minutes:.1f}m"
-            else:
-                hours = seconds / 3600
-                return f"{hours:.1f}h"
-
-        print()
-        print("TIMING SUMMARY")
-        print("-" * 60)
-
-        if mode == "evaluation":
-            # Standalone evaluation mode
-            if preprocessing_duration > 0:
-                print(
-                    f"  └─ Preprocessing:         {format_duration(preprocessing_duration)}"
-                )
-            print(f"  └─ Evaluation:            {format_duration(evaluation_duration)}")
-
-            total_duration = preprocessing_duration + evaluation_duration
-            print(f"  └─ Total Duration:        {format_duration(total_duration)}")
+    def format_duration(self, seconds):
+        """Format duration for display."""
+        if seconds < 60:
+            return f"{seconds:.1f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}m"
         else:
-            # Combined or other modes - just show evaluation
-            print(f"  └─ Evaluation Duration:   {format_duration(evaluation_duration)}")
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+
+    def print_training_progress_header(self, previous_best_msg):
+        """Print training progress header with previous best loss info."""
+        self.print_header(f"TRAINING PROGRESS ({previous_best_msg})")
+    
+    def print_training_results(self, history, original_previous_best_loss, 
+                              experiment_name, improvement_status):
+        """Print training results section."""
+        self.print_header("TRAINING RESULTS")
+        current_best_loss = None
+        
+        if history:
+            val_losses = history.history.get("val_loss", [])
+            if val_losses:
+                best_epoch = val_losses.index(min(val_losses)) + 1
+                current_best_loss = min(val_losses)
+                print(f"  └─ Best Epoch:                {best_epoch}")
+                print(f"  └─ Best Val Loss (This Run):  {current_best_loss:.4f}")
+
+        # Show previous best and change
+        if original_previous_best_loss is not None and current_best_loss is not None:
+            delta = original_previous_best_loss - current_best_loss
+            print(f"  └─ Previous Best Val Loss:    {original_previous_best_loss:.4f}")
+            if delta > 0:
+                print(f"  └─ Improvement:               -{delta:.4f} (Better)")
+            elif delta < 0:
+                print(f"  └─ Change:                    +{abs(delta):.4f} (Worse)")
+            else:
+                print(f"  └─ No Change:                 {delta:.4f}")
+        else:
+            print("  └─ Previous Best:             Not available")
+
+        print(f"  └─ Model Saved To:            {experiment_name}")
+        print(f"  └─ Status:                    {improvement_status}")
+
+    def print_timing_summary(self, preprocessing_duration=0, training_duration=0, 
+                            evaluation_duration=0):
+        """Print timing summary for any pipeline mode."""
+        self.print_header("TIMING SUMMARY")
+        
+        # Show only the durations that are non-zero
+        if preprocessing_duration > 0:
+            print(f"Preprocessing:        {self.format_duration(preprocessing_duration)}")
+        if training_duration > 0:
+            print(f"Training:             {self.format_duration(training_duration)}")
+        if evaluation_duration > 0:
+            print(f"Evaluation:           {self.format_duration(evaluation_duration)}")
+        
+        total_duration = preprocessing_duration + training_duration + evaluation_duration
+        if total_duration > 0:
+            print(f"Total Duration:       {self.format_duration(total_duration)}")
