@@ -67,6 +67,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         mix_included_path,
         num_features,
         num_features_path,
+        path_manager=None,
         *args,
         **kwargs,
     ):
@@ -125,6 +126,9 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         # Track initial and current best validation losses
         self.initial_best_val_loss = float("inf")  # The historical best before training
         self.model_improved = False  # True only if final model beats historical best
+        
+        # Store path_manager for models/ folder saving
+        self.path_manager = path_manager
 
     def set_best_val_loss(self, best_val_loss):
         """
@@ -208,6 +212,36 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             self.verbose = 0
             super().on_epoch_end(epoch, logs)
             self.verbose = original_verbose
+            
+            # Also save to models/ folder for reuse across evaluations
+            if self.path_manager and self.model_improved:
+                self._save_to_models_folder()
+    
+    def _save_to_models_folder(self):
+        """Save model artifacts to models/ folder for reuse across evaluations."""
+        import shutil
+        from pathlib import Path
+        
+        # Get models folder path
+        models_dir = Path(self.path_manager.get_models_folder_path())
+        models_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy all model artifacts to models/ folder
+        artifacts = [
+            (self.filepath, models_dir / Path(self.filepath).name),
+            (self.best_val_loss_path, models_dir / "best_val_loss.json"),
+            (self.label_path, models_dir / "label_encoder.pkl"),
+            (self.reference_path, models_dir / "reference_data.npy"),
+            (self.scaler_path, models_dir / "scaler.pkl"),
+            (self.is_scaler_fit_path, models_dir / "is_scaler_fit.pkl"),
+            (self.highly_variable_genes_path, models_dir / "highly_variable_genes.pkl"),
+            (self.mix_included_path, models_dir / "mix_included.pkl"),
+            (self.num_features_path, models_dir / "num_features.pkl"),
+        ]
+        
+        for source, dest in artifacts:
+            if Path(source).exists():
+                shutil.copy2(source, dest)
 
 
 class ModelLoader:
@@ -229,6 +263,7 @@ class ModelLoader:
         self,
         config,
         pipeline_mode="training",
+        use_models_folder=None,
     ):
         """
         Initializes the ModelLoader with configuration and directory structure to locate the model files.
@@ -237,6 +272,8 @@ class ModelLoader:
         - config (ConfigHandler): A ConfigHandler instance containing settings for model loading, paths,
           and preprocessing components.
         - pipeline_mode (str): "training" (train+eval) or "evaluation" (eval-only)
+        - use_models_folder (bool): If True, load from models/ folder; if False, use best experiment;
+                                   if None, auto-detect based on pipeline_mode
 
         Sets up:
         - `model_dir` by constructing the directory path from config details.
@@ -246,10 +283,20 @@ class ModelLoader:
         self.config = config
         self.pipeline_mode = pipeline_mode
         self.path_manager = PathManager(self.config)
-
-        # Use best experiment for current config instead of old model directory
         self.model_type = getattr(self.config.data, "model", "CNN").lower()
-        self.model_dir = self.path_manager.get_best_model_dir_for_config()
+        
+        # Determine whether to use models/ folder or best experiment
+        if use_models_folder is None:
+            # Auto-detect: use models/ for evaluation, best experiment for training
+            use_models_folder = (pipeline_mode == "evaluation")
+        
+        if use_models_folder:
+            # Use models/ folder for trained model (evaluation mode)
+            self.model_dir = self.path_manager.get_models_folder_path()
+        else:
+            # Use best experiment for current config (training mode) 
+            self.model_dir = self.path_manager.get_best_model_dir_for_config()
+            
         self.model_path = self._get_model_path()
 
     def _get_model_path(self):
@@ -1078,6 +1125,7 @@ class ModelBuilder:
             paths["mix_included_path"],
             self.num_features,
             paths["num_features_path"],
+            path_manager=PathManager(self.config),
             monitor="val_loss",
             save_best_only=True,
             verbose=0,  # Suppress checkpoint messages

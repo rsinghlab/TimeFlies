@@ -59,7 +59,7 @@ class PipelineManager:
         self.path_manager = PathManager(self.config_instance)
         self.storage_manager = StorageManager(self.config_instance, self.path_manager)
         self.display_manager = DisplayManager(self.config_instance)
-        self.model_manager = ModelManager(self.config_instance, self.path_manager)
+        self.model_manager = ModelManager(self.config_instance, self.path_manager, mode)
         self.mode = mode
 
         # Set experiment name based on mode

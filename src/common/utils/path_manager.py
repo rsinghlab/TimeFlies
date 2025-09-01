@@ -370,7 +370,7 @@ class PathManager:
             str: Path to training visuals directory
 
         Example:
-            outputs/fruitfly_alzheimers/experiments/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/training/visuals/
+            outputs/fruitfly_alzheimers/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/training/visuals/
         """
         # Use experiment directory instead of old model directory
         experiment_dir = self.get_experiment_dir(experiment_name)
@@ -411,7 +411,6 @@ class PathManager:
                 project_root
                 / "outputs"
                 / project_name
-                / "experiments"
                 / correction_dir
                 / task_type
                 / "all_runs"
@@ -473,7 +472,6 @@ class PathManager:
                 project_root
                 / "outputs"
                 / project_name
-                / "experiments"
                 / correction_dir
                 / task_type
                 / "all_runs"
@@ -516,7 +514,6 @@ class PathManager:
                 project_root
                 / "outputs"
                 / project_name
-                / "experiments"
                 / correction_dir
                 / task_type
                 / "best"
@@ -608,6 +605,59 @@ class PathManager:
             parts.append("balanced")
 
         return "_".join(parts)
+    
+    def _create_models_symlink(self, experiment_dir):
+        """Create symlink from all_runs experiment to models/ folder."""
+        import os
+        
+        # Get models directory path
+        models_dir = Path(self.get_models_folder_path())
+        models_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create symlink inside the experiment directory pointing to models/
+        symlink_path = experiment_dir / "model_components_shared" 
+        
+        # Remove existing symlink if it exists
+        if symlink_path.exists() or symlink_path.is_symlink():
+            symlink_path.unlink()
+            
+        # Create relative symlink to models/ folder
+        try:
+            # Create relative path from experiment to models folder
+            relative_models_path = os.path.relpath(models_dir, experiment_dir)
+            symlink_path.symlink_to(relative_models_path)
+        except (OSError, NotImplementedError):
+            # On systems that don't support symlinks, skip
+            pass
+    
+    def get_training_key(self) -> str:
+        """
+        Get training-only configuration key (excludes evaluation params).
+        
+        Returns:
+            str: Training configuration key for model storage
+        """
+        from .split_naming import SplitNamingUtils
+        
+        # Build training key parts
+        parts = []
+        
+        # Always include tissue, model, target for clarity
+        parts.append(self.tissue)
+        parts.append(self.model_type)
+        parts.append(self.target_variable)
+        
+        # Training-specific suffix (excludes evaluation splits)
+        training_suffix = SplitNamingUtils.generate_training_suffix(self.config)
+        parts.append(training_suffix)
+        
+        # Gene filtering if special (affects training data)
+        if getattr(self.config.preprocessing.genes, "highly_variable_genes", False):
+            parts.append("hvg")
+        elif getattr(self.config.preprocessing.balancing, "balance_genes", False):
+            parts.append("balanced")
+        
+        return "_".join(parts)
 
     def get_experiment_dir(self, experiment_name: str = None) -> str:
         """
@@ -620,7 +670,7 @@ class PathManager:
             str: Path to experiment directory
 
         Example:
-            outputs/fruitfly_alzheimers/experiments/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/
+            outputs/fruitfly_alzheimers/uncorrected/cnn_ctrl-vs-alz/2025-01-22_14-30-15/
         """
         if experiment_name is None:
             # During testing or standalone operations, create new experiment
@@ -816,7 +866,6 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
             / "best"
@@ -845,11 +894,38 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
-            / "experiments"
             / correction_dir
             / task_type
             / "latest"
             / config_key
+        )
+
+    def get_models_folder_path(self) -> str:
+        """Get models folder path for training-only model storage."""
+        project_root = self._get_project_root()
+        project_name = getattr(self.config, "project", "fruitfly_aging")
+        
+        # Add batch correction directory level
+        batch_correction_enabled = getattr(
+            self.config.data.batch_correction, "enabled", False
+        )
+        correction_dir = (
+            "batch_corrected" if batch_correction_enabled else "uncorrected"
+        )
+        
+        # Add task type directory level  
+        task_type = getattr(self.config.model, "task_type", "classification")
+        
+        training_key = self.get_training_key()
+        
+        return str(
+            project_root
+            / "outputs"
+            / project_name
+            / correction_dir
+            / task_type
+            / "models"
+            / training_key
         )
 
     def update_latest_folder(self, experiment_name: str):
@@ -963,6 +1039,9 @@ class PathManager:
                         shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
                     else:
                         shutil.copy2(item, best_dir / item.name)
+                        
+                # Create symlink from all_runs experiment to models/ folder
+                self._create_models_symlink(source_dir)
 
     def get_best_model_dir_for_config(self) -> str:
         """
