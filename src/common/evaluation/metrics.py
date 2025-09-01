@@ -23,6 +23,7 @@ from sklearn.metrics import (
 )
 
 from common.utils.logging_config import get_logger
+from common.display.display_manager import DisplayManager
 
 logger = get_logger(__name__)
 
@@ -72,6 +73,7 @@ class EvaluationMetrics:
         self.result_type = result_type
         self.output_dir = output_dir
         self.pipeline_mode = pipeline_mode
+        self.display_manager = DisplayManager()
 
         # Store training classes if available for classification type determination
         self.training_classes = None
@@ -1096,8 +1098,7 @@ class EvaluationMetrics:
         else:
             baseline_types = config_baselines.get("classification", [])
 
-        print("\n MODEL COMPARISON (Holdout Evaluation)")
-        print("=" * 80)
+        self.display_manager.print_model_comparison_header()
 
         # Add warning if evaluation classes don't match training classes
         if (
@@ -1204,7 +1205,7 @@ class EvaluationMetrics:
                     recall_score(true_labels, predicted_classes, average="macro")
                 )
 
-        # Calculate AUC for our model
+        # Calculate AUC for TimeFlies model
         try:
             if (
                 num_classes == 2
@@ -1232,7 +1233,7 @@ class EvaluationMetrics:
 
         max_method_len = max(
             len(baseline_type.replace("_", " ").title())
-            for baseline_type in valid_baseline_types + ["**Our Model**"]
+            for baseline_type in valid_baseline_types + ["**TimeFlies**"]
         )
         method_width = max(
             20, max_method_len + 2
@@ -1254,10 +1255,10 @@ class EvaluationMetrics:
             )
             print(border_mid)
 
-            # Print our model row first
+            # Print TimeFlies row first
             print(
                 row_format.format(
-                    "**Our Model**",
+                    "**TimeFlies**",
                     f"{model_mae:.3f}",
                     f"{model_rmse:.3f}",
                     f"{model_r2:.3f}",
@@ -1282,10 +1283,10 @@ class EvaluationMetrics:
             )
             print(border_mid)
 
-            # Print our model row first
+            # Print TimeFlies row first
             print(
                 row_format.format(
-                    "**Our Model**",
+                    "**TimeFlies**",
                     f"{model_accuracy:.3f}",
                     f"{model_f1:.3f}",
                     f"{model_precision:.3f}",

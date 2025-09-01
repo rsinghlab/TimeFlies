@@ -250,20 +250,15 @@ class PipelineManager:
 
             # Memory cleanup removed - causes problems
 
-    def run_training(self, skip_setup=False) -> dict[str, Any]:
+    def run_training(self) -> dict[str, Any]:
         """
         Run the complete training pipeline: setup + preprocessing + model training.
-
-        Args:
-            skip_setup: Skip pipeline setup if already done (for combined pipeline)
 
         Returns:
             Dict containing training results and paths
         """
 
-        if not skip_setup:
-            self.display_manager.print_header("🔥 TRAINING PIPELINE")
-            self._setup_pipeline()
+        self._setup_pipeline()
 
         # Start training timer to include preprocessing
         self._training_start_time = time.time()
@@ -303,7 +298,6 @@ class PipelineManager:
         )
 
         # Display model architecture after building but before training
-        self.display_manager.print_header("MODEL ARCHITECTURE")
         self.display_manager.display_model_architecture(
             self.model, self.config_instance
         )
@@ -339,15 +333,12 @@ class PipelineManager:
         # Save outputs and create symlinks after training
         self.storage_manager.save_outputs(self, metadata=True, symlinks=True)
 
-        # Print training completion summary with improvement status
+        # Results section
         improvement_status = (
             "New best model found"
             if self.model_improved
             else "No improvement over existing model found"
-        )
-
-        # Results section
-        self.display_manager.print_header("RESULTS")
+        ) 
 
         # Store training duration for later use
         if hasattr(self, "_training_start_time"):
@@ -463,7 +454,6 @@ class PipelineManager:
                 logger.warning(f"Could not display evaluation data: {e}")
 
             # Display model architecture (similar to training pipeline)
-            self.display_manager.print_header("MODEL ARCHITECTURE")
             self.display_manager.display_model_architecture(
                 getattr(self, "model", None), self.config_instance
             )
@@ -535,11 +525,8 @@ class PipelineManager:
         # Mark this as a combined pipeline to preserve data for evaluation
         self._in_combined_pipeline = True
 
-        # Setup phases (once for entire pipeline)
-        self._setup_pipeline()
-
-        # Step 1: Training (skip setup since we already did it)
-        training_results = self.run_training(skip_setup=True)
+        # Step 1: Training (includes its own setup)
+        training_results = self.run_training()
 
         # Step 2: Evaluation (skip setup since we already did it, use in-memory model)
         try:
@@ -576,7 +563,6 @@ class PipelineManager:
         evaluation_duration = evaluation_results.get("evaluation_duration", 0)
 
         # Use display manager's timing summary
-        print()
         self.display_manager.print_timing_summary(
             preprocessing_duration,
             training_duration,

@@ -16,12 +16,24 @@ class DisplayManager:
     def __init__(self, config=None):
         self.config = config
 
-    def print_project_and_dataset_overview(self, config, adata, adata_eval=None):
+    def print_timeflies_header(self, training_mode=True):
+        """Print TimeFlies header."""
+        if training_mode:
+            self._print_header("TIMEFLIES TRAINING & HOLDOUT EVALUATION")
+        else:
+            self._print_header("TIMEFLIES EVALUATION")
+
+    def print_project_and_dataset_overview(self, config, pipeline=None, display_format=None):
         """Print project information and dataset overview."""
         print(f"Project: {config.project.replace('_', ' ').title()}")
-        print(
-            f"Experiment: {getattr(config, 'experiment_name', 'Unknown')} ({getattr(config, 'run_name', 'Unknown')})"
-        )
+        
+        # Show experiment name with display format if provided
+        if pipeline and display_format:
+            print(f"Experiment: {pipeline.experiment_name} ({display_format})")
+        else:
+            print(
+                f"Experiment: {getattr(config, 'experiment_name', 'Unknown')} ({getattr(config, 'run_name', 'Unknown')})"
+            )
 
         # Hardware info
         hardware_type = getattr(config.hardware, "processor", "Unknown")
@@ -39,12 +51,8 @@ class DisplayManager:
         batch_enabled = getattr(config.data.batch_correction, "enabled", False)
         print(f"Batch Correction: {'Enabled' if batch_enabled else 'Disabled'}")
 
-        # Gene filtering warning
-        if (
-            hasattr(config.data, "gene_filtering_disabled")
-            and config.data.gene_filtering_disabled
-        ):
-            print("⚠ Gene filtering disabled (no reference data found)")
+        # Gene filtering warning - check for reference data files
+        self._check_gene_filtering_status(config)
 
     def print_training_and_evaluation_data(
         self, train_data, eval_data, config, train_subset=None, eval_subset=None
@@ -214,6 +222,10 @@ class DisplayManager:
         print(f"  └─ Model Saved To:            {experiment_name}")
         print(f"  └─ Status:                    {improvement_status}")
 
+    def print_model_comparison_header(self):
+        """Print training results header."""
+        self._print_header("MODEL COMPARISON (Holdout Evaluation)")
+
     def print_timing_summary(self, preprocessing_duration=0, training_duration=0, 
                             evaluation_duration=0):
         """Print timing summary for any pipeline mode."""
@@ -247,6 +259,23 @@ class DisplayManager:
         else:
             hours = seconds / 3600
             return f"{hours:.1f}h"
+
+    def _check_gene_filtering_status(self, config):
+        """Check if gene filtering reference data exists and display warning if missing."""
+        from pathlib import Path
+        
+        project = getattr(config, "project", "unknown")
+        
+        # Get reference data filenames from config or use defaults
+        autosomal_file = getattr(config.data, "autosomal_genes_file", "autosomal_genes.csv")
+        sex_file = getattr(config.data, "sex_genes_file", "sex_genes.csv")
+        
+        # Check if reference data files exist
+        autosomal_path = Path(f"data/{project}/reference_data/{autosomal_file}")
+        sex_path = Path(f"data/{project}/reference_data/{sex_file}")
+        
+        if not autosomal_path.exists() and not sex_path.exists():
+            print("⚠ Gene filtering disabled (no reference data found)")
 
     def _print_obs_distributions(self, adata, columns: list[str]):
         """Print distribution information for specified columns."""
