@@ -969,23 +969,6 @@ class PathManager:
                     else:
                         shutil.copy2(item, latest_dir / item.name)
                         
-                # Create model_components as symlink to models/ folder
-                models_dir = Path(self.get_models_folder_path())
-                model_components_link = latest_dir / "model_components"
-                if models_dir.exists():
-                    # Remove existing link/dir
-                    if model_components_link.exists():
-                        if model_components_link.is_symlink():
-                            model_components_link.unlink()
-                        else:
-                            shutil.rmtree(model_components_link)
-                    # Create relative symlink
-                    try:
-                        relative_models_path = os.path.relpath(models_dir, latest_dir)
-                        model_components_link.symlink_to(relative_models_path)
-                    except (OSError, NotImplementedError):
-                        # Fallback: copy if symlinks not supported
-                        shutil.copytree(models_dir, model_components_link, dirs_exist_ok=True)
 
     def update_best_folder(self, experiment_name: str):
         """

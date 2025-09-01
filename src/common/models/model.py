@@ -1143,11 +1143,9 @@ class ModelBuilder:
             verbose=1,  # Show progress bar per epoch
         )
 
-        # Save the history object only if the model was improved and saved at least once during training
-        if model_checkpoint.model_improved:
-            #  Saving training history
-            with open(paths["history_path"], "wb") as f:
-                pickle.dump(history.history, f)
+        # Always save training history to experiment directory
+        with open(paths["history_path"], "wb") as f:
+            pickle.dump(history.history, f)
 
         return history, model_checkpoint.model_improved
 
