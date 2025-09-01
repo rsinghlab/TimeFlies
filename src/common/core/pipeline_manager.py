@@ -286,7 +286,7 @@ class PipelineManager:
                 ),  # Use the filtered and processed adata for display
             )
         except Exception as e:
-            print(f"Could not display training and evaluation data: {e}")
+            logger.warning(f"Could not display training and evaluation data: {e}")
 
         # Build and train model using ModelManager
         self.model, self.model_builder = self.model_manager.build_model(
@@ -309,11 +309,8 @@ class PipelineManager:
         )
 
         # Model training
-        print("\n")
-        print(
-            f"TRAINING PROGRESS ({self.model_manager.get_previous_best_loss_message(self.experiment_name)})"
-        )
-        print("=" * 60)
+        previous_best_msg = self.model_manager.get_previous_best_loss_message(self.experiment_name)
+        self.display_manager.print_training_progress_header(previous_best_msg)
 
         # Store original previous best loss for comparison (before training updates it)
         self._original_previous_best_loss = (
@@ -350,47 +347,24 @@ class PipelineManager:
         )
 
         # Results section
-        print("\n")
-        print("RESULTS")
-        print("=" * 60)
+        self.display_manager.print_header("RESULTS")
 
-        # Training subsection
-        print("Training:")
-        current_best_loss = None
+        # Store training duration for later use
+        if hasattr(self, "_training_start_time"):
+            training_duration = time.time() - self._training_start_time
+            self._stored_training_duration = training_duration
+
+        # Use display manager for training results
         original_previous_best_loss = getattr(
             self, "_original_previous_best_loss", None
         )
-
-        if hasattr(self, "history") and self.history:
-            val_losses = self.history.history.get("val_loss", [])
-            if val_losses:
-                best_epoch = val_losses.index(min(val_losses)) + 1
-                current_best_loss = min(val_losses)
-                print(f"  └─ Best Epoch:                {best_epoch}")
-                print(f"  └─ Best Val Loss (This Run):  {current_best_loss:.4f}")
-
-        # Show previous best and change using ORIGINAL previous best (not updated one)
-        if original_previous_best_loss is not None and current_best_loss is not None:
-            delta = original_previous_best_loss - current_best_loss
-            print(f"  └─ Previous Best Val Loss:    {original_previous_best_loss:.4f}")
-            if delta > 0:
-                print(f"  └─ Improvement:               -{delta:.4f} (Better)")
-            elif delta < 0:
-                print(f"  └─ Change:                    +{abs(delta):.4f} (Worse)")
-            else:
-                print(f"  └─ No Change:                 {delta:.4f}")
-        else:
-            print("  └─ Previous Best:             Not available")
-
-        # Show training duration in Training section
-        training_duration = 0
-        if hasattr(self, "_training_start_time"):
-            training_duration = time.time() - self._training_start_time
-            # Store for later use in final summary
-            self._stored_training_duration = training_duration
-
-        print(f"  └─ Model Saved To:            {self.experiment_name}")
-        print(f"  └─ Status:                    {improvement_status}")
+        history = getattr(self, "history", None)
+        self.display_manager.print_training_results(
+            history, 
+            original_previous_best_loss,
+            self.experiment_name,
+            improvement_status
+        )
 
         # Return training results
         experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
@@ -486,10 +460,9 @@ class PipelineManager:
                     eval_subset=getattr(self, "eval_adata", None),
                 )
             except Exception as e:
-                print(f"Could not display evaluation data: {e}")
+                logger.warning(f"Could not display evaluation data: {e}")
 
             # Display model architecture (similar to training pipeline)
-            print("\n")
             self.display_manager.print_header("MODEL ARCHITECTURE")
             self.display_manager.display_model_architecture(
                 getattr(self, "model", None), self.config_instance
@@ -539,10 +512,9 @@ class PipelineManager:
         # Display timing appropriate for the mode
         if not skip_setup:  # Standalone evaluation mode
             preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
-            self.display_manager.print_final_timing_summary(
-                evaluation_duration,
+            self.display_manager.print_timing_summary(
                 preprocessing_duration=preprocessing_duration,
-                mode="evaluation",
+                evaluation_duration=evaluation_duration
             )
         # In combined pipeline, timing is handled by run_pipeline()
 
@@ -598,39 +570,24 @@ class PipelineManager:
             # Always update latest to reflect most recent activity
             self.path_manager.update_latest_folder(self.experiment_name)
 
-        # Display timing summary for combined pipeline
-        print()
-        self.display_manager.print_header("TIMING SUMMARY")
-
         # Get stored durations from different phases
         preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
         training_duration = getattr(self, "_stored_training_duration", 0)
         evaluation_duration = evaluation_results.get("evaluation_duration", 0)
 
-        print(f"Preprocessing:        {self._format_duration(preprocessing_duration)}")
-        print(f"Training:             {self._format_duration(training_duration)}")
-        print(f"Evaluation:           {self._format_duration(evaluation_duration)}")
-
-        total_duration = (
-            preprocessing_duration + training_duration + evaluation_duration
+        # Use display manager's timing summary
+        print()
+        self.display_manager.print_timing_summary(
+            preprocessing_duration,
+            training_duration,
+            evaluation_duration
         )
-        print(f"Total Duration:       {self._format_duration(total_duration)}")
 
         # Memory cleanup removed - causes problems
         self._in_combined_pipeline = False
 
         return pipeline_results
 
-    def _format_duration(self, seconds):
-        """Format duration for display."""
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        elif seconds < 3600:
-            minutes = seconds / 60
-            return f"{minutes:.1f}m"
-        else:
-            hours = seconds / 3600
-            return f"{hours:.1f}h"
 
     def run_metrics(self, result_type="recent"):
         """
