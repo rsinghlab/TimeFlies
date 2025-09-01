@@ -768,7 +768,7 @@ def evaluate_command(args, config) -> int:
             f"Project: {getattr(config, 'project', 'unknown').replace('_', ' ').title()}"
         )
         print(
-            f"Experiment: using best model ({pipeline.experiment_name} - {display_format})"
+            f"Experiment: Using best model ({pipeline.experiment_name} - {display_format})"
         )
         # Get GPU info after GPU configuration
         if tf.config.list_physical_devices("GPU"):
