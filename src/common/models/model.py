@@ -67,6 +67,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         mix_included_path,
         num_features,
         num_features_path,
+        metadata_path,
         path_manager=None,
         *args,
         **kwargs,
@@ -91,6 +92,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             mix_included_path (str): Path for saving the mix_included variable.
             num_features (int): Number of features in the training data.
             num_features_path (str): Path to save the num_features variable.
+            metadata_path (str): Path to the experiment metadata.json file.
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
@@ -122,6 +124,8 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
 
         self.num_features = num_features
         self.num_features_path = num_features_path
+        
+        self.metadata_path = metadata_path
 
         # Track initial and current best validation losses
         self.initial_best_val_loss = float("inf")  # The historical best before training
@@ -227,6 +231,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         models_dir.mkdir(parents=True, exist_ok=True)
         
         # Copy all model artifacts to models/ folder
+        
         artifacts = [
             (self.filepath, models_dir / Path(self.filepath).name),
             (self.best_val_loss_path, models_dir / "best_val_loss.json"),
@@ -549,7 +554,7 @@ class ModelLoader:
 
     def _load_training_file(self, file_name, file_type="pickle"):
         """
-        Loads a training file from training/ subdirectory or fallback to root.
+        Loads a training file from models/ folder first, then fallback to training/ subdirectory or root.
 
         Parameters:
         - file_name (str): The name of the file to be loaded.
@@ -558,7 +563,16 @@ class ModelLoader:
         Returns:
         - object: The object loaded from the file.
         """
-        # Try new training directory first
+        # For history.pkl, try models/ folder first (new location)
+        if file_name == "history.pkl":
+            models_path = os.path.join(self.path_manager.get_models_folder_path(), file_name)
+            if os.path.exists(models_path):
+                if file_type == "pickle":
+                    return self._load_pickle(models_path)
+                elif file_type == "numpy":
+                    return np.load(models_path, allow_pickle=True)
+
+        # Try training directory (old location for history)
         training_dir = os.path.join(self.model_dir, "training")
         new_path = os.path.join(training_dir, file_name)
 
@@ -576,8 +590,11 @@ class ModelLoader:
             elif file_type == "numpy":
                 return np.load(old_path, allow_pickle=True)
 
-        # File not found in either location
-        print(f"Error: {file_name} not found in {new_path} or {old_path}")
+        # File not found in any location
+        if file_name == "history.pkl":
+            print(f"Error: {file_name} not found in {self.path_manager.get_models_folder_path()}, {new_path} or {old_path}")
+        else:
+            print(f"Error: {file_name} not found in {new_path} or {old_path}")
         sys.exit(1)
 
 
@@ -992,6 +1009,7 @@ class ModelBuilder:
             ),
             "mix_included_path": os.path.join(components_dir, "mix_included.pkl"),
             "history_path": os.path.join(training_dir, "history.pkl"),
+            "metadata_path": os.path.join(experiment_dir, "metadata.json"),
             "experiment_dir": experiment_dir,
             "components_dir": components_dir,
         }
@@ -1125,6 +1143,7 @@ class ModelBuilder:
             paths["mix_included_path"],
             self.num_features,
             paths["num_features_path"],
+            paths["metadata_path"],
             path_manager=PathManager(self.config),
             monitor="val_loss",
             save_best_only=True,
@@ -1143,9 +1162,16 @@ class ModelBuilder:
             verbose=1,  # Show progress bar per epoch
         )
 
-        # Always save training history to experiment directory
-        with open(paths["history_path"], "wb") as f:
-            pickle.dump(history.history, f)
+        # Save history to models/ folder if model improved
+        if model_checkpoint.model_improved:
+            models_dir = PathManager(self.config).get_models_folder_path()
+            os.makedirs(models_dir, exist_ok=True)
+            
+            # Save history
+            history_path = os.path.join(models_dir, "history.pkl")
+            with open(history_path, "wb") as f:
+                pickle.dump(history.history, f)
+                
 
         return history, model_checkpoint.model_improved
 
@@ -1297,10 +1323,7 @@ class ModelBuilder:
             with open(model_path, "wb") as f:
                 pickle.dump(model, f)
 
-            # Save the history object
-            if self.model_type == "xgboost" and history is not None:
-                with open(paths["history_path"], "wb") as f:
-                    pickle.dump(history, f)
+            # XGBoost history is saved to models/ folder in pipeline_manager after training
 
             # Save the label encoder
             with open(paths["label_path"], "wb") as label_file:
@@ -1329,6 +1352,14 @@ class ModelBuilder:
                 pickle.dump(self.highly_variable_genes, highly_variable_genes_file)
 
             print("New best model saved with validation accuracy:", val_accuracy)
+
+            # Save history to models/ folder for XGBoost (if it exists)
+            if self.model_type == "xgboost" and history is not None:
+                models_dir = PathManager(self.config).get_models_folder_path()
+                os.makedirs(models_dir, exist_ok=True)
+                history_path = os.path.join(models_dir, "history.pkl")
+                with open(history_path, "wb") as f:
+                    pickle.dump(history, f)
 
         return history, model_improved
 
