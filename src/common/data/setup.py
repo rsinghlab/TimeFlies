@@ -259,16 +259,40 @@ class DataSetupManager:
                 f"Stratification columns not found in data: {missing_cols}"
             )
 
-        # Create composite stratification labels if multiple columns
+        # Create stratification labels with smart handling of complex combinations
         if len(stratify_by) == 1:
             labels = adata.obs[stratify_by[0]].values
         else:
-            # Combine multiple columns for stratification
-            labels = (
+            # For multiple columns, use hierarchical stratification approach
+            from collections import Counter
+            
+            # First, create composite labels for all combinations
+            composite_labels = (
                 adata.obs[stratify_by]
                 .apply(lambda x: "_".join(x.astype(str)), axis=1)
                 .values
             )
+            
+            label_counts = Counter(composite_labels)
+            min_count = min(label_counts.values())
+            logger.info(f"Stratification groups: {len(label_counts)} unique combinations")
+            logger.info(f"Minimum group size: {min_count}, Maximum group size: {max(label_counts.values())}")
+            
+            # If we have groups that are too small, fall back to primary stratification
+            small_groups = [label for label, count in label_counts.items() if count < 2]
+            if small_groups:
+                logger.warning(f"Found {len(small_groups)} groups with <2 samples")
+                logger.info("Using primary column stratification with manual balancing")
+                
+                # Use primary column (usually age) for sklearn stratification
+                primary_column = stratify_by[0]  # Usually 'age'
+                labels = adata.obs[primary_column].values
+                logger.info(f"Primary stratification by '{primary_column}': {Counter(labels)}")
+            else:
+                # All groups have sufficient samples, use composite stratification
+                labels = composite_labels
+                logger.info("Using full composite stratification")
+        
         indices = np.arange(len(labels))
 
         # Calculate test_size based on split_size
@@ -288,6 +312,26 @@ class DataSetupManager:
         train_idx, eval_idx = train_test_split(
             indices, test_size=test_size, stratify=labels, random_state=random_state
         )
+        
+        # Validate that all important categories are represented in both splits
+        train_data = adata.obs.iloc[train_idx]
+        eval_data = adata.obs.iloc[eval_idx]
+        
+        missing_in_eval = []
+        for col in stratify_by:
+            train_values = set(train_data[col].unique())
+            eval_values = set(eval_data[col].unique())
+            missing = train_values - eval_values
+            if missing:
+                missing_in_eval.append(f"{col}: {missing}")
+        
+        if missing_in_eval:
+            logger.warning("Some categories missing from evaluation set:")
+            for missing_info in missing_in_eval:
+                logger.warning(f"  - {missing_info}")
+            logger.warning("Consider increasing split_size or simplifying stratification")
+        else:
+            logger.info("✓ All stratification categories represented in both train and eval sets")
 
         # Create and save splits
         adata_train = adata[train_idx].copy()

@@ -284,15 +284,15 @@ class ModelQueueManager:
         project = config.get("project", "fruitfly_aging")
 
         # Build expected path
-        base_path = Path("outputs") / project
+        base_path = Path("outputs") / project / "experiments"
         if config.get("batch_corrected"):
             base_path = base_path / "batch_corrected"
         else:
             base_path = base_path / "uncorrected"
-        
+
         # Add task type and experiments directory
         task_type = config.get("task_type", "classification")
-        base_path = base_path / task_type / "experiments"
+        base_path = base_path / task_type
 
         latest_link = base_path / "latest"
 

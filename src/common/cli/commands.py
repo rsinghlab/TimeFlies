@@ -394,7 +394,6 @@ def eda_command(args, config) -> int:
     return 0
 
 
-
 def train_command(args, config) -> int:
     """Train a model using project configuration settings."""
     # Run EDA first if requested
@@ -419,12 +418,16 @@ def train_command(args, config) -> int:
     from ..utils.split_naming import SplitNamingUtils
 
     experiment_suffix = SplitNamingUtils.generate_experiment_suffix(config)
-    display_format = f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
+    display_format = (
+        f"{tissue.lower()}_{model_type.lower()}_{target.lower()}_{experiment_suffix}"
+    )
 
     # Initialize and run pipeline in training mode
     pipeline = PipelineManager(config, mode="training")
     display_manager = DisplayManager(config)
-    display_manager.print_project_and_dataset_overview(config, pipeline, display_format, mode="training")
+    display_manager.print_project_and_dataset_overview(
+        config, pipeline, display_format, mode="training"
+    )
     results = pipeline.run_pipeline()
 
     # Training completed message moved to duration display
@@ -671,7 +674,9 @@ def evaluate_command(args, config) -> int:
         # Initialize and run pipeline in evaluation mode
         pipeline = PipelineManager(config, mode="evaluation")
         display_manager = DisplayManager(config)
-        display_manager.print_project_and_dataset_overview(config, pipeline, display_format, mode="evaluation")
+        display_manager.print_project_and_dataset_overview(
+            config, pipeline, display_format, mode="evaluation"
+        )
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:

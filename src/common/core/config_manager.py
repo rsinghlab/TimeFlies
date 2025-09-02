@@ -189,8 +189,6 @@ class ConfigManager:
                 config_dict["data"] = {}
             config_dict["data"]["project"] = self.project_name
 
-            # Note: Project-specific splitting configurations are now in project config files
-
             # Create Config object
             self._config = Config(config_dict)
             logger.debug(

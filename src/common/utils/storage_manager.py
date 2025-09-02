@@ -50,9 +50,9 @@ class StorageManager:
             project_root
             / "outputs"
             / project_name
+            / "experiments"
             / correction_dir
             / task_type
-            / "experiments"
         )
 
     def list_experiments(self) -> list[dict[str, Any]]:
@@ -280,17 +280,21 @@ class StorageManager:
             pipeline.path_manager.save_experiment_metadata(
                 pipeline.experiment_name, training_data
             )
-            
+
             # Copy metadata to models/ folder if model improved
-            if hasattr(pipeline, 'model_improved') and pipeline.model_improved:
+            if hasattr(pipeline, "model_improved") and pipeline.model_improved:
                 import os
                 import shutil
+
                 models_dir = pipeline.path_manager.get_models_folder_path()
                 os.makedirs(models_dir, exist_ok=True)
-                
-                metadata_source = os.path.join(pipeline.path_manager.get_experiment_dir(pipeline.experiment_name), "metadata.json")
+
+                metadata_source = os.path.join(
+                    pipeline.path_manager.get_experiment_dir(pipeline.experiment_name),
+                    "metadata.json",
+                )
                 metadata_dest = os.path.join(models_dir, "metadata.json")
-                
+
                 if os.path.exists(metadata_source):
                     shutil.copy2(metadata_source, metadata_dest)
 
@@ -306,12 +310,12 @@ class StorageManager:
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             pipeline.model.save(model_path)
 
-            # Update best folder if this is a new best model
+            # Always update latest folder first
+            pipeline.path_manager.update_latest_folder(pipeline.experiment_name)
+
+            # Update best folder if this is a new best model (this handles symlinks AFTER latest is finalized)
             if pipeline.model_improved:
                 pipeline.path_manager.update_best_folder(pipeline.experiment_name)
-
-            # Always update latest folder
-            pipeline.path_manager.update_latest_folder(pipeline.experiment_name)
 
         # Save visualizations if requested and available
         if (

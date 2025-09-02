@@ -67,13 +67,25 @@ class PipelineManager:
             # Generate new experiment for training
             self.experiment_name = self.path_manager.generate_experiment_name()
         else:
-            # Reuse best experiment for standalone evaluation
+            # Evaluation mode - find model using training key (compatible model)
             try:
-                self.experiment_name = self.path_manager.get_best_experiment_name()
-                if not self.experiment_name:
-                    raise RuntimeError("No best experiment name found")
+                # Check if a compatible trained model exists using training key
+                models_dir = self.path_manager.get_models_folder_path()
+
+                if Path(models_dir).exists():
+                    # Create new experiment name for this evaluation run
+                    self.experiment_name = self.path_manager.generate_experiment_name()
+                    logger.info(f"Using trained model from: {models_dir}")
+
+                    # Store models_dir for later copying after evaluation
+                    self._models_dir_for_copying = models_dir
+                else:
+                    training_key = self.path_manager.get_config_key().split("-vs-")[0]
+                    raise RuntimeError(
+                        f"No trained model found with training key: {training_key}"
+                    )
+
             except (FileNotFoundError, RuntimeError) as e:
-                # If no best experiment exists, this will fail with a clear error
                 raise RuntimeError(
                     f"No trained model found for evaluation. Please train a model first. Error: {e}"
                 )
@@ -303,7 +315,9 @@ class PipelineManager:
         )
 
         # Model training
-        previous_best_msg = self.model_manager.get_previous_best_loss_message(self.experiment_name)
+        previous_best_msg = self.model_manager.get_previous_best_loss_message(
+            self.experiment_name
+        )
         self.display_manager.print_training_progress_header(previous_best_msg)
 
         # Store original previous best loss for comparison (before training updates it)
@@ -338,7 +352,7 @@ class PipelineManager:
             "New best model found"
             if self.model_improved
             else "No improvement over existing model found"
-        ) 
+        )
 
         # Store training duration for later use
         if hasattr(self, "_training_start_time"):
@@ -351,10 +365,10 @@ class PipelineManager:
         )
         history = getattr(self, "history", None)
         self.display_manager.print_training_results(
-            history, 
+            history,
             original_previous_best_loss,
             self.experiment_name,
-            improvement_status
+            improvement_status,
         )
 
         # Return training results
@@ -504,7 +518,7 @@ class PipelineManager:
             preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
             self.display_manager.print_timing_summary(
                 preprocessing_duration=preprocessing_duration,
-                evaluation_duration=evaluation_duration
+                evaluation_duration=evaluation_duration,
             )
         # In combined pipeline, timing is handled by run_pipeline()
 
@@ -549,13 +563,8 @@ class PipelineManager:
                 training_results.get("model_path", ""), "evaluation"
             )
 
-        # Update best/latest folders to include evaluation results
-        if evaluation_results and self.experiment_name:
-            # Only update best if model actually improved (not just any training run)
-            if hasattr(self, "model_improved") and self.model_improved:
-                self.path_manager.update_best_folder(self.experiment_name)
-            # Always update latest to reflect most recent activity
-            self.path_manager.update_latest_folder(self.experiment_name)
+        # Note: best/latest folder updates are handled by storage_manager.save_outputs()
+        # to avoid duplicate calls and ensure proper coordination
 
         # Get stored durations from different phases
         preprocessing_duration = getattr(self, "_preprocessing_duration", 0)
@@ -564,16 +573,13 @@ class PipelineManager:
 
         # Use display manager's timing summary
         self.display_manager.print_timing_summary(
-            preprocessing_duration,
-            training_duration,
-            evaluation_duration
+            preprocessing_duration, training_duration, evaluation_duration
         )
 
         # Memory cleanup removed - causes problems
         self._in_combined_pipeline = False
 
         return pipeline_results
-
 
     def run_metrics(self, result_type="recent"):
         """
@@ -654,6 +660,420 @@ class PipelineManager:
 
         # Use storage manager to handle visualizations
         self.storage_manager.save_outputs(self, evaluation_visuals=True)
+
+        # For eval-only runs, copy training artifacts AFTER evaluation is complete
+        if hasattr(self, "_models_dir_for_copying"):
+            self._copy_training_artifacts_for_evaluation(self._models_dir_for_copying)
+
+        # Copy evaluation results to best/ and latest/ if this experiment improved the model
+        if (
+            hasattr(self, "model_improved")
+            and self.model_improved
+            and self.experiment_name
+        ):
+            self._copy_evaluation_to_symlink_folders()
+
+        # For eval-only runs, check if this is the first experiment in this config
+        # If so, it should become the "best" for this config
+        is_combined_pipeline = getattr(self, "_in_combined_pipeline", False)
+        if not is_combined_pipeline:  # This is eval-only mode
+            self._handle_eval_only_best_folder()
+            # Ensure latest/ always has model symlink for eval-only runs
+            self._ensure_latest_model_symlink()
+
+    def _copy_training_artifacts_for_evaluation(self, models_dir: str):
+        """Copy training artifacts from original best experiment for eval-only runs."""
+        try:
+            import os
+            import shutil
+            from pathlib import Path
+
+            # Get target experiment directory
+            experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+            os.makedirs(experiment_dir, exist_ok=True)
+
+            # Find the original training experiment (the one that created this model)
+            training_key = self.path_manager.get_config_key().split("-vs-")[0]
+
+            # Look for existing best/ directory with the same training key
+            best_experiment = None
+            models_parent = Path(models_dir).parent  # .../models/
+            experiments_parent = models_parent.parent  # .../classification/
+            best_dir = experiments_parent / "best"
+
+            if best_dir.exists():
+                # Find the best experiment directory with matching training key
+                for item in best_dir.iterdir():
+                    if item.is_dir() and item.name.startswith(training_key):
+                        best_experiment = item
+                        break
+
+            if best_experiment and best_experiment.exists():
+                # Copy ALL artifacts from the best experiment except evaluation/
+                for item in best_experiment.iterdir():
+                    if item.name == "evaluation":
+                        continue  # Skip evaluation, we'll create our own
+
+                    target_path = os.path.join(experiment_dir, item.name)
+                    if item.is_dir():
+                        shutil.copytree(item, target_path, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(item, target_path)
+
+                    logger.debug(
+                        f"Copied training artifacts from {best_experiment} to {experiment_dir}"
+                    )
+
+                # Update metadata to reflect current evaluation configuration
+                self._update_eval_metadata(experiment_dir, str(best_experiment))
+
+            else:
+                # Fallback: just copy model files
+                model_components_dir = os.path.join(experiment_dir, "model_components")
+                os.makedirs(model_components_dir, exist_ok=True)
+
+                models_path = Path(models_dir)
+                for item in models_path.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, model_components_dir)
+
+                logger.warning(
+                    "Could not find original training experiment, copied model files only"
+                )
+
+        except Exception as e:
+            logger.warning(f"Could not copy training artifacts: {e}")
+
+    def _update_eval_metadata(self, experiment_dir: str, source_experiment: str):
+        """Update metadata.json to reflect current evaluation configuration."""
+        try:
+            import json
+            from datetime import datetime
+
+            metadata_path = os.path.join(experiment_dir, "metadata.json")
+
+            if os.path.exists(metadata_path):
+                # Load existing metadata
+                with open(metadata_path) as f:
+                    metadata = json.load(f)
+
+                # Update with current evaluation info
+                metadata.update(
+                    {
+                        "experiment_name": self.experiment_name,
+                        "created_timestamp": datetime.now().isoformat(),
+                        "evaluation_completed_at": datetime.now().isoformat(),
+                        "evaluation_count": 1,
+                        "source_experiment": source_experiment,
+                        "experiment_type": "evaluation_only",
+                        "split_config": {
+                            "method": "column",
+                            "split_name": self.path_manager.get_config_key().split("_")[
+                                -1
+                            ],  # Get split part
+                            "column": getattr(
+                                self.config_instance.data.split, "column", "unknown"
+                            ),
+                            "train_values": getattr(
+                                self.config_instance.data.split, "train", []
+                            ),
+                            "test_values": getattr(
+                                self.config_instance.data.split, "test", []
+                            ),
+                        },
+                    }
+                )
+
+                # Write updated metadata
+                with open(metadata_path, "w") as f:
+                    json.dump(metadata, f, indent=2)
+
+                logger.debug(
+                    f"Updated metadata for eval-only experiment: {self.experiment_name}"
+                )
+
+        except Exception as e:
+            logger.warning(f"Could not update eval metadata: {e}")
+
+    def _same_evaluation_conditions(self, current_config, best_metadata: dict) -> bool:
+        """Check if current run has same evaluation conditions as existing best."""
+        try:
+            # Compare test values and column
+            current_test = set(getattr(current_config.data.split, "test", []))
+            current_column = getattr(current_config.data.split, "column", "")
+
+            best_split = best_metadata.get("split_config", {})
+            best_test = set(best_split.get("test_values", []))
+            best_column = best_split.get("column", "")
+
+            return current_test == best_test and current_column == best_column
+
+        except Exception as e:
+            logger.warning(f"Could not compare evaluation conditions: {e}")
+            return False
+
+    def _get_evaluation_metrics(self, experiment_dir: str) -> dict:
+        """Extract evaluation metrics from experiment directory."""
+        try:
+            import json
+
+            # Try to get metrics from evaluation results
+            eval_dir = os.path.join(experiment_dir, "evaluation")
+            if os.path.exists(eval_dir):
+                # Look for metrics files (could be various formats)
+                for filename in ["metrics.json", "evaluation_results.json"]:
+                    metrics_path = os.path.join(eval_dir, filename)
+                    if os.path.exists(metrics_path):
+                        with open(metrics_path) as f:
+                            return json.load(f)
+
+            return {}
+        except Exception as e:
+            logger.warning(f"Could not extract evaluation metrics: {e}")
+            return {}
+
+    def _should_update_best_based_on_metrics(
+        self, current_experiment_dir: str, best_metadata: dict
+    ) -> bool:
+        """Compare current run metrics with existing best to determine if should update."""
+        try:
+            # Get current run metrics
+            current_metrics = self._get_evaluation_metrics(current_experiment_dir)
+
+            # Get best run metrics - could be from metadata or evaluation files
+            best_metrics = best_metadata.get("evaluation", {})
+            if not best_metrics and "best_val_loss" in best_metadata.get(
+                "training", {}
+            ):
+                # Use training metrics as fallback
+                best_metrics = {"val_loss": best_metadata["training"]["best_val_loss"]}
+
+            if not current_metrics or not best_metrics:
+                logger.warning(
+                    "Could not extract metrics for comparison, defaulting to update"
+                )
+                return True
+
+            # Compare primary metric (accuracy for classification, loss for others)
+            primary_metric = self._get_primary_metric(current_metrics, best_metrics)
+
+            if primary_metric:
+                current_value = current_metrics.get(primary_metric)
+                best_value = best_metrics.get(primary_metric)
+
+                if current_value is not None and best_value is not None:
+                    # For accuracy/f1: higher is better, for loss: lower is better
+                    if primary_metric in ["accuracy", "f1_score", "auc"]:
+                        return current_value > best_value
+                    elif primary_metric in ["loss", "val_loss"]:
+                        return current_value < best_value
+
+            # Default: update if we can't determine (keeps system moving forward)
+            return True
+
+        except Exception as e:
+            logger.warning(f"Could not compare metrics: {e}")
+            return True
+
+    def _get_primary_metric(self, current_metrics: dict, best_metrics: dict) -> str:
+        """Determine primary metric to use for comparison."""
+        # Priority order for metrics
+        metric_priority = ["accuracy", "f1_score", "auc", "val_loss", "loss"]
+
+        for metric in metric_priority:
+            if metric in current_metrics and metric in best_metrics:
+                return metric
+
+        return None
+
+    def _update_best_rerun_timestamp(self, best_dir: str):
+        """Update existing best metadata with rerun timestamp."""
+        try:
+            import json
+            from datetime import datetime
+
+            metadata_path = os.path.join(best_dir, "metadata.json")
+            if os.path.exists(metadata_path):
+                with open(metadata_path) as f:
+                    metadata = json.load(f)
+
+                # Add rerun info
+                if "reruns" not in metadata:
+                    metadata["reruns"] = []
+
+                metadata["reruns"].append(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "experiment_name": self.experiment_name,
+                        "note": "Same config rerun, performance not improved",
+                    }
+                )
+
+                with open(metadata_path, "w") as f:
+                    json.dump(metadata, f, indent=2)
+
+                logger.debug("Updated best metadata with rerun timestamp")
+
+        except Exception as e:
+            logger.warning(f"Could not update rerun timestamp: {e}")
+
+    def _handle_eval_only_best_folder(self):
+        """Handle best/ folder updates for eval-only runs based on evaluation conditions."""
+        try:
+            import json
+
+            best_dir = self.path_manager.get_best_folder_path()
+
+            if not os.path.exists(best_dir):
+                # No best exists for this config, make this the first best
+                logger.info("Creating best/ directory for new config (eval-only run)")
+                self.path_manager.update_best_folder(self.experiment_name)
+                # Update metadata in best/ folder with current evaluation configuration
+                best_experiment_dir = self.path_manager.get_best_folder_path()
+                current_experiment_dir = self.path_manager.get_experiment_dir(
+                    self.experiment_name
+                )
+                self._update_eval_metadata(
+                    best_experiment_dir, str(current_experiment_dir)
+                )
+
+            else:
+                # Best exists, check if we should compete or update
+                best_metadata_path = os.path.join(best_dir, "metadata.json")
+
+                if os.path.exists(best_metadata_path):
+                    with open(best_metadata_path) as f:
+                        best_metadata = json.load(f)
+
+                    # Check if evaluation conditions are the same
+                    if self._same_evaluation_conditions(
+                        self.config_instance, best_metadata
+                    ):
+                        # Same conditions - compete for best based on metrics!
+                        current_experiment_dir = self.path_manager.get_experiment_dir(
+                            self.experiment_name
+                        )
+
+                        if self._should_update_best_based_on_metrics(
+                            current_experiment_dir, best_metadata
+                        ):
+                            logger.info(
+                                "New best performance! Updating best/ directory"
+                            )
+                            self.path_manager.update_best_folder(self.experiment_name)
+                            # Update metadata in best/ folder with current evaluation configuration
+                            best_experiment_dir = (
+                                self.path_manager.get_best_folder_path()
+                            )
+                            self._update_eval_metadata(
+                                best_experiment_dir, str(current_experiment_dir)
+                            )
+                        else:
+                            logger.info(
+                                "Current performance not better than existing best, keeping existing best/"
+                            )
+                            # Still update metadata with rerun timestamp in existing best
+                            self._update_best_rerun_timestamp(best_dir)
+
+                    else:
+                        # Different conditions - keep existing best, don't update
+                        logger.debug(
+                            "Different evaluation conditions, keeping existing best/"
+                        )
+                else:
+                    # Best exists but no metadata, update to be safe
+                    logger.info("Updating best/ directory (no metadata found)")
+                    self.path_manager.update_best_folder(self.experiment_name)
+                    # Update metadata in best/ folder with current evaluation configuration
+                    best_experiment_dir = self.path_manager.get_best_folder_path()
+                    current_experiment_dir = self.path_manager.get_experiment_dir(
+                        self.experiment_name
+                    )
+                    self._update_eval_metadata(
+                        best_experiment_dir, str(current_experiment_dir)
+                    )
+
+        except Exception as e:
+            logger.warning(f"Could not handle eval-only best folder: {e}")
+
+    def _ensure_latest_model_symlink(self):
+        """Ensure latest/ has model_components symlink for eval-only runs."""
+        try:
+            latest_dir = self.path_manager.get_latest_folder_path()
+            models_dir = self.path_manager.get_models_folder_path()
+
+            if os.path.exists(latest_dir) and os.path.exists(models_dir):
+                latest_symlink = os.path.join(latest_dir, "model_components")
+
+                # Remove existing model_components if present
+                if os.path.exists(latest_symlink):
+                    if os.path.islink(latest_symlink):
+                        os.unlink(latest_symlink)
+                    elif os.path.isdir(latest_symlink):
+                        import shutil
+
+                        shutil.rmtree(latest_symlink)
+
+                # Create symlink to models/
+                try:
+                    relative_models_path = os.path.relpath(models_dir, latest_dir)
+                    os.symlink(relative_models_path, latest_symlink)
+                    logger.debug("Ensured model symlink in latest/ for eval-only run")
+                except (OSError, NotImplementedError) as e:
+                    logger.warning(f"Could not create latest symlink: {e}")
+
+        except Exception as e:
+            logger.warning(f"Could not ensure latest model symlink: {e}")
+
+    def _copy_evaluation_to_symlink_folders(self):
+        """Copy evaluation results (plots, metrics) to best/ and latest/ folders."""
+        try:
+            import os
+            import shutil
+
+            # Get source experiment directory
+            experiment_dir = self.path_manager.get_experiment_dir(self.experiment_name)
+
+            # Get best and latest directories
+            best_dir = self.path_manager.get_best_folder_path()
+            latest_dir = self.path_manager.get_latest_folder_path()
+
+            # Files/directories to copy (evaluation-specific)
+            items_to_copy = ["evaluation", "plots"]
+
+            for item_name in items_to_copy:
+                source_path = os.path.join(experiment_dir, item_name)
+                if os.path.exists(source_path):
+                    # Copy to best/
+                    best_dest = os.path.join(best_dir, item_name)
+                    if os.path.exists(best_dest):
+                        if os.path.isdir(best_dest):
+                            shutil.rmtree(best_dest)
+                        else:
+                            os.remove(best_dest)
+
+                    if os.path.isdir(source_path):
+                        shutil.copytree(source_path, best_dest)
+                    else:
+                        shutil.copy2(source_path, best_dest)
+
+                    # Copy to latest/
+                    latest_dest = os.path.join(latest_dir, item_name)
+                    if os.path.exists(latest_dest):
+                        if os.path.isdir(latest_dest):
+                            shutil.rmtree(latest_dest)
+                        else:
+                            os.remove(latest_dest)
+
+                    if os.path.isdir(source_path):
+                        shutil.copytree(source_path, latest_dest)
+                    else:
+                        shutil.copy2(source_path, latest_dest)
+
+            logger.debug("Copied evaluation results to best/ and latest/ folders")
+
+        except Exception as e:
+            logger.warning(f"Could not copy evaluation results to symlink folders: {e}")
 
     def run_analysis_script(self):
         """Run custom analysis script if enabled."""

@@ -124,13 +124,13 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
 
         self.num_features = num_features
         self.num_features_path = num_features_path
-        
+
         self.metadata_path = metadata_path
 
         # Track initial and current best validation losses
         self.initial_best_val_loss = float("inf")  # The historical best before training
         self.model_improved = False  # True only if final model beats historical best
-        
+
         # Store path_manager for models/ folder saving
         self.path_manager = path_manager
 
@@ -216,22 +216,22 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             self.verbose = 0
             super().on_epoch_end(epoch, logs)
             self.verbose = original_verbose
-            
+
             # Also save to models/ folder for reuse across evaluations
             if self.path_manager and self.model_improved:
                 self._save_to_models_folder()
-    
+
     def _save_to_models_folder(self):
         """Save model artifacts to models/ folder for reuse across evaluations."""
         import shutil
         from pathlib import Path
-        
+
         # Get models folder path
         models_dir = Path(self.path_manager.get_models_folder_path())
         models_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Copy all model artifacts to models/ folder
-        
+
         artifacts = [
             (self.filepath, models_dir / Path(self.filepath).name),
             (self.best_val_loss_path, models_dir / "best_val_loss.json"),
@@ -243,7 +243,7 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
             (self.mix_included_path, models_dir / "mix_included.pkl"),
             (self.num_features_path, models_dir / "num_features.pkl"),
         ]
-        
+
         for source, dest in artifacts:
             if Path(source).exists():
                 shutil.copy2(source, dest)
@@ -289,19 +289,19 @@ class ModelLoader:
         self.pipeline_mode = pipeline_mode
         self.path_manager = PathManager(self.config)
         self.model_type = getattr(self.config.data, "model", "CNN").lower()
-        
+
         # Determine whether to use models/ folder or best experiment
         if use_models_folder is None:
             # Auto-detect: use models/ for evaluation, best experiment for training
-            use_models_folder = (pipeline_mode == "evaluation")
-        
+            use_models_folder = pipeline_mode == "evaluation"
+
         if use_models_folder:
             # Use models/ folder for trained model (evaluation mode)
             self.model_dir = self.path_manager.get_models_folder_path()
         else:
-            # Use best experiment for current config (training mode) 
+            # Use best experiment for current config (training mode)
             self.model_dir = self.path_manager.get_best_model_dir_for_config()
-            
+
         self.model_path = self._get_model_path()
 
     def _get_model_path(self):
@@ -565,7 +565,9 @@ class ModelLoader:
         """
         # For history.pkl, try models/ folder first (new location)
         if file_name == "history.pkl":
-            models_path = os.path.join(self.path_manager.get_models_folder_path(), file_name)
+            models_path = os.path.join(
+                self.path_manager.get_models_folder_path(), file_name
+            )
             if os.path.exists(models_path):
                 if file_type == "pickle":
                     return self._load_pickle(models_path)
@@ -592,7 +594,9 @@ class ModelLoader:
 
         # File not found in any location
         if file_name == "history.pkl":
-            print(f"Error: {file_name} not found in {self.path_manager.get_models_folder_path()}, {new_path} or {old_path}")
+            print(
+                f"Error: {file_name} not found in {self.path_manager.get_models_folder_path()}, {new_path} or {old_path}"
+            )
         else:
             print(f"Error: {file_name} not found in {new_path} or {old_path}")
         sys.exit(1)
@@ -1064,9 +1068,9 @@ class ModelBuilder:
             all_runs_path = str(
                 base_path
                 / project_name
+                / "experiments"
                 / correction_dir
                 / task_type
-                / "experiments"
                 / "all_runs"
                 / config_key
             )
@@ -1166,12 +1170,11 @@ class ModelBuilder:
         if model_checkpoint.model_improved:
             models_dir = PathManager(self.config).get_models_folder_path()
             os.makedirs(models_dir, exist_ok=True)
-            
+
             # Save history
             history_path = os.path.join(models_dir, "history.pkl")
             with open(history_path, "wb") as f:
                 pickle.dump(history.history, f)
-                
 
         return history, model_checkpoint.model_improved
 
@@ -1257,9 +1260,9 @@ class ModelBuilder:
             all_runs_path = str(
                 base_path
                 / project_name
+                / "experiments"
                 / correction_dir
                 / task_type
-                / "experiments"
                 / "all_runs"
                 / config_key
             )
