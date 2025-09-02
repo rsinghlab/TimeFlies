@@ -635,15 +635,15 @@ class PipelineManager:
             self.experiment_name
         )
 
-        # Create interpreter with specific output directory
+        # Create interpreter
         interpreter = self.interpreter_class(
             config=self.config_instance,
             model=self.model,
             test_data=self.test_data,
             test_labels=self.test_labels,
             label_encoder=self.label_encoder,
+            reference_data=self.test_data,
             path_manager=self.path_manager,
-            output_dir=evaluation_output_dir,
         )
 
         # Run interpretation

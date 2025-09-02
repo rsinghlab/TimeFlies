@@ -204,7 +204,7 @@ class ModelQueueManager:
 
             # Set up training arguments with actual configuration support
             train_args = Args(
-                verbose=False,
+                verbose=True,
                 model=model_type,
                 tissue=getattr(config.data, "tissue", "head"),
                 target=getattr(config.data, "target_variable", "age"),
@@ -231,7 +231,7 @@ class ModelQueueManager:
                 should_evaluate = getattr(config, "with_evaluation", True)  # New setting for evaluation
                 if should_evaluate:
                     eval_args = Args(
-                        verbose=False,
+                        verbose=True,
                         model=model_type,
                         tissue=getattr(config.data, "tissue", "head"),
                         target=getattr(config.data, "target_variable", "age"),
