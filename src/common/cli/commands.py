@@ -680,7 +680,6 @@ def evaluate_command(args, config) -> int:
 
         # Handle CLI flag overrides for SHAP and visualizations
         if hasattr(args, "interpret") and args.interpret:
-            print("   DATA: SHAP interpretation: ENABLED (via --interpret flag)")
             # Temporarily override config
             if hasattr(config, "interpretation") and hasattr(
                 config.interpretation, "shap"
@@ -700,7 +699,6 @@ def evaluate_command(args, config) -> int:
             original_shap = None
 
         if hasattr(args, "visualize") and args.visualize:
-            print("   METRICS: Visualizations: ENABLED (via --visualize flag)")
             # Temporarily override config
             if hasattr(config, "visualizations"):
                 original_viz = config.visualizations.enabled

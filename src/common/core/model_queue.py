@@ -54,7 +54,7 @@ class ModelQueueManager:
         self.global_settings = self.config.get("global_settings", {})
         self.model_queue = self.config["model_queue"]
 
-        logger.info(f"Loaded queue with {len(self.model_queue)} models")
+        print(f"Queue loaded: {len(self.model_queue)} models")
 
     def load_checkpoint(self) -> int | None:
         """
@@ -105,17 +105,20 @@ class ModelQueueManager:
         # Start with global settings
         config = self._deep_merge_dict(self.global_settings.copy(), {})
 
-        # Add model-specific settings
-        config["model"] = model_config.get("model_type", "CNN")
+        # Add model-specific settings (preserve nested model structure)
+        if "model" not in config:
+            config["model"] = {}
+        
+        # Set model type in data section instead (where train_command expects it)
+        if "data" not in config:
+            config["data"] = {}
+        config["data"]["model"] = model_config.get("model_type", "CNN")
         config["experiment_name"] = model_config.get("name", "unnamed_model")
 
         # Apply any per-model configuration overrides
         config_overrides = model_config.get("config_overrides", {})
         if config_overrides:
             config = self._deep_merge_dict(config, config_overrides)
-            logger.info(
-                f"Applied config overrides for {model_config.get('name', 'unnamed')}"
-            )
 
         # Merge hyperparameters
         hyperparams = model_config.get("hyperparameters", {})
@@ -131,7 +134,7 @@ class ModelQueueManager:
             if "learning_rate" in hyperparams:
                 config["learning_rate"] = hyperparams["learning_rate"]
 
-        return config, hyperparams
+        return config
 
     def _deep_merge_dict(self, base_dict: dict, override_dict: dict) -> dict:
         """
@@ -186,7 +189,12 @@ class ModelQueueManager:
 
         try:
             # Prepare configuration
-            config, hyperparams = self.prepare_model_config(model_config)
+            config_dict = self.prepare_model_config(model_config)
+            hyperparams = model_config.get("hyperparameters", {})
+            
+            # Convert dictionary config to proper Config object
+            from common.core.config_manager import Config
+            config = Config(config_dict)
 
             # Create mock args object for CLI commands
             class Args:
@@ -198,51 +206,45 @@ class ModelQueueManager:
             train_args = Args(
                 verbose=False,
                 model=model_type,
-                tissue=config.get("data", {}).get("tissue", "head"),
-                target=config.get("data", {}).get("target_variable", "age"),
-                project=config.get("project"),
-                batch_corrected=config.get("data", {})
-                .get("batch_correction", {})
-                .get("enabled", False),
-                with_eda=config.get("with_eda", False),
-                with_analysis=config.get("with_analysis", True),
+                tissue=getattr(config.data, "tissue", "head"),
+                target=getattr(config.data, "target_variable", "age"),
+                project=getattr(config, "project", None),
+                batch_corrected=getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False,
+                with_eda=getattr(config, "with_eda", False),
+                with_analysis=getattr(config, "with_analysis", True),
             )
 
             # Store full config for this model to be used during training
             self._current_model_config = config
 
             # Run training if configured
-            should_train = config.get("with_training", True)  # New setting for training
+            should_train = getattr(config, "with_training", True)  # New setting for training
             if should_train:
-                print(f"\n[INFO] Starting training for {model_name}...")
+                print(f"Training {model_name}...")
+                # train_command already runs evaluation as part of the pipeline
                 train_command(train_args, config)
             else:
-                print(
-                    f"\n[INFO] Skipping training for {model_name} (with_training: false)"
-                )
+                # Only run separate evaluation for eval-only models (no training)
+                print(f"Skipping training for {model_name} (eval-only)")
+                
+                # Run evaluation if configured (only for eval-only models)
+                should_evaluate = getattr(config, "with_evaluation", True)  # New setting for evaluation
+                if should_evaluate:
+                    eval_args = Args(
+                        verbose=False,
+                        model=model_type,
+                        tissue=getattr(config.data, "tissue", "head"),
+                        target=getattr(config.data, "target_variable", "age"),
+                        project=getattr(config, "project", None),
+                        batch_corrected=getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False,
+                        with_eda=getattr(config, "with_eda", False),
+                        with_analysis=getattr(config, "with_analysis", True),
+                        interpret=getattr(config.interpretation.shap, "enabled", False) if hasattr(config, "interpretation") and hasattr(config.interpretation, "shap") else False,
+                        visualize=getattr(config.visualizations, "enabled", True) if hasattr(config, "visualizations") else True,
+                    )
 
-            # Run evaluation if configured (separate from with_analysis which is for scripts)
-            should_evaluate = config.get(
-                "with_evaluation", True
-            )  # New setting for evaluation
-            if should_evaluate:
-                eval_args = Args(
-                    verbose=False,
-                    model=model_type,
-                    tissue=config.get("data", {}).get("tissue", "head"),
-                    target=config.get("data", {}).get("target_variable", "age"),
-                    project=config.get("project"),
-                    batch_corrected=config.get("data", {})
-                    .get("batch_correction", {})
-                    .get("enabled", False),
-                    with_eda=config.get("with_eda", False),
-                    with_analysis=config.get("with_analysis", True),
-                    interpret=config.get("interpret", True),
-                    visualize=config.get("visualize", True),
-                )
-
-                print(f"\n[INFO] Starting evaluation for {model_name}...")
-                evaluate_command(eval_args, config)
+                    print(f"Evaluating {model_name}...")
+                    evaluate_command(eval_args, config)
 
             training_time = time.time() - start_time
 
@@ -264,7 +266,7 @@ class ModelQueueManager:
                     metrics = json.load(f)
                     result["metrics"] = metrics
 
-            print(f"\n[OK] Model {model_name} completed in {training_time:.2f}s")
+            print(f"✓ {model_name} completed in {training_time:.1f}s")
             return result
 
         except Exception as e:
@@ -279,24 +281,32 @@ class ModelQueueManager:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    def _find_latest_metrics(self, model_type: str, config: dict) -> Path | None:
+    def _find_latest_metrics(self, model_type: str, config) -> Path | None:
         """Find the latest metrics file for a model."""
-        project = config.get("project", "fruitfly_aging")
+        # Handle both dict and Config object
+        if hasattr(config, '__dict__'):
+            project = getattr(config, "project", "fruitfly_aging")
+            batch_corrected = getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False
+            task_type = getattr(config.model, "task_type", "classification")
+        else:
+            project = config.get("project", "fruitfly_aging")
+            batch_corrected = config.get("data", {}).get("batch_correction", {}).get("enabled", False)
+            task_type = config.get("model", {}).get("task_type", "classification")
 
         # Build expected path
         base_path = Path("outputs") / project / "experiments"
-        if config.get("batch_corrected"):
+        if batch_corrected:
             base_path = base_path / "batch_corrected"
         else:
             base_path = base_path / "uncorrected"
 
-        # Add task type and experiments directory
-        task_type = config.get("task_type", "classification")
+        # Add task type
         base_path = base_path / task_type
 
+        # Check latest link for metrics
         latest_link = base_path / "latest"
 
-        if latest_link.exists() and latest_link.is_symlink():
+        if latest_link.exists():
             metrics_file = latest_link / "evaluation" / "metrics.json"
             if metrics_file.exists():
                 return metrics_file
