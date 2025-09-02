@@ -257,32 +257,31 @@ else
             rm -rf .timeflies_src
         fi
 
-        # Clone to permanent directory for user install (needed for editable install)
-        if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
-            print_status "Installing dependencies (this may take a few minutes)..."
-            cd .timeflies_src
-
-            # Detect GPU capability and install appropriate version
-            print_status "Detecting GPU capability..."
-            if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-                if [[ "$DEV_MODE" == "true" ]]; then
-                    print_success "NVIDIA GPU detected - installing TimeFlies with dev dependencies"
-                    if pip install -e ".[dev]" >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies with dev dependencies"
-                        cd ..
-                        INSTALL_SUCCESS=true
-                    else
-                        print_warning "Dev installation failed, trying base installation..."
-                        if pip install -e . >/dev/null 2>&1; then
-                            print_warning "Installed TimeFlies base (dev dependencies may be missing)"
-                            cd ..
-                            INSTALL_SUCCESS=true
-                        else
-                            cd .. 2>/dev/null || true
-                            rm -rf .timeflies_src 2>/dev/null || true
-                        fi
-                    fi
+        if [[ "$DEV_MODE" == "true" ]]; then
+            # For dev mode, install directly from current directory as editable
+            print_status "Installing TimeFlies in development mode (editable install)..."
+            if pip install -e ".[dev]" >/dev/null 2>&1; then
+                print_success "Installed TimeFlies in development mode with dev dependencies"
+                INSTALL_SUCCESS=true
+            else
+                print_warning "Dev installation failed, trying base installation..."
+                if pip install -e . >/dev/null 2>&1; then
+                    print_warning "Installed TimeFlies base in development mode (dev dependencies may be missing)"
+                    INSTALL_SUCCESS=true
                 else
+                    print_error "Failed to install TimeFlies in development mode"
+                    INSTALL_SUCCESS=false
+                fi
+            fi
+        else
+            # Clone to permanent directory for user install (needed for editable install)
+            if git clone --depth 1 -b "$MAIN_BRANCH" "$REPO_URL" .timeflies_src >/dev/null 2>&1; then
+                print_status "Installing dependencies (this may take a few minutes)..."
+                cd .timeflies_src
+
+                # Detect GPU capability and install appropriate version
+                print_status "Detecting GPU capability..."
+                if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
                     print_success "NVIDIA GPU detected - installing with CUDA support"
                     if pip install -e . >/dev/null 2>&1; then
                         print_success "Installed TimeFlies with GPU support"
@@ -299,54 +298,16 @@ else
                             rm -rf .timeflies_src 2>/dev/null || true
                         fi
                     fi
-                fi
-            else
-                if [[ "$PLATFORM" == "macos" ]]; then
-                if [[ "$DEV_MODE" == "true" ]]; then
-                    print_status "Installing TimeFlies for development on macOS"
-                    if pip install -e ".[dev]" >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies for development on macOS"
-                        cd ..
-                        INSTALL_SUCCESS=true
-                    else
-                        print_warning "Dev installation failed, trying base installation..."
+                else
+                    if [[ "$PLATFORM" == "macos" ]]; then
+                        print_status "Installing TimeFlies for macOS (CPU/Metal acceleration)"
                         if pip install -e . >/dev/null 2>&1; then
-                            print_warning "Installed TimeFlies base for macOS (dev dependencies may be missing)"
+                            print_success "Installed TimeFlies for macOS"
                             cd ..
                             INSTALL_SUCCESS=true
                         else
                             cd .. 2>/dev/null || true
                             rm -rf .timeflies_src 2>/dev/null || true
-                        fi
-                    fi
-                else
-                    print_status "Installing TimeFlies for macOS (CPU/Metal acceleration)"
-                    if pip install -e . >/dev/null 2>&1; then
-                        print_success "Installed TimeFlies for macOS"
-                        cd ..
-                        INSTALL_SUCCESS=true
-                    else
-                        cd .. 2>/dev/null || true
-                        rm -rf .timeflies_src 2>/dev/null || true
-                    fi
-                fi
-                else
-                    if [[ "$DEV_MODE" == "true" ]]; then
-                        print_status "No NVIDIA GPU detected - installing dev version"
-                        if pip install -e ".[dev]" >/dev/null 2>&1; then
-                            print_success "Installed TimeFlies with dev dependencies"
-                            cd ..
-                            INSTALL_SUCCESS=true
-                        else
-                            print_warning "Dev installation failed, trying base installation..."
-                            if pip install -e . >/dev/null 2>&1; then
-                                print_warning "Installed TimeFlies base (dev dependencies may be missing)"
-                                cd ..
-                                INSTALL_SUCCESS=true
-                            else
-                                cd .. 2>/dev/null || true
-                                rm -rf .timeflies_src 2>/dev/null || true
-                            fi
                         fi
                     else
                         print_status "No NVIDIA GPU detected - installing CPU version"
@@ -687,9 +648,7 @@ if [[ "$DEV_MODE" == "true" ]] || [[ "$UPDATE_MODE" != "true" ]]; then
         # Install TimeFlies with batch-correction and dev extras for dev mode
         if [[ "$DEV_MODE" == "true" ]]; then
             print_status "Installing TimeFlies with batch correction and dev dependencies..."
-            cd .timeflies_src
             pip install -e ".[batch-correction,dev]" >/dev/null 2>&1
-            cd ..
         else
             print_status "Installing TimeFlies with batch correction dependencies..."
             cd .timeflies_src
