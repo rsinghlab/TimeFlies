@@ -19,6 +19,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ..utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 class PathManager:
     """
@@ -74,13 +78,70 @@ class PathManager:
             self.target_variable = getattr(
                 config.data, "target_variable", "age"
             ).lower()
-            self.cell_type = getattr(config.data, "cell_type", "all").lower()
-            self.sex_type = getattr(config.data, "sex_type", "all").lower()
+            # Extract cell type from new or old format
+            cell_config = getattr(config.data, "cell", None)
+            if cell_config:
+                self.cell_type = getattr(cell_config, "type", "all").lower()
+                logger.debug(
+                    f"PathManager: Using cell type from config.data.cell.type: '{self.cell_type}'"
+                )
+            else:
+                self.cell_type = getattr(config.data, "cell_type", "all").lower()
+                logger.debug(
+                    f"PathManager: Using cell type from config.data.cell_type: '{self.cell_type}'"
+                )
+
+            self.sex_type = getattr(config.data, "sex", "all").lower()
+            logger.debug(
+                f"PathManager: sex_type='{self.sex_type}', cell_type='{self.cell_type}'"
+            )
 
             # Don't generate experiment name here - let caller provide it
 
         except AttributeError as e:
             raise ValueError(f"Invalid configuration structure: {e}")
+
+    def _get_base_experiments_dir(self) -> Path:
+        """Get base experiments directory path."""
+        project_root = self._get_project_root()
+        project_name = getattr(self.config, "project", "fruitfly_aging")
+        correction_dir = (
+            "batch_corrected" if self.batch_correction_enabled else "uncorrected"
+        )
+        task_type = getattr(self.config.model, "task_type", "classification")
+
+        return (
+            project_root
+            / "outputs"
+            / project_name
+            / "experiments"
+            / correction_dir
+            / task_type
+        )
+
+    def _get_all_runs_dir(self, config_key: str | None = None) -> Path:
+        """Get all_runs directory path."""
+        if config_key is None:
+            config_key = self.get_config_key()
+        return self._get_base_experiments_dir() / "all_runs" / config_key
+
+    def _get_best_dir(self, config_key: str | None = None) -> Path:
+        """Get best directory path."""
+        if config_key is None:
+            config_key = self.get_config_key()
+        return self._get_base_experiments_dir() / "best" / config_key
+
+    def _get_latest_dir(self, config_key: str | None = None) -> Path:
+        """Get latest directory path."""
+        if config_key is None:
+            config_key = self.get_config_key()
+        return self._get_base_experiments_dir() / "latest" / config_key
+
+    def _get_models_dir(self, training_key: str | None = None) -> Path:
+        """Get models directory path."""
+        if training_key is None:
+            training_key = self.get_training_key()
+        return self._get_base_experiments_dir() / "models" / training_key
 
     def _get_project_root(self) -> Path:
         """
@@ -393,30 +454,7 @@ class PathManager:
         """
         # Get existing experiment directories
         try:
-            project_root = self._get_project_root()
-            project_name = getattr(self.config, "project", "fruitfly_aging")
-            batch_correction_enabled = getattr(
-                self.config.data.batch_correction, "enabled", False
-            )
-            correction_dir = (
-                "batch_corrected" if batch_correction_enabled else "uncorrected"
-            )
-
-            # Add task type directory level
-            task_type = getattr(self.config.model, "task_type", "classification")
-
-            config_key = self.get_config_key()
-
-            experiments_dir = (
-                project_root
-                / "outputs"
-                / project_name
-                / correction_dir
-                / task_type
-                / "experiments"
-                / "all_runs"
-                / config_key
-            )
+            experiments_dir = self._get_all_runs_dir()
 
             if not experiments_dir.exists():
                 return "experiment_1"
@@ -455,30 +493,7 @@ class PathManager:
             str: Best experiment name (e.g., "experiment_3")
         """
         try:
-            project_root = self._get_project_root()
-            project_name = getattr(self.config, "project", "fruitfly_aging")
-            batch_correction_enabled = getattr(
-                self.config.data.batch_correction, "enabled", False
-            )
-            correction_dir = (
-                "batch_corrected" if batch_correction_enabled else "uncorrected"
-            )
-
-            # Add task type directory level
-            task_type = getattr(self.config.model, "task_type", "classification")
-
-            config_key = self.get_config_key()
-
-            experiments_dir = (
-                project_root
-                / "outputs"
-                / project_name
-                / correction_dir
-                / task_type
-                / "experiments"
-                / "all_runs"
-                / config_key
-            )
+            experiments_dir = self._get_all_runs_dir()
 
             if not experiments_dir.exists():
                 # No experiments exist yet - this should not happen in evaluation mode
@@ -512,15 +527,7 @@ class PathManager:
                         continue
 
             # If no valid experiments found, check best folder
-            best_folder = (
-                project_root
-                / "outputs"
-                / project_name
-                / correction_dir
-                / task_type
-                / "best"
-                / config_key
-            )
+            best_folder = self._get_best_dir()
 
             if best_experiment is None and best_folder.exists():
                 # Extract experiment name from metadata in best folder
@@ -607,35 +614,34 @@ class PathManager:
             parts.append("balanced")
 
         return "_".join(parts)
-    
-    
+
     def get_training_key(self) -> str:
         """
         Get training-only configuration key (excludes evaluation params).
-        
+
         Returns:
             str: Training configuration key for model storage
         """
         from .split_naming import SplitNamingUtils
-        
+
         # Build training key parts
         parts = []
-        
+
         # Always include tissue, model, target for clarity
         parts.append(self.tissue)
         parts.append(self.model_type)
         parts.append(self.target_variable)
-        
+
         # Training-specific suffix (excludes evaluation splits)
         training_suffix = SplitNamingUtils.generate_training_suffix(self.config)
         parts.append(training_suffix)
-        
+
         # Gene filtering if special (affects training data)
         if getattr(self.config.preprocessing.genes, "highly_variable_genes", False):
             parts.append("hvg")
         elif getattr(self.config.preprocessing.balancing, "balance_genes", False):
             parts.append("balanced")
-        
+
         return "_".join(parts)
 
     def get_experiment_dir(self, experiment_name: str = None) -> str:
@@ -664,35 +670,9 @@ class PathManager:
             )
             experiment_name = self.generate_experiment_name()
 
-        project_root = self._get_project_root()
-        project_name = getattr(self.config, "project", "fruitfly_aging")
-
-        # Add batch correction directory level
-        batch_correction_enabled = getattr(
-            self.config.data.batch_correction, "enabled", False
-        )
-        correction_dir = (
-            "batch_corrected" if batch_correction_enabled else "uncorrected"
-        )
-
-        # Add task type directory level
-        task_type = getattr(self.config.model, "task_type", "classification")
-
-        # Group by config key (e.g., cnn_ctrl-vs-alz)
-        config_key = self.get_config_key()
-
         # Store all real experiments in all_runs directory
-        experiment_dir = (
-            project_root
-            / "outputs"
-            / project_name
-            / correction_dir
-            / task_type
-            / "experiments"
-            / "all_runs"
-            / config_key
-            / experiment_name
-        )
+        all_runs_dir = self._get_all_runs_dir()
+        experiment_dir = all_runs_dir / experiment_name
         return str(experiment_dir)
 
     def get_experiment_model_path(self, experiment_name: str = None) -> str:
@@ -824,90 +804,15 @@ class PathManager:
 
     def get_best_folder_path(self) -> str:
         """Get best model folder path within config directory."""
-        project_root = self._get_project_root()
-        project_name = getattr(self.config, "project", "fruitfly_aging")
-
-        # Add batch correction directory level
-        batch_correction_enabled = getattr(
-            self.config.data.batch_correction, "enabled", False
-        )
-        correction_dir = (
-            "batch_corrected" if batch_correction_enabled else "uncorrected"
-        )
-
-        # Add task type directory level
-        task_type = getattr(self.config.model, "task_type", "classification")
-
-        # Best folder uses consistent structure
-        config_key = self.get_config_key()
-
-        return str(
-            project_root
-            / "outputs"
-            / project_name
-            / correction_dir
-            / task_type
-            / "experiments"
-            / "best"
-            / config_key
-        )
+        return str(self._get_best_dir())
 
     def get_latest_folder_path(self) -> str:
         """Get latest model folder path within correction directory."""
-        project_root = self._get_project_root()
-        project_name = getattr(self.config, "project", "fruitfly_aging")
-
-        # Add batch correction directory level
-        batch_correction_enabled = getattr(
-            self.config.data.batch_correction, "enabled", False
-        )
-        correction_dir = (
-            "batch_corrected" if batch_correction_enabled else "uncorrected"
-        )
-
-        # Add task type directory level
-        task_type = getattr(self.config.model, "task_type", "classification")
-
-        config_key = self.get_config_key()
-
-        return str(
-            project_root
-            / "outputs"
-            / project_name
-            / correction_dir
-            / task_type
-            / "experiments"
-            / "latest"
-            / config_key
-        )
+        return str(self._get_latest_dir())
 
     def get_models_folder_path(self) -> str:
         """Get models folder path for training-only model storage."""
-        project_root = self._get_project_root()
-        project_name = getattr(self.config, "project", "fruitfly_aging")
-        
-        # Add batch correction directory level
-        batch_correction_enabled = getattr(
-            self.config.data.batch_correction, "enabled", False
-        )
-        correction_dir = (
-            "batch_corrected" if batch_correction_enabled else "uncorrected"
-        )
-        
-        # Add task type directory level  
-        task_type = getattr(self.config.model, "task_type", "classification")
-        
-        training_key = self.get_training_key()
-        
-        return str(
-            project_root
-            / "outputs"
-            / project_name
-            / correction_dir
-            / task_type
-            / "models"
-            / training_key
-        )
+        return str(self._get_models_dir())
 
     def update_latest_folder(self, experiment_name: str):
         """
@@ -938,9 +843,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
+            / "experiments"
             / correction_dir
             / task_type
-            / "experiments"
             / "all_runs"
             / config_key
             / experiment_name
@@ -968,7 +873,10 @@ class PathManager:
                         )
                     else:
                         shutil.copy2(item, latest_dir / item.name)
-                        
+
+                # Note: model_components for latest/ will be handled separately
+                # Only the current best experiment should have model symlinks/files
+                # Latest gets model_components only if it's also the current best
 
     def update_best_folder(self, experiment_name: str):
         """
@@ -999,9 +907,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
+            / "experiments"
             / correction_dir
             / task_type
-            / "experiments"
             / "all_runs"
             / config_key
             / experiment_name
@@ -1027,7 +935,7 @@ class PathManager:
                         shutil.copytree(item, best_dir / item.name, dirs_exist_ok=True)
                     else:
                         shutil.copy2(item, best_dir / item.name)
-                        
+
                 # Create model_components as symlink to models/ folder
                 models_dir = Path(self.get_models_folder_path())
                 model_components_link = best_dir / "model_components"
@@ -1044,10 +952,17 @@ class PathManager:
                         model_components_link.symlink_to(relative_models_path)
                     except (OSError, NotImplementedError):
                         # Fallback: copy if symlinks not supported
-                        shutil.copytree(models_dir, model_components_link, dirs_exist_ok=True)
-                        
+                        shutil.copytree(
+                            models_dir, model_components_link, dirs_exist_ok=True
+                        )
 
-    def get_best_model_dir_for_config(self) -> str:
+            # Update model symlinks using new strategy
+            # Find the previous best experiment by looking for existing symlink in all_runs
+            previous_best = self._find_current_best_experiment()
+
+            self.update_model_symlinks(experiment_name, previous_best)
+
+    def get_best_model_dir_for_config(self) -> str | None:
         """
         Get the best model directory for the current configuration.
         First tries to find the actual best model by scanning all experiments,
@@ -1071,9 +986,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
+            / "experiments"
             / correction_dir
             / task_type
-            / "experiments"
             / "all_runs"
             / config_key
         )
@@ -1124,9 +1039,9 @@ class PathManager:
             project_root
             / "outputs"
             / project_name
+            / "experiments"
             / correction_dir
             / task_type
-            / "experiments"
             / "best"
             / config_key
         )
@@ -1140,3 +1055,146 @@ class PathManager:
 
         # No best model exists yet for this config
         return None
+
+    def update_model_symlinks(
+        self,
+        new_best_experiment_name: str,
+        previous_best_experiment_name: str | None = None,
+    ):
+        """
+        Update symlinks when a new best model is found.
+        - models/ contains the actual best model files
+        - Only current best experiment in all_runs/ has symlink to models/
+        - best/ has symlink to models/
+        """
+        try:
+            import shutil
+
+            models_dir = self._get_models_dir()
+            all_runs_dir = self._get_all_runs_dir()
+            best_dir = self._get_best_dir()
+
+            # 1. Remove old experiment's symlink in all_runs/ (if exists)
+            if previous_best_experiment_name:
+                old_exp_symlink = (
+                    all_runs_dir / previous_best_experiment_name / "model_components"
+                )
+                if old_exp_symlink.exists():
+                    try:
+                        # Force removal regardless of type
+                        if old_exp_symlink.is_symlink():
+                            old_exp_symlink.unlink()
+                        elif old_exp_symlink.is_dir():
+                            shutil.rmtree(old_exp_symlink)
+                        else:
+                            old_exp_symlink.unlink()
+                        logger.debug(
+                            f"Removed model_components from {previous_best_experiment_name}"
+                        )
+                    except (OSError, PermissionError) as e:
+                        logger.warning(
+                            f"Could not remove model_components from {previous_best_experiment_name}: {e}"
+                        )
+                        # Try force removal
+                        try:
+                            import stat
+
+                            old_exp_symlink.chmod(stat.S_IWRITE)
+                            if old_exp_symlink.is_dir():
+                                shutil.rmtree(old_exp_symlink)
+                            else:
+                                old_exp_symlink.unlink()
+                        except Exception as e2:
+                            logger.error(
+                                f"Force removal also failed for {previous_best_experiment_name}: {e2}"
+                            )
+
+            # 2. Create symlink in new best experiment's all_runs/ → models/
+            new_exp_dir = all_runs_dir / new_best_experiment_name
+            new_exp_symlink = new_exp_dir / "model_components"
+
+            if new_exp_dir.exists():
+                # Remove existing model_components if present
+                if new_exp_symlink.exists():
+                    if new_exp_symlink.is_symlink():
+                        new_exp_symlink.unlink()
+                    else:
+                        shutil.rmtree(new_exp_symlink)
+
+                # Create relative symlink from all_runs experiment to models/
+                if models_dir.exists():
+                    try:
+                        relative_models_path = os.path.relpath(models_dir, new_exp_dir)
+                        new_exp_symlink.symlink_to(relative_models_path)
+                        logger.debug(
+                            f"Created model symlink in {new_best_experiment_name} → models/"
+                        )
+                    except (OSError, NotImplementedError):
+                        logger.warning(
+                            f"Could not create symlink in {new_best_experiment_name}"
+                        )
+
+            # 3. Update symlink in best/ → models/ (should already exist but ensure it's correct)
+            best_symlink = best_dir / "model_components"
+            if best_dir.exists():
+                # Remove existing symlink
+                if best_symlink.exists():
+                    if best_symlink.is_symlink():
+                        best_symlink.unlink()
+                    else:
+                        shutil.rmtree(best_symlink)
+
+                # Create relative symlink from best/ to models/
+                if models_dir.exists():
+                    try:
+                        relative_models_path = os.path.relpath(models_dir, best_dir)
+                        best_symlink.symlink_to(relative_models_path)
+                        logger.debug("Updated model symlink in best/ → models/")
+                    except (OSError, NotImplementedError):
+                        logger.warning("Could not create symlink in best/")
+
+            # 4. Handle latest/ folder - only gets symlink if the new best is also the latest
+            config_key = self.get_config_key()
+            latest_dir = self._get_latest_dir(config_key)
+            if latest_dir.exists():
+                latest_symlink = latest_dir / "model_components"
+
+                # Always remove existing model_components from latest/
+                if latest_symlink.exists():
+                    if latest_symlink.is_symlink():
+                        latest_symlink.unlink()
+                    else:
+                        shutil.rmtree(latest_symlink)
+
+                # The new best experiment IS the latest by definition (currently being processed)
+                # Create symlink in latest/ → models/
+                if models_dir.exists():
+                    try:
+                        relative_models_path = os.path.relpath(models_dir, latest_dir)
+                        latest_symlink.symlink_to(relative_models_path)
+                        logger.debug("Created model symlink in latest/ → models/")
+                    except (OSError, NotImplementedError) as e:
+                        logger.warning(f"Could not create symlink in latest/: {e}")
+        except Exception as e:
+            logger.warning(f"Could not update model symlinks: {e}")
+
+    def _find_current_best_experiment(self) -> str | None:
+        """Find the experiment that currently has a symlink to models/ (the current best)."""
+        try:
+            config_key = self.get_config_key()
+            all_runs_dir = self._get_all_runs_dir(config_key)
+            if not all_runs_dir.exists():
+                return None
+
+            # Look through all experiments for one with model_components symlink
+            for experiment_dir in all_runs_dir.iterdir():
+                if experiment_dir.is_dir() and not experiment_dir.name.startswith("."):
+                    model_components = experiment_dir / "model_components"
+                    if model_components.exists() and model_components.is_symlink():
+                        # This experiment has the symlink, so it's the current best
+                        return experiment_dir.name
+
+            return None
+        except Exception as e:
+            logger.warning(f"Could not find current best experiment: {e}")
+            return None

@@ -62,22 +62,59 @@ class DataPreprocessor:
             adata = adata[adata.obs["sex"] == sex_type].copy()
 
         # Filter based on 'cell_type' if specified
-        cell_filtering = getattr(config.data, "cell_filtering", None)
-        if cell_filtering:
-            cell_type = getattr(cell_filtering, "type", "all")
+        # Check new format first (config.data.cell)
+        cell_config = getattr(config.data, "cell", None)
+        if cell_config:
+            cell_type = getattr(cell_config, "type", "all").lower()
             if cell_type != "all":
-                cell_type_column = getattr(
-                    cell_filtering, "column", "afca_annotation_broad"
-                )
-                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+                cell_type_column = getattr(cell_config, "column", None)
+                if not cell_type_column:
+                    raise ValueError("Cell type filtering enabled but no column specified in config.data.cell.column")
+                # Validate cell type column exists (case-insensitive)
+                actual_columns = adata.obs.columns.tolist()
+                column_mapping = {col.lower(): col for col in actual_columns}
+                cell_type_column_lower = cell_type_column.lower()
+                
+                if cell_type_column_lower not in column_mapping:
+                    raise ValueError(f"Cell type column '{cell_type_column}' not found in data. Available columns: {actual_columns}")
+                
+                # Use the actual column name from the data
+                actual_cell_column = column_mapping[cell_type_column_lower]
+                available_types = adata.obs[actual_cell_column].str.lower().unique()
+                if cell_type not in available_types:
+                    available_types_orig = adata.obs[actual_cell_column].unique()
+                    raise ValueError(f"Cell type '{cell_type}' not found in column '{actual_cell_column}'. Available types: {list(available_types_orig)}")
+                adata = adata[adata.obs[actual_cell_column].str.lower() == cell_type].copy()
         else:
-            # Fallback for backwards compatibility
-            cell_type = getattr(config.data, "cell_type", "all")
-            if cell_type != "all":
-                cell_type_column = getattr(
-                    config.data, "cell_type_column", "afca_annotation_broad"
-                )
-                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+            # Check old format (config.data.cell_filtering)
+            cell_filtering = getattr(config.data, "cell_filtering", None)
+            if cell_filtering:
+                cell_type = getattr(cell_filtering, "type", "all")
+                if cell_type != "all":
+                    cell_type_column = getattr(
+                        cell_filtering, "column", "afca_annotation_broad"
+                    )
+                    # Validate cell type exists
+                    if cell_type_column not in adata.obs.columns:
+                        raise ValueError(f"Cell type column '{cell_type_column}' not found in data")
+                    available_types = adata.obs[cell_type_column].unique()
+                    if cell_type not in available_types:
+                        raise ValueError(f"Cell type '{cell_type}' not found in column '{cell_type_column}'. Available types: {list(available_types)}")
+                    adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+            else:
+                # Fallback for backwards compatibility
+                cell_type = getattr(config.data, "cell_type", "all")
+                if cell_type != "all":
+                    cell_type_column = getattr(
+                        config.data, "cell_type_column", "afca_annotation_broad"
+                    )
+                    # Validate cell type exists
+                    if cell_type_column not in adata.obs.columns:
+                        raise ValueError(f"Cell type column '{cell_type_column}' not found in data")
+                    available_types = adata.obs[cell_type_column].unique()
+                    if cell_type not in available_types:
+                        raise ValueError(f"Cell type '{cell_type}' not found in column '{cell_type_column}'. Available types: {list(available_types)}")
+                    adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Shuffle genes if required
         shuffle_genes = getattr(config.preprocessing.shuffling, "shuffle_genes", False)
@@ -508,22 +545,59 @@ class DataPreprocessor:
             adata = adata[adata.obs["sex"] != "mix"].copy()
 
         # Check if the specified cell type is 'all'
-        cell_filtering = getattr(config.data, "cell_filtering", None)
-        if cell_filtering:
-            cell_type = getattr(cell_filtering, "type", "all").lower()
+        # Check new format first (config.data.cell)
+        cell_config = getattr(config.data, "cell", None)
+        if cell_config:
+            cell_type = getattr(cell_config, "type", "all").lower()
             if cell_type != "all":
-                cell_type_column = getattr(
-                    cell_filtering, "column", "afca_annotation_broad"
-                )
-                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+                cell_type_column = getattr(cell_config, "column", None)
+                if not cell_type_column:
+                    raise ValueError("Cell type filtering enabled but no column specified in config.data.cell.column")
+                # Validate cell type column exists (case-insensitive)
+                actual_columns = adata.obs.columns.tolist()
+                column_mapping = {col.lower(): col for col in actual_columns}
+                cell_type_column_lower = cell_type_column.lower()
+                
+                if cell_type_column_lower not in column_mapping:
+                    raise ValueError(f"Cell type column '{cell_type_column}' not found in data. Available columns: {actual_columns}")
+                
+                # Use the actual column name from the data
+                actual_cell_column = column_mapping[cell_type_column_lower]
+                available_types = adata.obs[actual_cell_column].str.lower().unique()
+                if cell_type not in available_types:
+                    available_types_orig = adata.obs[actual_cell_column].unique()
+                    raise ValueError(f"Cell type '{cell_type}' not found in column '{actual_cell_column}'. Available types: {list(available_types_orig)}")
+                adata = adata[adata.obs[actual_cell_column].str.lower() == cell_type].copy()
         else:
-            # Fallback for backwards compatibility
-            cell_type = getattr(config.data, "cell_type", "all").lower()
-            if cell_type != "all":
-                cell_type_column = getattr(
-                    config.data, "cell_type_column", "afca_annotation_broad"
-                )
-                adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+            # Check old format (config.data.cell_filtering)
+            cell_filtering = getattr(config.data, "cell_filtering", None)
+            if cell_filtering:
+                cell_type = getattr(cell_filtering, "type", "all").lower()
+                if cell_type != "all":
+                    cell_type_column = getattr(
+                        cell_filtering, "column", "afca_annotation_broad"
+                    )
+                    # Validate cell type exists
+                    if cell_type_column not in adata.obs.columns:
+                        raise ValueError(f"Cell type column '{cell_type_column}' not found in data")
+                    available_types = adata.obs[cell_type_column].unique()
+                    if cell_type not in available_types:
+                        raise ValueError(f"Cell type '{cell_type}' not found in column '{cell_type_column}'. Available types: {list(available_types)}")
+                    adata = adata[adata.obs[cell_type_column] == cell_type].copy()
+            else:
+                # Fallback for backwards compatibility
+                cell_type = getattr(config.data, "cell_type", "all").lower()
+                if cell_type != "all":
+                    cell_type_column = getattr(
+                        config.data, "cell_type_column", "afca_annotation_broad"
+                    )
+                    # Validate cell type exists
+                    if cell_type_column not in adata.obs.columns:
+                        raise ValueError(f"Cell type column '{cell_type_column}' not found in data")
+                    available_types = adata.obs[cell_type_column].unique()
+                    if cell_type not in available_types:
+                        raise ValueError(f"Cell type '{cell_type}' not found in column '{cell_type_column}'. Available types: {list(available_types)}")
+                    adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
         # Sex Mapping
         sex_type = getattr(config.data, "sex", "all").lower()

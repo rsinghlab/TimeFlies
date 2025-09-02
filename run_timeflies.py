@@ -48,20 +48,21 @@ TimeFlies v1.0 | Singh Lab | https://github.com/rsinghlab/TimeFlies
 """
 
 import os
+import subprocess
 import sys
 import warnings
-import subprocess
 from pathlib import Path
+
 
 # Python version check and auto-upgrade
 def ensure_python_312():
     """Ensure we're running with Python 3.12+, re-exec if needed."""
     current_version = sys.version_info
-    
+
     # If already running Python 3.12+, continue
     if current_version >= (3, 12):
         return
-    
+
     # Find Python 3.12+
     for cmd in ["python3.12", "python3", "python"]:
         try:
@@ -70,9 +71,11 @@ def ensure_python_312():
             )
             version_str = result.stdout.strip().split()[-1]
             major, minor = map(int, version_str.split(".")[:2])
-            
+
             if major == 3 and minor >= 12:
-                print(f"TimeFlies requires Python 3.12+, found {current_version.major}.{current_version.minor}")
+                print(
+                    f"TimeFlies requires Python 3.12+, found {current_version.major}.{current_version.minor}"
+                )
                 print(f"Re-executing with {cmd} {version_str}...")
                 # Get full path to the Python executable
                 python_path = subprocess.run(
@@ -80,10 +83,10 @@ def ensure_python_312():
                 ).stdout.strip()
                 # Re-execute with the correct Python version
                 os.execv(python_path, [python_path] + sys.argv)
-                
+
         except (subprocess.CalledProcessError, FileNotFoundError, OSError, ValueError):
             continue
-    
+
     # If no Python 3.12+ found
     print("ERROR: TimeFlies requires Python 3.12+ but none found.")
     print("Please install Python 3.12+ or run:")
@@ -91,9 +94,9 @@ def ensure_python_312():
     print("  sudo apt install python3.12  (on Ubuntu/Debian)")
     sys.exit(1)
 
+
 # Check Python version first thing
 ensure_python_312()
-
 
 
 # Suppress TensorFlow and CUDA warnings for cleaner output

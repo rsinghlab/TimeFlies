@@ -16,22 +16,26 @@ class DisplayManager:
     def __init__(self, config=None):
         self.config = config
 
-    def print_project_and_dataset_overview(self, config, pipeline=None, display_format=None, mode="training"):
+    def print_project_and_dataset_overview(
+        self, config, pipeline=None, display_format=None, mode="training"
+    ):
         """Print project information and dataset overview."""
         # Print appropriate header first
         if mode == "training":
             self._print_header("TIMEFLIES TRAINING & HOLDOUT EVALUATION")
         else:
             self._print_header("TIMEFLIES EVALUATION")
-            
+
         print(f"Project: {config.project.replace('_', ' ').title()}")
-        
+
         # Show experiment name with display format if provided
         if pipeline and display_format:
             if mode == "training":
                 print(f"Experiment: {pipeline.experiment_name} ({display_format})")
             else:  # evaluation mode
-                print(f"Experiment: Found best model - {pipeline.experiment_name} - ({display_format})")
+                print(
+                    f"Experiment: Found best model - {pipeline.experiment_name} - ({display_format})"
+                )
         else:
             print(
                 f"Experiment: {getattr(config, 'experiment_name', 'Unknown')} ({getattr(config, 'run_name', 'Unknown')})"
@@ -58,7 +62,7 @@ class DisplayManager:
 
     def print_training_and_evaluation_data(
         self, train_data, eval_data, config, train_subset=None, eval_subset=None
-        ):
+    ):
         """Print comprehensive overview of both training and evaluation datasets."""
         self._print_header("PREPROCESSED DATA OVERVIEW")
 
@@ -79,8 +83,8 @@ class DisplayManager:
 
         # Distribution info for training
         if train_subset is not None:
-            target_var = getattr(config.data, "target_variable", "age")
-            self._print_obs_distributions(train_subset, [target_var, "sex"])
+            display_columns = self._get_display_columns(config)
+            self._print_obs_distributions(train_subset, display_columns)
 
         print()
 
@@ -101,14 +105,22 @@ class DisplayManager:
 
         # Distribution info for evaluation
         if eval_subset is not None:
-            target_var = getattr(config.data, "target_variable", "age")
-            self._print_obs_distributions(eval_subset, [target_var, "sex"])
+            display_columns = self._get_display_columns(config)
+            self._print_obs_distributions(eval_subset, display_columns)
 
         # Split configuration
         split_method = getattr(config.data.split, "method", "unknown")
         print()
         print("Split Configuration:")
         print(f"  └─ Split Method:      {split_method.title()}")
+
+        if split_method.lower() == "column":
+            train_columns = getattr(config.data.split, "train", [])
+            test_columns = getattr(config.data.split, "test", [])
+            if train_columns:
+                print(f"  └─ Train Columns:     {', '.join(train_columns)}")
+            if test_columns:
+                print(f"  └─ Test Columns:      {', '.join(test_columns)}")
 
     def print_evaluation_data(self, eval_data, config, eval_subset=None):
         """Print evaluation dataset overview."""
@@ -133,14 +145,22 @@ class DisplayManager:
 
         # Distribution info from eval_subset AnnData
         if eval_subset is not None:
-            target_var = getattr(config.data, "target_variable", "age")
-            self._print_obs_distributions(eval_subset, [target_var, "sex"])
+            display_columns = self._get_display_columns(config)
+            self._print_obs_distributions(eval_subset, display_columns)
 
         # Split configuration
         split_method = getattr(config.data.split, "method", "unknown")
         print()
         print("Split Configuration:")
         print(f"  └─ Split Method:      {split_method.title()}")
+
+        if split_method.lower() == "column":
+            train_columns = getattr(config.data.split, "train", [])
+            test_columns = getattr(config.data.split, "test", [])
+            if train_columns:
+                print(f"  └─ Train Columns:     {', '.join(train_columns)}")
+            if test_columns:
+                print(f"  └─ Test Columns:      {', '.join(test_columns)}")
 
     def display_model_architecture(self, model, config):
         """Display model architecture and training configuration."""
@@ -193,13 +213,14 @@ class DisplayManager:
     def print_training_progress_header(self, previous_best_msg):
         """Print training progress header with previous best loss info."""
         self._print_header(f"TRAINING PROGRESS ({previous_best_msg})")
-    
-    def print_training_results(self, history, original_previous_best_loss, 
-                              experiment_name, improvement_status):
+
+    def print_training_results(
+        self, history, original_previous_best_loss, experiment_name, improvement_status
+    ):
         """Print training results section."""
         self._print_header("TRAINING RESULTS")
         current_best_loss = None
-        
+
         if history:
             val_losses = history.history.get("val_loss", [])
             if val_losses:
@@ -228,20 +249,25 @@ class DisplayManager:
         """Print training results header."""
         self._print_header("MODEL COMPARISON (Holdout Evaluation)")
 
-    def print_timing_summary(self, preprocessing_duration=0, training_duration=0, 
-                            evaluation_duration=0):
+    def print_timing_summary(
+        self, preprocessing_duration=0, training_duration=0, evaluation_duration=0
+    ):
         """Print timing summary for any pipeline mode."""
         self._print_header("TIMING SUMMARY")
-        
+
         # Show only the durations that are non-zero
         if preprocessing_duration > 0:
-            print(f"Preprocessing:        {self._format_duration(preprocessing_duration)}")
+            print(
+                f"Preprocessing:        {self._format_duration(preprocessing_duration)}"
+            )
         if training_duration > 0:
             print(f"Training:             {self._format_duration(training_duration)}")
         if evaluation_duration > 0:
             print(f"Evaluation:           {self._format_duration(evaluation_duration)}")
-        
-        total_duration = preprocessing_duration + training_duration + evaluation_duration
+
+        total_duration = (
+            preprocessing_duration + training_duration + evaluation_duration
+        )
         if total_duration > 0:
             print(f"Total Duration:       {self._format_duration(total_duration)}")
 
@@ -262,20 +288,37 @@ class DisplayManager:
             hours = seconds / 3600
             return f"{hours:.1f}h"
 
+    def _get_display_columns(self, config):
+        """Get columns to display in data overview from config."""
+        # Check for display_columns in config
+        display_columns = getattr(config.data, "display_columns", None)
+
+        if display_columns:
+            # Use configured columns
+            if isinstance(display_columns, str):
+                return [display_columns]
+            return display_columns
+        else:
+            # Default: just show target variable
+            target_var = getattr(config.data, "target_variable", "age")
+            return [target_var]
+
     def _check_gene_filtering_status(self, config):
         """Check if gene filtering reference data exists and display warning if missing."""
         from pathlib import Path
-        
+
         project = getattr(config, "project", "unknown")
-        
+
         # Get reference data filenames from config or use defaults
-        autosomal_file = getattr(config.data, "autosomal_genes_file", "autosomal_genes.csv")
+        autosomal_file = getattr(
+            config.data, "autosomal_genes_file", "autosomal_genes.csv"
+        )
         sex_file = getattr(config.data, "sex_genes_file", "sex_genes.csv")
-        
+
         # Check if reference data files exist
         autosomal_path = Path(f"data/{project}/reference_data/{autosomal_file}")
         sex_path = Path(f"data/{project}/reference_data/{sex_file}")
-        
+
         if not autosomal_path.exists() and not sex_path.exists():
             print("⚠ Gene filtering disabled (no reference data found)")
 
@@ -291,4 +334,3 @@ class DisplayManager:
                     print(
                         f"      └─ {value:10} : {count:6,} samples ({percentage:5.1f}%)"
                     )
-    

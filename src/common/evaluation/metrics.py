@@ -22,8 +22,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from common.utils.logging_config import get_logger
 from common.display.display_manager import DisplayManager
+from common.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
