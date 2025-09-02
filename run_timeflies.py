@@ -47,11 +47,16 @@ For detailed help:
 TimeFlies v1.0 | Singh Lab | https://github.com/rsinghlab/TimeFlies
 """
 
+# Suppress ABSL and other warnings
+import logging
 import os
 import subprocess
 import sys
 import warnings
 from pathlib import Path
+
+logging.getLogger("absl").setLevel(logging.ERROR)
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 
 # Python version check and auto-upgrade
@@ -109,11 +114,6 @@ os.environ["GLOG_minloglevel"] = "3"
 os.environ["TF_DISABLE_MKL"] = "1"  # Disable Intel MKL warnings
 os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=2 --tf_xla_cpu_global_jit"
 
-# Suppress ABSL and other warnings
-import logging
-
-logging.getLogger("absl").setLevel(logging.ERROR)
-logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 # Additional suppression for CUDA/cuDNN warnings
 
