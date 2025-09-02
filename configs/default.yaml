@@ -16,7 +16,7 @@ general:
 # HARDWARE CONFIGURATION
 # =============================================================================
 hardware:
-  processor: "GPU"  # Options: "GPU", "CPU", "M" (Apple Silicon)
+  processor: "M"  # Options: "GPU", "CPU", "M" (Apple Silicon)
   memory_growth: true
 
 # =============================================================================
@@ -27,9 +27,12 @@ data:
   model: "CNN"  # Options: "CNN", "MLP", "logistic", "xgboost", "random_forest"
   tissue: "head"  # Options: "head", "body", "all"
   species: "drosophila"
-  cell_type: "all"
-  sex: "all"  # Options: "all", "male", "female"
+  cell: 
+    column: "adfca_annotation_broad"
+    type: "CNS neuron"
+  sex: "male"  # Options: "all", "male", "female"
   target_variable: "age"  # Target variable for prediction
+  display_columns: ["age", "sex", "adfca_annotation_broad"]  # Columns to display in data overview
 
   # Data processing options
   batch_correction:
@@ -39,7 +42,7 @@ data:
     include_mixed_sex: false
 
   sampling:
-    samples: 10000  # null for all samples, or specify number
+    samples: 2500  # null for all samples, or specify number
     variables: null  # null for all genes, or specify number
 
   # Train-eval splitting configuration
@@ -52,7 +55,7 @@ data:
     # Column-based splitting (ignored if method="random")
     column: "genotype"       # Column name to split on
     train: ["control"]       # Values for training from adata_train (can be multiple)
-    test: ["ab42", "htau"]   # Values for evaluation from adata_eval (can be multiple)
+    test: ["ab42"]   # Values for evaluation from adata_eval (can be multiple)
 
     # Optional: Additional column filters (AND logic with main split)
     # These filters are applied to BOTH train and test sets from the main split above
