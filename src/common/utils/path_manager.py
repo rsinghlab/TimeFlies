@@ -695,9 +695,14 @@ class PathManager:
         evaluation_dir = self.get_experiment_evaluation_dir(experiment_name)
         return str(Path(evaluation_dir) / "plots")
 
-    def create_experiment_metadata(self, experiment_name: str = None) -> dict:
+    def create_experiment_metadata(self, experiment_name: str = None, actual_data_shapes: dict = None) -> dict:
         """
         Create metadata dictionary for experiment.
+
+        Args:
+            experiment_name: Name of the experiment
+            actual_data_shapes: Dictionary with actual data shapes if available
+                              Expected format: {"n_samples": int, "n_features": int}
 
         Returns:
             dict: Experiment metadata
@@ -706,6 +711,20 @@ class PathManager:
 
         if experiment_name is None:
             experiment_name = self.generate_experiment_name()
+
+        # Get configured values
+        config_samples = getattr(self.config.data.sampling, "samples", None)
+        config_variables = getattr(self.config.data.sampling, "variables", None)
+        
+        # Use actual data shapes if available and config specifies null
+        actual_samples = config_samples
+        actual_variables = config_variables
+        
+        if actual_data_shapes:
+            if config_samples is None and "n_samples" in actual_data_shapes:
+                actual_samples = actual_data_shapes["n_samples"]
+            if config_variables is None and "n_features" in actual_data_shapes:
+                actual_variables = actual_data_shapes["n_features"]
 
         return {
             "experiment_name": experiment_name,
@@ -724,8 +743,8 @@ class PathManager:
                 else "all",
                 "cells": self.cell_type,
                 "sex": self.sex_type,
-                "samples": getattr(self.config.data.sampling, "samples", None),
-                "variables": getattr(self.config.data.sampling, "variables", None),
+                "samples": actual_samples,
+                "variables": actual_variables,
             },
             "batch_correction": self.batch_correction_enabled,
             "split_config": SplitNamingUtils.extract_split_details_for_metadata(
@@ -746,7 +765,12 @@ class PathManager:
         if experiment_name is None:
             experiment_name = self.generate_experiment_name()
 
-        metadata = self.create_experiment_metadata(experiment_name)
+        # Extract actual data shapes if provided in additional_data
+        actual_data_shapes = None
+        if additional_data and "data_shapes" in additional_data:
+            actual_data_shapes = additional_data["data_shapes"]
+        
+        metadata = self.create_experiment_metadata(experiment_name, actual_data_shapes)
         if additional_data:
             metadata.update(additional_data)
 
@@ -772,7 +796,7 @@ class PathManager:
             with open(metadata_path) as f:
                 metadata = json.load(f)
         else:
-            metadata = self.create_experiment_metadata(experiment_name)
+            metadata = self.create_experiment_metadata(experiment_name, None)
 
         # Update training completion info
         metadata["training_completed_at"] = datetime.now().isoformat()
@@ -792,7 +816,7 @@ class PathManager:
             with open(metadata_path) as f:
                 metadata = json.load(f)
         else:
-            metadata = self.create_experiment_metadata(experiment_name)
+            metadata = self.create_experiment_metadata(experiment_name, None)
 
         # Update evaluation completion info
         metadata["evaluation_completed_at"] = datetime.now().isoformat()

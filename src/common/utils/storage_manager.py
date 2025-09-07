@@ -277,6 +277,27 @@ class StorageManager:
                     "pearson": getattr(pipeline, "last_pearson", None),
                 }
 
+            # Get actual data shapes from pipeline if available
+            actual_data_shapes = {}
+            if hasattr(pipeline, 'train_data') and pipeline.train_data is not None:
+                actual_data_shapes["n_samples"] = pipeline.train_data.shape[0]
+                # For CNN reshaped data, get the gene count from last dimension
+                if hasattr(pipeline, 'num_features'):
+                    actual_data_shapes["n_features"] = pipeline.num_features
+                elif len(pipeline.train_data.shape) == 3:
+                    # Shape is (cells, 1, genes) - genes are in last dimension
+                    actual_data_shapes["n_features"] = pipeline.train_data.shape[2]
+                elif len(pipeline.train_data.shape) == 2:
+                    actual_data_shapes["n_features"] = pipeline.train_data.shape[1]
+                else:
+                    # For other CNN reshaped data, multiply dimensions except batch
+                    import numpy as np
+                    actual_data_shapes["n_features"] = int(np.prod(pipeline.train_data.shape[1:]))
+            
+            # Add data shapes to training_data for metadata
+            if actual_data_shapes:
+                training_data["data_shapes"] = actual_data_shapes
+            
             pipeline.path_manager.save_experiment_metadata(
                 pipeline.experiment_name, training_data
             )
