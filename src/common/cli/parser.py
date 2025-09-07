@@ -305,6 +305,11 @@ User Workflow:
         action="store_true",
         help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
     )
+    queue_parser.add_argument(
+        "--analysis",
+        action="store_true",
+        help="Run analysis queue only (skip training, analyze existing best models from queue config)",
+    )
 
     # GUI command for web interface
     gui_parser = subparsers.add_parser(

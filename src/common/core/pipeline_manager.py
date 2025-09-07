@@ -764,6 +764,19 @@ class PipelineManager:
                 with open(metadata_path) as f:
                     metadata = json.load(f)
 
+                # Load evaluation metadata for sample counts and gene info
+                eval_sample_count = "Unknown"
+                eval_gene_count = "Unknown"
+                try:
+                    eval_metadata_path = os.path.join(experiment_dir, "evaluation", "eval_metadata.json")
+                    if os.path.exists(eval_metadata_path):
+                        with open(eval_metadata_path) as f:
+                            eval_metadata = json.load(f)
+                        eval_sample_count = eval_metadata.get("n_test_samples", "Unknown")
+                        eval_gene_count = eval_metadata.get("n_features", "Unknown")
+                except Exception as e:
+                    logger.debug(f"Could not load eval_metadata.json: {e}")
+
                 # Update with current evaluation info
                 metadata.update(
                     {
@@ -773,6 +786,8 @@ class PipelineManager:
                         "evaluation_count": 1,
                         "source_experiment": source_experiment,
                         "experiment_type": "evaluation_only",
+                        "eval_sample_count": eval_sample_count,
+                        "eval_gene_count": eval_gene_count,
                         "split_config": {
                             "method": "column",
                             "split_name": self.path_manager.get_config_key().split("_")[

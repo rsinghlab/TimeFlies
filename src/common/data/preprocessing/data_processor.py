@@ -116,6 +116,33 @@ class DataPreprocessor:
                         raise ValueError(f"Cell type '{cell_type}' not found in column '{cell_type_column}'. Available types: {list(available_types)}")
                     adata = adata[adata.obs[cell_type_column] == cell_type].copy()
 
+        # Filter based on target variable values if specified
+        target_filtering = getattr(config.data, "target_filtering", None)
+        if target_filtering:
+            target_values = getattr(target_filtering, "values", None)
+            if target_values:
+                target_column = getattr(config.model, "target_variable", "age")
+                
+                # Validate target column exists
+                if target_column not in adata.obs.columns:
+                    raise ValueError(f"Target column '{target_column}' not found in data. Available columns: {adata.obs.columns.tolist()}")
+                
+                # Convert target_values to list if it's a single value
+                if not isinstance(target_values, list):
+                    target_values = [target_values]
+                
+                # Filter data to only include specified target values
+                # Handle type conversion - convert both target_values and data to strings for comparison
+                target_values_str = [str(val) for val in target_values]
+                mask = adata.obs[target_column].astype(str).isin(target_values_str)
+                available_values = adata.obs[target_column].unique()
+                
+                if not mask.any():
+                    raise ValueError(f"No data found for target values {target_values} in column '{target_column}'. Available values: {list(available_values)}")
+                
+                adata = adata[mask].copy()
+                logger.info(f"Filtered data to target values {target_values} in column '{target_column}'. Remaining samples: {adata.n_obs}")
+
         # Shuffle genes if required
         shuffle_genes = getattr(config.preprocessing.shuffling, "shuffle_genes", False)
         global_random_state = getattr(config.general, "random_state", 42)
@@ -543,6 +570,25 @@ class DataPreprocessor:
         # Remove 'mix' if specified
         if mix_included is False:
             adata = adata[adata.obs["sex"] != "mix"].copy()
+
+        # Apply target variable filtering if specified (same as in process_adata)
+        target_filtering = getattr(config.data, "target_filtering", None)
+        if target_filtering:
+            target_values = getattr(target_filtering, "values", None)
+            if target_values:
+                target_column = getattr(config.model, "target_variable", "age")
+                
+                # Convert target_values to list if it's a single value
+                if not isinstance(target_values, list):
+                    target_values = [target_values]
+                
+                # Handle type conversion - convert both target_values and data to strings for comparison
+                target_values_str = [str(val) for val in target_values]
+                mask = adata.obs[target_column].astype(str).isin(target_values_str)
+                
+                if mask.any():
+                    adata = adata[mask].copy()
+                    logger.info(f"Filtered evaluation data to target values {target_values} in column '{target_column}'. Remaining samples: {adata.n_obs}")
 
         # Check if the specified cell type is 'all'
         # Check new format first (config.data.cell)

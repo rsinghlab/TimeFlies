@@ -603,6 +603,19 @@ class PathManager:
         else:
             parts.append("age")  # Always include for clarity
 
+        # Add target value filtering information if specified
+        target_filtering = getattr(self.config.data, "target_filtering", None)
+        if target_filtering:
+            target_values = getattr(target_filtering, "values", None)
+            if target_values:
+                # Convert to list if single value
+                if not isinstance(target_values, list):
+                    target_values = [target_values]
+                # Sort for consistent naming
+                target_values_sorted = sorted(map(str, target_values))
+                age_range = "-".join(target_values_sorted)
+                parts.append(age_range)
+
         # Split configuration
         experiment_suffix = SplitNamingUtils.generate_experiment_suffix(self.config)
         parts.append(experiment_suffix)
@@ -631,6 +644,19 @@ class PathManager:
         parts.append(self.tissue)
         parts.append(self.model_type)
         parts.append(self.target_variable)
+
+        # Add target value filtering information if specified
+        target_filtering = getattr(self.config.data, "target_filtering", None)
+        if target_filtering:
+            target_values = getattr(target_filtering, "values", None)
+            if target_values:
+                # Convert to list if single value
+                if not isinstance(target_values, list):
+                    target_values = [target_values]
+                # Sort for consistent naming
+                target_values_sorted = sorted(map(str, target_values))
+                age_range = "-".join(target_values_sorted)
+                parts.append(age_range)
 
         # Training-specific suffix (excludes evaluation splits)
         training_suffix = SplitNamingUtils.generate_training_suffix(self.config)
