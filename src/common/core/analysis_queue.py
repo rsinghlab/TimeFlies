@@ -43,7 +43,10 @@ class AnalysisQueueRunner:
             print(f"{'='*60}")
             
             # Check if predictions exist
-            predictions_file = model_dir / "evaluation" / "predictions.csv"
+            predictions_file = model_dir / "evaluations" / "predictions.csv"
+            if not predictions_file.exists():
+                # Try alternative path
+                predictions_file = model_dir / "evaluation" / "predictions.csv"
             if not predictions_file.exists():
                 print(f"No predictions found for {model_dir.name}")
                 result["status"] = "no_predictions"
@@ -92,7 +95,7 @@ class AnalysisQueueRunner:
         
         # Use recursive glob to find all directories with predictions.csv
         for predictions_file in outputs_dir.rglob("predictions.csv"):
-            if predictions_file.parent.name == "evaluation":
+            if predictions_file.parent.name in ["evaluation", "evaluations"]:
                 model_dir = predictions_file.parent.parent
                 
                 # Only include models from 'best' directory to avoid duplicates
@@ -184,6 +187,11 @@ class AnalysisQueueRunner:
                                 if end_pos > 0:
                                     analysis_result = json.loads(json_str[:end_pos])
                                     
+                                    # Store n_predictions back to main result for detailed section
+                                    if "n_predictions" in analysis_result:
+                                        result["n_predictions"] = analysis_result["n_predictions"]
+                                        row["n_predictions"] = analysis_result["n_predictions"]
+                                    
                                     # Extract metrics if available
                                     if "metrics" in analysis_result:
                                         metrics = analysis_result["metrics"]
@@ -203,8 +211,13 @@ class AnalysisQueueRunner:
                                     if "control_baseline" in analysis_result:
                                         control = analysis_result["control_baseline"]
                                         row.update({
+                                            "control_experiment": control.get("control_experiment"),
+                                            "control_mean_error": control.get("control_mean_error"),
+                                            "control_std_error": control.get("control_std_error"),
+                                            "control_n_samples": control.get("control_n_samples"),
                                             "control_interpretation": control.get("interpretation"),
-                                            "statistical_significance": control.get("statistical_test", {}).get("significance")
+                                            "statistical_significance": control.get("statistical_test", {}).get("significance"),
+                                            "p_value": control.get("statistical_test", {}).get("p_value")
                                         })
                                     
                                     # Add genotype analysis if available
@@ -220,6 +233,26 @@ class AnalysisQueueRunner:
         # Save CSV
         if rows:
             df = pd.DataFrame(rows)
+            
+            # Reorder columns for better readability
+            column_order = [
+                "model_name", "status", "n_predictions",
+                # Control baseline results
+                "control_experiment", "control_mean_error", "control_std_error", "control_n_samples",
+                # Disease results
+                "mean_error", "std_error", "older_percentage", "accelerated_aging",
+                # Comparison
+                "true_acceleration", "control_interpretation", "statistical_significance", "p_value",
+                "control_corrected"
+            ]
+            
+            # Only include columns that exist in the dataframe
+            existing_columns = [col for col in column_order if col in df.columns]
+            # Add any remaining columns not in our order
+            remaining_columns = [col for col in df.columns if col not in existing_columns]
+            final_columns = existing_columns + remaining_columns
+            
+            df = df[final_columns]
             df.to_csv(csv_path, index=False)
             print(f"Metrics CSV saved: {csv_path}")
         
@@ -289,16 +322,41 @@ class AnalysisQueueRunner:
             
             # Detailed results
             f.write("## Detailed Results\n\n")
-            for result in self.results:
-                f.write(f"### {result['model_name']}\n\n")
-                f.write(f"- **Status:** {result['status']}\n")
-                f.write(f"- **Path:** {result['model_path']}\n")
-                
-                if result["status"] == "completed":
-                    f.write(f"- **Predictions analyzed:** {result.get('n_predictions', 'N/A')}\n")
-                elif result["status"] == "failed":
-                    f.write(f"- **Error:** {result.get('error', 'Unknown error')}\n")
+            if rows:
+                # Create a comprehensive table for completed models
+                completed_models = [r for r in rows if r.get("mean_error") is not None]
+                if completed_models:
+                    f.write("### Completed Models\n\n")
+                    f.write("| Model | Status | Predictions | Mean Error | Older % | Evidence |\n")
+                    f.write("|-------|--------|-------------|------------|---------|----------|\n")
                     
+                    for row in sorted(completed_models, key=lambda x: x.get("mean_error", 0), reverse=True):
+                        mean_error = row["mean_error"]
+                        older_pct = row.get("older_percentage", 0)
+                        n_predictions = row.get("n_predictions", "N/A")
+                        
+                        evidence = "Strong" if mean_error > 2.0 else \
+                                  "Moderate" if mean_error > 1.0 else \
+                                  "Weak" if mean_error > 0 else "None"
+                        
+                        f.write(
+                            f"| {row['model_name'][:25]} | ✅ Completed | "
+                            f"{n_predictions} | {mean_error:+.2f} | "
+                            f"{older_pct:.1f}% | {evidence} |\n"
+                        )
+                    f.write("\n")
+            
+            # Show failed/problematic models in separate section
+            failed_models = [r for r in self.results if r["status"] != "completed"]
+            if failed_models:
+                f.write("### Failed/Incomplete Models\n\n")
+                f.write("| Model | Status | Issue |\n")
+                f.write("|-------|--------|-------|\n")
+                
+                for result in failed_models:
+                    status_icon = "❌" if result["status"] == "failed" else "⚠️"
+                    issue = result.get("error", "No predictions found" if result["status"] == "no_predictions" else "No analysis script")
+                    f.write(f"| {result['model_name'][:25]} | {status_icon} {result['status']} | {issue[:40]} |\n")
                 f.write("\n")
         
         print(f"Summary report saved: {report_path}")
