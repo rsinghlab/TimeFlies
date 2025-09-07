@@ -330,7 +330,11 @@ class PipelineManager:
         )
 
         # Set num_features and gene names for auto-evaluation
-        self.num_features = self.train_data.shape[1]
+        # Get number of genes (features) - handle 3D CNN data shape (cells, 1, genes)
+        if len(self.train_data.shape) == 3:
+            self.num_features = self.train_data.shape[2]  # genes in last dimension
+        else:
+            self.num_features = self.train_data.shape[1]  # standard 2D data
         # Store the exact gene names used in training for consistent evaluation
         if hasattr(self.data_preprocessor, "train_gene_names"):
             self.train_gene_names = self.data_preprocessor.train_gene_names
@@ -521,6 +525,9 @@ class PipelineManager:
                 evaluation_duration=evaluation_duration,
             )
         # In combined pipeline, timing is handled by run_pipeline()
+
+        # Create eval metadata in evaluation folder
+        self._create_eval_metadata(experiment_dir, evaluation_duration)
 
         return {
             "model_path": experiment_dir,
@@ -794,6 +801,92 @@ class PipelineManager:
 
         except Exception as e:
             logger.warning(f"Could not update eval metadata: {e}")
+
+    def _create_eval_metadata(self, experiment_dir: str, evaluation_duration: float):
+        """Create eval_metadata.json in the evaluation folder with evaluation details."""
+        try:
+            import json
+            from datetime import datetime
+            
+            eval_dir = os.path.join(experiment_dir, "evaluation")
+            os.makedirs(eval_dir, exist_ok=True)
+            
+            eval_metadata_path = os.path.join(eval_dir, "eval_metadata.json")
+            
+            # Get data shapes if pipeline has data
+            data_shapes = {}
+            if hasattr(self, 'test_data') and self.test_data is not None:
+                data_shapes["test_samples"] = self.test_data.shape[0]
+                
+                # Always use num_features (original feature count) if available
+                if hasattr(self, 'num_features') and self.num_features:
+                    data_shapes["test_features"] = self.num_features
+                else:
+                    # Try to get original features from training experiment metadata
+                    try:
+                        best_exp_dir = self.path_manager.get_best_experiment_dir()
+                        metadata_path = os.path.join(best_exp_dir, "metadata.json")
+                        if os.path.exists(metadata_path):
+                            with open(metadata_path, 'r') as f:
+                                training_metadata = json.load(f)
+                                if "data_shapes" in training_metadata and "n_features" in training_metadata["data_shapes"]:
+                                    data_shapes["test_features"] = training_metadata["data_shapes"]["n_features"]
+                                else:
+                                    # Final fallback to test data shape
+                                    data_shapes["test_features"] = self.test_data.shape[1]
+                        else:
+                            # Fallback: get gene count from test data shape
+                            if len(self.test_data.shape) == 3:
+                                data_shapes["test_features"] = self.test_data.shape[2]  # (cells, 1, genes)
+                            else:
+                                data_shapes["test_features"] = self.test_data.shape[1]
+                    except Exception:
+                        # Final fallback to test data shape - check for 3D CNN data
+                        if len(self.test_data.shape) == 3:
+                            data_shapes["test_features"] = self.test_data.shape[2]  # (cells, 1, genes)
+                        else:
+                            data_shapes["test_features"] = self.test_data.shape[1]
+                    
+            # Get split configuration
+            split_config = {
+                "method": getattr(self.config_instance.data.split, "method", "unknown"),
+                "column": getattr(self.config_instance.data.split, "column", "unknown"),
+                "train_values": getattr(self.config_instance.data.split, "train", []),
+                "test_values": getattr(self.config_instance.data.split, "test", [])
+            }
+            
+            # Create eval metadata
+            eval_metadata = {
+                "evaluation_timestamp": datetime.now().isoformat(),
+                "evaluation_duration_seconds": evaluation_duration,
+                "experiment_name": self.experiment_name,
+                "model_type": self.config_instance.data.model,
+                "target_variable": self.config_instance.data.target_variable,
+                "tissue": self.config_instance.data.tissue,
+                "data_filters": {
+                    "sex": getattr(self.config_instance.data, "sex", "unknown"),
+                    "cell_type": getattr(self.config_instance.data.cell, "type", "unknown") if hasattr(self.config_instance.data, "cell") else "unknown",
+                    "cell_column": getattr(self.config_instance.data.cell, "column", "unknown") if hasattr(self.config_instance.data, "cell") else "unknown"
+                },
+                "split_config": split_config,
+                "data_shapes": data_shapes,
+                "batch_correction": getattr(self.config_instance.data.batch_correction, "enabled", False),
+                "evaluation_settings": {
+                    "metrics_enabled": True,
+                    "visualizations_enabled": self.config_instance.visualizations.enabled,
+                    "shap_enabled": self.config_instance.interpretation.shap.enabled,
+                    "analysis_script_enabled": self.config_instance.analysis.run_analysis_script.enabled
+                }
+            }
+            
+            # Save eval metadata
+            with open(eval_metadata_path, "w") as f:
+                json.dump(eval_metadata, f, indent=2)
+                
+            logger.debug(f"Created eval metadata: {eval_metadata_path}")
+            
+        except Exception as e:
+            logger.warning(f"Could not create eval metadata: {e}")
 
     def _same_evaluation_conditions(self, current_config, best_metadata: dict) -> bool:
         """Check if current run has same evaluation conditions as existing best."""

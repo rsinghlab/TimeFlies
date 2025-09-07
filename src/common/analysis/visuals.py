@@ -264,11 +264,21 @@ class VisualizationTools:
         Returns:
             None
         """
-        # Compute the confusion matrix
-        cm = confusion_matrix(y_true, y_pred)
+        # Compute the confusion matrix 
+        # Only use labels that actually appear in the data to avoid dimension mismatch
+        unique_labels = sorted(list(set(y_true) | set(y_pred)))
+        cm = confusion_matrix(y_true, y_pred, labels=unique_labels)
+
+        # Map encoded labels back to class names for display
+        display_labels = []
+        for label in unique_labels:
+            if label < len(class_names):
+                display_labels.append(class_names[label])
+            else:
+                display_labels.append(str(label))  # Fallback for unexpected labels
 
         # Create a ConfusionMatrixDisplay object using the computed confusion matrix and class names
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=display_labels)
 
         # Create a new Matplotlib figure with a given size
         fig, ax = plt.subplots(figsize=(8, 8))

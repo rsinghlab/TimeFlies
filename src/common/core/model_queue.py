@@ -548,23 +548,23 @@ class ModelQueueManager:
     def run_analysis_queue(self):
         """Run analysis queue on all completed models."""
         print("\n" + "=" * 60)
-        print("🔬 RUNNING ANALYSIS QUEUE")
+        print("RUNNING ANALYSIS QUEUE")
         print("=" * 60)
         
         try:
             # Import and run the analysis queue runner
             from .analysis_queue import AnalysisQueueRunner
             
-            print(f"📊 Running analysis on completed models...")
+            print(f"Running analysis on completed models...")
             
             # Create and run analysis queue runner
             runner = AnalysisQueueRunner()
             runner.run_queue()
-            print("✅ Analysis queue completed successfully!")
+            print("Analysis queue completed successfully!")
             return True
                 
         except Exception as e:
-            print(f"❌ Failed to run analysis queue: {e}")
+            print(f"Failed to run analysis queue: {e}")
             return False
 
     @classmethod
