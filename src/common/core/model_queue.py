@@ -362,6 +362,10 @@ class ModelQueueManager:
         # Generate final summary report
         if self.queue_settings.get("generate_summary", True):
             self.generate_summary_report()
+            
+        # Run analysis queue if requested
+        if self.queue_settings.get("run_analysis_queue", False):
+            self.run_analysis_queue()
 
         total_time = time.time() - self.start_time
         print("\n" + "=" * 60)
@@ -540,6 +544,28 @@ class ModelQueueManager:
         print(f"[OK] Metrics CSV saved to: {csv_path}")
 
         return report_path, csv_path
+    
+    def run_analysis_queue(self):
+        """Run analysis queue on all completed models."""
+        print("\n" + "=" * 60)
+        print("🔬 RUNNING ANALYSIS QUEUE")
+        print("=" * 60)
+        
+        try:
+            # Import and run the analysis queue runner
+            from .analysis_queue import AnalysisQueueRunner
+            
+            print(f"📊 Running analysis on completed models...")
+            
+            # Create and run analysis queue runner
+            runner = AnalysisQueueRunner()
+            runner.run_queue()
+            print("✅ Analysis queue completed successfully!")
+            return True
+                
+        except Exception as e:
+            print(f"❌ Failed to run analysis queue: {e}")
+            return False
 
     @classmethod
     def from_hyperparameter_results(
@@ -631,6 +657,7 @@ class ModelQueueManager:
                 "sequential": True,
                 "save_checkpoints": True,
                 "generate_summary": True,
+                "run_analysis_queue": False,
             },
             "model_queue": model_queue,
             "global_settings": global_settings
