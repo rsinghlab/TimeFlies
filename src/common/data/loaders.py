@@ -49,6 +49,7 @@ class DataLoader:
         elif project_name == "fruitfly_alzheimers":
             project_for_files = "alzheimers"
         else:
+            # For custom project names, use them as-is (e.g., "cross_dataset_afca_adfca")
             project_for_files = project_name
 
         # Standard path templates - users follow this naming convention
@@ -156,7 +157,7 @@ class DataLoader:
             pass  # Silently skip missing sex genes
 
         # Store gene filtering status for header display
-        if not autosomal_genes and not sex_genes:
+        if len(autosomal_genes) == 0 and len(sex_genes) == 0:
             # Gene filtering status will be shown in main header
             pass
         return autosomal_genes, sex_genes

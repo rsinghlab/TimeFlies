@@ -160,14 +160,17 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         """
 
         # Get the current validation loss
-        current_val_loss = logs.get("val_loss")
+        current_val_loss = logs.get("val_loss") if logs else None
+
+        if current_val_loss is None:
+            return
 
         # If the current validation loss is better than the best validation loss seen so far
-        if current_val_loss < self.best_val_loss:
-            self.best_val_loss = current_val_loss
+        if float(current_val_loss) < self.best_val_loss:
+            self.best_val_loss = float(current_val_loss)
 
             # Only set model_improved if this beats the historical best from before training
-            if current_val_loss < self.initial_best_val_loss:
+            if float(current_val_loss) < self.initial_best_val_loss:
                 self.model_improved = True
 
             # Custom clean message instead of verbose Keras output
@@ -716,7 +719,8 @@ class ModelBuilder:
                 tf.keras.layers.Dense(units=num_output_units, activation="softmax")
             )
             default_loss = "categorical_crossentropy"
-            default_metrics = ["accuracy", "auc"]
+            # Use AUC metric object to avoid array return values in Keras 3
+            default_metrics = ["accuracy", tf.keras.metrics.AUC(name='auc', multi_label=False)]
 
         # Use standard Adam optimizer for all platforms (Keras 3 compatible)
         learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
@@ -726,12 +730,29 @@ class ModelBuilder:
         cnn_config = getattr(self.config.model, "cnn", {})
         loss = getattr(cnn_config, "loss", default_loss)
 
-        # Get metrics from config
+        # Get metrics from config - convert string "auc" to AUC object if needed
         eval_config = getattr(self.config, "evaluation", {})
         config_metrics = eval_config.get("metrics", {})
         training_metrics = config_metrics.get("training", {}).get(
             task_type, default_metrics
         )
+
+        # Convert metric strings to metric objects to avoid array issues in Keras 3
+        if isinstance(training_metrics, list):
+            converted_metrics = []
+            for m in training_metrics:
+                if m == "auc":
+                    converted_metrics.append(tf.keras.metrics.AUC(name='auc', multi_label=False))
+                elif m == "precision":
+                    converted_metrics.append(tf.keras.metrics.Precision(name='precision'))
+                elif m == "recall":
+                    converted_metrics.append(tf.keras.metrics.Recall(name='recall'))
+                elif m == "f1_score":
+                    # F1 score needs custom implementation - skip for now
+                    pass
+                else:
+                    converted_metrics.append(m)
+            training_metrics = converted_metrics
 
         # Compile model
         model.compile(
@@ -779,7 +800,8 @@ class ModelBuilder:
                 tf.keras.layers.Dense(units=num_output_units, activation="softmax")
             )
             default_loss = "categorical_crossentropy"
-            default_metrics = ["accuracy", "auc"]
+            # Use AUC metric object to avoid array return values in Keras 3
+            default_metrics = ["accuracy", tf.keras.metrics.AUC(name='auc', multi_label=False)]
 
         # Use standard Adam optimizer for all platforms (Keras 3 compatible)
         optimizer_instance = tf.keras.optimizers.Adam(
@@ -789,12 +811,29 @@ class ModelBuilder:
         # Get loss from config
         loss = getattr(mlp_config, "loss", default_loss)
 
-        # Get metrics from config
+        # Get metrics from config - convert string "auc" to AUC object if needed
         eval_config = getattr(self.config, "evaluation", {})
         config_metrics = eval_config.get("metrics", {})
         training_metrics = config_metrics.get("training", {}).get(
             task_type, default_metrics
         )
+
+        # Convert metric strings to metric objects to avoid array issues in Keras 3
+        if isinstance(training_metrics, list):
+            converted_metrics = []
+            for m in training_metrics:
+                if m == "auc":
+                    converted_metrics.append(tf.keras.metrics.AUC(name='auc', multi_label=False))
+                elif m == "precision":
+                    converted_metrics.append(tf.keras.metrics.Precision(name='precision'))
+                elif m == "recall":
+                    converted_metrics.append(tf.keras.metrics.Recall(name='recall'))
+                elif m == "f1_score":
+                    # F1 score needs custom implementation - skip for now
+                    pass
+                else:
+                    converted_metrics.append(m)
+            training_metrics = converted_metrics
 
         # Compile model
         model.compile(
@@ -1112,6 +1151,13 @@ class ModelBuilder:
         # Previous model info will be shown in TRAINING PROGRESS header
 
         # Split data into training and validation sets
+        # For stratification, we need 1D labels (not one-hot encoded)
+        stratify_labels = (
+            np.argmax(self.train_labels, axis=1)
+            if len(self.train_labels.shape) > 1 and self.train_labels.shape[1] > 1
+            else self.train_labels
+        )
+
         (
             train_inputs_split,
             val_inputs_split,
@@ -1122,13 +1168,20 @@ class ModelBuilder:
             self.train_labels,
             test_size=getattr(self.config.model.training, "validation_split", 0.2),
             random_state=getattr(self.config.general, "random_state", 42),
-            stratify=self.train_labels,
+            stratify=stratify_labels,
         )
+
+        # Ensure all arrays are proper numpy arrays (not masked arrays or similar)
+        train_inputs_split = np.asarray(train_inputs_split)
+        train_labels_split = np.asarray(train_labels_split)
+        val_inputs_split = np.asarray(val_inputs_split)
+        val_labels_split = np.asarray(val_labels_split)
 
         # Define callbacks for early stopping and model saving
         early_stopping = EarlyStopping(
             monitor="val_loss",
             patience=getattr(self.config.model.training, "early_stopping_patience", 10),
+            verbose=0,
         )
         model_checkpoint = CustomModelCheckpoint(
             custom_model_path,

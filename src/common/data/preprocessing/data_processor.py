@@ -535,6 +535,7 @@ class DataPreprocessor:
         highly_variable_genes,
         mix_included,
         train_gene_names=None,
+        probability_only=False,
     ):
         """
         Preprocess the final evaluation data based on the provided configuration parameters.
@@ -712,10 +713,28 @@ class DataPreprocessor:
                     f"Model will predict across full {len(label_encoder.classes_)} class space"
                 )
 
-            test_labels = label_encoder.transform(adata.obs[encoding_var])
-            test_labels = to_categorical(
-                test_labels, num_classes=len(label_encoder.classes_)
-            )
+            # Check if probability_only mode is enabled OR if eval data has unseen labels
+            if probability_only:
+                print("⚠️  Probability-only mode: Skipping label encoding (incompatible age ranges)")
+                print(f"   Training ages: {sorted(label_encoder.classes_)}")
+                print(f"   Evaluation ages: {sorted(eval_classes)}")
+                # Create dummy labels (all zeros) - won't be used for metrics
+                test_labels = np.zeros((adata.n_obs, len(label_encoder.classes_)))
+            else:
+                # Try to transform labels - will fail if unseen labels exist
+                try:
+                    test_labels = label_encoder.transform(adata.obs[encoding_var])
+                    test_labels = to_categorical(
+                        test_labels, num_classes=len(label_encoder.classes_)
+                    )
+                except ValueError as e:
+                    if "previously unseen labels" in str(e):
+                        print(f"⚠️  ERROR: {e}")
+                        print(f"   Training ages: {sorted(label_encoder.classes_)}")
+                        print(f"   Evaluation ages: {sorted(eval_classes)}")
+                        print("\n💡 SOLUTION: Add 'probability_only: true' to your config_overrides")
+                        print("   This will generate probability outputs without computing accuracy metrics.")
+                    raise
 
         test_data = adata.X
         if issparse(test_data):  # Convert sparse matrices to dense
