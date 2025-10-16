@@ -70,7 +70,29 @@ class SplitNamingUtils:
             if val in cls.VALUE_ABBREVIATIONS:
                 abbreviated_parts.append(cls.VALUE_ABBREVIATIONS[val])
             else:
-                abbreviated_parts.append(val[:4])  # First 4 chars
+                # Check if value contains underscore (e.g., ADFCA_control, ADFCA_AB42)
+                # If so, combine dataset prefix with suffix for clarity
+                if "_" in val:
+                    # Split on underscore and use both parts
+                    parts = val.split("_")
+                    if len(parts) >= 2:
+                        # Get dataset prefix (e.g., "AFCA", "ADFCA") and suffix
+                        prefix = parts[0][:4]  # First 4 chars of dataset name
+                        suffix = parts[-1]
+
+                        # Check if suffix has known abbreviation
+                        if suffix in cls.VALUE_ABBREVIATIONS:
+                            suffix_abbrev = cls.VALUE_ABBREVIATIONS[suffix]
+                        else:
+                            # Use the suffix as-is (e.g., "ab42", "htau")
+                            suffix_abbrev = suffix[:4]
+
+                        # Combine prefix and suffix (e.g., "afca-ctrl", "adfc-ab42")
+                        abbreviated_parts.append(f"{prefix}-{suffix_abbrev}")
+                    else:
+                        abbreviated_parts.append(val[:4])
+                else:
+                    abbreviated_parts.append(val[:4])  # First 4 chars
 
         return "_".join(abbreviated_parts)
 
