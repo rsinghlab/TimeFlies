@@ -36,6 +36,7 @@ coverage/
 .ruff_cache/
 .claude/
 .benchmarks/
+uv.lock
 
 # IDE
 .vscode/
