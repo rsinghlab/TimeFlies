@@ -463,7 +463,7 @@ class VisualizationTools:
         all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
 
         # Interpolate all ROC curves
-        mean_tpr = np.zeros_like(all_fpr)
+        mean_tpr = np.zeros_like(all_fpr, dtype=float)
         for i in range(n_classes):
             mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
 
