@@ -203,6 +203,7 @@ class PipelineManager:
 
             # Evaluation: use fitted components from training to prevent data leakage
             adata_eval = self.adata_eval_corrected or self.adata_eval
+            probability_only = getattr(self.config_instance, "probability_only", False)
             (
                 self.test_data,
                 self.test_labels,
@@ -216,6 +217,7 @@ class PipelineManager:
                 self.highly_variable_genes,
                 self.mix_included,
                 getattr(self, "train_gene_names", None),
+                probability_only=probability_only,
             )
             # Memory cleanup removed - causes problems
         else:
@@ -240,6 +242,7 @@ class PipelineManager:
                 hasattr(self, "_adata_eval_to_use")
                 and self._adata_eval_to_use is not None
             ):
+                probability_only = getattr(self.config_instance, "probability_only", False)
                 (
                     self.eval_data,
                     self.eval_labels,
@@ -254,6 +257,7 @@ class PipelineManager:
                     self.highly_variable_genes,
                     self.mix_included,
                     getattr(self.data_preprocessor, "train_gene_names", None),
+                    probability_only=probability_only,
                 )
             else:
                 self.eval_data = None
@@ -425,6 +429,7 @@ class PipelineManager:
                     hasattr(self, "_adata_eval_to_use")
                     and self._adata_eval_to_use is not None
                 ):
+                    probability_only = getattr(self.config_instance, "probability_only", False)
                     (
                         self.eval_data,
                         self.eval_labels,
@@ -439,6 +444,7 @@ class PipelineManager:
                         self.highly_variable_genes,
                         self.mix_included,
                         getattr(self._eval_preprocessor, "train_gene_names", None),
+                        probability_only=probability_only,
                     )
 
                 # Set test_data and test_labels for compatibility with existing methods
