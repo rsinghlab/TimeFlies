@@ -280,12 +280,6 @@ User Workflow:
         action="store_true",
         help="Start fresh even if checkpoint exists",
     )
-    queue_parser.add_argument(
-        "--analysis",
-        action="store_true",
-        help="Run analysis queue only (skip training)",
-    )
-
     return parser
 
 
