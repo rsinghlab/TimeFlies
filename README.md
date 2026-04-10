@@ -94,6 +94,4 @@ The primary model is a 1D CNN classifying donor age from genome-wide expression 
 
 ## License
 
-TimeFlies Academic Research License. See [LICENSE](LICENSE) for terms.
-
-Academic and non-commercial research use is permitted with citation. Commercial use requires a separate licensing agreement.
+[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/). See [LICENSE](LICENSE) for terms.
