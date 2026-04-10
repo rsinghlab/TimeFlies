@@ -188,11 +188,6 @@ def batch_command(args) -> int:
 
 def evaluate_command(args, config) -> int:
     """Evaluate a trained model using project configuration settings."""
-    # Suppress TensorFlow warnings for cleaner output
-    import os
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
-
     try:
         # Run EDA first if requested
         if hasattr(args, "with_eda") and args.with_eda:

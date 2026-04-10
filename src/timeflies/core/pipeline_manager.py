@@ -6,11 +6,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-# Suppress TensorFlow and gRPC logging
-os.environ["GRPC_VERBOSITY"] = "ERROR"
-os.environ["GLOG_minloglevel"] = "2"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
 from timeflies.data.loaders import DataLoader
 from timeflies.data.preprocessing.data_processor import DataPreprocessor
 from timeflies.data.preprocessing.gene_filter import GeneFilter

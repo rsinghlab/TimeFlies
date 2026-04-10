@@ -14,8 +14,6 @@ def eda_command(args, config) -> int:
 
     from ...analysis.eda import EDAHandler
 
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
-
     print("DATA: Starting EDA with project settings:")
     print(f"   Project: {getattr(config, 'project', 'unknown')}")
     print(f"   Tissue: {config.data.tissue}")
@@ -60,11 +58,7 @@ def eda_command(args, config) -> int:
 
 def analyze_command(args, config) -> int:
     """Run project-specific analysis on a trained model."""
-    # Suppress TensorFlow warnings for cleaner output
-    import os
     from pathlib import Path
-
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress INFO and WARNING
 
     try:
         print("=" * 60)

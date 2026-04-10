@@ -1,14 +1,12 @@
 """
 TimeFlies CLI Commands Package
 
-This package contains all command-line interface commands for TimeFlies.
-Each command is implemented in a domain-specific module with proper error handling.
+Each command is implemented in a domain-specific module.
 """
 
 from ._utils import suppress_stderr
 from .advanced import queue_command, tune_command
 from .analysis import analyze_command, eda_command
-from .gui import gui_command
 from .setup import new_setup_command, split_command
 from .testing import create_test_data_command, run_system_tests, run_test_suite
 from .training import batch_command, evaluate_command, train_command
@@ -23,11 +21,9 @@ __all__ = [
     "new_setup_command",
     "split_command",
     "run_system_tests",
-    "run_test_suite",
     "create_test_data_command",
     "tune_command",
     "queue_command",
-    "gui_command",
     "suppress_stderr",
 ]
 
@@ -67,8 +63,6 @@ def execute_command(args) -> bool:
             return tune_command(args) == 0
         elif args.command == "queue":
             return queue_command(args) == 0
-        elif args.command == "gui":
-            return gui_command(args) == 0
         else:
             print(f"Unknown command: {args.command}")
             return False

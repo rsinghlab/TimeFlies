@@ -14,13 +14,6 @@ from sklearn.linear_model import LogisticRegression
 from ..utils.exceptions import ModelError
 from ..utils.logging_config import get_logger
 
-# Aggressive TensorFlow logging suppression
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["GRPC_VERBOSITY"] = "ERROR"
-os.environ["GLOG_minloglevel"] = "3"
-os.environ["TF_DISABLE_MKL"] = "1"
-
 
 # Suppress stderr during imports
 @contextlib.contextmanager

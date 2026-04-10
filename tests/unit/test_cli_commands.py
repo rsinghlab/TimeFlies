@@ -46,8 +46,8 @@ class TestCLICommandExecution:
         mock_args.command = "create-test-data"
         mock_args.tier = "synthetic"
 
-        with patch("timeflies.cli.commands.create_from_metadata") as mock_create:
-            with patch("timeflies.cli.commands.print") as mock_print:
+        with patch("timeflies.cli.commands.testing.create_from_metadata") as mock_create:
+            with patch("builtins.print") as mock_print:
                 mock_create.return_value = 0
 
                 result = create_test_data_command(mock_args)
@@ -65,7 +65,7 @@ class TestCLICommandExecution:
             with patch(
                 "timeflies.core.active_config.get_config_for_active_project"
             ) as mock_get_config:
-                with patch("timeflies.cli.commands.print") as mock_print:
+                with patch("builtins.print") as mock_print:
                     mock_get_project.return_value = "fruitfly_aging"
                     mock_config = Mock()
                     mock_get_config.return_value.get_config.return_value = mock_config
@@ -234,7 +234,7 @@ class TestCLIMainEntryPoint:
     def test_main_cli_with_project_override(self):
         """Test main CLI with project override."""
         with patch(
-            "timeflies.cli.commands.get_config_for_active_project"
+            "timeflies.core.active_config.get_config_for_active_project"
         ) as mock_get_config:
             with patch("timeflies.cli.commands.train_command") as mock_train:
                 mock_config = Mock()

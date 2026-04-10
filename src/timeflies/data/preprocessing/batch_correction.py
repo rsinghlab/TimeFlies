@@ -223,7 +223,7 @@ class BatchCorrector:
         if not train_matches or not eval_matches:
             raise FileNotFoundError(
                 "Could not find train/eval split files. "
-                "Run 'python run_timeflies.py split' first."
+                "Run 'timeflies split' first."
             )
 
         return train_matches[0], eval_matches[0]

@@ -233,9 +233,6 @@ def setup_user_environment(quiet_mode=False):
             if not quiet_mode:
                 print("   DOC: templates/ directory already exists")
 
-        # Note: GUI is now launched with 'timeflies gui' command
-        # The old TimeFlies_Launcher.py is deprecated
-
         return 0
 
     except Exception as e:

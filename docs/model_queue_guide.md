@@ -516,7 +516,6 @@ For large-scale computing, wrap the queue command:
 #SBATCH --time=24:00:00
 #SBATCH --mem=32G
 
-source .activate.sh
 timeflies queue configs/large_scale_queue.yaml
 ```
 

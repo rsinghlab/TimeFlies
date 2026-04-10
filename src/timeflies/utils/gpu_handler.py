@@ -1,18 +1,10 @@
 """GPU configuration utilities for TensorFlow."""
 
+# Temporarily redirect stderr during TensorFlow import
+import contextlib
 import os
 import sys
 from typing import Any
-
-# Aggressive TensorFlow logging suppression
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-os.environ["GRPC_VERBOSITY"] = "ERROR"
-os.environ["GLOG_minloglevel"] = "3"
-os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-
-# Temporarily redirect stderr during TensorFlow import
-import contextlib
 
 
 @contextlib.contextmanager
@@ -58,14 +50,7 @@ class GPUHandler:
         """
         # Reduce TensorFlow verbosity completely
         import logging
-        import os
         import warnings
-
-        # Set environment variables before any TF operations
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress all logs including warnings
-        os.environ["TF_ENABLE_ONEDNN_OPTS"] = (
-            "0"  # Disable oneDNN custom operations messages
-        )
 
         # Suppress TensorFlow logging
         tf.get_logger().setLevel("ERROR")
