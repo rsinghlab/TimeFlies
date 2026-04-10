@@ -194,6 +194,7 @@ class ModelQueueManager:
 
             # Convert dictionary config to proper Config object
             from timeflies.core.config_manager import Config
+
             config = Config(config_dict)
 
             # Create mock args object for CLI commands
@@ -209,7 +210,9 @@ class ModelQueueManager:
                 tissue=getattr(config.data, "tissue", "head"),
                 target=getattr(config.data, "target_variable", "age"),
                 project=getattr(config, "project", None),
-                batch_corrected=getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False,
+                batch_corrected=getattr(config.data.batch_correction, "enabled", False)
+                if hasattr(config.data, "batch_correction")
+                else False,
                 with_eda=getattr(config, "with_eda", False),
                 with_analysis=getattr(config, "with_analysis", True),
             )
@@ -218,7 +221,9 @@ class ModelQueueManager:
             self._current_model_config = config
 
             # Run training if configured
-            should_train = getattr(config, "with_training", True)  # New setting for training
+            should_train = getattr(
+                config, "with_training", True
+            )  # New setting for training
             if should_train:
                 print(f"Training {model_name}...")
                 # train_command already runs evaluation as part of the pipeline
@@ -228,7 +233,9 @@ class ModelQueueManager:
                 print(f"Skipping training for {model_name} (eval-only)")
 
                 # Run evaluation if configured (only for eval-only models)
-                should_evaluate = getattr(config, "with_evaluation", True)  # New setting for evaluation
+                should_evaluate = getattr(
+                    config, "with_evaluation", True
+                )  # New setting for evaluation
                 if should_evaluate:
                     eval_args = Args(
                         verbose=True,
@@ -236,11 +243,20 @@ class ModelQueueManager:
                         tissue=getattr(config.data, "tissue", "head"),
                         target=getattr(config.data, "target_variable", "age"),
                         project=getattr(config, "project", None),
-                        batch_corrected=getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False,
+                        batch_corrected=getattr(
+                            config.data.batch_correction, "enabled", False
+                        )
+                        if hasattr(config.data, "batch_correction")
+                        else False,
                         with_eda=getattr(config, "with_eda", False),
                         with_analysis=getattr(config, "with_analysis", True),
-                        interpret=getattr(config.interpretation.shap, "enabled", False) if hasattr(config, "interpretation") and hasattr(config.interpretation, "shap") else False,
-                        visualize=getattr(config.visualizations, "enabled", True) if hasattr(config, "visualizations") else True,
+                        interpret=getattr(config.interpretation.shap, "enabled", False)
+                        if hasattr(config, "interpretation")
+                        and hasattr(config.interpretation, "shap")
+                        else False,
+                        visualize=getattr(config.visualizations, "enabled", True)
+                        if hasattr(config, "visualizations")
+                        else True,
                     )
 
                     print(f"Evaluating {model_name}...")
@@ -284,13 +300,19 @@ class ModelQueueManager:
     def _find_latest_metrics(self, model_type: str, config) -> Path | None:
         """Find the latest metrics file for a model."""
         # Handle both dict and Config object
-        if hasattr(config, '__dict__'):
+        if hasattr(config, "__dict__"):
             project = getattr(config, "project", "fruitfly_aging")
-            batch_corrected = getattr(config.data.batch_correction, "enabled", False) if hasattr(config.data, "batch_correction") else False
+            batch_corrected = (
+                getattr(config.data.batch_correction, "enabled", False)
+                if hasattr(config.data, "batch_correction")
+                else False
+            )
             task_type = getattr(config.model, "task_type", "classification")
         else:
             project = config.get("project", "fruitfly_aging")
-            batch_corrected = config.get("data", {}).get("batch_correction", {}).get("enabled", False)
+            batch_corrected = (
+                config.get("data", {}).get("batch_correction", {}).get("enabled", False)
+            )
             task_type = config.get("model", {}).get("task_type", "classification")
 
         # Build expected path
@@ -410,11 +432,24 @@ class ModelQueueManager:
         outputs_dir = Path("outputs")
         if outputs_dir.exists():
             # Find the first project directory (e.g., fruitfly_alzheimers)
-            project_dirs = [d for d in outputs_dir.iterdir() if d.is_dir() and d.name not in ["analysis_summaries", "model_queue_summaries"]]
+            project_dirs = [
+                d
+                for d in outputs_dir.iterdir()
+                if d.is_dir()
+                and d.name not in ["analysis_summaries", "model_queue_summaries"]
+            ]
             if project_dirs:
                 project_name = project_dirs[0].name
                 # Use the standard experiment structure: outputs/project/experiments/uncorrected/classification/queues/model/
-                queues_base = outputs_dir / project_name / "experiments" / "uncorrected" / "classification" / "queues" / "model"
+                queues_base = (
+                    outputs_dir
+                    / project_name
+                    / "experiments"
+                    / "uncorrected"
+                    / "classification"
+                    / "queues"
+                    / "model"
+                )
             else:
                 # Fallback to generic location
                 queues_base = outputs_dir / "queues" / "model"
@@ -425,7 +460,11 @@ class ModelQueueManager:
         queues_base.mkdir(parents=True, exist_ok=True)
 
         # Find next available queue number
-        existing_queues = [d for d in queues_base.iterdir() if d.is_dir() and d.name.startswith("queue_")]
+        existing_queues = [
+            d
+            for d in queues_base.iterdir()
+            if d.is_dir() and d.name.startswith("queue_")
+        ]
         if existing_queues:
             queue_numbers = []
             for queue_dir in existing_queues:
@@ -461,22 +500,30 @@ class ModelQueueManager:
             config_overrides = result.get("config_overrides", {})
             if "data" in config_overrides:
                 data_config = config_overrides["data"]
-                row.update({
-                    "target_variable": data_config.get("target_variable", ""),
-                    "tissue_type": data_config.get("filters", {}).get("tissue", ""),
-                    "cell_type": data_config.get("filters", {}).get("cell_type", ""),
-                    "sex_filter": data_config.get("filters", {}).get("sex", ""),
-                    "batch_corrected": data_config.get("batch_corrected", False),
-                })
+                row.update(
+                    {
+                        "target_variable": data_config.get("target_variable", ""),
+                        "tissue_type": data_config.get("filters", {}).get("tissue", ""),
+                        "cell_type": data_config.get("filters", {}).get(
+                            "cell_type", ""
+                        ),
+                        "sex_filter": data_config.get("filters", {}).get("sex", ""),
+                        "batch_corrected": data_config.get("batch_corrected", False),
+                    }
+                )
 
             if "model" in config_overrides:
                 model_config = config_overrides["model"]
-                row.update({
-                    "architecture": model_config.get("architecture", result["model_type"]),
-                    "hidden_layers": str(model_config.get("hidden_layers", [])),
-                    "dropout_rate": model_config.get("dropout_rate", ""),
-                    "learning_rate": model_config.get("learning_rate", ""),
-                })
+                row.update(
+                    {
+                        "architecture": model_config.get(
+                            "architecture", result["model_type"]
+                        ),
+                        "hidden_layers": str(model_config.get("hidden_layers", [])),
+                        "dropout_rate": model_config.get("dropout_rate", ""),
+                        "learning_rate": model_config.get("learning_rate", ""),
+                    }
+                )
 
             # Add metrics if available
             if "metrics" in result:
@@ -544,20 +591,34 @@ class ModelQueueManager:
                     )
 
                     f.write("### Top Performing Models by Accuracy\n\n")
-                    f.write("| Rank | Model Name | Architecture | Target | Cell Type | Accuracy | AUC | F1-Score | Val Loss | Training Time |\n")
-                    f.write("|------|------------|-------------|--------|-----------|----------|-----|----------|----------|---------------|\n")
+                    f.write(
+                        "| Rank | Model Name | Architecture | Target | Cell Type | Accuracy | AUC | F1-Score | Val Loss | Training Time |\n"
+                    )
+                    f.write(
+                        "|------|------------|-------------|--------|-----------|----------|-----|----------|----------|---------------|\n"
+                    )
 
                     for i, model in enumerate(sorted_models[:10], 1):
                         metrics = model["metrics"]
                         config_overrides = model.get("config_overrides", {})
 
                         # Extract configuration details
-                        target = config_overrides.get("data", {}).get("target_variable", "N/A")
-                        cell_type = config_overrides.get("data", {}).get("filters", {}).get("cell_type", "N/A")
-                        architecture = config_overrides.get("model", {}).get("architecture", model["model_type"])
+                        target = config_overrides.get("data", {}).get(
+                            "target_variable", "N/A"
+                        )
+                        cell_type = (
+                            config_overrides.get("data", {})
+                            .get("filters", {})
+                            .get("cell_type", "N/A")
+                        )
+                        architecture = config_overrides.get("model", {}).get(
+                            "architecture", model["model_type"]
+                        )
 
                         training_time = model.get("training_time", 0)
-                        time_str = f"{training_time:.1f}s" if training_time > 0 else "N/A"
+                        time_str = (
+                            f"{training_time:.1f}s" if training_time > 0 else "N/A"
+                        )
 
                         f.write(
                             f"| {i} | {model['name']} | {architecture} | {target} | {cell_type} | "
@@ -571,39 +632,74 @@ class ModelQueueManager:
                     f.write("\n")
 
                     # Add performance statistics
-                    accuracies = [m["metrics"].get("accuracy", 0) for m in models_with_metrics]
-                    aucs = [m["metrics"].get("auc", 0) for m in models_with_metrics if m["metrics"].get("auc", 0) > 0]
+                    accuracies = [
+                        m["metrics"].get("accuracy", 0) for m in models_with_metrics
+                    ]
+                    aucs = [
+                        m["metrics"].get("auc", 0)
+                        for m in models_with_metrics
+                        if m["metrics"].get("auc", 0) > 0
+                    ]
 
                     f.write("### Performance Statistics\n\n")
                     f.write(f"- **Best Accuracy:** {max(accuracies):.3f}\n")
-                    f.write(f"- **Average Accuracy:** {sum(accuracies)/len(accuracies):.3f}\n")
+                    f.write(
+                        f"- **Average Accuracy:** {sum(accuracies) / len(accuracies):.3f}\n"
+                    )
                     if aucs:
                         f.write(f"- **Best AUC:** {max(aucs):.3f}\n")
-                        f.write(f"- **Average AUC:** {sum(aucs)/len(aucs):.3f}\n")
+                        f.write(f"- **Average AUC:** {sum(aucs) / len(aucs):.3f}\n")
 
                     # Training time analysis
-                    training_times = [m.get("training_time", 0) for m in models_with_metrics if m.get("training_time", 0) > 0]
+                    training_times = [
+                        m.get("training_time", 0)
+                        for m in models_with_metrics
+                        if m.get("training_time", 0) > 0
+                    ]
                     if training_times:
-                        f.write(f"- **Total Training Time:** {sum(training_times):.1f} seconds\n")
-                        f.write(f"- **Average Training Time:** {sum(training_times)/len(training_times):.1f} seconds\n")
+                        f.write(
+                            f"- **Total Training Time:** {sum(training_times):.1f} seconds\n"
+                        )
+                        f.write(
+                            f"- **Average Training Time:** {sum(training_times) / len(training_times):.1f} seconds\n"
+                        )
                     f.write("\n")
 
                     # Architecture breakdown
                     from collections import Counter
-                    architectures = [m.get("config_overrides", {}).get("model", {}).get("architecture", m["model_type"])
-                                   for m in models_with_metrics]
+
+                    architectures = [
+                        m.get("config_overrides", {})
+                        .get("model", {})
+                        .get("architecture", m["model_type"])
+                        for m in models_with_metrics
+                    ]
                     arch_counts = Counter(architectures)
 
                     if len(arch_counts) > 1:
                         f.write("### Architecture Performance Comparison\n\n")
-                        f.write("| Architecture | Count | Best Accuracy | Avg Accuracy |\n")
-                        f.write("|-------------|-------|---------------|---------------|\n")
+                        f.write(
+                            "| Architecture | Count | Best Accuracy | Avg Accuracy |\n"
+                        )
+                        f.write(
+                            "|-------------|-------|---------------|---------------|\n"
+                        )
 
                         for arch, count in arch_counts.most_common():
-                            arch_models = [m for m in models_with_metrics
-                                         if m.get("config_overrides", {}).get("model", {}).get("architecture", m["model_type"]) == arch]
-                            arch_accs = [m["metrics"].get("accuracy", 0) for m in arch_models]
-                            f.write(f"| {arch} | {count} | {max(arch_accs):.3f} | {sum(arch_accs)/len(arch_accs):.3f} |\n")
+                            arch_models = [
+                                m
+                                for m in models_with_metrics
+                                if m.get("config_overrides", {})
+                                .get("model", {})
+                                .get("architecture", m["model_type"])
+                                == arch
+                            ]
+                            arch_accs = [
+                                m["metrics"].get("accuracy", 0) for m in arch_models
+                            ]
+                            f.write(
+                                f"| {arch} | {count} | {max(arch_accs):.3f} | {sum(arch_accs) / len(arch_accs):.3f} |\n"
+                            )
                         f.write("\n")
 
             # Detailed results

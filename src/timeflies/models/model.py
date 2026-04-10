@@ -13,7 +13,6 @@ from sklearn.model_selection import train_test_split
 from ..utils.gpu_handler import suppress_stderr
 from ..utils.path_manager import PathManager
 
-
 # Import TensorFlow and related modules with suppressed stderr
 with suppress_stderr():
     import tensorflow as tf
@@ -703,7 +702,10 @@ class ModelBuilder:
             )
             default_loss = "categorical_crossentropy"
             # Use AUC metric object to avoid array return values in Keras 3
-            default_metrics = ["accuracy", tf.keras.metrics.AUC(name='auc', multi_label=False)]
+            default_metrics = [
+                "accuracy",
+                tf.keras.metrics.AUC(name="auc", multi_label=False),
+            ]
 
         # Use standard Adam optimizer for all platforms (Keras 3 compatible)
         learning_rate = getattr(self.config.model.training, "learning_rate", 0.001)
@@ -725,11 +727,15 @@ class ModelBuilder:
             converted_metrics = []
             for m in training_metrics:
                 if m == "auc":
-                    converted_metrics.append(tf.keras.metrics.AUC(name='auc', multi_label=False))
+                    converted_metrics.append(
+                        tf.keras.metrics.AUC(name="auc", multi_label=False)
+                    )
                 elif m == "precision":
-                    converted_metrics.append(tf.keras.metrics.Precision(name='precision'))
+                    converted_metrics.append(
+                        tf.keras.metrics.Precision(name="precision")
+                    )
                 elif m == "recall":
-                    converted_metrics.append(tf.keras.metrics.Recall(name='recall'))
+                    converted_metrics.append(tf.keras.metrics.Recall(name="recall"))
                 elif m == "f1_score":
                     # F1 score needs custom implementation - skip for now
                     pass
@@ -784,7 +790,10 @@ class ModelBuilder:
             )
             default_loss = "categorical_crossentropy"
             # Use AUC metric object to avoid array return values in Keras 3
-            default_metrics = ["accuracy", tf.keras.metrics.AUC(name='auc', multi_label=False)]
+            default_metrics = [
+                "accuracy",
+                tf.keras.metrics.AUC(name="auc", multi_label=False),
+            ]
 
         # Use standard Adam optimizer for all platforms (Keras 3 compatible)
         optimizer_instance = tf.keras.optimizers.Adam(
@@ -806,11 +815,15 @@ class ModelBuilder:
             converted_metrics = []
             for m in training_metrics:
                 if m == "auc":
-                    converted_metrics.append(tf.keras.metrics.AUC(name='auc', multi_label=False))
+                    converted_metrics.append(
+                        tf.keras.metrics.AUC(name="auc", multi_label=False)
+                    )
                 elif m == "precision":
-                    converted_metrics.append(tf.keras.metrics.Precision(name='precision'))
+                    converted_metrics.append(
+                        tf.keras.metrics.Precision(name="precision")
+                    )
                 elif m == "recall":
-                    converted_metrics.append(tf.keras.metrics.Recall(name='recall'))
+                    converted_metrics.append(tf.keras.metrics.Recall(name="recall"))
                 elif m == "f1_score":
                     # F1 score needs custom implementation - skip for now
                     pass

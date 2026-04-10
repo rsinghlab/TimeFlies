@@ -292,10 +292,12 @@ class TestModelQueueManager:
             with patch("timeflies.core.model_queue.Path") as mock_path_cls:
                 # Make Path("outputs") return our temp dir
                 real_path = Path
+
                 def path_side_effect(p):
                     if str(p) == "outputs":
                         return real_path(temp_dir) / "outputs"
                     return real_path(p)
+
                 mock_path_cls.side_effect = path_side_effect
 
                 report_path, csv_path = manager.generate_summary_report()

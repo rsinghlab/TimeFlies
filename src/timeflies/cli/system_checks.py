@@ -398,25 +398,13 @@ def check_model_queue_configs() -> bool:
     # Check for optional queue/tuning configs in examples/
     examples_dir = Path("examples")
     if examples_dir.exists():
-        queue_configs = list(examples_dir.glob("*queue*.yaml")) + list(examples_dir.glob("*tuning*.yaml"))
+        queue_configs = list(examples_dir.glob("*queue*.yaml")) + list(
+            examples_dir.glob("*tuning*.yaml")
+        )
         if queue_configs:
-            print(f"[OK] Found {len(queue_configs)} example configurations in examples/")
-
-            # Validate YAML structure
-            try:
-                import yaml
-
-                with open(config) as f:
-                    queue_data = yaml.safe_load(f)
-
-                if "model_queue" in queue_data and "global_settings" in queue_data:
-                    model_count = len(queue_data.get("model_queue", []))
-                    print(f"      └─ {model_count} models configured")
-                else:
-                    print("      └─ [WARN] Missing required sections")
-
-            except Exception as e:
-                print(f"      └─ [ERROR] Invalid YAML: {e}")
+            print(
+                f"[OK] Found {len(queue_configs)} example configurations in examples/"
+            )
 
     # Check if user has access to create queue configs in current directory
     try:

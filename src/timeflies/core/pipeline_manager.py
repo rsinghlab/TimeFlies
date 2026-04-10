@@ -237,7 +237,9 @@ class PipelineManager:
                 hasattr(self, "_adata_eval_to_use")
                 and self._adata_eval_to_use is not None
             ):
-                probability_only = getattr(self.config_instance, "probability_only", False)
+                probability_only = getattr(
+                    self.config_instance, "probability_only", False
+                )
                 (
                     self.eval_data,
                     self.eval_labels,
@@ -424,7 +426,9 @@ class PipelineManager:
                     hasattr(self, "_adata_eval_to_use")
                     and self._adata_eval_to_use is not None
                 ):
-                    probability_only = getattr(self.config_instance, "probability_only", False)
+                    probability_only = getattr(
+                        self.config_instance, "probability_only", False
+                    )
                     (
                         self.eval_data,
                         self.eval_labels,
@@ -639,9 +643,7 @@ class PipelineManager:
             return
 
         # Get the correct output directory for this experiment
-        evaluation_output_dir = self.path_manager.get_experiment_evaluation_dir(
-            self.experiment_name
-        )
+        self.path_manager.get_experiment_evaluation_dir(self.experiment_name)
 
         # Create interpreter
         interpreter = self.interpreter_class(
@@ -769,11 +771,15 @@ class PipelineManager:
                 eval_sample_count = "Unknown"
                 eval_gene_count = "Unknown"
                 try:
-                    eval_metadata_path = os.path.join(experiment_dir, "evaluation", "eval_metadata.json")
+                    eval_metadata_path = os.path.join(
+                        experiment_dir, "evaluation", "eval_metadata.json"
+                    )
                     if os.path.exists(eval_metadata_path):
                         with open(eval_metadata_path) as f:
                             eval_metadata = json.load(f)
-                        eval_sample_count = eval_metadata.get("n_test_samples", "Unknown")
+                        eval_sample_count = eval_metadata.get(
+                            "n_test_samples", "Unknown"
+                        )
                         eval_gene_count = eval_metadata.get("n_features", "Unknown")
                 except Exception as e:
                     logger.debug(f"Could not load eval_metadata.json: {e}")
@@ -831,11 +837,11 @@ class PipelineManager:
 
             # Get data shapes if pipeline has data
             data_shapes = {}
-            if hasattr(self, 'test_data') and self.test_data is not None:
+            if hasattr(self, "test_data") and self.test_data is not None:
                 data_shapes["test_samples"] = self.test_data.shape[0]
 
                 # Always use num_features (original feature count) if available
-                if hasattr(self, 'num_features') and self.num_features:
+                if hasattr(self, "num_features") and self.num_features:
                     data_shapes["test_features"] = self.num_features
                 else:
                     # Try to get original features from training experiment metadata
@@ -845,21 +851,32 @@ class PipelineManager:
                         if os.path.exists(metadata_path):
                             with open(metadata_path) as f:
                                 training_metadata = json.load(f)
-                                if "data_shapes" in training_metadata and "n_features" in training_metadata["data_shapes"]:
-                                    data_shapes["test_features"] = training_metadata["data_shapes"]["n_features"]
+                                if (
+                                    "data_shapes" in training_metadata
+                                    and "n_features" in training_metadata["data_shapes"]
+                                ):
+                                    data_shapes["test_features"] = training_metadata[
+                                        "data_shapes"
+                                    ]["n_features"]
                                 else:
                                     # Final fallback to test data shape
-                                    data_shapes["test_features"] = self.test_data.shape[1]
+                                    data_shapes["test_features"] = self.test_data.shape[
+                                        1
+                                    ]
                         else:
                             # Fallback: get gene count from test data shape
                             if len(self.test_data.shape) == 3:
-                                data_shapes["test_features"] = self.test_data.shape[2]  # (cells, 1, genes)
+                                data_shapes["test_features"] = self.test_data.shape[
+                                    2
+                                ]  # (cells, 1, genes)
                             else:
                                 data_shapes["test_features"] = self.test_data.shape[1]
                     except Exception:
                         # Final fallback to test data shape - check for 3D CNN data
                         if len(self.test_data.shape) == 3:
-                            data_shapes["test_features"] = self.test_data.shape[2]  # (cells, 1, genes)
+                            data_shapes["test_features"] = self.test_data.shape[
+                                2
+                            ]  # (cells, 1, genes)
                         else:
                             data_shapes["test_features"] = self.test_data.shape[1]
 
@@ -868,7 +885,7 @@ class PipelineManager:
                 "method": getattr(self.config_instance.data.split, "method", "unknown"),
                 "column": getattr(self.config_instance.data.split, "column", "unknown"),
                 "train_values": getattr(self.config_instance.data.split, "train", []),
-                "test_values": getattr(self.config_instance.data.split, "test", [])
+                "test_values": getattr(self.config_instance.data.split, "test", []),
             }
 
             # Create eval metadata
@@ -881,18 +898,28 @@ class PipelineManager:
                 "tissue": self.config_instance.data.tissue,
                 "data_filters": {
                     "sex": getattr(self.config_instance.data, "sex", "unknown"),
-                    "cell_type": getattr(self.config_instance.data.cell, "type", "unknown") if hasattr(self.config_instance.data, "cell") else "unknown",
-                    "cell_column": getattr(self.config_instance.data.cell, "column", "unknown") if hasattr(self.config_instance.data, "cell") else "unknown"
+                    "cell_type": getattr(
+                        self.config_instance.data.cell, "type", "unknown"
+                    )
+                    if hasattr(self.config_instance.data, "cell")
+                    else "unknown",
+                    "cell_column": getattr(
+                        self.config_instance.data.cell, "column", "unknown"
+                    )
+                    if hasattr(self.config_instance.data, "cell")
+                    else "unknown",
                 },
                 "split_config": split_config,
                 "data_shapes": data_shapes,
-                "batch_correction": getattr(self.config_instance.data.batch_correction, "enabled", False),
+                "batch_correction": getattr(
+                    self.config_instance.data.batch_correction, "enabled", False
+                ),
                 "evaluation_settings": {
                     "metrics_enabled": True,
                     "visualizations_enabled": self.config_instance.visualizations.enabled,
                     "shap_enabled": self.config_instance.interpretation.shap.enabled,
-                    "analysis_script_enabled": self.config_instance.analysis.run_analysis_script.enabled
-                }
+                    "analysis_script_enabled": self.config_instance.analysis.run_analysis_script.enabled,
+                },
             }
 
             # Save eval metadata

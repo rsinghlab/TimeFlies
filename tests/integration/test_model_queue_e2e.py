@@ -124,7 +124,9 @@ def test_model_queue_e2e_with_tiny_dataset():
                 mock_cm.get_config.return_value = mock_config
 
                 with patch("timeflies.cli.commands.train_command") as mock_train:
-                    with patch("timeflies.cli.commands.evaluate_command") as mock_evaluate:
+                    with patch(
+                        "timeflies.cli.commands.evaluate_command"
+                    ) as mock_evaluate:
                         # Mock successful training and evaluation
                         mock_train.return_value = 0  # Success
                         mock_evaluate.return_value = 0  # Success
@@ -213,8 +215,8 @@ def test_model_queue_e2e_with_tiny_dataset():
                                             # Mock the outputs/model_queue_summaries path chain
                                             mock_summary_dir = Mock()
                                             mock_summary_dir.mkdir = Mock()
-                                            mock_path.__truediv__ = (
-                                                lambda self, other: mock_summary_dir
+                                            mock_path.__truediv__ = lambda self, other: (
+                                                mock_summary_dir
                                             )
                                             return mock_path
 

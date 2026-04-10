@@ -121,7 +121,7 @@ def queue_command(args) -> int:
 
     try:
         # Check if this is analysis-only mode
-        if hasattr(args, 'analysis') and args.analysis:
+        if hasattr(args, "analysis") and args.analysis:
             from timeflies.core.analysis_queue import AnalysisQueueRunner
 
             print("Running analysis queue only (skip training)")
@@ -133,6 +133,7 @@ def queue_command(args) -> int:
 
             # Load queue config to get model list for filtering
             import yaml
+
             with open(config_path) as f:
                 queue_config = yaml.safe_load(f)
 
@@ -140,25 +141,33 @@ def queue_command(args) -> int:
             if "models_to_analyze" in queue_config:
                 # Analysis queue format - explicit model list
                 models_list = queue_config["models_to_analyze"]
-                print(f"Using analysis queue config with {len(models_list)} explicit models")
-                print(f"Models to analyze: {models_list[:3]}{'...' if len(models_list) > 3 else ''}")
+                print(
+                    f"Using analysis queue config with {len(models_list)} explicit models"
+                )
+                print(
+                    f"Models to analyze: {models_list[:3]}{'...' if len(models_list) > 3 else ''}"
+                )
 
                 # Use the AnalysisQueueRunner with the specific models
                 analysis_runner.run_queue_with_models(
                     model_list=models_list,
-                    analysis_script=queue_config.get("analysis_settings", {}).get("analysis_script", None)
+                    analysis_script=queue_config.get("analysis_settings", {}).get(
+                        "analysis_script", None
+                    ),
                 )
                 return 0
 
             else:
                 # Model training queue config - analyze all available models
-                print("Using model training queue config, analyzing all available models")
+                print(
+                    "Using model training queue config, analyzing all available models"
+                )
                 pattern = "*"
 
             # Run analysis queue
             analysis_runner.run_queue(
                 model_pattern=pattern,
-                analysis_script=None  # Use default analysis script
+                analysis_script=None,  # Use default analysis script
             )
 
             return 0

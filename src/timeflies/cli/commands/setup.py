@@ -209,8 +209,7 @@ def setup_user_environment(quiet_mode=False):
             source_examples_dirs = [
                 Path(__file__).parent.parent.parent.parent
                 / "examples",  # repo structure
-                Path(__file__).parent.parent.parent
-                / "examples",  # installed structure
+                Path(__file__).parent.parent.parent / "examples",  # installed structure
             ]
 
             for source_examples_dir in source_examples_dirs:
@@ -219,9 +218,7 @@ def setup_user_environment(quiet_mode=False):
                     # Copy all example files
                     for example_file in source_examples_dir.glob("*"):
                         if example_file.is_file():
-                            shutil.copy2(
-                                example_file, examples_dir / example_file.name
-                            )
+                            shutil.copy2(example_file, examples_dir / example_file.name)
                             print(f"         [OK] {example_file.name}")
                     break
             else:

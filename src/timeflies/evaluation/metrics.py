@@ -212,35 +212,55 @@ class EvaluationMetrics:
             if probability_only:
                 try:
                     from timeflies.data.loaders import DataLoader
+
                     data_loader = DataLoader(self.config)
                     _, adata_eval, _ = data_loader.load_data()
 
-                    if adata_eval is not None and target_variable in adata_eval.obs.columns:
+                    if (
+                        adata_eval is not None
+                        and target_variable in adata_eval.obs.columns
+                    ):
                         # Get test split configuration
                         split_config = getattr(self.config.data, "split", None)
                         if split_config and hasattr(split_config, "method"):
                             split_method = getattr(split_config, "method", "random")
 
-                            if split_method == "column" and hasattr(split_config, "test"):
+                            if split_method == "column" and hasattr(
+                                split_config, "test"
+                            ):
                                 # Column-based split - filter by test values
                                 test_values = getattr(split_config, "test", [])
-                                test_values_lower = [str(v).lower() for v in test_values]
+                                test_values_lower = [
+                                    str(v).lower() for v in test_values
+                                ]
 
-                                split_column = getattr(split_config, "column", "genotype")
+                                split_column = getattr(
+                                    split_config, "column", "genotype"
+                                )
                                 if split_column in adata_eval.obs.columns:
-                                    split_col_lower = adata_eval.obs[split_column].str.lower()
+                                    split_col_lower = adata_eval.obs[
+                                        split_column
+                                    ].str.lower()
                                     mask = split_col_lower.isin(test_values_lower)
 
                                     if mask.sum() > 0:
                                         # Get true ages from evaluation data
-                                        actual_ages = adata_eval.obs.loc[mask, target_variable].values
+                                        actual_ages = adata_eval.obs.loc[
+                                            mask, target_variable
+                                        ].values
                                         # Convert to float
-                                        actual_ages = np.asarray(actual_ages, dtype=float).flatten()
+                                        actual_ages = np.asarray(
+                                            actual_ages, dtype=float
+                                        ).flatten()
                                         # Limit to prediction count if needed
                                         if len(actual_ages) > len(predicted_classes):
-                                            actual_ages = actual_ages[:len(predicted_classes)]
+                                            actual_ages = actual_ages[
+                                                : len(predicted_classes)
+                                            ]
                 except Exception as e:
-                    logger.warning(f"Could not load true ages for probability_only mode: {e}")
+                    logger.warning(
+                        f"Could not load true ages for probability_only mode: {e}"
+                    )
                     # Fall back to dummy labels
                     actual_ages = true_labels
 
@@ -262,7 +282,9 @@ class EvaluationMetrics:
                     # Add probability column for each class
                     for i, class_name in enumerate(class_names):
                         if i < predictions.shape[1]:
-                            predictions_df[f"prob_{target_variable}_{class_name}"] = predictions[:, i]
+                            predictions_df[f"prob_{target_variable}_{class_name}"] = (
+                                predictions[:, i]
+                            )
 
             # Check what additional columns to include from config
             eval_config = getattr(self.config, "evaluation", {})
@@ -1046,21 +1068,38 @@ class EvaluationMetrics:
                     if self.label_encoder and hasattr(self.label_encoder, "classes_"):
                         try:
                             string_labels = [
-                                str(int(label)) if isinstance(label, float) else str(label)
+                                str(int(label))
+                                if isinstance(label, float)
+                                else str(label)
                                 for label in true_labels
                             ]
                             true_indices = self.label_encoder.transform(string_labels)
                             model_auc = float(
-                                roc_auc_score(true_indices, predictions, multi_class="ovr", average="macro")
+                                roc_auc_score(
+                                    true_indices,
+                                    predictions,
+                                    multi_class="ovr",
+                                    average="macro",
+                                )
                             )
                         except ValueError:
                             # Fallback if label transformation fails
                             model_auc = float(
-                                roc_auc_score(true_labels, predictions, multi_class="ovr", average="macro")
+                                roc_auc_score(
+                                    true_labels,
+                                    predictions,
+                                    multi_class="ovr",
+                                    average="macro",
+                                )
                             )
                     else:
                         model_auc = float(
-                            roc_auc_score(true_labels, predictions, multi_class="ovr", average="macro")
+                            roc_auc_score(
+                                true_labels,
+                                predictions,
+                                multi_class="ovr",
+                                average="macro",
+                            )
                         )
                 else:
                     model_auc = 0.0

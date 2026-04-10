@@ -40,7 +40,9 @@ def run_tests(
         cmd.extend(["-m", "not functional and not system"])
 
     if coverage:
-        cmd.extend(["--cov=src", "--cov-report=html:coverage/html", "--cov-report=term"])
+        cmd.extend(
+            ["--cov=src", "--cov-report=html:coverage/html", "--cov-report=term"]
+        )
 
     if rerun_failures:
         cmd.extend(["--lf", "-v"])

@@ -278,7 +278,9 @@ class VisualizationTools:
                 display_labels.append(str(label))  # Fallback for unexpected labels
 
         # Create a ConfusionMatrixDisplay object using the computed confusion matrix and class names
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=display_labels)
+        disp = ConfusionMatrixDisplay(
+            confusion_matrix=cm, display_labels=display_labels
+        )
 
         # Create a new Matplotlib figure with a given size
         fig, ax = plt.subplots(figsize=(8, 8))

@@ -46,7 +46,9 @@ class TestCLICommandExecution:
         mock_args.command = "create-test-data"
         mock_args.tier = "synthetic"
 
-        with patch("timeflies.cli.commands.testing.create_from_metadata") as mock_create:
+        with patch(
+            "timeflies.cli.commands.testing.create_from_metadata"
+        ) as mock_create:
             with patch("builtins.print") as mock_print:
                 mock_create.return_value = 0
 
@@ -61,7 +63,9 @@ class TestCLICommandExecution:
         mock_args.verbose = False
         mock_args.project = None
 
-        with patch("timeflies.core.active_config.get_active_project") as mock_get_project:
+        with patch(
+            "timeflies.core.active_config.get_active_project"
+        ) as mock_get_project:
             with patch(
                 "timeflies.core.active_config.get_config_for_active_project"
             ) as mock_get_config:
@@ -97,7 +101,9 @@ class TestCLICommandExecution:
         mock_args.verbose = False
 
         # Mock the entire train command function
-        with patch("timeflies.cli.commands.train_command", return_value=0) as mock_train:
+        with patch(
+            "timeflies.cli.commands.train_command", return_value=0
+        ) as mock_train:
             result = mock_train(mock_args, aging_config)
 
             # Should return success code
@@ -113,7 +119,9 @@ class TestCLICommandExecution:
         mock_args.visualize = False
 
         # Mock the entire evaluate command function
-        with patch("timeflies.cli.commands.evaluate_command", return_value=0) as mock_eval:
+        with patch(
+            "timeflies.cli.commands.evaluate_command", return_value=0
+        ) as mock_eval:
             result = mock_eval(mock_args, aging_config)
 
             # Should return success code

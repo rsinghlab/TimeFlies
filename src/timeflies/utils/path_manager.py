@@ -676,7 +676,9 @@ class PathManager:
         evaluation_dir = self.get_experiment_evaluation_dir(experiment_name)
         return str(Path(evaluation_dir) / "plots")
 
-    def create_experiment_metadata(self, experiment_name: str = None, actual_data_shapes: dict = None) -> dict:
+    def create_experiment_metadata(
+        self, experiment_name: str = None, actual_data_shapes: dict = None
+    ) -> dict:
         """
         Create metadata dictionary for experiment.
 
