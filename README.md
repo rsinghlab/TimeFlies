@@ -2,8 +2,7 @@
 
 A single-nucleus RNA-seq aging clock for the *Drosophila melanogaster* head, built on a 1D convolutional neural network.
 
-**Paper:** Tennant, Pavuluri, Singh, Cortez, O'Connor-Giles, Larschan & Singh. *Nature Scientific Reports* (2026).
-[https://doi.org/10.1038/s41598-026-48613-0](https://doi.org/10.1038/s41598-026-48613-0)
+**Paper:** Tennant, Pavuluri, Singh, Cortez, O'Connor-Giles, Larschan & Singh. *Nature Scientific Reports* (2026). *(in press)*
 
 ## Installation
 
@@ -81,14 +80,14 @@ The primary model is a 1D CNN classifying donor age from genome-wide expression 
 
 ```bibtex
 @article{tennant2026timeflies,
-  title     = {TimeFlies: a single-nucleus {RNA}-seq aging clock for the
-               {Drosophila melanogaster} head},
-  author    = {Tennant, Nikolai and Pavuluri, Akhil and Singh, Aaditya and
-               Cortez, Alain and O'Connor-Giles, Kate and Larschan, Erica and
+  title     = {An {snRNA}-seq aging clock for the fruit fly head sheds light
+               on sex-biased aging},
+  author    = {Tennant, Nikolai and Pavuluri, Ananya and Singh, Gunjan and
+               Cortez, Kaitlyn and O'Connor-Giles, Kate and Larschan, Erica and
                Singh, Ritambhara},
-  journal   = {Nature Scientific Reports},
+  journal   = {Scientific Reports},
   year      = {2026},
-  doi       = {10.1038/s41598-026-48613-0}
+  note      = {In press}
 }
 ```
 
