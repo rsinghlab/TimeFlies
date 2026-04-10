@@ -272,8 +272,8 @@ User Workflow:
     queue_parser.add_argument(
         "config",
         nargs="?",
-        default="configs/model_queue.yaml",
-        help="Path to queue configuration YAML file (default: configs/model_queue.yaml)",
+        default="examples/model_queue.yaml",
+        help="Path to queue configuration YAML file (default: examples/model_queue.yaml)",
     )
     queue_parser.add_argument(
         "--no-resume",

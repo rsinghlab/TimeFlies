@@ -253,8 +253,6 @@ def copy_remaining_config_files():
         # Configs that get copied during setup (not before)
         setup_configs = [
             "default.yaml",
-            "hyperparameter_tuning.yaml",
-            "model_queue.yaml",
         ]
 
         # Find source configs

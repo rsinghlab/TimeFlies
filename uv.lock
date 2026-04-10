@@ -1765,7 +1765,7 @@ name = "nvidia-cublas-cu12"
 version = "12.9.2.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "sys_platform != 'win32'" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/a2/c96163a0fff1839c0c9548bbdeae7b853b867009e33b9b9264adc238b1cf/nvidia_cublas_cu12-12.9.2.10-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:5572131a59c3eebeeb1c4c8144f772d49372c20124916e072a0e3fc30df421d5", size = 575012079, upload-time = "2026-04-08T18:51:47.303Z" },
@@ -1840,7 +1840,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.20.0.48"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'win32'" },
+    { name = "nvidia-cublas-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/77/1c382fdc5de163b2ff14d6174d12dc318c0a42302f5e3a4fbc5114ab0501/nvidia_cudnn_cu12-9.20.0.48-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:d9da9c15344323afae571751393552652c52486eab0b886530997bef664e29de", size = 664659972, upload-time = "2026-03-09T19:27:37.986Z" },
@@ -1876,7 +1876,7 @@ name = "nvidia-cufft-cu12"
 version = "11.4.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "sys_platform != 'win32'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9b/2b/76445b0af890da61b501fde30650a1a4bd910607261b209cccb5235d3daa/nvidia_cufft_cu12-11.4.1.4-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1a28c9b12260a1aa7a8fd12f5ebd82d027963d635ba82ff39a1acfa7c4c0fbcf", size = 200822453, upload-time = "2025-06-05T20:05:27.889Z" },
@@ -1929,9 +1929,9 @@ name = "nvidia-cusolver-cu12"
 version = "11.7.5.82"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cusparse-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-nvjitlink-cu12", marker = "sys_platform != 'win32'" },
+    { name = "nvidia-cublas-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cusparse-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/99/686ff9bf3a82a531c62b1a5c614476e8dfa24a9d89067aeedf3592ee4538/nvidia_cusolver_cu12-11.7.5.82-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:62efa83e4ace59a4c734d052bb72158e888aa7b770e1a5f601682f16fe5b4fd2", size = 337869834, upload-time = "2025-06-05T20:06:53.125Z" },
@@ -1955,7 +1955,7 @@ name = "nvidia-cusparse-cu12"
 version = "12.5.10.65"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "sys_platform != 'win32'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/6f/8710fbd17cdd1d0fc3fea7d36d5b65ce1933611c31e1861da330206b253a/nvidia_cusparse_cu12-12.5.10.65-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:221c73e7482dd93eda44e65ce567c031c07e2f93f6fa0ecd3ba876a195023e83", size = 366359408, upload-time = "2025-06-05T20:07:42.501Z" },
@@ -3256,51 +3256,18 @@ wheels = [
 
 [package.optional-dependencies]
 and-cuda = [
-    { name = "nvidia-cublas-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cuda-nvcc-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cudnn-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cufft-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-curand-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cusolver-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-cusparse-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-nccl-cu12", marker = "sys_platform != 'win32'" },
-    { name = "nvidia-nvjitlink-cu12", marker = "sys_platform != 'win32'" },
-]
-
-[[package]]
-name = "tensorflow-cpu"
-version = "2.21.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "absl-py" },
-    { name = "astunparse" },
-    { name = "flatbuffers" },
-    { name = "gast" },
-    { name = "google-pasta" },
-    { name = "grpcio" },
-    { name = "h5py" },
-    { name = "keras" },
-    { name = "libclang" },
-    { name = "ml-dtypes" },
-    { name = "numpy" },
-    { name = "opt-einsum" },
-    { name = "packaging" },
-    { name = "protobuf" },
-    { name = "requests" },
-    { name = "setuptools" },
-    { name = "six" },
-    { name = "termcolor" },
-    { name = "typing-extensions" },
-    { name = "wrapt" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/07/a691049cb74276164d8449de9e25c4f51ad3111a3eba86358395d2552fc3/tensorflow_cpu-2.21.0-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:dcc8afd32930e42d5296b6ee19078b773706830af4ea97fbe503b9f5e0f820cb", size = 274000871, upload-time = "2026-03-06T17:26:32.489Z" },
-    { url = "https://files.pythonhosted.org/packages/c1/db/5e8318ee782607f152bb55372a9d0a5197ddfaa63325c800dfc04f9d5e41/tensorflow_cpu-2.21.0-cp312-cp312-win_amd64.whl", hash = "sha256:13ed4af80e5c5ddd6849323abecb4804eb2770f7570b57fe20208ad1e58c5d12", size = 350945555, upload-time = "2026-03-06T17:26:42.742Z" },
-    { url = "https://files.pythonhosted.org/packages/ac/21/48cd18bfd214042ecb7392e01e016d3dd60b4f1ef13f10954ab472cd3c13/tensorflow_cpu-2.21.0-cp313-cp313-manylinux_2_27_x86_64.whl", hash = "sha256:05af7c26d35f4de910b5598c7b507e3981831a7b0f47fed9a405d995d51d7793", size = 274271560, upload-time = "2026-03-06T17:26:55.668Z" },
-    { url = "https://files.pythonhosted.org/packages/9a/a8/9453d4440d9f248975355ec8e5acc3c684c114d923e257e8082b3b71dbaa/tensorflow_cpu-2.21.0-cp313-cp313-win_amd64.whl", hash = "sha256:b1f474fb27ff458d2a349f70bb3314d5bee3daddd9e8d8d8a6edd1cd680c90fe", size = 351205417, upload-time = "2026-03-06T17:27:08.267Z" },
+    { name = "nvidia-cublas-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cuda-nvcc-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cudnn-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cufft-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-curand-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cusolver-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-cusparse-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-nccl-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
+    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine != 'arm64' and sys_platform != 'win32'" },
 ]
 
 [[package]]
@@ -3349,9 +3316,6 @@ batch-correction = [
     { name = "scvi-tools" },
     { name = "torch" },
 ]
-cpu = [
-    { name = "tensorflow-cpu" },
-]
 dev = [
     { name = "joblib" },
     { name = "mypy" },
@@ -3364,10 +3328,6 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
     { name = "types-pyyaml" },
-]
-gpu = [
-    { name = "tensorflow" },
-    { name = "tensorflow", extra = ["and-cuda"], marker = "sys_platform != 'win32'" },
 ]
 
 [package.metadata]
@@ -3394,16 +3354,13 @@ requires-dist = [
     { name = "scvi-tools", marker = "extra == 'batch-correction'", specifier = ">=1.0.0" },
     { name = "seaborn", specifier = ">=0.12.0" },
     { name = "shap", specifier = ">=0.42.0" },
-    { name = "tensorflow", marker = "sys_platform == 'win32' and extra == 'gpu'", specifier = ">=2.13.0" },
     { name = "tensorflow", marker = "platform_machine == 'arm64' or sys_platform == 'win32'", specifier = ">=2.13.0" },
     { name = "tensorflow", extras = ["and-cuda"], marker = "platform_machine != 'arm64' and sys_platform != 'win32'", specifier = ">=2.13.0" },
-    { name = "tensorflow", extras = ["and-cuda"], marker = "sys_platform != 'win32' and extra == 'gpu'", specifier = ">=2.13.0" },
-    { name = "tensorflow-cpu", marker = "extra == 'cpu'", specifier = ">=2.13.0" },
     { name = "torch", marker = "extra == 'batch-correction'", specifier = ">=2.0.0" },
     { name = "types-pyyaml", marker = "extra == 'dev'" },
     { name = "xgboost", specifier = ">=1.7.0" },
 ]
-provides-extras = ["gpu", "cpu", "dev", "batch-correction"]
+provides-extras = ["dev", "batch-correction"]
 
 [[package]]
 name = "torch"

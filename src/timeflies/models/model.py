@@ -229,8 +229,10 @@ class CustomModelCheckpoint(tf.keras.callbacks.ModelCheckpoint):
         ]
 
         for source, dest in artifacts:
-            if Path(source).exists():
-                shutil.copy2(source, dest)
+            source_path = Path(source).resolve()
+            dest_path = Path(dest).resolve()
+            if source_path.exists() and source_path != dest_path:
+                shutil.copy2(source_path, dest_path)
 
 
 class ModelLoader:
