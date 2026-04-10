@@ -7,7 +7,7 @@ as older than their chronological age, indicating accelerated aging.
 
 Usage:
 - Automatically used when project = "fruitfly_alzheimers"
-- Or explicitly: timeflies analyze --analysis-script templates/fruitfly_alzheimers_analysis.py
+- Or explicitly: timeflies analyze --analysis-script examples/fruitfly_alzheimers_analysis.py
 """
 
 import logging

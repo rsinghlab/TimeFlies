@@ -506,7 +506,7 @@ You can integrate custom analysis scripts into the queue:
 ```yaml
 global_settings:
   with_analysis: true
-  analysis_script: "templates/my_custom_analysis.py"
+  analysis_script: "examples/my_custom_analysis.py"
 ```
 
 ### Integration with Batch Systems

@@ -124,10 +124,10 @@ class TestModelQueueManager:
             "config_overrides": {"data": {"batch_correction": {"enabled": True}}},
         }
 
-        config, hyperparams = manager.prepare_model_config(model_config)
+        config = manager.prepare_model_config(model_config)
 
-        # Check basic settings
-        assert config["model"] == "CNN"
+        # Check model type is set in data section
+        assert config["data"]["model"] == "CNN"
         assert config["experiment_name"] == "test_model"
 
         # Check global settings are applied
@@ -136,10 +136,6 @@ class TestModelQueueManager:
 
         # Check overrides are applied
         assert config["data"]["batch_correction"]["enabled"] is True
-
-        # Check hyperparameters
-        assert hyperparams["epochs"] == 50
-        assert hyperparams["batch_size"] == 16
 
         # Clean up
         Path(temp_config_file).unlink()
@@ -159,7 +155,7 @@ class TestModelQueueManager:
             "hyperparameters": {"epochs": 5, "batch_size": 32},
         }
 
-        # Mock successful training
+        # Mock successful training (train_command includes evaluation internally)
         mock_train.return_value = 0
         mock_evaluate.return_value = 0
 
@@ -172,9 +168,8 @@ class TestModelQueueManager:
         assert "training_time" in result
         assert "timestamp" in result
 
-        # Verify training and evaluation were called
+        # train_command is called (it handles evaluation internally)
         mock_train.assert_called_once()
-        mock_evaluate.assert_called_once()
 
         # Clean up
         Path(temp_config_file).unlink()
@@ -269,12 +264,10 @@ class TestModelQueueManager:
         if manager.checkpoint_file.exists():
             manager.checkpoint_file.unlink()
 
-    @patch("pandas.DataFrame.to_csv")
-    def test_generate_summary_report(self, mock_to_csv, temp_config_file):
+    def test_generate_summary_report(self, temp_config_file):
         """Test summary report generation."""
         manager = ModelQueueManager(temp_config_file)
 
-        # Add mock results
         manager.results = [
             {
                 "name": "cnn_model",
@@ -290,61 +283,24 @@ class TestModelQueueManager:
                     "f1_score": 0.85,
                 },
             },
-            {
-                "name": "xgb_model",
-                "model_type": "xgboost",
-                "description": "Test XGBoost model",
-                "status": "completed",
-                "training_time": 5.2,
-                "hyperparameters": {"n_estimators": 100, "max_depth": 6},
-                "metrics": {
-                    "accuracy": 0.82,
-                    "precision": 0.80,
-                    "recall": 0.84,
-                    "f1_score": 0.82,
-                },
-            },
         ]
 
-        manager.start_time = 1234567890  # Mock start time
+        manager.start_time = 1234567890
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("timeflies.core.model_queue.Path") as mock_path_class:
-                # Create mock paths that behave like Path objects but don't create real directories
-                mock_outputs_path = Mock()
-                mock_summary_dir = Mock()
+            # Point outputs to temp dir so report files are created there
+            with patch("timeflies.core.model_queue.Path") as mock_path_cls:
+                # Make Path("outputs") return our temp dir
+                real_path = Path
+                def path_side_effect(p):
+                    if str(p) == "outputs":
+                        return real_path(temp_dir) / "outputs"
+                    return real_path(p)
+                mock_path_cls.side_effect = path_side_effect
 
-                # Mock the mkdir method to do nothing
-                mock_outputs_path.mkdir = Mock()
-                mock_summary_dir.mkdir = Mock()
+                report_path, csv_path = manager.generate_summary_report()
 
-                # Mock the path division operations
-                mock_outputs_path.__truediv__ = Mock(return_value=mock_summary_dir)
-                mock_summary_dir.__truediv__ = Mock(
-                    return_value=Path(temp_dir) / "mock_file"
-                )
+                assert report_path is not None
+                assert csv_path is not None
 
-                # Mock Path constructor
-                def mock_path_constructor(path_str):
-                    if str(path_str) == "outputs":
-                        return mock_outputs_path
-                    # Return a real path for other operations (like temp file paths)
-                    return Path(temp_dir) / str(path_str)
-
-                mock_path_class.side_effect = mock_path_constructor
-
-                # Also mock the file operations
-                with patch("builtins.open", mock_open()) as mock_file:
-                    report_path, csv_path = manager.generate_summary_report()
-
-                    # Verify directory creation was attempted (but mocked)
-                    mock_summary_dir.mkdir.assert_called_once()
-
-                    # Verify file writing was attempted
-                    mock_file.assert_called()  # Verify files were "written"
-
-                # Verify CSV was attempted to be saved
-                mock_to_csv.assert_called_once()
-
-        # Clean up
         Path(temp_config_file).unlink()

@@ -6,7 +6,7 @@ Specialized analysis methods for studying aging in Drosophila melanogaster.
 
 Usage:
 - Automatically used when project = "fruitfly_aging"
-- Or explicitly: timeflies analyze --analysis-script templates/fruitfly_aging_analysis.py
+- Or explicitly: timeflies analyze --analysis-script examples/fruitfly_aging_analysis.py
 """
 
 import logging
@@ -569,5 +569,5 @@ class AgingAnalyzer:
 def main():
     """Legacy main function."""
     print(
-        "This script should now be used via: timeflies analyze --analysis-script templates/fruitfly_aging_analysis.py"
+        "This script should now be used via: timeflies analyze --analysis-script examples/fruitfly_aging_analysis.py"
     )

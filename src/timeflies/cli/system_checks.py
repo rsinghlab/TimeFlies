@@ -56,7 +56,7 @@ def verify_system(dev_mode: bool = None) -> bool:
     queue_check = check_model_queue_configs()
     all_checks_passed &= queue_check
 
-    # Check analysis templates
+    # Check analysis examples
     templates_check = check_analysis_templates()
     all_checks_passed &= templates_check
 
@@ -462,27 +462,27 @@ def check_model_queue_configs() -> bool:
 
 
 def check_analysis_templates() -> bool:
-    """Check if analysis templates directory exists and list available templates."""
-    print("\nRESEARCH: Analysis Templates Check")
+    """Check if analysis examples directory exists and list available examples."""
+    print("\nRESEARCH: Analysis Examples Check")
     print("-" * 30)
 
-    templates_dir = Path("templates")
+    templates_dir = Path("examples")
 
     if not templates_dir.exists():
-        print("⚠️  templates/ directory not found")
-        print("   Analysis templates are optional but recommended for custom analysis")
-        return True  # Templates are optional
+        print("⚠️  examples/ directory not found")
+        print("   Analysis examples are optional but recommended for custom analysis")
+        return True  # Examples are optional
 
-    print("✅ templates/ directory exists")
+    print("✅ examples/ directory exists")
 
-    # Find analysis template files
+    # Find analysis example files
     analysis_templates = list(templates_dir.glob("*_analysis.py"))
 
     if not analysis_templates:
-        print("ℹ️  No project analysis templates found")
-        print("   Create templates/{project}_analysis.py for custom analysis")
+        print("ℹ️  No project analysis examples found")
+        print("   Create examples/{project}_analysis.py for custom analysis")
     else:
-        print(f"✅ Found {len(analysis_templates)} analysis templates:")
+        print(f"✅ Found {len(analysis_templates)} analysis examples:")
         for template in sorted(analysis_templates):
             template_name = template.stem.replace("_analysis", "")
             print(f"   DOC: {template.name} -> project '{template_name}'")

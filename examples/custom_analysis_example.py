@@ -2,7 +2,7 @@
 TimeFlies Custom Analysis Script Template
 
 This template shows how to create custom analysis scripts that can be run with:
-timeflies analyze --analysis-script templates/your_analysis.py
+timeflies analyze --analysis-script examples/your_analysis.py
 
 Required function:
 - run_analysis(model, config, path_manager, pipeline)
@@ -14,7 +14,7 @@ Available objects:
 - pipeline: Full PipelineManager instance for accessing all methods
 
 Example usage:
-timeflies analyze --analysis-script templates/custom_analysis_example.py
+timeflies analyze --analysis-script examples/custom_analysis_example.py
 """
 
 import logging

@@ -347,9 +347,9 @@ class AnalysisQueueRunner:
         if analysis_script:
             analysis_path = Path(analysis_script)
             if not analysis_path.exists():
-                analysis_path = self.project_dir / "templates" / analysis_script
+                analysis_path = self.project_dir / "examples" / analysis_script
         else:
-            analysis_path = self.project_dir / "templates" / "fruitfly_alzheimers_analysis.py"
+            analysis_path = self.project_dir / "examples" / "fruitfly_alzheimers_analysis.py"
 
         print(f"Using analysis script: {analysis_path}")
 
@@ -814,7 +814,7 @@ def main():
     )
     parser.add_argument(
         "--analysis-script",
-        help="Path to analysis script (default: templates/fruitfly_alzheimers_analysis.py)"
+        help="Path to analysis script (default: examples/fruitfly_alzheimers_analysis.py)"
     )
 
     args = parser.parse_args()

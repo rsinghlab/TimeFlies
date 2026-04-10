@@ -331,34 +331,6 @@ class PathManager:
             os.makedirs(eval_dir, exist_ok=True)
         return eval_dir
 
-    def get_processed_data_dir(self) -> str:
-        """
-        Constructs the directory path for saving or loading preprocessed data.
-
-        Returns:
-            str: The path to the processed data directory
-
-        Example:
-            data/processed/batch_corrected/head_cnn_age/all-genes_all-cells_all-sexes/
-        """
-        project_root = self._get_project_root()
-
-        # Use clean 2-level structure: data/processed/correction_dir/level1/level2/
-        processed_data_dir = (
-            project_root
-            / "data"
-            / "processed"
-            / self.correction_dir
-            / self.base_experiment
-            / self.config_details
-        )
-
-        # Create directory if it doesn't exist (skip during tests)
-        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            processed_data_dir.mkdir(parents=True, exist_ok=True)
-
-        return str(processed_data_dir)
-
     def get_raw_data_dir(self, tissue_override: str | None = None) -> str:
         """
         Constructs the directory path for raw h5ad data files using new project structure.
@@ -380,23 +352,6 @@ class PathManager:
         raw_data_dir = project_root / "data" / project / tissue
 
         return str(raw_data_dir)
-
-    def get_log_directory(self) -> str:
-        """
-        Constructs the directory path for log files.
-
-        Returns:
-            str: The path to the logs directory
-        """
-        project_root = self._get_project_root()
-        project_name = getattr(self.config, "project", "fruitfly_aging")
-        log_dir = project_root / "outputs" / project_name / "logs"
-
-        # Create directory if it doesn't exist (skip during tests)
-        if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-            log_dir.mkdir(parents=True, exist_ok=True)
-
-        return str(log_dir)
 
     def get_outputs_directory(self) -> Path:
         """

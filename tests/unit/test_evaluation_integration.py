@@ -152,11 +152,7 @@ class TestEvaluationMetrics:
             config, mock_model, test_data, test_labels, label_encoder, path_manager
         )
 
-        # Test aging-specific functionality - calculate_aging_score exists
-        _ = {"age_progression": np.array([1, 2, 3, 2, 3, 4])}
-
-        # Just test that the method exists and can be called
-        assert hasattr(metrics, "calculate_aging_score")
+        # Test aging-specific functionality
         assert hasattr(metrics, "evaluate_age_prediction")
 
 

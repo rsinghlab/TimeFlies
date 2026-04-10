@@ -5,7 +5,7 @@ Template for analyzing aging patterns in single-cell data.
 Focus on age prediction, aging acceleration, and temporal patterns.
 
 Usage:
-timeflies analyze --analysis-script templates/aging_analysis_template.py
+timeflies analyze --analysis-script examples/aging_analysis_template.py
 """
 
 import logging

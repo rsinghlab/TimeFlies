@@ -34,6 +34,8 @@ coverage/
 .ruff_cache/
 .claude/
 .benchmarks/
+.env
+CLAUDE.md
 
 # IDE
 .vscode/

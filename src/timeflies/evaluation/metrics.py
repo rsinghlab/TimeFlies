@@ -355,17 +355,13 @@ class EvaluationMetrics:
                         predictions_df[column_name] = "unknown"
 
                 except Exception as e:
-                    print(f"Error extracting {column_name}: {e}")
+                    logger.warning("Error extracting %s: %s", column_name, e)
                     predictions_df[column_name] = "unknown"
 
             # Save to CSV
             predictions_file = os.path.join(results_dir, "predictions.csv")
             predictions_df.to_csv(predictions_file, index=False)
             # Predictions saved
-
-        # Display baseline comparisons if they were computed
-        if "baselines" in metrics and metrics["baselines"]:
-            pass  # The display was already done in _compute_baseline_comparison
 
         return metrics
 
@@ -455,8 +451,7 @@ class EvaluationMetrics:
             return adata_eval.obs["genotype"].tolist()
 
         except Exception as e:
-            # Debug: print the error for troubleshooting
-            print(f"DEBUG: Could not load genotype info: {e}")
+            logger.debug("Could not load genotype info: %s", e)
             return None
 
     def evaluate_age_prediction(
@@ -515,201 +510,6 @@ class EvaluationMetrics:
 
         return metrics
 
-    def evaluate_sex_specific_performance(
-        self, y_true: np.ndarray, y_pred: np.ndarray, sex_labels: np.ndarray
-    ) -> dict[str, Any]:
-        """
-        Evaluate performance separately for males and females.
-
-        Args:
-            y_true: True age values
-            y_pred: Predicted age values
-            sex_labels: Sex labels ('male' or 'female')
-
-        Returns:
-            Dictionary with sex-specific performance metrics
-        """
-        results = {}
-
-        for sex in ["male", "female"]:
-            sex_mask = sex_labels == sex
-            if np.sum(sex_mask) == 0:
-                continue
-
-            sex_true = y_true[sex_mask]
-            sex_pred = y_pred[sex_mask]
-
-            sex_metrics = self.evaluate_age_prediction(sex_true, sex_pred)
-            results[f"{sex}_metrics"] = sex_metrics
-
-        # Compare performance between sexes
-        if "male_metrics" in results and "female_metrics" in results:
-            results["sex_comparison"] = {
-                "mae_difference": results["male_metrics"]["mae"]
-                - results["female_metrics"]["mae"],
-                "r2_difference": results["male_metrics"]["r2_score"]
-                - results["female_metrics"]["r2_score"],
-                "correlation_difference": results["male_metrics"]["pearson_correlation"]
-                - results["female_metrics"]["pearson_correlation"],
-            }
-
-        return results
-
-    def evaluate_trajectory_quality(self, trajectory_results: dict) -> dict[str, float]:
-        """
-        Evaluate quality of aging trajectory analysis.
-
-        Args:
-            trajectory_results: Results from trajectory analysis
-
-        Returns:
-            Dictionary with trajectory quality metrics
-        """
-        metrics = {}
-
-        all_trajectories = trajectory_results["all_trajectories"]
-        significant_trajectories = trajectory_results["significant_trajectories"]
-        method = trajectory_results["method"]
-
-        # Basic statistics
-        metrics["total_genes_analyzed"] = len(all_trajectories)
-        metrics["significant_genes_count"] = len(significant_trajectories)
-        metrics["significant_gene_percentage"] = (
-            len(significant_trajectories) / len(all_trajectories)
-        ) * 100
-
-        if method == "linear":
-            # Linear trajectory metrics
-            correlations = [t["correlation"] for t in all_trajectories.values()]
-            [t["p_value"] for t in all_trajectories.values()]
-
-            metrics["mean_absolute_correlation"] = np.mean(np.abs(correlations))
-            metrics["median_absolute_correlation"] = np.median(np.abs(correlations))
-            metrics["max_correlation"] = np.max(np.abs(correlations))
-
-            # Count trajectory directions
-            increasing_count = sum(
-                1 for t in significant_trajectories.values() if t["correlation"] > 0
-            )
-            decreasing_count = len(significant_trajectories) - increasing_count
-
-            metrics["increasing_trajectories"] = increasing_count
-            metrics["decreasing_trajectories"] = decreasing_count
-            metrics["increasing_percentage"] = (
-                (increasing_count / len(significant_trajectories)) * 100
-                if len(significant_trajectories) > 0
-                else 0
-            )
-
-        elif method == "polynomial":
-            # Polynomial trajectory metrics
-            r_squared_values = [t["r_squared"] for t in all_trajectories.values()]
-
-            metrics["mean_r_squared"] = np.mean(r_squared_values)
-            metrics["median_r_squared"] = np.median(r_squared_values)
-            metrics["max_r_squared"] = np.max(r_squared_values)
-
-            # Count trajectory types
-            trajectory_types = [
-                t["trajectory_type"] for t in significant_trajectories.values()
-            ]
-            type_counts = {}
-            for ttype in [
-                "linear_increasing",
-                "linear_decreasing",
-                "u_shaped",
-                "inverted_u",
-            ]:
-                count = trajectory_types.count(ttype)
-                type_counts[f"{ttype}_count"] = count
-                type_counts[f"{ttype}_percentage"] = (
-                    (count / len(trajectory_types)) * 100
-                    if len(trajectory_types) > 0
-                    else 0
-                )
-
-            metrics.update(type_counts)
-
-        return metrics
-
-    def evaluate_aging_marker_performance(
-        self, adata, aging_markers: list[str], age_column: str = "age"
-    ) -> dict[str, Any]:
-        """
-        Evaluate how well known aging markers behave in the data.
-
-        Args:
-            adata: AnnData object
-            aging_markers: List of known aging marker genes
-            age_column: Column containing age information
-
-        Returns:
-            Dictionary with aging marker evaluation metrics
-        """
-        results = {}
-
-        available_markers = [gene for gene in aging_markers if gene in adata.var.index]
-        results["available_markers"] = available_markers
-        results["missing_markers"] = [
-            gene for gene in aging_markers if gene not in adata.var.index
-        ]
-        results["marker_coverage"] = len(available_markers) / len(aging_markers)
-
-        # Analyze each available marker
-        marker_analysis = {}
-        ages = adata.obs[age_column].values
-
-        for marker in available_markers:
-            marker_idx = list(adata.var.index).index(marker)
-            expression = (
-                adata.X[:, marker_idx].toarray().flatten()
-                if hasattr(adata.X, "toarray")
-                else adata.X[:, marker_idx]
-            )
-
-            # Correlation with age
-            correlation, p_value = stats.pearsonr(ages, expression)
-
-            # Expression variability across ages
-            age_groups = {}
-            for age in adata.obs[age_column].unique():
-                age_mask = adata.obs[age_column] == age
-                age_expression = expression[age_mask]
-                age_groups[str(age)] = {
-                    "mean": float(np.mean(age_expression)),
-                    "std": float(np.std(age_expression)),
-                    "cv": float(np.std(age_expression) / np.mean(age_expression))
-                    if np.mean(age_expression) > 0
-                    else 0,
-                }
-
-            marker_analysis[marker] = {
-                "age_correlation": correlation,
-                "correlation_p_value": p_value,
-                "age_group_expression": age_groups,
-                "overall_expression_mean": float(np.mean(expression)),
-                "overall_expression_std": float(np.std(expression)),
-            }
-
-        results["marker_analysis"] = marker_analysis
-
-        # Summary statistics
-        if marker_analysis:
-            correlations = [m["age_correlation"] for m in marker_analysis.values()]
-            results["summary"] = {
-                "mean_age_correlation": np.mean(np.abs(correlations)),
-                "strong_age_correlation_count": sum(
-                    1 for c in correlations if abs(c) > 0.5
-                ),
-                "significant_correlation_count": sum(
-                    1
-                    for m in marker_analysis.values()
-                    if m["correlation_p_value"] < 0.05
-                ),
-            }
-
-        return results
-
     def _evaluate_age_group_consistency(
         self, y_true: np.ndarray, y_pred: np.ndarray
     ) -> dict[str, float]:
@@ -748,44 +548,6 @@ class EvaluationMetrics:
                 metrics[f"{age_key}_sample_count"] = int(np.sum(age_mask))
 
         return metrics
-
-    def calculate_aging_score(
-        self, adata, aging_markers: list[str], age_column: str = "age"
-    ) -> np.ndarray:
-        """
-        Calculate a composite aging score based on marker expression.
-
-        Args:
-            adata: AnnData object
-            aging_markers: List of aging marker genes
-            age_column: Column containing age information
-
-        Returns:
-            Array of aging scores for each cell
-        """
-        available_markers = [gene for gene in aging_markers if gene in adata.var.index]
-
-        if not available_markers:
-            return np.zeros(adata.n_obs)
-
-        # Extract marker expressions
-        marker_expressions = []
-        for marker in available_markers:
-            marker_idx = list(adata.var.index).index(marker)
-            expression = (
-                adata.X[:, marker_idx].toarray().flatten()
-                if hasattr(adata.X, "toarray")
-                else adata.X[:, marker_idx]
-            )
-
-            # Normalize expression (z-score)
-            normalized_expr = (expression - np.mean(expression)) / np.std(expression)
-            marker_expressions.append(normalized_expr)
-
-        # Calculate composite score (mean of normalized expressions)
-        aging_scores = np.mean(marker_expressions, axis=0)
-
-        return aging_scores
 
     def evaluate_classification_and_regression(
         self, true_labels, predicted_classes, predictions
@@ -945,26 +707,28 @@ class EvaluationMetrics:
                 class_mask = true_labels == class_id
                 class_pred_mask = predicted_classes == class_id
 
-                # Per-class precision, recall, f1
-                if np.sum(class_pred_mask) > 0:  # Avoid division by zero
+                class_precision = 0.0
+                class_recall = 0.0
+
+                if np.sum(class_pred_mask) > 0:
                     class_precision = np.sum(class_mask & class_pred_mask) / np.sum(
                         class_pred_mask
                     )
                     metrics[f"class_{class_id}_precision"] = float(class_precision)
 
-                if np.sum(class_mask) > 0:  # Avoid division by zero
+                if np.sum(class_mask) > 0:
                     class_recall = np.sum(class_mask & class_pred_mask) / np.sum(
                         class_mask
                     )
                     metrics[f"class_{class_id}_recall"] = float(class_recall)
 
-                    if class_precision + class_recall > 0:
-                        class_f1 = (
-                            2
-                            * (class_precision * class_recall)
-                            / (class_precision + class_recall)
-                        )
-                        metrics[f"class_{class_id}_f1"] = float(class_f1)
+                if class_precision + class_recall > 0:
+                    class_f1 = (
+                        2
+                        * (class_precision * class_recall)
+                        / (class_precision + class_recall)
+                    )
+                    metrics[f"class_{class_id}_f1"] = float(class_f1)
 
         # Display model performance first in a clean, simple format
         key_metrics = ["accuracy", "f1_score", "precision", "recall", "auc"]

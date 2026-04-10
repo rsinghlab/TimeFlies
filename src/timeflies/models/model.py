@@ -1,4 +1,3 @@
-import contextlib
 import json
 import os
 import sys
@@ -11,19 +10,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
+from ..utils.gpu_handler import suppress_stderr
 from ..utils.path_manager import PathManager
-
-
-# Suppress stderr during imports
-@contextlib.contextmanager
-def suppress_stderr():
-    with open(os.devnull, "w") as devnull:
-        old_stderr = sys.stderr
-        sys.stderr = devnull
-        try:
-            yield
-        finally:
-            sys.stderr = old_stderr
 
 
 # Import TensorFlow and related modules with suppressed stderr

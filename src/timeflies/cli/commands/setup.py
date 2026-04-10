@@ -17,13 +17,13 @@ def new_setup_command(args) -> int:
     print("=" * 50)
     print("Setting up your TimeFlies environment...")
 
-    # 0. Create user configuration and templates
-    print("\n0. Setting up configuration and templates...")
+    # 0. Create user configuration and examples
+    print("\n0. Setting up configuration and examples...")
     setup_result = setup_user_environment()
     if setup_result != 0:
         print("[ERROR] User environment setup failed.")
         return setup_result
-    print("[OK] Configuration and templates ready")
+    print("[OK] Configuration and examples ready")
 
     # Copy remaining config files now that pre-setup configs are available
     additional_config_result = copy_remaining_config_files()
@@ -129,7 +129,7 @@ def split_command(args) -> int:
 
 
 def setup_user_environment(quiet_mode=False):
-    """Create user configuration and templates."""
+    """Create user configuration and examples."""
     import shutil
     from pathlib import Path
 
@@ -197,41 +197,41 @@ def setup_user_environment(quiet_mode=False):
             else:
                 root_config.unlink()  # Remove if user_config already exists
 
-        # Create templates directory if it doesn't exist
-        templates_dir = Path("templates")
-        if not templates_dir.exists():
-            print("   DOC: Creating templates directory...")
+        # Create examples directory if it doesn't exist
+        examples_dir = Path("examples")
+        if not examples_dir.exists():
+            print("   DOC: Creating examples directory...")
             # Create directory if it doesn't exist (skip during tests)
             if not (os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("CI")):
-                templates_dir.mkdir(parents=True, exist_ok=True)
+                examples_dir.mkdir(parents=True, exist_ok=True)
 
-            # Find source templates from TimeFlies installation
-            source_templates_dirs = [
+            # Find source examples from TimeFlies installation
+            source_examples_dirs = [
                 Path(__file__).parent.parent.parent.parent
-                / "templates",  # repo structure
+                / "examples",  # repo structure
                 Path(__file__).parent.parent.parent
-                / "templates",  # installed structure
+                / "examples",  # installed structure
             ]
 
-            for source_templates_dir in source_templates_dirs:
-                if source_templates_dir.exists():
-                    print("      FILE: Copying analysis templates...")
-                    # Copy all template files
-                    for template_file in source_templates_dir.glob("*"):
-                        if template_file.is_file():
+            for source_examples_dir in source_examples_dirs:
+                if source_examples_dir.exists():
+                    print("      FILE: Copying analysis examples...")
+                    # Copy all example files
+                    for example_file in source_examples_dir.glob("*"):
+                        if example_file.is_file():
                             shutil.copy2(
-                                template_file, templates_dir / template_file.name
+                                example_file, examples_dir / example_file.name
                             )
-                            print(f"         [OK] {template_file.name}")
+                            print(f"         [OK] {example_file.name}")
                     break
             else:
-                print("      WARNING:  Could not find templates directory")
+                print("      WARNING:  Could not find examples directory")
                 print(
-                    "      INFO:  You can create custom analysis scripts in templates/ manually"
+                    "      INFO:  You can create custom analysis scripts in examples/ manually"
                 )
         else:
             if not quiet_mode:
-                print("   DOC: templates/ directory already exists")
+                print("   DOC: examples/ directory already exists")
 
         return 0
 

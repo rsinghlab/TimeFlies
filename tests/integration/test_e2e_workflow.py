@@ -60,7 +60,7 @@ def test_timeflies_with_correct_data_format():
         # Mock the PathManager instance completely
         mock_pm = mock_pm_class.return_value
         mock_pm.get_outputs_directory.return_value = "/tmp/test_outputs"
-        mock_pm.get_log_directory.return_value = "/tmp/test_logs"
+
         mock_pm.get_visualization_directory.return_value = "/tmp/test_viz"
         mock_pm.get_config_key.return_value = "test_config"
         mock_pm.generate_experiment_name.return_value = "test_experiment"
@@ -107,7 +107,7 @@ def test_timeflies_with_correct_data_format():
         # Mock the PathManager instance completely
         mock_pm = mock_pm_class.return_value
         mock_pm.get_outputs_directory.return_value = "/tmp/test_outputs"
-        mock_pm.get_log_directory.return_value = "/tmp/test_logs"
+
         mock_pm.get_visualization_directory.return_value = "/tmp/test_viz"
         mock_pm.get_config_key.return_value = "test_config"
         mock_pm.generate_experiment_name.return_value = "test_experiment"
