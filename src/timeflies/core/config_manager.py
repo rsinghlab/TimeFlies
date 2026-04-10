@@ -7,8 +7,8 @@ from typing import Any, Optional
 
 import yaml
 
-from common.utils.exceptions import ConfigurationError
-from common.utils.logging_config import get_logger
+from timeflies.utils.exceptions import ConfigurationError
+from timeflies.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -261,14 +261,14 @@ class ConfigManager:
                 # Try to find TimeFlies installation directory dynamically
                 timeflies_root = None
                 try:
-                    import common
+                    import timeflies
 
-                    timeflies_root = Path(common.__file__).parent.parent.parent
+                    timeflies_root = Path(timeflies.__file__).parent.parent.parent
                 except (ImportError, AttributeError):
                     # Fallback to searching from current directory upwards
                     current = Path.cwd()
                     for parent in [current] + list(current.parents):
-                        if (parent / "src" / "common").exists() and (
+                        if (parent / "src" / "timeflies").exists() and (
                             parent / "configs"
                         ).exists():
                             timeflies_root = parent

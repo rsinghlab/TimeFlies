@@ -1,16 +1,11 @@
 """Unit tests for model factory."""
 
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
 import pytest
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
-from common.models.model_factory import (
+from timeflies.models.model_factory import (
     BaseModel,
     CNNModel,
     LogisticRegressionModel,
@@ -19,7 +14,7 @@ from common.models.model_factory import (
     RandomForestModel,
     XGBoostModel,
 )
-from common.utils.exceptions import ModelError
+from timeflies.utils.exceptions import ModelError
 
 
 class TestModelFactory:
@@ -111,7 +106,7 @@ class TestCNNModel:
         assert model.model is None
         assert not model.is_trained
 
-    @patch("common.models.model_factory.Sequential")
+    @patch("timeflies.models.model_factory.Sequential")
     def test_cnn_build(self, mock_sequential, cnn_config):
         """Test CNN model building."""
         mock_model = Mock()
@@ -125,7 +120,7 @@ class TestCNNModel:
         mock_model.add.assert_called()
         mock_model.compile.assert_called_once()
 
-    @patch("common.models.model_factory.Sequential")
+    @patch("timeflies.models.model_factory.Sequential")
     def test_cnn_train(self, mock_sequential, cnn_config):
         """Test CNN model training."""
         mock_model = Mock()
@@ -145,7 +140,7 @@ class TestCNNModel:
         assert cnn_model.is_trained
         mock_model.fit.assert_called_once()
 
-    @patch("common.models.model_factory.Sequential")
+    @patch("timeflies.models.model_factory.Sequential")
     def test_cnn_predict(self, mock_sequential, cnn_config):
         """Test CNN model prediction."""
         mock_model = Mock()
@@ -165,7 +160,7 @@ class TestCNNModel:
         )  # argmax of [0.1, 0.2, 0.3, 0.4]
         mock_model.predict.assert_called_once_with(X_test)
 
-    @patch("common.models.model_factory.Sequential")
+    @patch("timeflies.models.model_factory.Sequential")
     def test_cnn_predict_proba(self, mock_sequential, cnn_config):
         """Test CNN model prediction probabilities."""
         mock_model = Mock()
@@ -199,7 +194,7 @@ class TestMLPModel:
         config.model.training.metrics = ["accuracy"]
         return config
 
-    @patch("common.models.model_factory.Sequential")
+    @patch("timeflies.models.model_factory.Sequential")
     def test_mlp_build(self, mock_sequential, mlp_config):
         """Test MLP model building."""
         mock_model = Mock()
@@ -225,7 +220,7 @@ class TestLogisticRegressionModel:
         config.model.logistic.random_state = 42
         return config
 
-    @patch("common.models.model_factory.LogisticRegression")
+    @patch("timeflies.models.model_factory.LogisticRegression")
     def test_lr_build(self, mock_lr, lr_config):
         """Test Logistic Regression model building."""
         mock_model = Mock()
@@ -242,7 +237,7 @@ class TestLogisticRegressionModel:
         assert "max_iter" in call_args.kwargs
         assert "random_state" in call_args.kwargs
 
-    @patch("common.models.model_factory.LogisticRegression")
+    @patch("timeflies.models.model_factory.LogisticRegression")
     def test_lr_train(self, mock_lr, lr_config):
         """Test Logistic Regression training."""
         mock_model = Mock()
@@ -259,7 +254,7 @@ class TestLogisticRegressionModel:
         assert lr_model.is_trained
         mock_model.fit.assert_called_once_with(X_train, y_train)
 
-    @patch("common.models.model_factory.LogisticRegression")
+    @patch("timeflies.models.model_factory.LogisticRegression")
     def test_lr_predict(self, mock_lr, lr_config):
         """Test Logistic Regression prediction."""
         mock_model = Mock()
@@ -290,7 +285,7 @@ class TestXGBoostModel:
         config.model.xgboost.random_state = 42
         return config
 
-    @patch("common.models.model_factory.xgb.XGBClassifier")
+    @patch("timeflies.models.model_factory.xgb.XGBClassifier")
     def test_xgb_build(self, mock_xgb, xgb_config):
         """Test XGBoost model building."""
         mock_model = Mock()
@@ -320,7 +315,7 @@ class TestRandomForestModel:
         config.model.random_forest.random_state = 42
         return config
 
-    @patch("common.models.model_factory.RandomForestClassifier")
+    @patch("timeflies.models.model_factory.RandomForestClassifier")
     def test_rf_build(self, mock_rf, rf_config):
         """Test Random Forest model building."""
         mock_model = Mock()
@@ -337,7 +332,7 @@ class TestRandomForestModel:
         assert "max_depth" in call_args.kwargs
         assert "random_state" in call_args.kwargs
 
-    @patch("common.models.model_factory.RandomForestClassifier")
+    @patch("timeflies.models.model_factory.RandomForestClassifier")
     def test_rf_train(self, mock_rf, rf_config):
         """Test Random Forest training."""
         mock_model = Mock()

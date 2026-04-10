@@ -125,7 +125,7 @@ class TestCLIPerformance:
     @pytest.mark.performance
     def test_cli_help_speed(self, benchmark):
         """Test CLI help command performance."""
-        from common.cli.main import main_cli
+        from timeflies.cli.main import main_cli
 
         def run_help():
             try:
@@ -140,7 +140,7 @@ class TestCLIPerformance:
     @pytest.mark.performance
     def test_config_loading_speed(self, benchmark):
         """Test configuration loading performance."""
-        from common.core.active_config import get_active_project
+        from timeflies.core.active_config import get_active_project
 
         def load_config():
             try:

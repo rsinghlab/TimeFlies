@@ -11,7 +11,7 @@ def create_main_parser() -> argparse.ArgumentParser:
     """Create the main argument parser with subcommands."""
 
     parser = argparse.ArgumentParser(
-        description="TimeFlies v1.0: Machine Learning for Aging Analysis",
+        description="TimeFlies v1.0: Machine Learning for Single-Cell Analysis",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 User Workflow:
@@ -34,23 +34,17 @@ User Workflow:
   timeflies test [unit|integration]    # Run test suite
   timeflies test --coverage            # Generate coverage report
   timeflies create-test-data           # Generate test fixtures
-  timeflies update                     # Update to latest version
 
   # Automated model training systems
-  timeflies tune                       # Run hyperparameter tuning (uses config.yaml)
-  timeflies tune custom_config.yaml    # Run with custom config file
+  timeflies tune                       # Run hyperparameter tuning
   timeflies queue                      # Run default model queue
-  timeflies queue custom_queue.yaml    # Run custom queue configuration
 
   # Project switching (temporary override)
-  timeflies --aging train              # Train aging project
-  timeflies --alzheimers analyze       # Analyze Alzheimer's project
-  timeflies --tissue head train        # Override tissue type
+  timeflies --project fruitfly_aging train
+  timeflies --tissue head train
 
   # Global options work with any command
-  --batch-corrected --verbose --tissue head --aging
-
-  # Permanent project switching: Edit config.yaml
+  --batch-corrected --verbose --tissue head --project my_project
         """,
     )
 
@@ -58,8 +52,6 @@ User Workflow:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Enable verbose logging"
     )
-
-    # Batch correction flag (global)
     parser.add_argument(
         "--batch-corrected",
         action="store_true",
@@ -77,14 +69,20 @@ User Workflow:
         "--target", type=str, help="Override target variable (e.g., age)"
     )
 
-    # Project selection (mutually exclusive)
+    # Project selection
     project_group = parser.add_mutually_exclusive_group()
+    project_group.add_argument(
+        "--project",
+        type=str,
+        dest="project",
+        help="Project name (e.g., fruitfly_aging, fruitfly_alzheimers, or custom)",
+    )
     project_group.add_argument(
         "--aging",
         action="store_const",
         const="fruitfly_aging",
         dest="project",
-        help="Use fruitfly_aging project (healthy flies)",
+        help="Shorthand for --project fruitfly_aging",
     )
     project_group.add_argument(
         "--alzheimers",
@@ -92,7 +90,7 @@ User Workflow:
         action="store_const",
         const="fruitfly_alzheimers",
         dest="project",
-        help="Use fruitfly_alzheimers project (disease models)",
+        help="Shorthand for --project fruitfly_alzheimers",
     )
 
     # Create subparsers
@@ -111,15 +109,17 @@ User Workflow:
         "--with-analysis", action="store_true", help="Run analysis after training"
     )
 
-    # EDA command (simplified)
+    # EDA command
     eda_parser = subparsers.add_parser(
         "eda", help="Run exploratory data analysis on the full dataset"
     )
     eda_parser.add_argument(
-        "--save-report", action="store_true", help="Generate HTML report of EDA results"
+        "--save-report",
+        action="store_true",
+        help="Generate HTML report of EDA results",
     )
 
-    # Setup command (main user workflow)
+    # Setup command
     setup_parser = subparsers.add_parser(
         "setup", help="Complete setup: split data + verify system + create directories"
     )
@@ -129,22 +129,12 @@ User Workflow:
         help="Include batch correction in setup workflow",
     )
     setup_parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="Developer setup: only create environments (.venv and .venv_batch)",
-    )
-    setup_parser.add_argument(
-        "--update",
-        action="store_true",
-        help="Update existing development environment with latest dependencies",
-    )
-    setup_parser.add_argument(
         "--force-split",
         action="store_true",
         help="Force recreate data splits even if they already exist",
     )
 
-    # Split command (create train/eval data splits)
+    # Split command
     split_parser = subparsers.add_parser(
         "split", help="Create train/eval data splits from your original data"
     )
@@ -154,10 +144,10 @@ User Workflow:
         help="Force recreate data splits even if they already exist",
     )
 
-    # Verify command (system setup verification)
+    # Verify command
     subparsers.add_parser("verify", help="Verify installation and system setup")
 
-    # Test command (test runner integration)
+    # Test command
     test_parser = subparsers.add_parser(
         "test", help="Run test suite with various options"
     )
@@ -227,15 +217,15 @@ User Workflow:
         help="Path to custom analysis script (Python file with run_analysis function)",
     )
 
-    # Batch correction command (no flags - uses project config)
+    # Batch correction command
     subparsers.add_parser(
         "batch-correct", help="Run batch correction using project config settings"
     )
 
-    # Create test data command (3-tier strategy)
+    # Create test data command
     test_data_parser = subparsers.add_parser(
         "create-test-data",
-        help="Create test data fixtures using 3-tier strategy: tiny real + synthetic + dev real data",
+        help="Create test data fixtures using 3-tier strategy",
     )
     test_data_parser.add_argument(
         "--tier",
@@ -260,39 +250,27 @@ User Workflow:
         help="Create both batch-corrected and uncorrected versions",
     )
 
-    # Update command
-    subparsers.add_parser(
-        "update",
-        help="Update TimeFlies to the latest version from GitHub",
-    )
-
     # Hyperparameter tuning command
     tune_parser = subparsers.add_parser(
         "tune",
-        help="Run automated hyperparameter tuning with grid, random, or Bayesian optimization",
-        description="Optimize hyperparameters for TimeFlies models using grid search, "
-        "random search, or Bayesian optimization (Optuna). Supports model architecture "
-        "exploration and comprehensive hyperparameter optimization with progress tracking.",
+        help="Run automated hyperparameter tuning",
     )
     tune_parser.add_argument(
         "config",
         nargs="?",
         default="configs/default.yaml",
-        help="Path to configuration YAML file with hyperparameter tuning enabled (default: configs/default.yaml)",
+        help="Path to configuration YAML file (default: configs/default.yaml)",
     )
     tune_parser.add_argument(
         "--no-resume",
         action="store_true",
-        help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
+        help="Start fresh even if checkpoint exists",
     )
 
-    # Queue command for automated multi-model training
+    # Queue command
     queue_parser = subparsers.add_parser(
         "queue",
         help="Run automated sequential model training from queue configuration",
-        description="Train multiple models sequentially with different configurations. "
-        "Supports checkpoints, progress tracking, and comprehensive comparison reports. "
-        "Queue configurations define multiple models with hyperparameters and settings.",
     )
     queue_parser.add_argument(
         "config",
@@ -303,22 +281,18 @@ User Workflow:
     queue_parser.add_argument(
         "--no-resume",
         action="store_true",
-        help="Start fresh even if checkpoint exists (default: resume from checkpoint)",
+        help="Start fresh even if checkpoint exists",
     )
     queue_parser.add_argument(
         "--analysis",
         action="store_true",
-        help="Run analysis queue only (skip training, analyze existing best models from queue config)",
+        help="Run analysis queue only (skip training)",
     )
 
-    # GUI command for web interface
+    # GUI command
     gui_parser = subparsers.add_parser(
         "gui",
         help="Launch web-based graphical user interface",
-        description="Start a web-based GUI for TimeFlies in your browser. "
-        "Provides point-and-click access to all TimeFlies functionality including "
-        "setup, training, batch correction, and hyperparameter tuning. "
-        "No system dependencies required - works in any browser.",
     )
     gui_parser.add_argument(
         "--port",
@@ -330,7 +304,7 @@ User Workflow:
         "--host",
         type=str,
         default="127.0.0.1",
-        help="Host address for web server (default: 127.0.0.1 - local only)",
+        help="Host address for web server (default: 127.0.0.1)",
     )
     gui_parser.add_argument(
         "--share",
@@ -341,32 +315,6 @@ User Workflow:
         "--debug",
         action="store_true",
         help="Enable debug mode for development",
-    )
-
-    # Uninstall command
-    uninstall_parser = subparsers.add_parser(
-        "uninstall",
-        help="Uninstall TimeFlies and clean up installation",
-        description="""
-Remove TimeFlies installation including virtual environments,
-source code, and optionally data directories. Use with caution
-as this action cannot be undone.
-        """.strip(),
-    )
-    uninstall_parser.add_argument(
-        "--keep-data",
-        action="store_true",
-        help="Keep data, outputs, models, and config directories",
-    )
-    uninstall_parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Skip confirmation prompt",
-    )
-    uninstall_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what would be removed without actually removing it",
     )
 
     return parser

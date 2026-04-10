@@ -43,10 +43,10 @@ class TestInstallation:
         """Test that TimeFlies package is properly structured."""
         try:
             # Test core module imports
-            from common.cli.main import main_cli
-            from common.core.config_manager import ConfigManager
-            from common.data.loaders import DataLoader
-            from common.models.model_factory import ModelFactory
+            from timeflies.cli.main import main_cli
+            from timeflies.core.config_manager import ConfigManager
+            from timeflies.data.loaders import DataLoader
+            from timeflies.models.model_factory import ModelFactory
 
             # Test that classes can be instantiated
             assert ConfigManager is not None
@@ -59,7 +59,7 @@ class TestInstallation:
 
     def test_cli_help_functionality(self):
         """Test that CLI help works without errors."""
-        from common.cli.main import main_cli
+        from timeflies.cli.main import main_cli
 
         # Test main help
         try:
@@ -72,7 +72,7 @@ class TestInstallation:
 
     def test_config_loading_system(self):
         """Test configuration system works."""
-        from common.core.active_config import get_active_project
+        from timeflies.core.active_config import get_active_project
 
         # Should return a valid project name or default
         project = get_active_project()
@@ -110,8 +110,8 @@ class TestSystemSetup:
 
     def test_data_directory_access(self):
         """Test that we can work with data directories."""
-        from common.core.config_manager import ConfigManager
-        from common.utils.path_manager import PathManager
+        from timeflies.core.config_manager import ConfigManager
+        from timeflies.utils.path_manager import PathManager
 
         # Create a minimal config for testing
         _ = {
@@ -132,8 +132,8 @@ class TestSystemSetup:
 
     def test_model_factory_system(self):
         """Test that model factory system works."""
-        from common.core.config_manager import ConfigManager
-        from common.models.model_factory import ModelFactory
+        from timeflies.core.config_manager import ConfigManager
+        from timeflies.models.model_factory import ModelFactory
 
         _ = {
             "general": {"project_name": "test"},
@@ -256,9 +256,9 @@ class TestIntegrationReadiness:
         from sklearn.preprocessing import LabelEncoder
 
         try:
-            from common.core.config_manager import ConfigManager
-            from common.models.model_factory import ModelFactory
             from tests.fixtures.unit_test_data import create_sample_anndata
+            from timeflies.core.config_manager import ConfigManager
+            from timeflies.models.model_factory import ModelFactory
 
             # Test that all required components can be imported
             assert ConfigManager is not None
@@ -273,9 +273,9 @@ class TestIntegrationReadiness:
     def test_end_to_end_data_pipeline(self):
         """Test that data pipeline components are available."""
         try:
-            from common.core.config_manager import ConfigManager
-            from common.data.preprocessing.data_processor import DataPreprocessor
             from tests.fixtures.unit_test_data import create_sample_anndata
+            from timeflies.core.config_manager import ConfigManager
+            from timeflies.data.preprocessing.data_processor import DataPreprocessor
 
             # Test that all required components can be imported
             assert ConfigManager is not None

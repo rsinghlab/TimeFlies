@@ -11,15 +11,15 @@ os.environ["GRPC_VERBOSITY"] = "ERROR"
 os.environ["GLOG_minloglevel"] = "2"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-from common.data.loaders import DataLoader
-from common.data.preprocessing.data_processor import DataPreprocessor
-from common.data.preprocessing.gene_filter import GeneFilter
-from common.display.display_manager import DisplayManager
+from timeflies.data.loaders import DataLoader
+from timeflies.data.preprocessing.data_processor import DataPreprocessor
+from timeflies.data.preprocessing.gene_filter import GeneFilter
+from timeflies.display.display_manager import DisplayManager
 
 # ModelBuilder, ModelLoader now handled by ModelManager
-from common.utils.gpu_handler import GPUHandler
-from common.utils.path_manager import PathManager
-from common.utils.storage_manager import StorageManager
+from timeflies.utils.gpu_handler import GPUHandler
+from timeflies.utils.path_manager import PathManager
+from timeflies.utils.storage_manager import StorageManager
 
 from .config_manager import Config
 from .model_manager import ModelManager
@@ -95,8 +95,8 @@ class PipelineManager:
 
         # Auto-inject shared analysis components
         try:
-            from common.analysis import EDAHandler, Visualizer
-            from common.evaluation import Interpreter, Metrics
+            from timeflies.analysis import EDAHandler, Visualizer
+            from timeflies.evaluation import Interpreter, Metrics
 
             self.eda_handler_class = EDAHandler
             self.interpreter_class = Interpreter
@@ -828,17 +828,17 @@ class PipelineManager:
         try:
             import json
             from datetime import datetime
-            
+
             eval_dir = os.path.join(experiment_dir, "evaluation")
             os.makedirs(eval_dir, exist_ok=True)
-            
+
             eval_metadata_path = os.path.join(eval_dir, "eval_metadata.json")
-            
+
             # Get data shapes if pipeline has data
             data_shapes = {}
             if hasattr(self, 'test_data') and self.test_data is not None:
                 data_shapes["test_samples"] = self.test_data.shape[0]
-                
+
                 # Always use num_features (original feature count) if available
                 if hasattr(self, 'num_features') and self.num_features:
                     data_shapes["test_features"] = self.num_features
@@ -848,7 +848,7 @@ class PipelineManager:
                         best_exp_dir = self.path_manager.get_best_experiment_dir()
                         metadata_path = os.path.join(best_exp_dir, "metadata.json")
                         if os.path.exists(metadata_path):
-                            with open(metadata_path, 'r') as f:
+                            with open(metadata_path) as f:
                                 training_metadata = json.load(f)
                                 if "data_shapes" in training_metadata and "n_features" in training_metadata["data_shapes"]:
                                     data_shapes["test_features"] = training_metadata["data_shapes"]["n_features"]
@@ -867,7 +867,7 @@ class PipelineManager:
                             data_shapes["test_features"] = self.test_data.shape[2]  # (cells, 1, genes)
                         else:
                             data_shapes["test_features"] = self.test_data.shape[1]
-                    
+
             # Get split configuration
             split_config = {
                 "method": getattr(self.config_instance.data.split, "method", "unknown"),
@@ -875,7 +875,7 @@ class PipelineManager:
                 "train_values": getattr(self.config_instance.data.split, "train", []),
                 "test_values": getattr(self.config_instance.data.split, "test", [])
             }
-            
+
             # Create eval metadata
             eval_metadata = {
                 "evaluation_timestamp": datetime.now().isoformat(),
@@ -899,13 +899,13 @@ class PipelineManager:
                     "analysis_script_enabled": self.config_instance.analysis.run_analysis_script.enabled
                 }
             }
-            
+
             # Save eval metadata
             with open(eval_metadata_path, "w") as f:
                 json.dump(eval_metadata, f, indent=2)
-                
+
             logger.debug(f"Created eval metadata: {eval_metadata_path}")
-            
+
         except Exception as e:
             logger.warning(f"Could not create eval metadata: {e}")
 

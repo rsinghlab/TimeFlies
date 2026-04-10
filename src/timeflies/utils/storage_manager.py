@@ -293,11 +293,11 @@ class StorageManager:
                     # For other CNN reshaped data, multiply dimensions except batch
                     import numpy as np
                     actual_data_shapes["n_features"] = int(np.prod(pipeline.train_data.shape[1:]))
-            
+
             # Add data shapes to training_data for metadata
             if actual_data_shapes:
                 training_data["data_shapes"] = actual_data_shapes
-            
+
             pipeline.path_manager.save_experiment_metadata(
                 pipeline.experiment_name, training_data
             )

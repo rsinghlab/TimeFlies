@@ -22,8 +22,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from common.display.display_manager import DisplayManager
-from common.utils.logging_config import get_logger
+from timeflies.display.display_manager import DisplayManager
+from timeflies.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -211,7 +211,7 @@ class EvaluationMetrics:
             actual_ages = true_labels
             if probability_only:
                 try:
-                    from common.data.loaders import DataLoader
+                    from timeflies.data.loaders import DataLoader
                     data_loader = DataLoader(self.config)
                     _, adata_eval, _ = data_loader.load_data()
 
@@ -293,7 +293,7 @@ class EvaluationMetrics:
 
                     else:
                         # Fallback: try to get from the processed evaluation data
-                        from common.data.loaders import DataLoader
+                        from timeflies.data.loaders import DataLoader
 
                         data_loader = DataLoader(self.config)
                         _, adata_eval, _ = data_loader.load_data()
@@ -430,7 +430,7 @@ class EvaluationMetrics:
             List of genotype labels matching the evaluation samples, or None if not available
         """
         try:
-            from common.data.loaders import DataLoader
+            from timeflies.data.loaders import DataLoader
 
             # Load evaluation data to get genotype information
             data_loader = DataLoader(self.config)

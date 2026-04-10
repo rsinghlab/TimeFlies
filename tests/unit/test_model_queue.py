@@ -8,7 +8,7 @@ from unittest.mock import Mock, mock_open, patch
 import pytest
 import yaml
 
-from common.core.model_queue import ModelQueueManager
+from timeflies.core.model_queue import ModelQueueManager
 
 
 class TestModelQueueManager:
@@ -144,8 +144,8 @@ class TestModelQueueManager:
         # Clean up
         Path(temp_config_file).unlink()
 
-    @patch("common.core.model_queue.train_command")
-    @patch("common.core.model_queue.evaluate_command")
+    @patch("timeflies.core.model_queue.train_command")
+    @patch("timeflies.core.model_queue.evaluate_command")
     def test_train_single_model_success(
         self, mock_evaluate, mock_train, temp_config_file
     ):
@@ -179,7 +179,7 @@ class TestModelQueueManager:
         # Clean up
         Path(temp_config_file).unlink()
 
-    @patch("common.core.model_queue.train_command")
+    @patch("timeflies.core.model_queue.train_command")
     def test_train_single_model_failure(self, mock_train, temp_config_file):
         """Test handling of training failures."""
         manager = ModelQueueManager(temp_config_file)
@@ -204,7 +204,7 @@ class TestModelQueueManager:
         # Clean up
         Path(temp_config_file).unlink()
 
-    @patch("common.core.model_queue.ModelQueueManager.train_single_model")
+    @patch("timeflies.core.model_queue.ModelQueueManager.train_single_model")
     def test_run_queue(self, mock_train_single, temp_config_file):
         """Test running the complete queue."""
         manager = ModelQueueManager(temp_config_file)
@@ -309,7 +309,7 @@ class TestModelQueueManager:
         manager.start_time = 1234567890  # Mock start time
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch("common.core.model_queue.Path") as mock_path_class:
+            with patch("timeflies.core.model_queue.Path") as mock_path_class:
                 # Create mock paths that behave like Path objects but don't create real directories
                 mock_outputs_path = Mock()
                 mock_summary_dir = Mock()

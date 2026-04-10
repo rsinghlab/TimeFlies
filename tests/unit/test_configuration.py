@@ -1,14 +1,8 @@
 """Tests for the generic Config class functionality."""
 
-import sys
-from pathlib import Path
-
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
-# Test the generic Config class from either project (they're identical)
-from common.core.config_manager import Config
+from timeflies.core.config_manager import Config
 
 
 class TestConfig:

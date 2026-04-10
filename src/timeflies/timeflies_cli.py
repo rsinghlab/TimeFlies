@@ -1,27 +1,42 @@
 #!/usr/bin/env python3
-"""Simple CLI wrapper for TimeFlies that works with setuptools."""
+"""CLI entry point for TimeFlies."""
+
+import logging
+import os
+import warnings
+
+# Suppress TensorFlow/CUDA noise before any imports
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["AUTOGRAPH_VERBOSITY"] = "0"
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+os.environ["GLOG_minloglevel"] = "3"
+
+logging.getLogger("absl").setLevel(logging.ERROR)
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
+
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 def main():
-    """Entry point that works with installed packages."""
+    """Entry point for the timeflies command."""
     try:
-        # Import the actual CLI components
-        from common.cli.commands import execute_command
-        from common.cli.parser import create_main_parser
+        from timeflies.cli.commands import execute_command
+        from timeflies.cli.parser import create_main_parser
 
-        # Run the CLI
         parser = create_main_parser()
         args = parser.parse_args()
 
-        # Execute the command
         success = execute_command(args)
-        exit_code = 0 if success else 1
-        exit(exit_code)
+        raise SystemExit(0 if success else 1)
 
     except ImportError as e:
         print(f"Error importing TimeFlies modules: {e}")
-        print("Make sure TimeFlies is properly installed.")
-        exit(1)
+        print("Make sure TimeFlies is properly installed:")
+        print("  uv pip install git+https://github.com/rsinghlab/TimeFlies")
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

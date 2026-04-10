@@ -10,8 +10,11 @@ import numpy as np
 import pytest
 
 # Import actual workflow components
-from common.cli.main import main_cli
-from common.core.active_config import get_active_project, get_config_for_active_project
+from timeflies.cli.main import main_cli
+from timeflies.core.active_config import (
+    get_active_project,
+    get_config_for_active_project,
+)
 
 
 @pytest.mark.integration
@@ -31,9 +34,9 @@ class TestCLIWorkflowIntegration:
         from unittest.mock import patch
 
         # Mock the data operations but test the CLI workflow
-        with patch("common.cli.commands.setup_user_environment", return_value=0):
-            with patch("common.cli.commands.split_command", return_value=0):
-                with patch("common.cli.system_checks.verify_system", return_value=True):
+        with patch("timeflies.cli.commands.setup_user_environment", return_value=0):
+            with patch("timeflies.cli.commands.split_command", return_value=0):
+                with patch("timeflies.cli.system_checks.verify_system", return_value=True):
                     with patch(
                         "builtins.input", return_value="n"
                     ):  # Skip batch correction
@@ -47,7 +50,7 @@ class TestCLIWorkflowIntegration:
         from unittest.mock import patch
 
         # Mock the test data creation to avoid file system operations
-        with patch("common.cli.commands.create_test_data_command", return_value=0):
+        with patch("timeflies.cli.commands.create_test_data_command", return_value=0):
             result = main_cli(["create-test-data"])
 
             # Should return success code
@@ -77,7 +80,7 @@ class TestCLIWorkflowIntegration:
         """Test project switching with real workflow."""
         # Test aging project
         with patch(
-            "common.core.active_config.get_active_project",
+            "timeflies.core.active_config.get_active_project",
             return_value="fruitfly_aging",
         ):
             config = get_config_for_active_project("default")
@@ -86,7 +89,7 @@ class TestCLIWorkflowIntegration:
         # Test alzheimers project (if available)
         try:
             with patch(
-                "common.core.active_config.get_active_project",
+                "timeflies.core.active_config.get_active_project",
                 return_value="fruitfly_alzheimers",
             ):
                 config = get_config_for_active_project("default")
@@ -104,8 +107,8 @@ class TestDataWorkflowIntegration:
         """Test TimeFlies DataPreprocessor workflow (not just scanpy)."""
         from unittest.mock import patch
 
-        from common.core.active_config import get_config_for_active_project
-        from common.data.preprocessing.data_processor import DataPreprocessor
+        from timeflies.core.active_config import get_config_for_active_project
+        from timeflies.data.preprocessing.data_processor import DataPreprocessor
 
         # Add genotype column that TimeFlies expects
         genotype_values = ["ctrl", "alz"] * (large_sample_anndata.n_obs // 2)
@@ -116,7 +119,7 @@ class TestDataWorkflowIntegration:
         config = get_config_for_active_project("default")
 
         # Test actual TimeFlies DataPreprocessor
-        with patch("common.utils.path_manager.PathManager"):
+        with patch("timeflies.utils.path_manager.PathManager"):
             preprocessor = DataPreprocessor(
                 config, large_sample_anndata, large_sample_anndata.copy()
             )
@@ -438,7 +441,7 @@ class TestErrorHandlingIntegration:
 
     def test_config_error_handling(self):
         """Test config error handling."""
-        from common.core.active_config import get_config_for_active_project
+        from timeflies.core.active_config import get_config_for_active_project
 
         # Test with invalid config name
         try:

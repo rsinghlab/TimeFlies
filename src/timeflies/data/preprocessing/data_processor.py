@@ -92,7 +92,7 @@ class DataPreprocessor:
                 cell_type = getattr(cell_filtering, "type", "all")
                 if cell_type != "all":
                     cell_type_column = getattr(
-                        cell_filtering, "column", "afca_annotation_broad"
+                        cell_filtering, "column", "cell_type"
                     )
                     # Validate cell type exists
                     if cell_type_column not in adata.obs.columns:
@@ -106,7 +106,7 @@ class DataPreprocessor:
                 cell_type = getattr(config.data, "cell_type", "all")
                 if cell_type != "all":
                     cell_type_column = getattr(
-                        config.data, "cell_type_column", "afca_annotation_broad"
+                        config.data, "cell_type_column", "cell_type"
                     )
                     # Validate cell type exists
                     if cell_type_column not in adata.obs.columns:
@@ -622,7 +622,7 @@ class DataPreprocessor:
                 cell_type = getattr(cell_filtering, "type", "all").lower()
                 if cell_type != "all":
                     cell_type_column = getattr(
-                        cell_filtering, "column", "afca_annotation_broad"
+                        cell_filtering, "column", "cell_type"
                     )
                     # Validate cell type exists
                     if cell_type_column not in adata.obs.columns:
@@ -636,7 +636,7 @@ class DataPreprocessor:
                 cell_type = getattr(config.data, "cell_type", "all").lower()
                 if cell_type != "all":
                     cell_type_column = getattr(
-                        config.data, "cell_type_column", "afca_annotation_broad"
+                        config.data, "cell_type_column", "cell_type"
                     )
                     # Validate cell type exists
                     if cell_type_column not in adata.obs.columns:

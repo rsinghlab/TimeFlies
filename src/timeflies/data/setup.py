@@ -6,7 +6,7 @@ from pathlib import Path
 import anndata
 import numpy as np
 
-from common.core import ConfigManager
+from timeflies.core import ConfigManager
 
 # Configure logging for better control over output
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +46,7 @@ class DataSetupManager:
                         "target_variable": "age",
                     },
                 }
-                from common.core import Config
+                from timeflies.core import Config
 
                 self.config = Config(minimal_config)
         else:

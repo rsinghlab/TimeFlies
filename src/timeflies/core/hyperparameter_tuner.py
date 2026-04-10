@@ -360,7 +360,7 @@ class HyperparameterTuner:
             # For now, we'll simulate the training process
 
             # Import training functions (same as ModelQueueManager)
-            from common.cli.commands import evaluate_command, train_command
+            from timeflies.cli.commands import evaluate_command, train_command
 
             # Create temporary config file for this trial
             trial_config_path = self.run_dir / f"trial_{trial_index}_config.yaml"

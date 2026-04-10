@@ -17,7 +17,7 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 
-from common.utils.logging_config import get_logger
+from timeflies.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -264,7 +264,7 @@ class VisualizationTools:
         Returns:
             None
         """
-        # Compute the confusion matrix 
+        # Compute the confusion matrix
         # Only use labels that actually appear in the data to avoid dimension mismatch
         unique_labels = sorted(list(set(y_true) | set(y_pred)))
         cm = confusion_matrix(y_true, y_pred, labels=unique_labels)

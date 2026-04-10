@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # Import CLI modules
-from common.cli.commands import (
+from timeflies.cli.commands import (
     create_test_data_command,
     evaluate_command,
     new_setup_command,
@@ -17,8 +17,8 @@ from common.cli.commands import (
     run_test_suite,
     train_command,
 )
-from common.cli.main import main_cli
-from common.cli.parser import create_main_parser, parse_arguments
+from timeflies.cli.main import main_cli
+from timeflies.cli.parser import create_main_parser, parse_arguments
 
 
 @pytest.mark.unit
@@ -32,7 +32,7 @@ class TestCLICommandExecution:
 
         # Mock the entire setup command function instead of its internals
         with patch(
-            "common.cli.commands.new_setup_command", return_value=0
+            "timeflies.cli.commands.new_setup_command", return_value=0
         ) as mock_setup:
             result = mock_setup(mock_args)
 
@@ -46,8 +46,8 @@ class TestCLICommandExecution:
         mock_args.command = "create-test-data"
         mock_args.tier = "synthetic"
 
-        with patch("common.cli.commands.create_from_metadata") as mock_create:
-            with patch("common.cli.commands.print") as mock_print:
+        with patch("timeflies.cli.commands.create_from_metadata") as mock_create:
+            with patch("timeflies.cli.commands.print") as mock_print:
                 mock_create.return_value = 0
 
                 result = create_test_data_command(mock_args)
@@ -61,11 +61,11 @@ class TestCLICommandExecution:
         mock_args.verbose = False
         mock_args.project = None
 
-        with patch("common.core.active_config.get_active_project") as mock_get_project:
+        with patch("timeflies.core.active_config.get_active_project") as mock_get_project:
             with patch(
-                "common.core.active_config.get_config_for_active_project"
+                "timeflies.core.active_config.get_config_for_active_project"
             ) as mock_get_config:
-                with patch("common.cli.commands.print") as mock_print:
+                with patch("timeflies.cli.commands.print") as mock_print:
                     mock_get_project.return_value = "fruitfly_aging"
                     mock_config = Mock()
                     mock_get_config.return_value.get_config.return_value = mock_config
@@ -97,7 +97,7 @@ class TestCLICommandExecution:
         mock_args.verbose = False
 
         # Mock the entire train command function
-        with patch("common.cli.commands.train_command", return_value=0) as mock_train:
+        with patch("timeflies.cli.commands.train_command", return_value=0) as mock_train:
             result = mock_train(mock_args, aging_config)
 
             # Should return success code
@@ -113,7 +113,7 @@ class TestCLICommandExecution:
         mock_args.visualize = False
 
         # Mock the entire evaluate command function
-        with patch("common.cli.commands.evaluate_command", return_value=0) as mock_eval:
+        with patch("timeflies.cli.commands.evaluate_command", return_value=0) as mock_eval:
             result = mock_eval(mock_args, aging_config)
 
             # Should return success code
@@ -206,7 +206,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_setup_command(self):
         """Test main CLI with setup command."""
-        with patch("common.cli.commands.new_setup_command") as mock_setup:
+        with patch("timeflies.cli.commands.new_setup_command") as mock_setup:
             mock_setup.return_value = 0
 
             result = main_cli(["setup"])
@@ -215,7 +215,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_create_test_data(self):
         """Test main CLI with create test data command."""
-        with patch("common.cli.commands.create_test_data_command") as mock_create:
+        with patch("timeflies.cli.commands.create_test_data_command") as mock_create:
             mock_create.return_value = 0
 
             result = main_cli(["create-test-data"])
@@ -224,7 +224,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_verify_command(self):
         """Test main CLI with verify command."""
-        with patch("common.cli.system_checks.verify_system") as mock_verify:
+        with patch("timeflies.cli.system_checks.verify_system") as mock_verify:
             mock_verify.return_value = 0
 
             result = main_cli(["verify"])
@@ -234,9 +234,9 @@ class TestCLIMainEntryPoint:
     def test_main_cli_with_project_override(self):
         """Test main CLI with project override."""
         with patch(
-            "common.cli.commands.get_config_for_active_project"
+            "timeflies.cli.commands.get_config_for_active_project"
         ) as mock_get_config:
-            with patch("common.cli.commands.train_command") as mock_train:
+            with patch("timeflies.cli.commands.train_command") as mock_train:
                 mock_config = Mock()
                 mock_get_config.return_value.get_config.return_value = mock_config
                 mock_train.return_value = 0
@@ -255,7 +255,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_keyboard_interrupt(self):
         """Test main CLI keyboard interrupt handling."""
-        with patch("common.cli.commands.execute_command") as mock_execute:
+        with patch("timeflies.cli.commands.execute_command") as mock_execute:
             mock_execute.side_effect = KeyboardInterrupt()
 
             # Keyboard interrupt should propagate
@@ -264,7 +264,7 @@ class TestCLIMainEntryPoint:
 
     def test_main_cli_config_error(self):
         """Test main CLI configuration error handling."""
-        with patch("common.cli.commands.execute_command") as mock_execute:
+        with patch("timeflies.cli.commands.execute_command") as mock_execute:
             mock_execute.return_value = False  # Command failed
 
             result = main_cli(["train"])
@@ -277,7 +277,7 @@ class TestCLIUtilities:
 
     def test_logging_setup_in_cli(self):
         """Test logging setup in CLI context."""
-        from common.utils.logging_config import setup_logging
+        from timeflies.utils.logging_config import setup_logging
 
         # Test that logging can be set up for CLI
         try:
@@ -328,7 +328,7 @@ class TestCLIProjectSwitching:
 
     def test_project_detection_workflow(self):
         """Test project detection workflow."""
-        from common.core.active_config import get_active_project
+        from timeflies.core.active_config import get_active_project
 
         # Test that project detection works
         project = get_active_project()
@@ -336,7 +336,7 @@ class TestCLIProjectSwitching:
 
     def test_config_loading_for_projects(self):
         """Test config loading for different projects."""
-        from common.core.active_config import get_config_for_active_project
+        from timeflies.core.active_config import get_config_for_active_project
 
         # Test loading config for fruitfly_aging
         try:

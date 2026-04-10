@@ -137,7 +137,7 @@ def check_directory_structure(dev_mode: bool = False) -> bool:
     if dev_mode:
         # For development, only check source directories
         required_dirs = [
-            "src/common",
+            "src/timeflies",
             "configs",
             "tests",
         ]
@@ -379,8 +379,7 @@ def check_timeflies_launcher() -> bool:
             return False
     else:
         print("[ERROR] timeflies command not found in PATH")
-        print("   Run: pip install -e . (from TimeFlies directory)")
-        print("   Or: source .activate.sh (if using installed version)")
+        print("   Run: uv pip install -e . (from TimeFlies directory)")
         return False
 
 

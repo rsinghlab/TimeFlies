@@ -2,27 +2,22 @@
 
 import os
 import shutil
-import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-# Add src to Python path for testing
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from unittest.mock import Mock
-
-from common.cli.parser import create_main_parser
-
-# Import project modules for fixtures
-from common.core.config_manager import Config, ConfigManager
 from tests.fixtures.unit_test_data import (
     TestDataManager,
     create_minimal_config,
     create_sample_anndata,
     create_test_project_structure,
 )
+from timeflies.cli.parser import create_main_parser
+
+# Import project modules for fixtures
+from timeflies.core.config_manager import Config, ConfigManager
 
 
 @pytest.fixture(scope="session")

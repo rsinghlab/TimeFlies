@@ -9,10 +9,8 @@ data/
 tests/fixtures/*/synthetic_*.h5ad      # Tier 2: Generated on demand
 tests/fixtures/*/real_*.h5ad          # Tier 3: Local dev only
 
-# Environments and activation
+# Environments
 .venv/
-.venv_batch/
-.activate*.sh
 
 # Python
 __pycache__/
@@ -36,7 +34,6 @@ coverage/
 .ruff_cache/
 .claude/
 .benchmarks/
-uv.lock
 
 # IDE
 .vscode/

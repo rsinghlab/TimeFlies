@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 # Import the GUI module
-from common.gui.gradio_launcher import TimeFliesWebGUI
+from timeflies.gui.gradio_launcher import TimeFliesWebGUI
 
 
 class TestTimeFliesWebGUI:
@@ -270,11 +270,11 @@ class TestGUICommandCoverage:
 class TestGUIIntegration:
     """Integration tests for GUI functionality."""
 
-    @patch("common.gui.gradio_launcher.TimeFliesWebGUI")
+    @patch("timeflies.gui.gradio_launcher.TimeFliesWebGUI")
     @patch("gradio.Blocks.launch")
     def test_launch_gui_function(self, mock_launch, mock_gui_class):
         """Test the launch_gui function."""
-        from common.gui.gradio_launcher import launch_gui
+        from timeflies.gui.gradio_launcher import launch_gui
 
         mock_gui_instance = Mock()
         mock_interface = Mock()

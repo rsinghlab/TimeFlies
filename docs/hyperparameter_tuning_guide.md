@@ -201,7 +201,7 @@ Each variant is combined with all hyperparameter combinations.
 After hyperparameter tuning, use the best configurations for production training:
 
 ```python
-from common.core.model_queue import ModelQueueManager
+from timeflies.core.model_queue import ModelQueueManager
 
 # Create a model queue from hyperparameter results
 manager = ModelQueueManager.from_hyperparameter_results(

@@ -9,18 +9,16 @@ TimeFlies is a comprehensive machine learning framework for analyzing aging patt
 ### Installation
 
 ```bash
-# Download and run the installer
-curl -O https://raw.githubusercontent.com/rsinghlab/TimeFlies/main/install_timeflies.sh
-chmod +x install_timeflies.sh
-./install_timeflies.sh
-```
+# Install from GitHub (requires uv: https://docs.astral.sh/uv/)
+uv pip install git+https://github.com/rsinghlab/TimeFlies
 
-### Automatic Environment Activation
+# With batch correction support (scvi-tools + PyTorch)
+uv pip install "timeflies[batch-correction] @ git+https://github.com/rsinghlab/TimeFlies"
 
-The installer automatically activates TimeFlies. For new terminal windows:
-
-```bash
-source .activate.sh
+# Development install
+git clone https://github.com/rsinghlab/TimeFlies.git
+cd TimeFlies
+uv pip install -e ".[dev]"
 ```
 
 ### Basic Usage

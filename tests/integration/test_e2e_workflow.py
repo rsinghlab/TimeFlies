@@ -13,9 +13,9 @@ def test_timeflies_with_correct_data_format():
     """
     from unittest.mock import patch
 
-    from common.core.active_config import get_config_for_active_project
-    from common.data.preprocessing.data_processor import DataPreprocessor
-    from common.models.model_factory import ModelFactory
+    from timeflies.core.active_config import get_config_for_active_project
+    from timeflies.data.preprocessing.data_processor import DataPreprocessor
+    from timeflies.models.model_factory import ModelFactory
 
     print("🔄 Creating TimeFlies-compatible test data...")
 
@@ -56,7 +56,7 @@ def test_timeflies_with_correct_data_format():
     print("🔄 Testing DataPreprocessor with correct data format...")
 
     # Test DataPreprocessor with complete mocking to prevent directory creation
-    with patch("common.utils.path_manager.PathManager") as mock_pm_class:
+    with patch("timeflies.utils.path_manager.PathManager") as mock_pm_class:
         # Mock the PathManager instance completely
         mock_pm = mock_pm_class.return_value
         mock_pm.get_outputs_directory.return_value = "/tmp/test_outputs"
@@ -103,7 +103,7 @@ def test_timeflies_with_correct_data_format():
     print("🔄 Testing complete model training workflow...")
 
     # Test complete workflow: preprocess → train → predict
-    with patch("common.utils.path_manager.PathManager") as mock_pm_class:
+    with patch("timeflies.utils.path_manager.PathManager") as mock_pm_class:
         # Mock the PathManager instance completely
         mock_pm = mock_pm_class.return_value
         mock_pm.get_outputs_directory.return_value = "/tmp/test_outputs"
@@ -177,8 +177,8 @@ def test_timeflies_with_correct_data_format():
 
 def test_multiple_timeflies_models():
     """Test TimeFlies with multiple model types using correct data format."""
-    from common.core.active_config import get_config_for_active_project
-    from common.models.model_factory import ModelFactory
+    from timeflies.core.active_config import get_config_for_active_project
+    from timeflies.models.model_factory import ModelFactory
 
     print("🔄 Testing TimeFlies with multiple models...")
 

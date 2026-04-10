@@ -14,9 +14,9 @@ from typing import Any, Optional
 import pandas as pd
 import yaml
 
-from common.cli.commands import evaluate_command, train_command
-from common.core.config_manager import get_config_manager
-from common.utils.logging_config import get_logger
+from timeflies.cli.commands import evaluate_command, train_command
+from timeflies.core.config_manager import get_config_manager
+from timeflies.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -108,7 +108,7 @@ class ModelQueueManager:
         # Add model-specific settings (preserve nested model structure)
         if "model" not in config:
             config["model"] = {}
-        
+
         # Set model type in data section instead (where train_command expects it)
         if "data" not in config:
             config["data"] = {}
@@ -191,9 +191,9 @@ class ModelQueueManager:
             # Prepare configuration
             config_dict = self.prepare_model_config(model_config)
             hyperparams = model_config.get("hyperparameters", {})
-            
+
             # Convert dictionary config to proper Config object
-            from common.core.config_manager import Config
+            from timeflies.core.config_manager import Config
             config = Config(config_dict)
 
             # Create mock args object for CLI commands
@@ -226,7 +226,7 @@ class ModelQueueManager:
             else:
                 # Only run separate evaluation for eval-only models (no training)
                 print(f"Skipping training for {model_name} (eval-only)")
-                
+
                 # Run evaluation if configured (only for eval-only models)
                 should_evaluate = getattr(config, "with_evaluation", True)  # New setting for evaluation
                 if should_evaluate:
@@ -362,7 +362,7 @@ class ModelQueueManager:
         # Generate final summary report
         if self.queue_settings.get("generate_summary", True):
             self.generate_summary_report()
-            
+
         # Run analysis queue if requested
         if self.queue_settings.get("run_analysis_queue", False):
             self.run_analysis_queue()
@@ -421,9 +421,9 @@ class ModelQueueManager:
         else:
             # Fallback if no outputs directory exists yet
             queues_base = Path("outputs") / "queues" / "model"
-            
+
         queues_base.mkdir(parents=True, exist_ok=True)
-        
+
         # Find next available queue number
         existing_queues = [d for d in queues_base.iterdir() if d.is_dir() and d.name.startswith("queue_")]
         if existing_queues:
@@ -437,7 +437,7 @@ class ModelQueueManager:
             next_queue_num = max(queue_numbers) + 1 if queue_numbers else 1
         else:
             next_queue_num = 1
-            
+
         summary_dir = queues_base / f"queue_{next_queue_num}"
         summary_dir.mkdir(parents=True, exist_ok=True)
 
@@ -468,7 +468,7 @@ class ModelQueueManager:
                     "sex_filter": data_config.get("filters", {}).get("sex", ""),
                     "batch_corrected": data_config.get("batch_corrected", False),
                 })
-            
+
             if "model" in config_overrides:
                 model_config = config_overrides["model"]
                 row.update({
@@ -550,15 +550,15 @@ class ModelQueueManager:
                     for i, model in enumerate(sorted_models[:10], 1):
                         metrics = model["metrics"]
                         config_overrides = model.get("config_overrides", {})
-                        
+
                         # Extract configuration details
                         target = config_overrides.get("data", {}).get("target_variable", "N/A")
                         cell_type = config_overrides.get("data", {}).get("filters", {}).get("cell_type", "N/A")
                         architecture = config_overrides.get("model", {}).get("architecture", model["model_type"])
-                        
+
                         training_time = model.get("training_time", 0)
                         time_str = f"{training_time:.1f}s" if training_time > 0 else "N/A"
-                        
+
                         f.write(
                             f"| {i} | {model['name']} | {architecture} | {target} | {cell_type} | "
                             f"{metrics.get('accuracy', 0):.3f} | "
@@ -569,38 +569,38 @@ class ModelQueueManager:
                         )
 
                     f.write("\n")
-                    
+
                     # Add performance statistics
                     accuracies = [m["metrics"].get("accuracy", 0) for m in models_with_metrics]
                     aucs = [m["metrics"].get("auc", 0) for m in models_with_metrics if m["metrics"].get("auc", 0) > 0]
-                    
+
                     f.write("### Performance Statistics\n\n")
                     f.write(f"- **Best Accuracy:** {max(accuracies):.3f}\n")
                     f.write(f"- **Average Accuracy:** {sum(accuracies)/len(accuracies):.3f}\n")
                     if aucs:
                         f.write(f"- **Best AUC:** {max(aucs):.3f}\n")
                         f.write(f"- **Average AUC:** {sum(aucs)/len(aucs):.3f}\n")
-                    
+
                     # Training time analysis
                     training_times = [m.get("training_time", 0) for m in models_with_metrics if m.get("training_time", 0) > 0]
                     if training_times:
                         f.write(f"- **Total Training Time:** {sum(training_times):.1f} seconds\n")
                         f.write(f"- **Average Training Time:** {sum(training_times)/len(training_times):.1f} seconds\n")
                     f.write("\n")
-                    
+
                     # Architecture breakdown
                     from collections import Counter
-                    architectures = [m.get("config_overrides", {}).get("model", {}).get("architecture", m["model_type"]) 
+                    architectures = [m.get("config_overrides", {}).get("model", {}).get("architecture", m["model_type"])
                                    for m in models_with_metrics]
                     arch_counts = Counter(architectures)
-                    
+
                     if len(arch_counts) > 1:
                         f.write("### Architecture Performance Comparison\n\n")
                         f.write("| Architecture | Count | Best Accuracy | Avg Accuracy |\n")
                         f.write("|-------------|-------|---------------|---------------|\n")
-                        
+
                         for arch, count in arch_counts.most_common():
-                            arch_models = [m for m in models_with_metrics 
+                            arch_models = [m for m in models_with_metrics
                                          if m.get("config_overrides", {}).get("model", {}).get("architecture", m["model_type"]) == arch]
                             arch_accs = [m["metrics"].get("accuracy", 0) for m in arch_models]
                             f.write(f"| {arch} | {count} | {max(arch_accs):.3f} | {sum(arch_accs)/len(arch_accs):.3f} |\n")
@@ -646,25 +646,25 @@ class ModelQueueManager:
         print(f"[OK] Metrics CSV saved to: {csv_path}")
 
         return report_path, csv_path
-    
+
     def run_analysis_queue(self):
         """Run analysis queue on all completed models."""
         print("\n" + "=" * 60)
         print("RUNNING ANALYSIS QUEUE")
         print("=" * 60)
-        
+
         try:
             # Import and run the analysis queue runner
             from .analysis_queue import AnalysisQueueRunner
-            
-            print(f"Running analysis on completed models...")
-            
+
+            print("Running analysis on completed models...")
+
             # Create and run analysis queue runner
             runner = AnalysisQueueRunner()
             runner.run_queue()
             print("Analysis queue completed successfully!")
             return True
-                
+
         except Exception as e:
             print(f"Failed to run analysis queue: {e}")
             return False

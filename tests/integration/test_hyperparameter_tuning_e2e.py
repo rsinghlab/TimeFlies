@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 import yaml
 
-from common.core.hyperparameter_tuner import HyperparameterTuner
+from timeflies.core.hyperparameter_tuner import HyperparameterTuner
 
 
 def create_minimal_tuning_config():
@@ -80,8 +80,8 @@ def test_hyperparameter_tuning_e2e_mock():
         temp_config_path = f.name
 
     try:
-        with patch("common.cli.commands.train_command") as mock_train:
-            with patch("common.cli.commands.evaluate_command") as mock_evaluate:
+        with patch("timeflies.cli.commands.train_command") as mock_train:
+            with patch("timeflies.cli.commands.evaluate_command") as mock_evaluate:
                 # Mock successful training and evaluation
                 mock_train.return_value = 0  # Success
                 mock_evaluate.return_value = 0  # Success
@@ -244,7 +244,7 @@ def test_hyperparameter_tuning_config_integration():
         Path(temp_config_path).unlink()
 
 
-@patch("common.core.hyperparameter_tuner.OPTUNA_AVAILABLE", True)
+@patch("timeflies.core.hyperparameter_tuner.OPTUNA_AVAILABLE", True)
 def test_bayesian_optimization_setup():
     """Test that Bayesian optimization can be set up correctly."""
     print("🔄 Testing Bayesian optimization setup...")

@@ -6,8 +6,8 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
-from common.display.display_manager import DisplayManager
-from common.models.model import ModelBuilder, ModelLoader
+from timeflies.display.display_manager import DisplayManager
+from timeflies.models.model import ModelBuilder, ModelLoader
 
 logger = logging.getLogger(__name__)
 

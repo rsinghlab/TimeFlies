@@ -72,7 +72,7 @@ def test_model_queue_e2e_with_tiny_dataset():
     3. Generate summary reports
     4. Verify all outputs are created
     """
-    from common.core.model_queue import ModelQueueManager
+    from timeflies.core.model_queue import ModelQueueManager
 
     print("🔄 Starting model queue end-to-end test with tiny datasets...")
 
@@ -84,12 +84,12 @@ def test_model_queue_e2e_with_tiny_dataset():
 
     try:
         # Mock data paths to use test fixtures instead of real data
-        with patch("common.core.model_queue.time.time") as mock_time:
+        with patch("timeflies.core.model_queue.time.time") as mock_time:
             # Mock time to avoid weird timestamp issues in reports
             mock_time.return_value = 1000000000  # Fixed timestamp
 
             with patch(
-                "common.core.config_manager.get_config_manager"
+                "timeflies.core.config_manager.get_config_manager"
             ) as mock_config_manager:
                 # Mock config manager to use test-friendly settings
                 mock_cm = mock_config_manager.return_value
@@ -123,8 +123,8 @@ def test_model_queue_e2e_with_tiny_dataset():
                 )()
                 mock_cm.get_config.return_value = mock_config
 
-                with patch("common.cli.commands.train_command") as mock_train:
-                    with patch("common.cli.commands.evaluate_command") as mock_evaluate:
+                with patch("timeflies.cli.commands.train_command") as mock_train:
+                    with patch("timeflies.cli.commands.evaluate_command") as mock_evaluate:
                         # Mock successful training and evaluation
                         mock_train.return_value = 0  # Success
                         mock_evaluate.return_value = 0  # Success
@@ -199,7 +199,7 @@ def test_model_queue_e2e_with_tiny_dataset():
                         # Test summary report generation (fully mocked to prevent file/directory creation)
                         with tempfile.TemporaryDirectory():
                             with patch(
-                                "common.core.model_queue.Path"
+                                "timeflies.core.model_queue.Path"
                             ) as mock_path_class:
                                 with patch("builtins.open", mock_open()):
                                     # Fully mock Path operations to prevent any real directory creation
@@ -247,7 +247,7 @@ def test_model_queue_e2e_with_tiny_dataset():
 
 def test_model_queue_execution_control():
     """Test model queue execution control options (train-only, eval-only, etc.)."""
-    from common.core.model_queue import ModelQueueManager
+    from timeflies.core.model_queue import ModelQueueManager
 
     print("🔄 Testing model queue execution control...")
 
@@ -297,8 +297,8 @@ def test_model_queue_execution_control():
         temp_config_path = f.name
 
     try:
-        with patch("common.cli.commands.train_command") as mock_train:
-            with patch("common.cli.commands.evaluate_command") as mock_evaluate:
+        with patch("timeflies.cli.commands.train_command") as mock_train:
+            with patch("timeflies.cli.commands.evaluate_command") as mock_evaluate:
                 mock_train.return_value = 0
                 mock_evaluate.return_value = 0
 

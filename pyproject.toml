@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "tomli>=1.0.0;python_version<'3.11'"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -57,7 +57,7 @@ batch-correction = [
 ]
 
 [project.scripts]
-timeflies = "common.timeflies_cli:main"
+timeflies = "timeflies.timeflies_cli:main"
 
 
 [tool.setuptools.packages.find]

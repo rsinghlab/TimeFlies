@@ -171,9 +171,9 @@ class PathManager:
             return current_working_dir
 
         # For deployment: Use current working directory if we're not in development
-        # In development, we have the src/common/utils structure
+        # In development, we have the src/timeflies/utils structure
         is_development = (
-            Path(__file__).parent.parent.name == "common"
+            Path(__file__).parent.parent.name == "timeflies"
             and Path(__file__).parent.parent.parent.name == "src"
         )
 
@@ -741,11 +741,11 @@ class PathManager:
         # Get configured values
         config_samples = getattr(self.config.data.sampling, "samples", None)
         config_variables = getattr(self.config.data.sampling, "variables", None)
-        
+
         # Use actual data shapes if available and config specifies null
         actual_samples = config_samples
         actual_variables = config_variables
-        
+
         if actual_data_shapes:
             if config_samples is None and "n_samples" in actual_data_shapes:
                 actual_samples = actual_data_shapes["n_samples"]
@@ -795,7 +795,7 @@ class PathManager:
         actual_data_shapes = None
         if additional_data and "data_shapes" in additional_data:
             actual_data_shapes = additional_data["data_shapes"]
-        
+
         metadata = self.create_experiment_metadata(experiment_name, actual_data_shapes)
         if additional_data:
             metadata.update(additional_data)

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from common.evaluation.interpreter import Interpreter
-from common.evaluation.metrics import EvaluationMetrics
+from timeflies.evaluation.interpreter import Interpreter
+from timeflies.evaluation.metrics import EvaluationMetrics
 
 
 @pytest.mark.integration

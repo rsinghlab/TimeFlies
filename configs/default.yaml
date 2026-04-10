@@ -7,7 +7,7 @@
 # =============================================================================
 # PROJECT SETTINGS
 # =============================================================================
-project: fruitfly_alzheimers  # Options: fruitfly_aging, fruitfly_alzheimers, other_project_name
+project: fruitfly_alzheimers  # Set to your project name (e.g., fruitfly_aging, fruitfly_alzheimers, or any custom name)
 
 general:
   random_state: 42

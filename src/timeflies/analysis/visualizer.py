@@ -1,7 +1,7 @@
 """
-Aging-Specific Visualization Module
+Visualization Module
 
-Specialized plotting and visualization methods for aging research in Drosophila.
+Specialized plotting and visualization methods for single-cell analysis.
 """
 
 from pathlib import Path
@@ -12,9 +12,9 @@ import pandas as pd
 import seaborn as sns
 
 
-class AgingVisualizer:
+class DataVisualizer:
     """
-    Visualizer specialized for aging research plots.
+    Visualizer for single-cell analysis plots.
 
     Provides methods for:
     - Age progression plots

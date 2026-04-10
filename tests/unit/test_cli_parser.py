@@ -1,15 +1,10 @@
 """Unit tests for CLI modules."""
 
-import sys
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
-from common.cli.parser import create_main_parser
+from timeflies.cli.parser import create_main_parser
 
 
 class TestCLIParser:

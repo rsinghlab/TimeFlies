@@ -1,8 +1,5 @@
 """Tests for analysis modules (EDA and visualization functionality)."""
 
-# Import from project-specific modules since analysis is project-specific
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
@@ -10,11 +7,8 @@ import pandas as pd
 import pytest
 from anndata import AnnData
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-
-# Import the module first to ensure it's loaded
-from common.analysis.eda import EDAHandler
-from common.analysis.visuals import VisualizationTools as Visualizer
+from timeflies.analysis.eda import EDAHandler
+from timeflies.analysis.visuals import VisualizationTools as Visualizer
 
 
 class TestEDAHandler:
@@ -93,7 +87,7 @@ class TestEDAHandler:
 
         return adata_corrected, adata_eval_corrected
 
-    @patch("common.analysis.eda.VisualizationTools")
+    @patch("timeflies.analysis.eda.VisualizationTools")
     def test_eda_handler_initialization(self, mock_vis_tools):
         """Test EDAHandler initialization."""
         handler = EDAHandler(
@@ -119,7 +113,7 @@ class TestEDAHandler:
             config=self.mock_config, path_manager=self.mock_path_manager
         )
 
-    @patch("common.analysis.eda.VisualizationTools")
+    @patch("timeflies.analysis.eda.VisualizationTools")
     def test_run_eda_uncorrected_data(self, mock_vis_tools):
         """Test running EDA on uncorrected data."""
         mock_visual_tools = Mock()
@@ -157,7 +151,7 @@ class TestEDAHandler:
             assert calls[2][1]["dataset_name"] == "original"
             assert calls[2][1]["folder_name"] == "Original Data"
 
-    @patch("common.analysis.eda.VisualizationTools")
+    @patch("timeflies.analysis.eda.VisualizationTools")
     def test_run_eda_batch_corrected_data(self, mock_vis_tools):
         """Test running EDA on batch-corrected data."""
         # Enable batch correction

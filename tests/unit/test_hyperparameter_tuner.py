@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 import pytest
 import yaml
 
-from common.core.hyperparameter_tuner import HyperparameterTuner
+from timeflies.core.hyperparameter_tuner import HyperparameterTuner
 
 
 class TestHyperparameterTuner:
@@ -187,7 +187,7 @@ class TestHyperparameterTuner:
         Path(temp_file).unlink()
 
     @patch.dict(os.environ, {"PYTEST_CURRENT_TEST": ""}, clear=False)
-    @patch("common.core.hyperparameter_tuner.time.time")
+    @patch("timeflies.core.hyperparameter_tuner.time.time")
     def test_checkpoint_functionality(self, mock_time, temp_config_file):
         """Test checkpoint saving and loading with temporary directory."""
         mock_time.return_value = 1000000000
