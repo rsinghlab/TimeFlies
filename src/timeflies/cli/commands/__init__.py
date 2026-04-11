@@ -51,10 +51,6 @@ def execute_command(args) -> bool:
             return new_setup_command(args) == 0
         elif args.command == "split":
             return split_command(args) == 0
-        elif args.command == "verify":
-            from timeflies.cli.system_checks import verify_system
-
-            return 0 if verify_system() else 1
         elif args.command == "test":
             return run_system_tests(args) == 0
         elif args.command == "create-test-data":

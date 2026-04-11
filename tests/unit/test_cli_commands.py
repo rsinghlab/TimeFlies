@@ -14,7 +14,6 @@ class TestCLIArgumentHandling:
         command_tests = [
             (["train"], "train"),
             (["evaluate"], "evaluate"),
-            (["verify"], "verify"),
             (["setup"], "setup"),
             (["create-test-data"], "create-test-data"),
             (["test", "unit"], "test"),
@@ -111,7 +110,7 @@ class TestCLIUtilities:
         assert len(help_text) > 0
 
         # Test that expected commands are mentioned in help
-        expected_commands = ["train", "setup", "verify", "evaluate"]
+        expected_commands = ["train", "setup", "evaluate"]
         for cmd in expected_commands:
             assert cmd in help_text
 
@@ -142,7 +141,6 @@ class TestCommandValidation:
             ["--verbose", "train"],
             ["--aging", "--verbose", "evaluate"],
             ["--alzheimers", "test", "unit"],
-            ["verify", "--verbose"],
             ["setup"],
             ["create-test-data"],
         ]
@@ -157,7 +155,7 @@ class TestCommandValidation:
 
     def test_flag_inheritance(self):
         """Test that global flags work with all commands."""
-        commands = ["train", "evaluate", "verify", "setup"]
+        commands = ["train", "evaluate", "setup"]
 
         for command in commands:
             # Test verbose flag with each command
@@ -178,7 +176,6 @@ class TestCommandValidation:
         help_commands = [
             ["train", "--help"],
             ["evaluate", "--help"],
-            ["verify", "--help"],
         ]
 
         for cmd_args in help_commands:

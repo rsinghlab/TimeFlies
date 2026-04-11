@@ -15,22 +15,11 @@ def run_system_tests(args) -> int:
     # Check if tests directory exists (developer installation)
     tests_dir = Path("tests")
     if not tests_dir.exists():
-        print("TimeFlies Test Information")
-        print("=" * 50)
-        print("WARNING: Full test suite not available in user installation")
-        print("")
-        print("To verify your installation works:")
-        print("   timeflies verify")
-        print("")
-        print("For full development testing:")
-        print("   git clone https://github.com/rsinghlab/TimeFlies.git")
-        print("   cd TimeFlies")
-        print("   timeflies test --coverage")
-        print("")
-        print("NOTE: User installation is working correctly if:")
-        print("   • timeflies verify passes")
-        print("   • timeflies setup completes successfully")
-        print("   • Your research workflow runs without errors")
+        print("Test suite not available in user installation.")
+        print("For development testing:")
+        print("  git clone https://github.com/rsinghlab/TimeFlies.git")
+        print("  cd TimeFlies && uv pip install -e '.[dev]'")
+        print("  timeflies test")
         return 0
 
     # Developer path - run actual tests

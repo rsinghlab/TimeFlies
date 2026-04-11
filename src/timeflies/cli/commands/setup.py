@@ -58,16 +58,7 @@ def new_setup_command(args) -> int:
         Path(dir_path).mkdir(parents=True, exist_ok=True)
     print("[OK] Output directories created")
 
-    # 4. Verify
-    print("\n4. Verifying system setup...")
-    from timeflies.cli.system_checks import verify_system
-
-    dev_mode = hasattr(args, "dev") and args.dev
-    if not verify_system(dev_mode=dev_mode):
-        print("[ERROR] System verification failed.")
-        return 1
-
-    print("\nSUCCESS: SETUP COMPLETE!")
+    print("\nSETUP COMPLETE!")
     print("=" * 50)
     print("Next steps:")
     print("  timeflies eda --save-report")

@@ -21,31 +21,15 @@ from timeflies.core.active_config import (
 class TestCLIWorkflowIntegration:
     """Test CLI workflows that actually run code."""
 
-    def test_cli_verify_real_execution(self):
-        """Test CLI verify command with real execution."""
-        # This exercises the actual verify command path
-        result = main_cli(["verify"])
-
-        # Should return an integer exit code (may be 0 or 1)
-        assert isinstance(result, int)
-
     def test_cli_setup_real_execution(self):
         """Test CLI setup command workflow with mocked data operations."""
         from unittest.mock import patch
 
-        # Mock the data operations but test the CLI workflow
         with patch("timeflies.cli.commands.setup.setup_user_environment", return_value=0):
             with patch("timeflies.cli.commands.setup.split_command", return_value=0):
-                with patch(
-                    "timeflies.cli.system_checks.verify_system", return_value=True
-                ):
-                    with patch(
-                        "builtins.input", return_value="n"
-                    ):  # Skip batch correction
-                        result = main_cli(["setup"])
-
-                        # Should return success code
-                        assert result == 0
+                with patch("builtins.input", return_value="n"):
+                    result = main_cli(["setup"])
+                    assert result == 0
 
     def test_cli_create_test_data_execution(self):
         """Test CLI create test data with mocked file operations."""

@@ -33,9 +33,6 @@ class Prediction:
 
         evaluate_model(model, test_inputs, test_labels):
             Evaluates the model on test data.
-
-        make_predictions(model, test_inputs):
-            Makes predictions on test data using the trained model.
     """
 
     @staticmethod
@@ -116,27 +113,6 @@ class Prediction:
 
         return test_loss, test_acc, test_auc
 
-    @staticmethod
-    def make_predictions(model, test_inputs):
-        """
-        Make predictions on test data using the trained model.
-
-        Args:
-            model (Model): A trained TensorFlow model.
-            test_inputs (numpy.ndarray): Test input data.
-
-        Returns:
-            y_pred (numpy.ndarray): An array of predicted probabilities for the input data.
-            y_pred_binary (numpy.ndarray): An array of binary predictions for the input data.
-        """
-
-        # Make predictions using the trained model
-        y_pred = model.predict(test_inputs)
-
-        # Convert the predicted probabilities into binary predictions
-        y_pred_binary = np.argmax(y_pred, axis=1)
-
-        return y_pred, y_pred_binary
 
 
 class Interpreter:

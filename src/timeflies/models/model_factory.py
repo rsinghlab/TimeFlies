@@ -725,3 +725,4 @@ class ModelFactory:
     def list_models(cls) -> list:
         """List available model types."""
         return list(cls._model_classes.keys())
+

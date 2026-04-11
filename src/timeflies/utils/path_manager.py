@@ -767,48 +767,6 @@ class PathManager:
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
-    def update_metadata_training_complete(
-        self, experiment_name: str, training_data: dict
-    ):
-        """Update metadata when training completes."""
-        experiment_dir = Path(self.get_experiment_dir(experiment_name))
-        metadata_path = experiment_dir / "metadata.json"
-
-        # Load existing metadata or create new
-        if metadata_path.exists():
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-        else:
-            metadata = self.create_experiment_metadata(experiment_name, None)
-
-        # Update training completion info
-        metadata["training_completed_at"] = datetime.now().isoformat()
-        metadata["training"] = training_data
-
-        # Save updated metadata
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
-
-    def update_metadata_evaluation_complete(self, experiment_name: str):
-        """Update metadata when evaluation completes."""
-        experiment_dir = Path(self.get_experiment_dir(experiment_name))
-        metadata_path = experiment_dir / "metadata.json"
-
-        # Load existing metadata
-        if metadata_path.exists():
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-        else:
-            metadata = self.create_experiment_metadata(experiment_name, None)
-
-        # Update evaluation completion info
-        metadata["evaluation_completed_at"] = datetime.now().isoformat()
-        metadata["evaluation_count"] = metadata.get("evaluation_count", 0) + 1
-
-        # Save updated metadata
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
-
     def get_best_folder_path(self) -> str:
         """Get best model folder path within config directory."""
         return str(self._get_best_dir())

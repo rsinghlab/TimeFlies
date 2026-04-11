@@ -25,7 +25,6 @@ User Workflow:
   timeflies split                      # Just create train/eval splits
   timeflies eda --save-report          # Exploratory data analysis
   timeflies batch-correct              # Apply batch correction
-  timeflies verify                     # Check system status
 
   # Development/testing
   timeflies test [unit|integration]    # Run test suite
@@ -118,7 +117,7 @@ User Workflow:
 
     # Setup command
     setup_parser = subparsers.add_parser(
-        "setup", help="Complete setup: split data + verify system + create directories"
+        "setup", help="Split data and create directories"
     )
     setup_parser.add_argument(
         "--batch-correct",
@@ -140,9 +139,6 @@ User Workflow:
         action="store_true",
         help="Force recreate data splits even if they already exist",
     )
-
-    # Verify command
-    subparsers.add_parser("verify", help="Verify installation and system setup")
 
     # Test command
     test_parser = subparsers.add_parser(
