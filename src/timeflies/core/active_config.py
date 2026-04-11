@@ -11,9 +11,9 @@ from typing import Any
 import yaml
 
 from ..utils.exceptions import ConfigurationError
-from ..utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_active_project() -> str:

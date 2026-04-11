@@ -17,9 +17,9 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import label_binarize
 
-from timeflies.utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 

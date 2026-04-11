@@ -16,9 +16,9 @@ import yaml
 
 from timeflies.cli.commands import evaluate_command, train_command
 from timeflies.core.config_manager import get_config_manager
-from timeflies.utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ModelQueueManager:

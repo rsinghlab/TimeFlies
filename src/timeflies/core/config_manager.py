@@ -8,9 +8,9 @@ from typing import Any, Optional
 import yaml
 
 from timeflies.utils.exceptions import ConfigurationError
-from timeflies.utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Global config manager instance for singleton pattern
 _config_manager: Optional["ConfigManager"] = None

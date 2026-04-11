@@ -19,9 +19,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..utils.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class PathManager:

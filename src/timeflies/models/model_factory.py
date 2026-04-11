@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 from ..utils.exceptions import ModelError
-from ..utils.logging_config import get_logger
+import logging
 
 
 # Suppress stderr during imports
@@ -34,7 +34,7 @@ with suppress_stderr():
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.optimizers import Adam
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class BaseModel(ABC):
