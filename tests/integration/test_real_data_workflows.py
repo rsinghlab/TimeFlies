@@ -25,7 +25,9 @@ class TestCLIWorkflowIntegration:
         """Test CLI setup command workflow with mocked data operations."""
         from unittest.mock import patch
 
-        with patch("timeflies.cli.commands.setup.setup_user_environment", return_value=0):
+        with patch(
+            "timeflies.cli.commands.setup.setup_user_environment", return_value=0
+        ):
             with patch("timeflies.cli.commands.setup.split_command", return_value=0):
                 with patch("builtins.input", return_value="n"):
                     result = main_cli(["setup"])

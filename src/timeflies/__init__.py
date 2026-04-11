@@ -39,7 +39,11 @@ def load_data(path: str) -> AnnData:
     return sc.read_h5ad(path)
 
 
-def setup(config_path: str | None = None, batch_correct: bool = False, force_split: bool = False) -> int:
+def setup(
+    config_path: str | None = None,
+    batch_correct: bool = False,
+    force_split: bool = False,
+) -> int:
     """Split data, create directories, verify system. Same as ``timeflies setup``."""
     from .cli.commands.setup import new_setup_command
 
@@ -143,7 +147,9 @@ def batch_correct(config_path: str | None = None) -> int:
     return batch_command(args)
 
 
-def tune(config_path: str = "examples/hyperparameter_tuning.yaml", resume: bool = True) -> int:
+def tune(
+    config_path: str = "examples/hyperparameter_tuning.yaml", resume: bool = True
+) -> int:
     """Run hyperparameter tuning. Same as ``timeflies tune``."""
     from .cli.commands.advanced import tune_command
 

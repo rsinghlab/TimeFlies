@@ -148,8 +148,5 @@ def test_bayesian_optimization_setup():
 
 
 if __name__ == "__main__":
-    print("🚀 Running hyperparameter tuning end-to-end tests...")
-    test_hyperparameter_tuning_e2e_mock()
     test_hyperparameter_tuning_config_integration()
     test_bayesian_optimization_setup()
-    print("🎉 All hyperparameter tuning e2e tests passed!")

@@ -1,6 +1,7 @@
 """Model factory for creating different types of models."""
 
 import contextlib
+import logging
 import os
 import sys
 from abc import ABC, abstractmethod
@@ -12,7 +13,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
 from ..utils.exceptions import ModelError
-import logging
 
 
 # Suppress stderr during imports
@@ -725,4 +725,3 @@ class ModelFactory:
     def list_models(cls) -> list:
         """List available model types."""
         return list(cls._model_classes.keys())
-

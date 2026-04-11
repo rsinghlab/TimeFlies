@@ -6,6 +6,7 @@ with different hyperparameters and generate comprehensive comparison reports.
 """
 
 import json
+import logging
 import time
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +17,6 @@ import yaml
 
 from timeflies.cli.commands import evaluate_command, train_command
 from timeflies.core.config_manager import get_config_manager
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ Aging-Specific Metrics Module
 Specialized evaluation metrics for aging research in Drosophila.
 """
 
+import logging
 from typing import Any
 
 import numpy as np
@@ -23,7 +24,6 @@ from sklearn.metrics import (
 )
 
 from timeflies.display.display_manager import DisplayManager
-import logging
 
 logger = logging.getLogger(__name__)
 

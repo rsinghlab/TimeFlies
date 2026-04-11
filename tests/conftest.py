@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock
 
+import anndata
 import pytest
 
 from tests.fixtures.unit_test_data import (
@@ -15,9 +16,10 @@ from tests.fixtures.unit_test_data import (
     create_test_project_structure,
 )
 from timeflies.cli.parser import create_main_parser
-
-# Import project modules for fixtures
 from timeflies.core.config_manager import Config, ConfigManager
+
+# Allow writing nullable strings (needed for anndata >= 0.11 with pandas 2.x)
+anndata.settings.allow_write_nullable_strings = True
 
 
 @pytest.fixture(scope="session")

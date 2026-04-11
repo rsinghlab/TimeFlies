@@ -114,7 +114,6 @@ class Prediction:
         return test_loss, test_acc, test_auc
 
 
-
 class Interpreter:
     """
     A class to handle model interpretation using SHAP.

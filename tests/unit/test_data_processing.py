@@ -72,4 +72,3 @@ class TestDataPreprocessor:
 
         assert train.n_obs >= 0  # May be 0 if no males/females
         assert test.n_obs >= 0
-

@@ -19,9 +19,7 @@ class TestEDAHandler:
         """Create a small sample AnnData object for testing."""
         n_obs, n_vars = 100, 200
 
-        X = np.random.negative_binomial(5, 0.3, size=(n_obs, n_vars)).astype(
-            np.float32
-        )
+        X = np.random.negative_binomial(5, 0.3, size=(n_obs, n_vars)).astype(np.float32)
 
         obs = pd.DataFrame(
             {

@@ -142,7 +142,4 @@ def test_model_queue_execution_control():
 
 
 if __name__ == "__main__":
-    print("🚀 Running model queue end-to-end tests...")
-    test_model_queue_e2e_with_tiny_dataset()
     test_model_queue_execution_control()
-    print("🎉 All model queue e2e tests passed!")

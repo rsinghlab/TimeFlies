@@ -1,5 +1,6 @@
 """Fruit Fly Aging project-specific configuration management."""
 
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -8,7 +9,6 @@ from typing import Any, Optional
 import yaml
 
 from timeflies.utils.exceptions import ConfigurationError
-import logging
 
 logger = logging.getLogger(__name__)
 

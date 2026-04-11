@@ -5,13 +5,13 @@ This module handles the active project selection and automatic config loading.
 It reads the active_project.yaml file to determine which project config to use.
 """
 
+import logging
 import os
 from typing import Any
 
 import yaml
 
 from ..utils.exceptions import ConfigurationError
-import logging
 
 logger = logging.getLogger(__name__)
 

@@ -14,12 +14,11 @@ Example: data/processed/uncorrected/head_cnn_age/all-genes_all-cells_all-sexes/
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
-
-import logging
 
 logger = logging.getLogger(__name__)
 

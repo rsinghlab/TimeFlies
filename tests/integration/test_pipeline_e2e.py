@@ -22,7 +22,9 @@ from timeflies.models.model_factory import (
     XGBoostModel,
 )
 
-FIXTURE = Path(__file__).parent.parent / "fixtures" / "fruitfly_aging" / "tiny_head.h5ad"
+FIXTURE = (
+    Path(__file__).parent.parent / "fixtures" / "fruitfly_aging" / "tiny_head.h5ad"
+)
 NUM_CLASSES = 4  # ages: 5, 30, 50, 70
 
 

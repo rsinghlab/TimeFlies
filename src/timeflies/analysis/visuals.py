@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import warnings
@@ -16,8 +17,6 @@ from sklearn.metrics import (
     roc_curve,
 )
 from sklearn.preprocessing import label_binarize
-
-import logging
 
 logger = logging.getLogger(__name__)
 
