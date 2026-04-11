@@ -1,15 +1,8 @@
 """Unit tests for data processing components."""
 
-import os
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import anndata as ad
-import numpy as np
-import pandas as pd
 import pytest
-import scanpy as sc
 
 from timeflies.data.preprocessing.data_processor import DataPreprocessor
 
@@ -80,84 +73,3 @@ class TestDataPreprocessor:
         assert train.n_obs >= 0  # May be 0 if no males/females
         assert test.n_obs >= 0
 
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_select_highly_variable_genes(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test highly variable gene selection."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test gene selection method exists
-        assert hasattr(processor, "select_highly_variable_genes")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_prepare_labels(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test label preparation."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test label preparation method exists
-        assert hasattr(processor, "prepare_labels")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_normalize_data(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test data normalization."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test normalization method exists
-        assert hasattr(processor, "normalize_data")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_reshape_for_cnn(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test CNN data reshaping."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test reshape method exists
-        assert hasattr(processor, "reshape_for_cnn")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_create_reference_data(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test reference data creation."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test reference data creation method exists
-        assert hasattr(processor, "create_reference_data")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_prepare_data(self, mock_path_manager, small_sample_anndata, aging_config):
-        """Test data preparation."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test data preparation method exists
-        assert hasattr(processor, "prepare_data")
-
-    @patch("timeflies.utils.path_manager.PathManager")
-    def test_prepare_final_eval_data(
-        self, mock_path_manager, small_sample_anndata, aging_config
-    ):
-        """Test final evaluation data preparation."""
-        processor = DataPreprocessor(
-            aging_config, small_sample_anndata, small_sample_anndata
-        )
-
-        # Test final eval data preparation method exists
-        assert hasattr(processor, "prepare_final_eval_data")

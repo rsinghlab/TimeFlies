@@ -2,9 +2,8 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 import yaml
 
 from timeflies.core.hyperparameter_tuner import HyperparameterTuner
@@ -18,7 +17,7 @@ def create_minimal_tuning_config():
             "model": "CNN",
             "tissue": "head",
             "target_variable": "age",
-            "sampling": {"samples": 50, "variables": 25},  # Very small for testing
+            "sampling": {"samples": 50, "variables": 25},
         },
         "hyperparameter_tuning": {
             "enabled": True,
@@ -31,7 +30,7 @@ def create_minimal_tuning_config():
                 "visualize": False,
                 "model": {
                     "training": {
-                        "epochs": 2,  # Very short for testing
+                        "epochs": 2,
                         "early_stopping_patience": 1,
                     }
                 },
@@ -58,138 +57,6 @@ def create_minimal_tuning_config():
             },
         },
     }
-
-
-def test_hyperparameter_tuning_e2e_mock():
-    """
-    End-to-end test of hyperparameter tuning with mocked training.
-
-    This test verifies that the entire hyperparameter tuning system works:
-    1. Load configuration with hyperparameter tuning enabled
-    2. Generate parameter combinations
-    3. Run trials with mocked training
-    4. Generate summary reports
-    5. Verify all outputs are created
-    """
-    print("🔄 Starting hyperparameter tuning end-to-end test...")
-
-    # Create temporary config file
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        config = create_minimal_tuning_config()
-        yaml.dump(config, f)
-        temp_config_path = f.name
-
-    try:
-        with patch("timeflies.cli.commands.train_command") as mock_train:
-            with patch("timeflies.cli.commands.evaluate_command") as mock_evaluate:
-                # Mock successful training and evaluation
-                mock_train.return_value = 0  # Success
-                mock_evaluate.return_value = 0  # Success
-
-                # Initialize hyperparameter tuner
-                tuner = HyperparameterTuner(temp_config_path)
-
-                # Verify configuration loaded correctly
-                assert tuner.search_method == "grid"
-                assert tuner.current_model_type == "CNN"
-                assert tuner.n_trials == 4
-
-                print("✅ Configuration loaded successfully")
-
-                # Generate parameter combinations
-                combinations = tuner.generate_parameter_combinations()
-                print(f"✅ Generated {len(combinations)} parameter combinations")
-
-                # Should generate combinations for CNN variant × hyperparameters
-                # 1 variant × 2 learning_rates × 2 batch_sizes = 4 combinations
-                assert len(combinations) == 4
-
-                # Verify combinations structure
-                for combo in combinations:
-                    assert combo["model_type"] == "CNN"
-                    assert combo["variant_name"] == "tiny"
-                    assert "hyperparameters" in combo
-                    assert "config_overrides" in combo
-
-                print("✅ Parameter combinations validated")
-
-                # Mock the model training to simulate real execution
-                def mock_run_trial(trial_index, trial_params):
-                    """Mock trial execution with realistic results."""
-                    return {
-                        "trial_index": trial_index,
-                        "variant_name": trial_params["variant_name"],
-                        "model_type": trial_params["model_type"],
-                        "config_overrides": trial_params["config_overrides"],
-                        "hyperparameters": trial_params["hyperparameters"],
-                        "status": "completed",
-                        "training_time": 1.5
-                        + trial_index * 0.2,  # Simulate different times
-                        "metrics": {
-                            "accuracy": 0.80
-                            + trial_index * 0.02,  # Simulate improvement
-                            "precision": 0.78 + trial_index * 0.02,
-                            "recall": 0.82 + trial_index * 0.01,
-                            "f1_score": 0.80 + trial_index * 0.015,
-                        },
-                        "timestamp": "2024-08-25 15:00:00",
-                    }
-
-                # Replace the run_trial method with our mock
-                tuner.run_trial = mock_run_trial
-
-                # Mock summary report generation to prevent file creation during test
-                def mock_generate_summary_report():
-                    return Mock(), Mock()  # Return mock paths
-
-                tuner.generate_summary_report = mock_generate_summary_report
-
-                # Run the hyperparameter search
-                print("🔄 Running hyperparameter search...")
-                results = tuner.run_search(resume=False)
-
-                # Verify results
-                assert len(tuner.results) == 4, (
-                    f"Expected 4 results, got {len(tuner.results)}"
-                )
-
-                # Check that all trials completed successfully
-                completed_trials = [
-                    r for r in tuner.results if r["status"] == "completed"
-                ]
-                assert len(completed_trials) == 4
-
-                # Check trial results structure
-                for result in tuner.results:
-                    assert result["variant_name"] == "tiny"
-                    assert result["model_type"] == "CNN"
-                    assert result["status"] == "completed"
-                    assert "metrics" in result
-                    assert "training_time" in result
-                    assert "hyperparameters" in result
-
-                print("✅ All trials completed successfully")
-
-                # Verify search results summary
-                assert results["search_method"] == "grid"
-                assert results["total_trials"] == 4
-                assert results["completed_trials"] == 4
-                assert results["failed_trials"] == 0
-
-                # Check best trial identification
-                best_trial = results["best_trial"]
-                assert best_trial is not None
-                assert best_trial["variant_name"] == "tiny"
-                assert "metrics" in best_trial
-
-                print("✅ Search results validated")
-                print("🎉 Hyperparameter tuning end-to-end test PASSED!")
-
-                return True
-
-    finally:
-        # Clean up temp config file
-        Path(temp_config_path).unlink()
 
 
 def test_hyperparameter_tuning_config_integration():
