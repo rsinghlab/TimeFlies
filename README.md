@@ -23,7 +23,7 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 # 1. Place *_original.h5ad files in data/[project]/[tissue]/
 # 2. Edit configs/default.yaml
 
-timeflies setup          # create holdout evaluation set, create directories
+timeflies setup          # create holdout eval set, directories
 timeflies train          # train model with automatic evaluation
 timeflies evaluate       # evaluate on holdout set
 ```
@@ -66,7 +66,7 @@ All settings live in `configs/`:
 | File | Purpose |
 |------|---------|
 | `default.yaml` | Project, model, data paths, and training hyperparameters |
-| `setup.yaml` | Holdout evaluation set creation (size, stratification) |
+| `setup.yaml` | Holdout evaluation set, sampling, and directory creation |
 | `batch_correction.yaml` | scVI batch correction settings |
 
 Example configs for hyperparameter tuning and model queues are in `examples/`.
