@@ -1,47 +1,38 @@
 # OS
 .DS_Store
 
-# Data files and directories
+# Data
 data/
 *.h5ad
 *.npy
-
-# 3-Tier Test Data Strategy
-!tests/fixtures/*/tiny_*.h5ad          # Tier 1: Committed tiny fixtures
-!tests/fixtures/*/tiny_*_metadata.json # Metadata for generation
-tests/fixtures/*/synthetic_*.h5ad      # Tier 2: Generated on demand
-tests/fixtures/*/real_*.h5ad          # Tier 3: Local dev only
-
-# Environments
-.venv/
+!tests/fixtures/*/tiny_*.h5ad
+!tests/fixtures/*/tiny_*_metadata.json
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 *.egg-info/
-
-# Build artifacts
 build/
 dist/
 
-# Results and models
+# Outputs
 outputs/
-tests/outputs/      # Test-specific outputs (temporary)
+tests/outputs/
 *.pkl
+*.log
 .coverage
 coverage/
+htmlcov/
 
-# Development tools
+# Tools
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.claude/
 .benchmarks/
 .env
-CLAUDE.md
 
 # IDE
 .vscode/
 .idea/
-*.ipynb_checkpoints
-TODO.md
+.ipynb_checkpoints/
