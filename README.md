@@ -23,9 +23,9 @@ Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 # 1. Place *_original.h5ad files in data/[project]/[tissue]/
 # 2. Edit configs/default.yaml
 
-timeflies setup          # split data, create directories
+timeflies setup          # create holdout evaluation set, create directories
 timeflies train          # train model with automatic evaluation
-timeflies evaluate       # evaluate on held-out test data
+timeflies evaluate       # evaluate on holdout set
 ```
 
 ### Python
@@ -66,7 +66,7 @@ All settings live in `configs/`:
 | File | Purpose |
 |------|---------|
 | `default.yaml` | Project, model, data paths, and training hyperparameters |
-| `setup.yaml` | Data splitting (split ratio, stratification) |
+| `setup.yaml` | Holdout evaluation set creation (size, stratification) |
 | `batch_correction.yaml` | scVI batch correction settings |
 
 Example configs for hyperparameter tuning and model queues are in `examples/`.
